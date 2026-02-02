@@ -7,13 +7,19 @@ import (
 // RuinCommand wraps the ruin CLI for executing commands.
 type RuinCommand struct {
 	vaultPath string
+	Search    *SearchCommand
+	Tags      *TagsCommand
+	Queries   *QueriesCommand
 }
 
 // NewRuinCommand creates a new RuinCommand with the given vault path.
 func NewRuinCommand(vaultPath string) *RuinCommand {
-	return &RuinCommand{
-		vaultPath: vaultPath,
-	}
+	r := &RuinCommand{vaultPath: vaultPath}
+	r.Search = NewSearchCommand(r)
+	r.Tags = NewTagsCommand(r)
+	r.Queries = NewQueriesCommand(r)
+
+	return r
 }
 
 // VaultPath returns the configured vault path.
