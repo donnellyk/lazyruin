@@ -46,7 +46,7 @@ func (q *QueriesCommand) Save(name, queryStr string) error {
 	return err
 }
 
-func (q *QueriesCommand) Delete(name, queryStr string) error {
-	_, err := q.ruin.Execute("query", "delete", name, queryStr)
+func (q *QueriesCommand) Delete(name string) error {
+	_, err := q.ruin.Execute("query", "delete", name)
 	return err
 }

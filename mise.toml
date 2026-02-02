@@ -1,0 +1,30 @@
+[tools]
+go = "1.23"
+
+[tasks.build]
+description = "Build the lazyruin binary"
+run = "go build -o lazyruin ."
+
+[tasks.run]
+description = "Build and run lazyruin"
+run = "go run ."
+
+[tasks.install]
+description = "Install lazyruin to GOPATH/bin"
+run = "go install ."
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./..."
+
+[tasks.test-v]
+description = "Run all tests with verbose output"
+run = "go test -v ./..."
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "rm -f lazyruin"
+
+[tasks.lint]
+description = "Run go vet"
+run = "go vet ./..."

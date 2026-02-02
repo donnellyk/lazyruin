@@ -31,3 +31,8 @@ func (t *TagsCommand) Rename(oldName, newName string) error {
 	_, err := t.ruin.Execute("tags", "rename", oldName, newName, "-f")
 	return err
 }
+
+func (t *TagsCommand) Delete(name string) error {
+	_, err := t.ruin.Execute("tags", "delete", name, "-f")
+	return err
+}
