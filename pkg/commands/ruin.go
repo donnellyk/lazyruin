@@ -7,6 +7,7 @@ import (
 // RuinCommand wraps the ruin CLI for executing commands.
 type RuinCommand struct {
 	vaultPath string
+	executor  Executor
 	Search    *SearchCommand
 	Tags      *TagsCommand
 	Queries   *QueriesCommand
@@ -14,7 +15,23 @@ type RuinCommand struct {
 
 // NewRuinCommand creates a new RuinCommand with the given vault path.
 func NewRuinCommand(vaultPath string) *RuinCommand {
-	r := &RuinCommand{vaultPath: vaultPath}
+	r := &RuinCommand{
+		vaultPath: vaultPath,
+	}
+	r.Search = NewSearchCommand(r)
+	r.Tags = NewTagsCommand(r)
+	r.Queries = NewQueriesCommand(r)
+
+	return r
+}
+
+// NewRuinCommandWithExecutor creates a new RuinCommand with a custom executor.
+// Use this for testing with a mock executor.
+func NewRuinCommandWithExecutor(executor Executor, vaultPath string) *RuinCommand {
+	r := &RuinCommand{
+		vaultPath: vaultPath,
+		executor:  executor,
+	}
 	r.Search = NewSearchCommand(r)
 	r.Tags = NewTagsCommand(r)
 	r.Queries = NewQueriesCommand(r)
@@ -38,6 +55,12 @@ func (r *RuinCommand) VaultExists() bool {
 // Execute runs a ruin command with the given arguments.
 // It automatically appends --json and --vault flags.
 func (r *RuinCommand) Execute(args ...string) ([]byte, error) {
+	// Use injected executor if available
+	if r.executor != nil {
+		return r.executor.Execute(args...)
+	}
+
+	// Default to CLI execution
 	fullArgs := append(args, "--json", "--vault", r.vaultPath)
 	cmd := exec.Command("ruin", fullArgs...)
 	return cmd.Output()

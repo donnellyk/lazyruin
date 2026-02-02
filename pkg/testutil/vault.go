@@ -14,12 +14,15 @@ var noteCounter atomic.Int64
 
 // TestVault manages a temporary vault for testing.
 type TestVault struct {
-	Path string
-	t    *testing.T
+	Path            string
+	t               *testing.T
+	origVaultEnv    string
+	origVaultEnvSet bool
 }
 
 // NewTestVault creates and initializes a temporary vault.
 // The vault is automatically cleaned up when the test completes.
+// Also saves and restores the original LAZYRUIN_VAULT environment variable.
 func NewTestVault(t *testing.T) *TestVault {
 	t.Helper()
 
@@ -27,6 +30,9 @@ func NewTestVault(t *testing.T) *TestVault {
 	if _, err := exec.LookPath("ruin"); err != nil {
 		t.Skip("ruin CLI not found in PATH")
 	}
+
+	// Save original vault environment
+	origVaultEnv, origVaultEnvSet := os.LookupEnv("LAZYRUIN_VAULT")
 
 	// Create temp directory
 	dir, err := os.MkdirTemp("", "lazyruin-test-*")
@@ -44,16 +50,41 @@ func NewTestVault(t *testing.T) *TestVault {
 	}
 
 	tv := &TestVault{
-		Path: vaultPath,
-		t:    t,
+		Path:            vaultPath,
+		t:               t,
+		origVaultEnv:    origVaultEnv,
+		origVaultEnvSet: origVaultEnvSet,
 	}
 
 	// Register cleanup
 	t.Cleanup(func() {
-		os.RemoveAll(dir)
+		tv.cleanup()
 	})
 
 	return tv
+}
+
+// cleanup restores the original vault environment and removes temp files.
+func (tv *TestVault) cleanup() {
+	// Restore original LAZYRUIN_VAULT environment variable
+	if tv.origVaultEnvSet {
+		os.Setenv("LAZYRUIN_VAULT", tv.origVaultEnv)
+	} else {
+		os.Unsetenv("LAZYRUIN_VAULT")
+	}
+
+	// Remove temp directory
+	if tv.Path != "" {
+		dir := filepath.Dir(tv.Path)
+		os.RemoveAll(dir)
+	}
+}
+
+// SetAsDefault sets this test vault as the default via environment variable.
+// The original value is restored on cleanup.
+func (tv *TestVault) SetAsDefault() {
+	tv.t.Helper()
+	os.Setenv("LAZYRUIN_VAULT", tv.Path)
 }
 
 // CreateNote creates a test note in the vault.
