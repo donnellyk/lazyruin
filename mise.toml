@@ -3,11 +3,11 @@ go = "1.23"
 
 [tasks.build]
 description = "Build the lazyruin binary"
-run = "go build -o lazyruin ."
+run = "go build -o bin/lazyruin ."
 
 [tasks.run]
 description = "Build and run lazyruin"
-run = "go run ."
+run = "go build -o bin/lazyruin . && ./bin/lazyruin"
 
 [tasks.install]
 description = "Install lazyruin to GOPATH/bin"
@@ -31,7 +31,11 @@ run = "go test -tags=integration ./..."
 
 [tasks.clean]
 description = "Remove build artifacts"
-run = "rm -f lazyruin"
+run = "rm -rf bin/"
+
+[tasks.fmt]
+description = "Format all Go files"
+run = "go fmt ./..."
 
 [tasks.lint]
 description = "Run go vet"
