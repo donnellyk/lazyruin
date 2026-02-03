@@ -28,6 +28,7 @@ type GuiState struct {
 	PreviousContext ContextKey
 	SearchQuery     string
 	SearchMode      bool
+	Initialized     bool
 }
 
 type NotesState struct {

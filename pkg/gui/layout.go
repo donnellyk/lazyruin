@@ -21,7 +21,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		sidebarWidth = 20
 	}
 
-	statusHeight := 1
+	statusHeight := 2
 	contentHeight := maxY - statusHeight
 
 	// Sidebar panel heights - Notes 50%, Queries & Tags 25%
@@ -35,7 +35,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
-	if err := gui.createQueriesView(g, 0, notesHeight, sidebarWidth-1, notesHeight); err != nil {
+	if err := gui.createQueriesView(g, 0, notesHeight, sidebarWidth-1, notesHeight+queriesHeight-1); err != nil {
 		return err
 	}
 
@@ -56,7 +56,12 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			return err
 		}
 	} else {
-		g.DeleteView(SearchView)
+		g.DeleteView(SearchView) // ignore error if view doesn't exist
+	}
+
+	if !gui.state.Initialized {
+		gui.state.Initialized = true
+		g.SetCurrentView(NotesView)
 	}
 
 	return nil
@@ -64,7 +69,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(NotesView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
@@ -85,11 +90,11 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(QueriesView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
-	gui.views.Notes = v
+	gui.views.Queries = v
 	v.Title = " [2] Queries "
 	v.Highlight = true
 	v.SelBgColor = gocui.ColorBlue
@@ -106,11 +111,11 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(TagsView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
-	gui.views.Notes = v
+	gui.views.Tags = v
 	v.Title = " [3] Tags "
 	v.Highlight = true
 	v.SelBgColor = gocui.ColorBlue
@@ -127,7 +132,7 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(PreviewView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
@@ -146,7 +151,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 func (gui *Gui) createStatusView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(StatusView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
@@ -171,7 +176,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	y1 := y0 + height
 
 	v, err := g.SetView(SearchView, x0, y0, x1, y1, 0)
-	if err != nil && err != gocui.ErrUnknownView {
+	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
@@ -187,11 +192,11 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) updateStatusBar() {
-	if gui.views.Search == nil {
+	if gui.views.Status == nil {
 		return
 	}
 
-	gui.views.Search.Clear()
+	gui.views.Status.Clear()
 
 	var hints string
 	switch gui.state.CurrentContext {

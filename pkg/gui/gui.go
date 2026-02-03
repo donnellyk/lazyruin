@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"fmt"
-
 	"kvnd/lazyruin/pkg/commands"
 
 	"github.com/jesseduffield/gocui"
@@ -45,8 +43,6 @@ func (gui *Gui) Run() error {
 	}
 
 	gui.refreshAll()
-
-	g.SetCurrentView(NotesView)
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		return err
@@ -119,25 +115,6 @@ func (gui *Gui) contextToView(ctx ContextKey) string {
 		return SearchView
 	}
 	return NotesView
-}
-
-// layout is called on every render to set up views.
-func (gui *Gui) oldLayout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
-
-	// For now, just create a simple main view
-	if v, err := g.SetView("main", 0, 0, maxX-1, maxY-1, 0); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Title = " LazyRuin "
-		v.Wrap = true
-		fmt.Fprintf(v, "Welcome to LazyRuin!\n\n")
-		fmt.Fprintf(v, "Vault: %s\n\n", gui.ruinCmd.VaultPath())
-		fmt.Fprintf(v, "Press 'q' to quit.\n")
-	}
-
-	return nil
 }
 
 // setupKeybindings configures keyboard shortcuts.
