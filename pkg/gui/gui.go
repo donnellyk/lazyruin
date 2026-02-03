@@ -58,15 +58,14 @@ func (gui *Gui) refreshAll() {
 }
 
 func (gui *Gui) refreshNotes() {
-	notes, err := gui.ruinCmd.Search.Today() // TODO: Fix this!
+	notes, err := gui.ruinCmd.Search.Today()
 	if err != nil {
-		// Show error in status - TODO?
 		return
 	}
 
 	gui.state.Notes.Items = notes
 	gui.state.Notes.SelectedIndex = 0
-	// gui.renderNotes() // TODO:
+	gui.renderNotes()
 }
 
 func (gui *Gui) refreshTags() {
@@ -77,7 +76,7 @@ func (gui *Gui) refreshTags() {
 
 	gui.state.Tags.Items = tags
 	gui.state.Tags.SelectedIndex = 0
-	// gui.renderTags() // TODO:
+	gui.renderTags()
 }
 
 func (gui *Gui) refreshQueries() {
@@ -88,7 +87,7 @@ func (gui *Gui) refreshQueries() {
 
 	gui.state.Queries.Items = queries
 	gui.state.Queries.SelectedIndex = 0
-	// gui.renderQueries() // TODO:
+	gui.renderQueries()
 }
 
 func (gui *Gui) setContext(ctx ContextKey) {
@@ -115,21 +114,4 @@ func (gui *Gui) contextToView(ctx ContextKey) string {
 		return SearchView
 	}
 	return NotesView
-}
-
-// setupKeybindings configures keyboard shortcuts.
-func (gui *Gui) setupKeybindings() error {
-	// Quit
-	if err := gui.g.SetKeybinding("", 'q', gocui.ModNone, quit); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
 }

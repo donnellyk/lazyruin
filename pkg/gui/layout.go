@@ -62,6 +62,10 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	if !gui.state.Initialized {
 		gui.state.Initialized = true
 		g.SetCurrentView(NotesView)
+		gui.renderNotes()
+		gui.renderTags()
+		gui.renderQueries()
+		gui.renderPreview()
 	}
 
 	return nil
