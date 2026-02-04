@@ -4,6 +4,7 @@
 # Docs
 /docs/
 CLAUDE.local.md
+/.claude/
 
 # Test coverage
 coverage.out
