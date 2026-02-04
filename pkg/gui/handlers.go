@@ -80,18 +80,32 @@ func (gui *Gui) cycleNotesTab() {
 	gui.loadNotesForCurrentTab()
 }
 
+// buildSearchOptions returns SearchOptions based on current preview toggle state
+func (gui *Gui) buildSearchOptions() commands.SearchOptions {
+	return commands.SearchOptions{
+		IncludeContent:  true,
+		StripGlobalTags: !gui.state.Preview.ShowGlobalTags,
+		StripTitle:      !gui.state.Preview.ShowTitle,
+	}
+}
+
 // loadNotesForCurrentTab loads notes based on the current tab
 func (gui *Gui) loadNotesForCurrentTab() {
 	var notes []models.Note
 	var err error
 
+	opts := gui.buildSearchOptions()
+	opts.Sort = "created:desc"
+
 	switch gui.state.Notes.CurrentTab {
 	case NotesTabAll:
-		notes, err = gui.ruinCmd.Search.All(50)
+		opts.Limit = 50
+		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
 	case NotesTabToday:
 		notes, err = gui.ruinCmd.Search.Today()
 	case NotesTabRecent:
-		notes, err = gui.ruinCmd.Search.Recent(20)
+		opts.Limit = 20
+		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)
 	}
 
 	if err == nil {
@@ -121,7 +135,8 @@ func (gui *Gui) focusPreview(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.SearchQuery != "" {
 		// Re-run search to restore results to Preview pane
-		notes, err := gui.ruinCmd.Search.Search(gui.state.SearchQuery, commands.SearchOptions{IncludeContent: true})
+		opts := gui.buildSearchOptions()
+		notes, err := gui.ruinCmd.Search.Search(gui.state.SearchQuery, opts)
 		if err == nil {
 			gui.state.Preview.Mode = PreviewModeCardList
 			gui.state.Preview.Cards = notes
@@ -277,7 +292,8 @@ func (gui *Gui) filterByTag(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
-	notes, err := gui.ruinCmd.Search.ByTag(tag.Name)
+	opts := gui.buildSearchOptions()
+	notes, err := gui.ruinCmd.Search.Search(tag.Name, opts)
 	if err != nil {
 		return nil
 	}
@@ -335,14 +351,63 @@ func (gui *Gui) toggleFrontmatter(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) toggleTitle(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.ShowTitle = !gui.state.Preview.ShowTitle
-	gui.renderPreview()
+	gui.reloadContent()
 	return nil
 }
 
 func (gui *Gui) toggleGlobalTags(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.ShowGlobalTags = !gui.state.Preview.ShowGlobalTags
-	gui.renderPreview()
+	gui.reloadContent()
 	return nil
+}
+
+// reloadContent reloads notes from CLI with current toggle settings
+func (gui *Gui) reloadContent() {
+	// Reload notes for the Notes pane
+	gui.loadNotesForCurrentTab()
+
+	// Reload cards in Preview pane if in card list mode
+	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
+		gui.reloadPreviewCards()
+	}
+}
+
+// reloadPreviewCards reloads the preview cards based on what generated them
+func (gui *Gui) reloadPreviewCards() {
+	opts := gui.buildSearchOptions()
+
+	// If there's an active search query, reload search results
+	if gui.state.SearchQuery != "" {
+		notes, err := gui.ruinCmd.Search.Search(gui.state.SearchQuery, opts)
+		if err == nil {
+			gui.state.Preview.Cards = notes
+		}
+		gui.renderPreview()
+		return
+	}
+
+	// Otherwise, reload based on previous context
+	switch gui.state.PreviousContext {
+	case TagsContext:
+		if len(gui.state.Tags.Items) > 0 {
+			tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
+			notes, err := gui.ruinCmd.Search.Search(tag.Name, opts)
+			if err == nil {
+				gui.state.Preview.Cards = notes
+			}
+		}
+	case QueriesContext:
+		if len(gui.state.Queries.Items) > 0 {
+			query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
+			// Query run doesn't support strip options, so we re-search
+			notes, err := gui.ruinCmd.Queries.Run(query.Name)
+			if err == nil {
+				gui.state.Preview.Cards = notes
+			}
+		}
+	}
+
+	gui.renderPreview()
 }
 
 func (gui *Gui) focusNoteFromPreview(g *gocui.Gui, v *gocui.View) error {
@@ -376,7 +441,8 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 		return gui.cancelSearch(g, v)
 	}
 
-	notes, err := gui.ruinCmd.Search.Search(query, commands.SearchOptions{IncludeContent: true})
+	opts := gui.buildSearchOptions()
+	notes, err := gui.ruinCmd.Search.Search(query, opts)
 	if err != nil {
 		return nil
 	}
@@ -430,7 +496,8 @@ func (gui *Gui) updatePreviewForTags() {
 	}
 
 	tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
-	notes, _ := gui.ruinCmd.Search.ByTag(tag.Name)
+	opts := gui.buildSearchOptions()
+	notes, _ := gui.ruinCmd.Search.Search(tag.Name, opts)
 
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes

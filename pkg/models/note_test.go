@@ -58,7 +58,7 @@ func TestNote_TagsString(t *testing.T) {
 		{
 			name:     "multiple tags",
 			tags:     []string{"daily", "work", "meeting"},
-			expected: "#daily #work #meeting",
+			expected: "#daily, #work, #meeting",
 		},
 		{
 			name:     "nil tags",

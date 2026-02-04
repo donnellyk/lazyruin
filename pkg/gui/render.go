@@ -195,10 +195,7 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 		fmt.Fprintln(v, "")
 	}
 
-	// Apply content filtering based on toggle state
-	content := gui.filterContent(note.Content)
-
-	lines := strings.Split(content, "\n")
+	lines := strings.Split(note.Content, "\n")
 	start := gui.state.Preview.ScrollOffset
 	if start >= len(lines) {
 		start = 0
@@ -298,7 +295,6 @@ func (gui *Gui) renderCardViews() {
 		if content == "" {
 			content, _ = gui.loadNoteContent(note.Path)
 		}
-		content = gui.filterContent(content)
 		contentLines := strings.Split(content, "\n")
 		maxLines := 4
 		for j, l := range contentLines {
@@ -339,60 +335,4 @@ func (gui *Gui) loadNoteContent(path string) (string, error) {
 	}
 
 	return content, nil
-}
-
-// filterContent applies display filters based on preview toggle state
-func (gui *Gui) filterContent(content string) string {
-	lines := strings.Split(content, "\n")
-	var result []string
-	skipNextEmpty := false
-
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// Handle global tags (lines that are only hashtags at the start)
-		if !gui.state.Preview.ShowGlobalTags && i < 3 {
-			if isGlobalTagLine(trimmed) {
-				skipNextEmpty = true
-				continue
-			}
-		}
-
-		// Handle title (first H1 heading)
-		if !gui.state.Preview.ShowTitle {
-			if strings.HasPrefix(trimmed, "# ") && len(result) == 0 {
-				skipNextEmpty = true
-				continue
-			}
-		}
-
-		// Skip empty lines after stripped content
-		if skipNextEmpty && trimmed == "" {
-			skipNextEmpty = false
-			continue
-		}
-		skipNextEmpty = false
-
-		result = append(result, line)
-	}
-
-	return strings.Join(result, "\n")
-}
-
-// isGlobalTagLine checks if a line contains only hashtags (global tags)
-func isGlobalTagLine(line string) bool {
-	if line == "" {
-		return false
-	}
-	// Line should be space-separated hashtags like "#tag1 #tag2"
-	parts := strings.Fields(line)
-	if len(parts) == 0 {
-		return false
-	}
-	for _, part := range parts {
-		if !strings.HasPrefix(part, "#") {
-			return false
-		}
-	}
-	return true
 }

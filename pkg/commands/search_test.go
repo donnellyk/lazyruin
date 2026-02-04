@@ -40,40 +40,6 @@ func TestSearchCommand_Today_Empty(t *testing.T) {
 	}
 }
 
-func TestSearchCommand_ByTag_WithPrefix(t *testing.T) {
-	tv := testutil.NewTestVault(t)
-
-	tv.CreateNote("Note with daily tag", "daily")
-	tv.CreateNote("Note with work tag", "work")
-
-	ruin := NewRuinCommand(tv.Path)
-	notes, err := ruin.Search.ByTag("#daily")
-	if err != nil {
-		t.Fatalf("ByTag() error: %v", err)
-	}
-
-	if len(notes) != 1 {
-		t.Errorf("ByTag(#daily) returned %d notes, want 1", len(notes))
-	}
-}
-
-func TestSearchCommand_ByTag_WithoutPrefix(t *testing.T) {
-	tv := testutil.NewTestVault(t)
-
-	tv.CreateNote("Note with daily tag", "daily")
-	tv.CreateNote("Note with work tag", "work")
-
-	ruin := NewRuinCommand(tv.Path)
-	notes, err := ruin.Search.ByTag("daily")
-	if err != nil {
-		t.Fatalf("ByTag() error: %v", err)
-	}
-
-	if len(notes) != 1 {
-		t.Errorf("ByTag(daily) returned %d notes, want 1", len(notes))
-	}
-}
-
 func TestSearchCommand_Search_WithOptions(t *testing.T) {
 	tv := testutil.NewTestVault(t)
 

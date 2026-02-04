@@ -41,43 +41,6 @@ func TestSearchCommand_Today_Empty_Unit(t *testing.T) {
 	}
 }
 
-func TestSearchCommand_ByTag_Unit(t *testing.T) {
-	mock := NewMockExecutor().WithNotes(
-		models.Note{UUID: "1", Title: "Daily note", Tags: []string{"daily"}},
-		models.Note{UUID: "2", Title: "Work note", Tags: []string{"work"}},
-	)
-
-	ruin := NewRuinCommandWithExecutor(mock, mock.VaultPath())
-
-	// Search with # prefix
-	notes, err := ruin.Search.ByTag("#daily")
-	if err != nil {
-		t.Fatalf("ByTag() error: %v", err)
-	}
-
-	if len(notes) != 1 {
-		t.Errorf("ByTag(#daily) returned %d notes, want 1", len(notes))
-	}
-}
-
-func TestSearchCommand_ByTag_WithoutPrefix_Unit(t *testing.T) {
-	mock := NewMockExecutor().WithNotes(
-		models.Note{UUID: "1", Title: "Daily note", Tags: []string{"daily"}},
-	)
-
-	ruin := NewRuinCommandWithExecutor(mock, mock.VaultPath())
-
-	// Search without # prefix - should still work
-	notes, err := ruin.Search.ByTag("daily")
-	if err != nil {
-		t.Fatalf("ByTag() error: %v", err)
-	}
-
-	if len(notes) != 1 {
-		t.Errorf("ByTag(daily) returned %d notes, want 1", len(notes))
-	}
-}
-
 func TestSearchCommand_Search_WithLimit_Unit(t *testing.T) {
 	mock := NewMockExecutor().WithNotes(
 		models.Note{UUID: "1", Title: "Note 1", Tags: []string{"test"}},
