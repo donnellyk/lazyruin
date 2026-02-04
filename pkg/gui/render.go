@@ -271,7 +271,7 @@ func (gui *Gui) renderCardViews() {
 			title = "Untitled"
 		}
 		cardView.Title = " " + title + " "
-		cardView.Footer = fmt.Sprintf("%s  %s", note.TagsString(), note.ShortDate())
+		cardView.Footer = fmt.Sprintf("%s-%s", note.TagsString(), note.ShortDate())
 		cardView.Wrap = true
 		setRoundedCorners(cardView)
 

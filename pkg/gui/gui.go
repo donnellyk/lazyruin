@@ -57,6 +57,7 @@ func (gui *Gui) runMainLoop() error {
 	gui.views = &Views{} // Reset views for fresh layout
 	g.Mouse = true
 	g.Cursor = false
+	g.ShowListFooter = true
 	g.SetManager(gocui.ManagerFunc(gui.layout))
 
 	if err := gui.setupKeybindings(); err != nil {

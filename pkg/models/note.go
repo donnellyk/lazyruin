@@ -20,7 +20,7 @@ func (n *Note) TagsString() string {
 	result := ""
 	for i, tag := range n.Tags {
 		if i > 0 {
-			result += " "
+			result += ", "
 		}
 		if len(tag) > 0 && tag[0] != '#' {
 			result += "#"
