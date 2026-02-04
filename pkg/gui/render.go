@@ -238,20 +238,39 @@ func (gui *Gui) renderCardViews() {
 		cardHeight += 2
 	}
 	cardWidth := x1 - x0 - 2 // Leave margin inside preview
+	availableHeight := y1 - y0 - 2
+
+	// Calculate how many cards fit on screen
+	cardsPerPage := availableHeight / (cardHeight + 1)
+	if cardsPerPage < 1 {
+		cardsPerPage = 1
+	}
+
+	// Calculate scroll offset to keep selected card visible
+	selectedIdx := gui.state.Preview.SelectedCardIndex
+	if selectedIdx >= gui.state.Preview.ScrollOffset+cardsPerPage {
+		gui.state.Preview.ScrollOffset = selectedIdx - cardsPerPage + 1
+	} else if selectedIdx < gui.state.Preview.ScrollOffset {
+		gui.state.Preview.ScrollOffset = selectedIdx
+	}
 
 	// Starting position for first card (inside preview panel)
 	startX := x0 + 1
 	startY := y0 + 1
 	currentY := startY
 
-	for i, note := range cards {
+	// Start from scroll offset
+	startIdx := gui.state.Preview.ScrollOffset
+	for i := startIdx; i < len(cards); i++ {
+		note := cards[i]
+
 		// Stop if we run out of vertical space
 		if currentY+cardHeight > y1-1 {
 			break
 		}
 
 		selected := i == gui.state.Preview.SelectedCardIndex
-		viewName := fmt.Sprintf("card-%d", i)
+		viewName := fmt.Sprintf("card-%d", i-startIdx)
 
 		// Create the card view
 		cardView, err := gui.g.SetView(viewName, startX, currentY, startX+cardWidth, currentY+cardHeight, 0)

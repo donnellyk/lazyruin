@@ -206,9 +206,15 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Preview = v
-	v.Title = " Preview "
 	v.Wrap = true
 	setRoundedCorners(v)
+
+	// Set title with card count for multi-card mode
+	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
+		v.Title = fmt.Sprintf(" Preview (%d of %d) ", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
+	} else {
+		v.Title = " Preview "
+	}
 
 	if gui.state.CurrentContext == PreviewContext {
 		v.FrameColor = gocui.ColorGreen
