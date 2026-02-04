@@ -106,7 +106,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.SearchFilter = v
 	v.Title = "[0]-Search"
-	v.Footer = fmt.Sprintf("%d results", len(gui.state.Notes.Items))
+	v.Footer = fmt.Sprintf("%d results", len(gui.state.Preview.Cards))
 	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == SearchFilterContext {
@@ -293,11 +293,6 @@ func (gui *Gui) updateStatusBar() {
 // getNotesTitle returns the title for the Notes view with tab indicator
 // Selected tab is marked with brackets, entire title colored via TitleColor
 func (gui *Gui) getNotesTitle() string {
-	// If there's an active search, show "Search" instead of tabs
-	if gui.state.SearchQuery != "" {
-		return "[1]-Search Results"
-	}
-
 	tabs := []struct {
 		tab  NotesTab
 		name string

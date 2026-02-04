@@ -60,13 +60,8 @@ func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.CurrentContext == NotesContext {
-		if gui.state.SearchQuery != "" {
-			// If search is active, pressing 1 reloads current tab (clears search)
-			gui.loadNotesForCurrentTab()
-		} else {
-			// Already focused, no search - cycle through tabs
-			gui.cycleNotesTab()
-		}
+		// Already focused - cycle through tabs
+		gui.cycleNotesTab()
 		return nil
 	}
 	gui.setContext(NotesContext)
@@ -86,11 +81,7 @@ func (gui *Gui) cycleNotesTab() {
 }
 
 // loadNotesForCurrentTab loads notes based on the current tab
-// This clears any active search since tabs always show their full results
 func (gui *Gui) loadNotesForCurrentTab() {
-	// Clear search when switching tabs - tabs always show full results
-	gui.state.SearchQuery = ""
-
 	var notes []models.Note
 	var err error
 
@@ -129,6 +120,17 @@ func (gui *Gui) focusPreview(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.SearchQuery != "" {
+		// Re-run search to restore results to Preview pane
+		notes, err := gui.ruinCmd.Search.Search(gui.state.SearchQuery, commands.SearchOptions{IncludeContent: true})
+		if err == nil {
+			gui.state.Preview.Mode = PreviewModeCardList
+			gui.state.Preview.Cards = notes
+			gui.state.Preview.SelectedCardIndex = 0
+			if gui.views.Preview != nil {
+				gui.views.Preview.Title = " Search: " + gui.state.SearchQuery + " "
+			}
+			gui.renderPreview()
+		}
 		gui.setContext(SearchFilterContext)
 	}
 	return nil
@@ -374,19 +376,25 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 		return gui.cancelSearch(g, v)
 	}
 
-	notes, err := gui.ruinCmd.Search.Search(query, commands.SearchOptions{})
+	notes, err := gui.ruinCmd.Search.Search(query, commands.SearchOptions{IncludeContent: true})
 	if err != nil {
 		return nil
 	}
 
-	gui.state.Notes.Items = notes
-	gui.state.Notes.SelectedIndex = 0
+	// Store search query for the search filter pane
 	gui.state.SearchQuery = query
 	gui.state.SearchMode = false
 
-	gui.setContext(NotesContext)
-	gui.renderNotes()
-	gui.updatePreviewForNotes()
+	// Display results in Preview pane (like tags)
+	gui.state.Preview.Mode = PreviewModeCardList
+	gui.state.Preview.Cards = notes
+	gui.state.Preview.SelectedCardIndex = 0
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = " Search: " + query + " "
+	}
+	gui.renderPreview()
+
+	gui.setContext(PreviewContext)
 
 	return nil
 }
