@@ -58,14 +58,7 @@ func (gui *Gui) refreshAll() {
 }
 
 func (gui *Gui) refreshNotes() {
-	notes, err := gui.ruinCmd.Search.Today()
-	if err != nil {
-		return
-	}
-
-	gui.state.Notes.Items = notes
-	gui.state.Notes.SelectedIndex = 0
-	gui.renderNotes()
+	gui.loadNotesForCurrentTab()
 }
 
 func (gui *Gui) refreshTags() {

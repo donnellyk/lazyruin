@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -47,8 +48,48 @@ func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.CurrentContext == NotesContext {
+		// Already focused - cycle through tabs
+		gui.cycleNotesTab()
+		return nil
+	}
 	gui.setContext(NotesContext)
 	return nil
+}
+
+// cycleNotesTab cycles through All -> Today -> Recent tabs
+func (gui *Gui) cycleNotesTab() {
+	tabs := []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
+	for i, tab := range tabs {
+		if tab == gui.state.Notes.CurrentTab {
+			gui.state.Notes.CurrentTab = tabs[(i+1)%len(tabs)]
+			break
+		}
+	}
+	gui.loadNotesForCurrentTab()
+}
+
+// loadNotesForCurrentTab loads notes based on the current tab
+func (gui *Gui) loadNotesForCurrentTab() {
+	var notes []models.Note
+	var err error
+
+	switch gui.state.Notes.CurrentTab {
+	case NotesTabAll:
+		notes, err = gui.ruinCmd.Search.All(50)
+	case NotesTabToday:
+		notes, err = gui.ruinCmd.Search.Today()
+	case NotesTabRecent:
+		notes, err = gui.ruinCmd.Search.Recent(20)
+	}
+
+	if err == nil {
+		gui.state.Notes.Items = notes
+		gui.state.Notes.SelectedIndex = 0
+	}
+	gui.renderNotes()
+	gui.updateNotesTitle()
+	gui.updatePreviewForNotes()
 }
 
 func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
@@ -339,8 +380,10 @@ func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) updatePreviewForNotes() {
 	gui.state.Preview.Mode = PreviewModeSingleNote
 	gui.state.Preview.ScrollOffset = 0
-	gui.views.Preview.Title = " Preview "
-	gui.renderPreview()
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = " Preview "
+		gui.renderPreview()
+	}
 }
 
 func (gui *Gui) updatePreviewForTags() {
@@ -354,8 +397,10 @@ func (gui *Gui) updatePreviewForTags() {
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
-	gui.views.Preview.Title = " Preview: #" + tag.Name + " "
-	gui.renderPreview()
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = " Preview: #" + tag.Name + " "
+		gui.renderPreview()
+	}
 }
 
 func (gui *Gui) updatePreviewForQueries() {
@@ -369,8 +414,10 @@ func (gui *Gui) updatePreviewForQueries() {
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
-	gui.views.Preview.Title = " Preview: " + query.Name + " "
-	gui.renderPreview()
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = " Preview: " + query.Name + " "
+		gui.renderPreview()
+	}
 }
 
 // Help handler

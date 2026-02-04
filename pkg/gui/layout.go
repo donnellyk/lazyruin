@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -88,7 +89,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Notes = v
-	v.Title = "[1]-Notes"
+	v.Title = gui.getNotesTitle()
 	v.SelBgColor = gocui.ColorBlue
 	v.SelFgColor = gocui.ColorWhite
 	setRoundedCorners(v)
@@ -232,7 +233,7 @@ func (gui *Gui) updateStatusBar() {
 	var hints string
 	switch gui.state.CurrentContext {
 	case NotesContext:
-		hints = "[/] Search  [n] New  [Enter] Edit  [d] Delete  [Tab] Next  [?] Help"
+		hints = "[1] Cycle Tab  [/] Search  [n] New  [Enter] Edit  [d] Delete  [?] Help"
 	case QueriesContext:
 		hints = "[Enter] Run  [e] Edit  [d] Delete  [n] New  [Tab] Next  [?] Help"
 	case TagsContext:
@@ -246,4 +247,35 @@ func (gui *Gui) updateStatusBar() {
 	}
 
 	fmt.Fprint(gui.views.Status, hints)
+}
+
+// getNotesTitle returns the title for the Notes view with tab indicator
+// Selected tab is marked with brackets, entire title colored via TitleColor
+func (gui *Gui) getNotesTitle() string {
+	tabs := []struct {
+		tab  NotesTab
+		name string
+	}{
+		{NotesTabAll, "All"},
+		{NotesTabToday, "Today"},
+		{NotesTabRecent, "Recent"},
+	}
+
+	var parts []string
+	for _, t := range tabs {
+		if t.tab == gui.state.Notes.CurrentTab {
+			parts = append(parts, "["+t.name+"]")
+		} else {
+			parts = append(parts, t.name)
+		}
+	}
+
+	return "[1]-" + strings.Join(parts, "-")
+}
+
+// updateNotesTitle updates the Notes view title to reflect current tab
+func (gui *Gui) updateNotesTitle() {
+	if gui.views.Notes != nil {
+		gui.views.Notes.Title = gui.getNotesTitle()
+	}
 }

@@ -174,6 +174,7 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
 
   Notes Panel
   ──────────────────────────────────────────
+  1              Cycle tabs (All/Today/Recent)
   j / k          Move down / up
   g / G          Go to top / bottom
   Enter / e      Edit note in $EDITOR

@@ -12,6 +12,15 @@ const (
 	SearchContext  ContextKey = "search"
 )
 
+// NotesTab represents the sub-tabs within the Notes panel
+type NotesTab string
+
+const (
+	NotesTabAll    NotesTab = "all"
+	NotesTabToday  NotesTab = "today"
+	NotesTabRecent NotesTab = "recent"
+)
+
 type PreviewMode int
 
 const (
@@ -35,6 +44,7 @@ type GuiState struct {
 type NotesState struct {
 	Items         []models.Note
 	SelectedIndex int
+	CurrentTab    NotesTab
 }
 
 type QueriesState struct {
@@ -58,7 +68,9 @@ type PreviewState struct {
 
 func NewGuiState() *GuiState {
 	return &GuiState{
-		Notes:          &NotesState{},
+		Notes: &NotesState{
+			CurrentTab: NotesTabAll,
+		},
 		Queries:        &QueriesState{},
 		Tags:           &TagsState{},
 		Preview:        &PreviewState{},

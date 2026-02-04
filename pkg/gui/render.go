@@ -45,7 +45,7 @@ func (gui *Gui) renderNotes() {
 		if len(title) > width-2 {
 			title = title[:width-5] + "..."
 		}
-		line1 := "  " + title
+		line1 := " " + title
 
 		// Line 2 - Date and tags
 		date := note.ShortDate()
@@ -54,7 +54,7 @@ func (gui *Gui) renderNotes() {
 		if maxTagLen > 0 && len(tags) > maxTagLen {
 			tags = tags[:maxTagLen-3] + "..."
 		}
-		line2 := fmt.Sprintf("  %s · %s", date, tags)
+		line2 := fmt.Sprintf("   %s · %s", date, tags)
 
 		if selected {
 			// Pad lines to full width for complete highlight
@@ -68,7 +68,7 @@ func (gui *Gui) renderNotes() {
 			fmt.Fprintln(v, line2)
 		}
 
-		fmt.Fprintln(v, "")
+		// fmt.Fprintln(v, "")
 	}
 
 	v.SetOrigin(0, 0)
@@ -120,7 +120,7 @@ func (gui *Gui) renderTags() {
 	}
 
 	for _, tag := range gui.state.Tags.Items {
-		prefix := "  "
+		prefix := " "
 
 		name := tag.Name
 		if len(name) > 0 && name[0] != '#' {

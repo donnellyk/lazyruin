@@ -8,8 +8,11 @@ import (
 )
 
 type SearchOptions struct {
-	Sort  string
-	Limit int
+	Sort            string
+	Limit           int
+	IncludeContent  bool
+	StripGlobalTags bool
+	StripTitle      bool
 }
 
 type SearchCommand struct {
@@ -76,4 +79,20 @@ func (s *SearchCommand) ByTag(tag string) ([]models.Note, error) {
 		tag = "#" + tag
 	}
 	return s.Search(tag, SearchOptions{})
+}
+
+// Recent returns notes from the last 7 days
+func (s *SearchCommand) Recent(limit int) ([]models.Note, error) {
+	return s.Search("created:7d", SearchOptions{
+		Sort:  "created:desc",
+		Limit: limit,
+	})
+}
+
+// All returns all notes sorted by creation date
+func (s *SearchCommand) All(limit int) ([]models.Note, error) {
+	return s.Search("", SearchOptions{
+		Sort:  "created:desc",
+		Limit: limit,
+	})
 }
