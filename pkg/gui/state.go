@@ -5,11 +5,12 @@ import "kvnd/lazyruin/pkg/models"
 type ContextKey string
 
 const (
-	NotesContext   ContextKey = "notes"
-	QueriesContext ContextKey = "queries"
-	TagsContext    ContextKey = "tags"
-	PreviewContext ContextKey = "preview"
-	SearchContext  ContextKey = "search"
+	NotesContext        ContextKey = "notes"
+	QueriesContext      ContextKey = "queries"
+	TagsContext         ContextKey = "tags"
+	PreviewContext      ContextKey = "preview"
+	SearchContext       ContextKey = "search"
+	SearchFilterContext ContextKey = "searchFilter"
 )
 
 // NotesTab represents the sub-tabs within the Notes panel

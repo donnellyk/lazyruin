@@ -21,6 +21,11 @@ func (gui *Gui) quit(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
 	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
 
+	// Include search filter in cycle if active
+	if gui.state.SearchQuery != "" {
+		order = []ContextKey{SearchFilterContext, NotesContext, QueriesContext, TagsContext}
+	}
+
 	for i, ctx := range order {
 		if ctx == gui.state.CurrentContext {
 			next := order[(i+1)%len(order)]
@@ -36,6 +41,11 @@ func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
 
+	// Include search filter in cycle if active
+	if gui.state.SearchQuery != "" {
+		order = []ContextKey{SearchFilterContext, NotesContext, QueriesContext, TagsContext}
+	}
+
 	for i, ctx := range order {
 		if ctx == gui.state.CurrentContext {
 			prev := order[(i-1+len(order))%len(order)]
@@ -50,8 +60,13 @@ func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.CurrentContext == NotesContext {
-		// Already focused - cycle through tabs
-		gui.cycleNotesTab()
+		if gui.state.SearchQuery != "" {
+			// If search is active, pressing 1 reloads current tab (clears search)
+			gui.loadNotesForCurrentTab()
+		} else {
+			// Already focused, no search - cycle through tabs
+			gui.cycleNotesTab()
+		}
 		return nil
 	}
 	gui.setContext(NotesContext)
@@ -71,7 +86,11 @@ func (gui *Gui) cycleNotesTab() {
 }
 
 // loadNotesForCurrentTab loads notes based on the current tab
+// This clears any active search since tabs always show their full results
 func (gui *Gui) loadNotesForCurrentTab() {
+	// Clear search when switching tabs - tabs always show full results
+	gui.state.SearchQuery = ""
+
 	var notes []models.Note
 	var err error
 
@@ -105,6 +124,13 @@ func (gui *Gui) focusTags(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) focusPreview(g *gocui.Gui, v *gocui.View) error {
 	gui.setContext(PreviewContext)
+	return nil
+}
+
+func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.SearchQuery != "" {
+		gui.setContext(SearchFilterContext)
+	}
 	return nil
 }
 
@@ -368,6 +394,14 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchMode = false
 	gui.setContext(gui.state.PreviousContext)
+	return nil
+}
+
+func (gui *Gui) clearSearch(g *gocui.Gui, v *gocui.View) error {
+	gui.state.SearchQuery = ""
+	gui.state.Notes.CurrentTab = NotesTabAll
+	gui.loadNotesForCurrentTab()
+	gui.setContext(NotesContext)
 	return nil
 }
 

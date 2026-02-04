@@ -271,6 +271,7 @@ func (gui *Gui) renderCardViews() {
 			title = "Untitled"
 		}
 		cardView.Title = " " + title + " "
+		cardView.Footer = fmt.Sprintf("%s  %s", note.TagsString(), note.ShortDate())
 		cardView.Wrap = true
 		setRoundedCorners(cardView)
 
@@ -299,7 +300,7 @@ func (gui *Gui) renderCardViews() {
 		}
 		content = gui.filterContent(content)
 		contentLines := strings.Split(content, "\n")
-		maxLines := 3
+		maxLines := 4
 		for j, l := range contentLines {
 			if j >= maxLines {
 				fmt.Fprintln(cardView, "...")
@@ -307,9 +308,6 @@ func (gui *Gui) renderCardViews() {
 			}
 			fmt.Fprintln(cardView, l)
 		}
-
-		// Footer
-		fmt.Fprintf(cardView, "%s  %s\n", note.TagsString(), note.ShortDate())
 
 		// Move to next card position
 		currentY += cardHeight + 1

@@ -22,6 +22,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.setupSearchKeybindings(); err != nil {
 		return err
 	}
+	if err := gui.setupSearchFilterKeybindings(); err != nil {
+		return err
+	}
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
@@ -52,6 +55,9 @@ func (gui *Gui) setupGlobalKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding("", '3', gocui.ModNone, gui.focusTags); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding("", '0', gocui.ModNone, gui.focusSearchFilter); err != nil {
 		return err
 	}
 	if err := gui.g.SetKeybinding("", 'p', gocui.ModNone, gui.focusPreview); err != nil {
@@ -238,6 +244,22 @@ func (gui *Gui) setupSearchKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.cancelSearch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) setupSearchFilterKeybindings() error {
+	view := SearchFilterView
+
+	// Mouse click clears search
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.clearSearch); err != nil {
+		return err
+	}
+
+	// Clear search with x
+	if err := gui.g.SetKeybinding(view, 'x', gocui.ModNone, gui.clearSearch); err != nil {
 		return err
 	}
 

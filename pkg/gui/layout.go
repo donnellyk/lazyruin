@@ -25,22 +25,40 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	statusHeight := 2
 	contentHeight := maxY - statusHeight
 
+	// Search filter pane height (only shown when search is active)
+	searchFilterHeight := 0
+	if gui.state.SearchQuery != "" {
+		searchFilterHeight = 3
+	}
+
 	// Sidebar panel heights - Notes 50%, Queries & Tags 25%
 	notesHeight := contentHeight / 2
 	queriesHeight := contentHeight / 4
 
-	// TODO: Use this if tag height seems off / weird...
-	// tagsHeight := contentHeight - notesHeight - queriesHeight
+	// Show search filter pane if there's an active search
+	if gui.state.SearchQuery != "" {
+		if err := gui.createSearchFilterView(g, 0, 0, sidebarWidth-1, searchFilterHeight-1); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(SearchFilterView)
+		gui.views.SearchFilter = nil
+	}
 
-	if err := gui.createNotesView(g, 0, 0, sidebarWidth-1, notesHeight-1); err != nil {
+	notesStartY := searchFilterHeight
+	notesEndY := notesStartY + notesHeight - 1
+	if err := gui.createNotesView(g, 0, notesStartY, sidebarWidth-1, notesEndY); err != nil {
 		return err
 	}
 
-	if err := gui.createQueriesView(g, 0, notesHeight, sidebarWidth-1, notesHeight+queriesHeight-1); err != nil {
+	queriesStartY := notesEndY + 1
+	queriesEndY := queriesStartY + queriesHeight - 1
+	if err := gui.createQueriesView(g, 0, queriesStartY, sidebarWidth-1, queriesEndY); err != nil {
 		return err
 	}
 
-	if err := gui.createTagsView(g, 0, notesHeight+queriesHeight, sidebarWidth-1, contentHeight-1); err != nil {
+	tagsStartY := queriesEndY + 1
+	if err := gui.createTagsView(g, 0, tagsStartY, sidebarWidth-1, contentHeight-1); err != nil {
 		return err
 	}
 
@@ -78,6 +96,31 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 // setRoundedCorners applies rounded corner frame characters to a view
 func setRoundedCorners(v *gocui.View) {
 	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
+}
+
+func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
+	v, err := g.SetView(SearchFilterView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	gui.views.SearchFilter = v
+	v.Title = "[0]-Search"
+	v.Footer = fmt.Sprintf("%d results", len(gui.state.Notes.Items))
+	setRoundedCorners(v)
+
+	if gui.state.CurrentContext == SearchFilterContext {
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
+	} else {
+		v.FrameColor = gocui.ColorYellow
+		v.TitleColor = gocui.ColorYellow
+	}
+
+	v.Clear()
+	fmt.Fprintf(v, " %s", gui.state.SearchQuery)
+
+	return nil
 }
 
 func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
@@ -250,6 +293,11 @@ func (gui *Gui) updateStatusBar() {
 // getNotesTitle returns the title for the Notes view with tab indicator
 // Selected tab is marked with brackets, entire title colored via TitleColor
 func (gui *Gui) getNotesTitle() string {
+	// If there's an active search, show "Search" instead of tabs
+	if gui.state.SearchQuery != "" {
+		return "[1]-Search Results"
+	}
+
 	tabs := []struct {
 		tab  NotesTab
 		name string
