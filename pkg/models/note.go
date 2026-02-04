@@ -22,7 +22,10 @@ func (n *Note) TagsString() string {
 		if i > 0 {
 			result += " "
 		}
-		result += "#" + tag
+		if len(tag) > 0 && tag[0] != '#' {
+			result += "#"
+		}
+		result += tag
 	}
 	return result
 }

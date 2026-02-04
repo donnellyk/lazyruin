@@ -24,6 +24,7 @@ type GuiState struct {
 	Queries         *QueriesState
 	Tags            *TagsState
 	Preview         *PreviewState
+	Dialog          *DialogState
 	CurrentContext  ContextKey
 	PreviousContext ContextKey
 	SearchQuery     string
@@ -52,6 +53,7 @@ type PreviewState struct {
 	SelectedCardIndex int
 	ScrollOffset      int
 	ShowFrontmatter   bool
+	CardViewNames     []string // Track card view names for cleanup
 }
 
 func NewGuiState() *GuiState {

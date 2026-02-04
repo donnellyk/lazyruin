@@ -31,6 +31,21 @@ func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
+	order := []ContextKey{NotesContext, QueriesContext, TagsContext, PreviewContext}
+
+	for i, ctx := range order {
+		if ctx == gui.state.CurrentContext {
+			prev := order[(i-1+len(order))%len(order)]
+			gui.setContext(prev)
+			return nil
+		}
+	}
+
+	gui.setContext(NotesContext)
+	return nil
+}
+
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 	gui.setContext(NotesContext)
 	return nil
@@ -356,4 +371,148 @@ func (gui *Gui) updatePreviewForQueries() {
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.views.Preview.Title = " Preview: " + query.Name + " "
 	gui.renderPreview()
+}
+
+// Help handler
+
+func (gui *Gui) showHelpHandler(g *gocui.Gui, v *gocui.View) error {
+	gui.showHelp()
+	return nil
+}
+
+// Note action handlers
+
+func (gui *Gui) newNote(g *gocui.Gui, v *gocui.View) error {
+	gui.showInput("New Note", "Enter note content:", func(content string) error {
+		if content == "" {
+			return nil
+		}
+		_, err := gui.ruinCmd.Execute("log", content)
+		if err != nil {
+			return nil
+		}
+		gui.refreshNotes()
+		return nil
+	})
+	return nil
+}
+
+func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Notes.Items) == 0 {
+		return nil
+	}
+
+	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
+	title := note.Title
+	if title == "" {
+		title = note.Path
+	}
+	if len(title) > 30 {
+		title = title[:30] + "..."
+	}
+
+	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
+		err := os.Remove(note.Path)
+		if err != nil {
+			return nil
+		}
+		gui.refreshNotes()
+		return nil
+	})
+	return nil
+}
+
+func (gui *Gui) copyNotePath(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Notes.Items) == 0 {
+		return nil
+	}
+
+	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
+
+	// Use pbcopy on macOS, xclip on Linux
+	var cmd *exec.Cmd
+	switch {
+	case isCommandAvailable("pbcopy"):
+		cmd = exec.Command("pbcopy")
+	case isCommandAvailable("xclip"):
+		cmd = exec.Command("xclip", "-selection", "clipboard")
+	case isCommandAvailable("xsel"):
+		cmd = exec.Command("xsel", "--clipboard", "--input")
+	default:
+		return nil
+	}
+
+	cmd.Stdin = strings.NewReader(note.Path)
+	cmd.Run()
+
+	return nil
+}
+
+// Tag action handlers
+
+func (gui *Gui) renameTag(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Tags.Items) == 0 {
+		return nil
+	}
+
+	tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
+
+	gui.showInput("Rename Tag", "New name for #"+tag.Name+":", func(newName string) error {
+		if newName == "" || newName == tag.Name {
+			return nil
+		}
+		err := gui.ruinCmd.Tags.Rename(tag.Name, newName)
+		if err != nil {
+			return nil
+		}
+		gui.refreshTags()
+		gui.refreshNotes()
+		return nil
+	})
+	return nil
+}
+
+func (gui *Gui) deleteTag(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Tags.Items) == 0 {
+		return nil
+	}
+
+	tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
+
+	gui.showConfirm("Delete Tag", "Delete #"+tag.Name+" from all notes?", func() error {
+		err := gui.ruinCmd.Tags.Delete(tag.Name)
+		if err != nil {
+			return nil
+		}
+		gui.refreshTags()
+		gui.refreshNotes()
+		return nil
+	})
+	return nil
+}
+
+// Query action handlers
+
+func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Queries.Items) == 0 {
+		return nil
+	}
+
+	query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
+
+	gui.showConfirm("Delete Query", "Delete query \""+query.Name+"\"?", func() error {
+		err := gui.ruinCmd.Queries.Delete(query.Name)
+		if err != nil {
+			return nil
+		}
+		gui.refreshQueries()
+		return nil
+	})
+	return nil
+}
+
+// Helper to check if a command is available
+func isCommandAvailable(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
 }

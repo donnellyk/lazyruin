@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -8,7 +9,10 @@ import (
 )
 
 func main() {
-	a, err := app.NewApp()
+	vaultPath := flag.String("vault", "", "Path to the ruin vault")
+	flag.Parse()
+
+	a, err := app.NewApp(*vaultPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

@@ -22,6 +22,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.setupSearchKeybindings(); err != nil {
 		return err
 	}
+	if err := gui.setupDialogKeybindings(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -37,6 +40,9 @@ func (gui *Gui) setupGlobalKeybindings() error {
 
 	// Panel navigation
 	if err := gui.g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, gui.nextPanel); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding("", gocui.KeyBacktab, gocui.ModNone, gui.prevPanel); err != nil {
 		return err
 	}
 	if err := gui.g.SetKeybinding("", '1', gocui.ModNone, gui.focusNotes); err != nil {
@@ -62,11 +68,21 @@ func (gui *Gui) setupGlobalKeybindings() error {
 		return err
 	}
 
+	// Help
+	if err := gui.g.SetKeybinding("", '?', gocui.ModNone, gui.showHelpHandler); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (gui *Gui) setupNotesKeybindings() error {
 	view := NotesView
+
+	// Mouse click to focus
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusNotes); err != nil {
+		return err
+	}
 
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.notesDown); err != nil {
@@ -95,12 +111,26 @@ func (gui *Gui) setupNotesKeybindings() error {
 	if err := gui.g.SetKeybinding(view, 'e', gocui.ModNone, gui.editNote); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, 'n', gocui.ModNone, gui.newNote); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteNote); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'y', gocui.ModNone, gui.copyNotePath); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (gui *Gui) setupQueriesKeybindings() error {
 	view := QueriesView
+
+	// Mouse click to focus
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusQueries); err != nil {
+		return err
+	}
 
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.queriesDown); err != nil {
@@ -120,12 +150,20 @@ func (gui *Gui) setupQueriesKeybindings() error {
 	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.runQuery); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteQuery); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (gui *Gui) setupTagsKeybindings() error {
 	view := TagsView
+
+	// Mouse click to focus
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusTags); err != nil {
+		return err
+	}
 
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.tagsDown); err != nil {
@@ -145,12 +183,23 @@ func (gui *Gui) setupTagsKeybindings() error {
 	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.filterByTag); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, 'r', gocui.ModNone, gui.renameTag); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteTag); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (gui *Gui) setupPreviewKeybindings() error {
 	view := PreviewView
+
+	// Mouse click to focus
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusPreview); err != nil {
+		return err
+	}
 
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.previewDown); err != nil {

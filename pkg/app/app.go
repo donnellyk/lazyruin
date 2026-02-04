@@ -19,13 +19,14 @@ type App struct {
 }
 
 // NewApp creates a new application instance.
-func NewApp() (*App, error) {
+// vaultOverride can be empty to use default resolution.
+func NewApp(vaultOverride string) (*App, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	vaultPath, err := resolveVaultPath(cfg)
+	vaultPath, err := resolveVaultPath(cfg, vaultOverride)
 	if err != nil {
 		return nil, err
 	}
@@ -50,19 +51,24 @@ func (a *App) Run() error {
 	return a.Gui.Run()
 }
 
-// resolveVaultPath determines the vault path from config, env, or ruin CLI.
-func resolveVaultPath(cfg *config.Config) (string, error) {
-	// 1. Check config
+// resolveVaultPath determines the vault path from CLI flag, config, env, or ruin CLI.
+func resolveVaultPath(cfg *config.Config, cliOverride string) (string, error) {
+	// 1. Check CLI flag (highest priority)
+	if cliOverride != "" {
+		return cliOverride, nil
+	}
+
+	// 2. Check config
 	if cfg.VaultPath != "" {
 		return cfg.VaultPath, nil
 	}
 
-	// 2. Check environment
+	// 3. Check environment
 	if envVault := os.Getenv("LAZYRUIN_VAULT"); envVault != "" {
 		return envVault, nil
 	}
 
-	// 3. Ask ruin CLI for its configured vault path
+	// 4. Ask ruin CLI for its configured vault path
 	cmd := exec.Command("ruin", "config", "vault_path")
 	output, err := cmd.Output()
 	if err != nil {

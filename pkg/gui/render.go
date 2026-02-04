@@ -25,31 +25,53 @@ func (gui *Gui) renderNotes() {
 		return
 	}
 
-	for i, note := range gui.state.Notes.Items {
-		prefix := "  "
-		if i == gui.state.Notes.SelectedIndex {
-			prefix = "> "
-		}
+	// Get view width for full-line highlighting
+	width, _ := v.Size()
+	if width < 10 {
+		width = 30
+	}
 
-		// Line 1
+	// Check if this panel is focused for highlighting
+	isActive := gui.state.CurrentContext == NotesContext
+
+	for i, note := range gui.state.Notes.Items {
+		selected := isActive && i == gui.state.Notes.SelectedIndex
+
+		// Line 1 - Title
 		title := note.Title
 		if title == "" {
-			title = note.Path // TODO: Change this. Most paths will be gibberish timestamps
+			title = note.Path
 		}
+		if len(title) > width-2 {
+			title = title[:width-5] + "..."
+		}
+		line1 := "  " + title
 
-		title = title[:30] // TODO: unsafe truncation
-		fmt.Fprintf(v, "%s%s\n", prefix, title)
-
-		// Line 2
+		// Line 2 - Date and tags
 		date := note.ShortDate()
 		tags := note.TagsString()
-		if len(tags) > 20 {
-			tags = tags[:20] + "…"
+		maxTagLen := width - len(date) - 7 // "  " + " · " + some buffer
+		if maxTagLen > 0 && len(tags) > maxTagLen {
+			tags = tags[:maxTagLen-3] + "..."
 		}
-		fmt.Fprintf(v, "  %s · %s\n", date, tags)
+		line2 := fmt.Sprintf("  %s · %s", date, tags)
+
+		if selected {
+			// Pad lines to full width for complete highlight
+			line1 = line1 + strings.Repeat(" ", width-len(line1))
+			line2 = line2 + strings.Repeat(" ", width-len(line2))
+			// Blue background, white text
+			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", line1)
+			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", line2)
+		} else {
+			fmt.Fprintln(v, line1)
+			fmt.Fprintln(v, line2)
+		}
 
 		fmt.Fprintln(v, "")
 	}
+
+	v.SetOrigin(0, 0)
 }
 
 func (gui *Gui) renderQueries() {
@@ -65,11 +87,8 @@ func (gui *Gui) renderQueries() {
 		return
 	}
 
-	for i, query := range gui.state.Queries.Items {
+	for _, query := range gui.state.Queries.Items {
 		prefix := "  "
-		if i == gui.state.Queries.SelectedIndex {
-			prefix = "> "
-		}
 
 		// Line 1
 		fmt.Fprintf(v, "%s%s\n", prefix, query.Name)
@@ -77,10 +96,14 @@ func (gui *Gui) renderQueries() {
 		// Line 2
 		queryStr := query.Query
 		if len(queryStr) > 25 {
-			queryStr = queryStr[:25]
+			queryStr = queryStr[:22] + "..."
 		}
 		fmt.Fprintf(v, "    %s\n", queryStr)
 	}
+
+	// Sync view cursor with selection for highlight (2 lines per query)
+	v.SetCursor(0, gui.state.Queries.SelectedIndex*2)
+	v.SetOrigin(0, 0)
 }
 
 func (gui *Gui) renderTags() {
@@ -96,17 +119,21 @@ func (gui *Gui) renderTags() {
 		return
 	}
 
-	for i, tag := range gui.state.Tags.Items {
+	for _, tag := range gui.state.Tags.Items {
 		prefix := "  "
-		if i == gui.state.Tags.SelectedIndex {
-			prefix = "> "
-		}
 
-		name := "#" + tag.Name
+		name := tag.Name
+		if len(name) > 0 && name[0] != '#' {
+			name = "#" + name
+		}
 		count := fmt.Sprintf("(%d)", tag.Count)
 
-		fmt.Fprintf(v, "%s%-20s %s\n", prefix, name, count)
+		fmt.Fprintf(v, "%s%s %s\n", prefix, name, count)
 	}
+
+	// Sync view cursor with selection for highlight
+	v.SetCursor(0, gui.state.Tags.SelectedIndex)
+	v.SetOrigin(0, 0)
 }
 
 func (gui *Gui) renderPreview() {
@@ -117,11 +144,22 @@ func (gui *Gui) renderPreview() {
 
 	v.Clear()
 
+	// Clean up old card views first
+	gui.cleanupCardViews()
+
 	if gui.state.Preview.Mode == PreviewModeCardList {
-		gui.renderCardList(v)
+		gui.renderCardViews()
 	} else {
 		gui.renderSingleNotes(v)
 	}
+}
+
+// cleanupCardViews removes any existing card views
+func (gui *Gui) cleanupCardViews() {
+	for _, name := range gui.state.Preview.CardViewNames {
+		gui.g.DeleteView(name)
+	}
+	gui.state.Preview.CardViewNames = nil
 }
 
 func (gui *Gui) renderSingleNotes(v *gocui.View) {
@@ -171,86 +209,109 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 	}
 }
 
-func (gui *Gui) renderCardList(v *gocui.View) {
+// padOrTruncate ensures a string is exactly 'length' display characters
+func padOrTruncate(s string, length int) string {
+	// Replace tabs with spaces for consistent width
+	s = strings.ReplaceAll(s, "\t", "    ")
+
+	runes := []rune(s)
+	if len(runes) > length {
+		if length > 3 {
+			return string(runes[:length-3]) + "..."
+		}
+		return string(runes[:length])
+	}
+	return s + strings.Repeat(" ", length-len(runes))
+}
+
+// renderCardViews creates actual gocui views for each card
+func (gui *Gui) renderCardViews() {
 	cards := gui.state.Preview.Cards
 	if len(cards) == 0 {
-		fmt.Fprintln(v, "No matching notes.")
+		fmt.Fprintln(gui.views.Preview, "No matching notes.")
 		return
 	}
 
-	width, _ := v.Size()
-	if width < 10 {
-		width = 40
+	// Get the preview panel's position
+	x0, y0, x1, y1 := gui.views.Preview.Dimensions()
+
+	// Card dimensions
+	cardHeight := 8 // Height of each card view
+	if gui.state.Preview.ShowFrontmatter {
+		cardHeight += 2
 	}
+	cardWidth := x1 - x0 - 2 // Leave margin inside preview
+
+	// Starting position for first card (inside preview panel)
+	startX := x0 + 1
+	startY := y0 + 1
+	currentY := startY
 
 	for i, note := range cards {
+		// Stop if we run out of vertical space
+		if currentY+cardHeight > y1-1 {
+			break
+		}
+
 		selected := i == gui.state.Preview.SelectedCardIndex
+		viewName := fmt.Sprintf("card-%d", i)
 
-		// Card border style
-		borderChar := "─"
-		cornerTL := "┌"
-		cornerTR := "┐"
-		cornerBL := "└"
-		cornerBR := "┘"
-		side := "│"
-
-		if selected {
-			borderChar = "═"
-			cornerTL = "╔"
-			cornerTR = "╗"
-			cornerBL = "╚"
-			cornerBR = "╝"
-			side = "║"
+		// Create the card view
+		cardView, err := gui.g.SetView(viewName, startX, currentY, startX+cardWidth, currentY+cardHeight, 0)
+		if err != nil && err.Error() != "unknown view" {
+			continue
 		}
 
-		// Title bar
+		// Track for cleanup
+		gui.state.Preview.CardViewNames = append(gui.state.Preview.CardViewNames, viewName)
+
+		// Configure the card view
 		title := note.Title
-		if len(title) > width-10 {
-			title = title[:width-13] + "..."
+		if title == "" {
+			title = "Untitled"
+		}
+		cardView.Title = " " + title + " "
+		cardView.Wrap = true
+		setRoundedCorners(cardView)
+
+		// Set frame color based on selection
+		if selected {
+			cardView.FrameColor = gocui.ColorGreen
+			cardView.TitleColor = gocui.ColorGreen
+		} else {
+			cardView.FrameColor = gocui.ColorDefault
+			cardView.TitleColor = gocui.ColorDefault
 		}
 
-		titleLine := fmt.Sprintf("%s─ %s ", cornerTL, title)
-		padding := width - len(titleLine) - 1
-		if padding < 0 {
-			padding = 0
-		}
-		titleLine += strings.Repeat(borderChar, padding) + cornerTR
-		fmt.Fprintln(v, titleLine)
+		// Render card content
+		cardView.Clear()
 
 		// Frontmatter if enabled
 		if gui.state.Preview.ShowFrontmatter {
-			fmt.Fprintf(v, "%s uuid: %s\n", side, note.UUID)
-			fmt.Fprintf(v, "%s created: %s\n", side, note.Created.Format("2006-01-02"))
+			fmt.Fprintf(cardView, "uuid: %s\n", note.UUID)
+			fmt.Fprintf(cardView, "created: %s\n", note.Created.Format("2006-01-02"))
 		}
 
-		// Content preview (first few lines)
+		// Content preview
 		content := note.Content
 		if content == "" {
 			content, _ = gui.loadNoteContent(note.Path)
 		}
-
 		contentLines := strings.Split(content, "\n")
-		maxLines := 4
-		for j, line := range contentLines {
+		maxLines := 3
+		for j, l := range contentLines {
 			if j >= maxLines {
-				fmt.Fprintf(v, "%s ...\n", side)
+				fmt.Fprintln(cardView, "...")
 				break
 			}
-			if len(line) > width-4 {
-				line = line[:width-7] + "..."
-			}
-			fmt.Fprintf(v, "%s %s\n", side, line)
+			fmt.Fprintln(cardView, l)
 		}
 
 		// Footer
-		tags := note.TagsString()
-		date := note.ShortDate()
-		footer := fmt.Sprintf("%s %s  %s", side, tags, date)
-		fmt.Fprintln(v, footer)
+		fmt.Fprintf(cardView, "%s  %s\n", note.TagsString(), note.ShortDate())
 
-		// Bottom border
-		fmt.Fprintln(v, cornerBL+strings.Repeat(borderChar, width-2)+cornerBR)
-		fmt.Fprintln(v, "")
+		// Move to next card position
+		currentY += cardHeight + 1
 	}
 }
 
@@ -267,5 +328,16 @@ func (gui *Gui) loadNoteContent(path string) (string, error) {
 		return "", err
 	}
 
-	return string(data), nil
+	content := string(data)
+
+	// Strip YAML frontmatter if present
+	if strings.HasPrefix(content, "---") {
+		// Find the closing ---
+		rest := content[3:]
+		if idx := strings.Index(rest, "\n---"); idx != -1 {
+			content = strings.TrimLeft(rest[idx+4:], "\n")
+		}
+	}
+
+	return content, nil
 }

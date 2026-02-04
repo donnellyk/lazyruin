@@ -59,6 +59,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		g.DeleteView(SearchView) // ignore error if view doesn't exist
 	}
 
+	// Render any active dialogs
+	if err := gui.renderDialogs(g, maxX, maxY); err != nil {
+		return err
+	}
+
 	if !gui.state.Initialized {
 		gui.state.Initialized = true
 		g.SetCurrentView(NotesView)
@@ -71,6 +76,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	return nil
 }
 
+// setRoundedCorners applies rounded corner frame characters to a view
+func setRoundedCorners(v *gocui.View) {
+	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
+}
+
 func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v, err := g.SetView(NotesView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -78,15 +88,20 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Notes = v
-	v.Title = " [1] Notes "
-	v.Highlight = true
+	v.Title = "[1]-Notes"
 	v.SelBgColor = gocui.ColorBlue
 	v.SelFgColor = gocui.ColorWhite
+	setRoundedCorners(v)
+
+	// Notes uses manual multi-line highlighting in renderNotes()
+	v.Highlight = false
 
 	if gui.state.CurrentContext == NotesContext {
-		v.FgColor = gocui.ColorGreen
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
 	} else {
-		v.FgColor = gocui.ColorDefault
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
 	}
 
 	return nil
@@ -99,15 +114,19 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Queries = v
-	v.Title = " [2] Queries "
-	v.Highlight = true
+	v.Title = "[2]-Queries"
 	v.SelBgColor = gocui.ColorBlue
 	v.SelFgColor = gocui.ColorWhite
+	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == QueriesContext {
-		v.FgColor = gocui.ColorGreen
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
+		v.Highlight = true
 	} else {
-		v.FgColor = gocui.ColorDefault
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
+		v.Highlight = false
 	}
 
 	return nil
@@ -120,15 +139,19 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Tags = v
-	v.Title = " [3] Tags "
-	v.Highlight = true
+	v.Title = "[3]-Tags"
 	v.SelBgColor = gocui.ColorBlue
 	v.SelFgColor = gocui.ColorWhite
+	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == TagsContext {
-		v.FgColor = gocui.ColorGreen
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
+		v.Highlight = true
 	} else {
-		v.FgColor = gocui.ColorDefault
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
+		v.Highlight = false
 	}
 
 	return nil
@@ -143,11 +166,14 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.views.Preview = v
 	v.Title = " Preview "
 	v.Wrap = true
+	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == PreviewContext {
-		v.FgColor = gocui.ColorGreen
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
 	} else {
-		v.FgColor = gocui.ColorDefault
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
 	}
 
 	return nil
@@ -188,6 +214,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Title = " Search "
 	v.Editable = true
 	v.Wrap = false
+	setRoundedCorners(v)
 
 	g.SetViewOnTop(SearchView)
 	g.SetCurrentView(SearchView)

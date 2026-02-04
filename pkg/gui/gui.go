@@ -97,6 +97,21 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
 
+	// Re-render lists to update highlight visibility
+	gui.renderNotes()
+	gui.renderQueries()
+	gui.renderTags()
+
+	// Update preview based on new context
+	switch ctx {
+	case NotesContext:
+		gui.updatePreviewForNotes()
+	case QueriesContext:
+		gui.updatePreviewForQueries()
+	case TagsContext:
+		gui.updatePreviewForTags()
+	}
+
 	gui.updateStatusBar()
 }
 
