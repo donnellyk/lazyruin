@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,7 +19,7 @@ func (gui *Gui) quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
-	order := []ContextKey{NotesContext, QueriesContext, TagsContext, PreviewContext}
+	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
 
 	for i, ctx := range order {
 		if ctx == gui.state.CurrentContext {
@@ -33,7 +34,7 @@ func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
-	order := []ContextKey{NotesContext, QueriesContext, TagsContext, PreviewContext}
+	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
 
 	for i, ctx := range order {
 		if ctx == gui.state.CurrentContext {
@@ -154,50 +155,31 @@ func (gui *Gui) notesBottom(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+// ErrEditFile signals that we need to edit a file (exit main loop, run editor, restart)
+var ErrEditFile = errors.New("edit file")
+
 func (gui *Gui) editNote(g *gocui.Gui, v *gocui.View) error {
 	if len(gui.state.Notes.Items) == 0 {
 		return nil
 	}
 
 	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
-	return gui.openInEditor(note.Path)
+	gui.state.EditFilePath = note.Path
+	return ErrEditFile
 }
 
-func (gui *Gui) openInEditor(path string) error {
+func (gui *Gui) runEditor(path string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "vim"
 	}
-
-	gui.g.Close()
 
 	cmd := exec.Command(editor, path)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
-
-	// Re-initialize the GUI
-	newG, initErr := gocui.NewGui(gocui.NewGuiOpts{
-		OutputMode: gocui.OutputTrue,
-	})
-	if initErr != nil {
-		return initErr
-	}
-
-	gui.g = newG
-	newG.Mouse = true
-	newG.Cursor = false
-	newG.SetManager(gocui.ManagerFunc(gui.layout))
-
-	if keybindErr := gui.setupKeybindings(); keybindErr != nil {
-		return keybindErr
-	}
-
-	gui.refreshAll()
-
-	return err
+	return cmd.Run()
 }
 
 // Queries handlers
@@ -236,6 +218,7 @@ func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.views.Preview.Title = " Preview: " + query.Name + " "
 	gui.renderPreview()
+	gui.setContext(PreviewContext)
 
 	return nil
 }
@@ -276,6 +259,7 @@ func (gui *Gui) filterByTag(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.views.Preview.Title = " Preview: #" + tag.Name + " "
 	gui.renderPreview()
+	gui.setContext(PreviewContext)
 
 	return nil
 }
@@ -317,6 +301,18 @@ func (gui *Gui) previewBack(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) toggleFrontmatter(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.ShowFrontmatter = !gui.state.Preview.ShowFrontmatter
+	gui.renderPreview()
+	return nil
+}
+
+func (gui *Gui) toggleTitle(g *gocui.Gui, v *gocui.View) error {
+	gui.state.Preview.ShowTitle = !gui.state.Preview.ShowTitle
+	gui.renderPreview()
+	return nil
+}
+
+func (gui *Gui) toggleGlobalTags(g *gocui.Gui, v *gocui.View) error {
+	gui.state.Preview.ShowGlobalTags = !gui.state.Preview.ShowGlobalTags
 	gui.renderPreview()
 	return nil
 }

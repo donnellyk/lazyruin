@@ -6,7 +6,7 @@ type Note struct {
 	UUID    string    `json:"uuid"`
 	Path    string    `json:"path"`
 	Title   string    `json:"title"`
-	Content string    `json:"-"`
+	Content string    `json:"content,omitempty"`
 	Tags    []string  `json:"tags"`
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`

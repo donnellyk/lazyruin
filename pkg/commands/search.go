@@ -23,14 +23,31 @@ func NewSearchCommand(ruin *RuinCommand) *SearchCommand {
 	return &SearchCommand{ruin: ruin}
 }
 
+// DefaultContentOptions returns SearchOptions with content included
+// Content is fetched in full; stripping is done at render time based on UI toggles
+func DefaultContentOptions() SearchOptions {
+	return SearchOptions{
+		IncludeContent: true,
+	}
+}
+
 func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note, error) {
-	args := []string{"search", query} // Building slice that will be concatted to form command
+	args := []string{"search", query}
 
 	if opts.Sort != "" {
 		args = append(args, "-s", opts.Sort)
 	}
 	if opts.Limit > 0 {
 		args = append(args, "-l", strconv.Itoa(opts.Limit))
+	}
+	if opts.IncludeContent {
+		args = append(args, "--content")
+	}
+	if opts.StripGlobalTags {
+		args = append(args, "--strip-global-tags")
+	}
+	if opts.StripTitle {
+		args = append(args, "--strip-title")
 	}
 
 	output, err := s.ruin.Execute(args...)
@@ -47,7 +64,7 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 }
 
 func (s *SearchCommand) Today() ([]models.Note, error) {
-	output, err := s.ruin.Execute("today")
+	output, err := s.ruin.Execute("today", "--content")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +78,7 @@ func (s *SearchCommand) Today() ([]models.Note, error) {
 }
 
 func (s *SearchCommand) Yesterday() ([]models.Note, error) {
-	output, err := s.ruin.Execute("yesterday")
+	output, err := s.ruin.Execute("yesterday", "--content")
 	if err != nil {
 		return nil, err
 	}
@@ -78,21 +95,23 @@ func (s *SearchCommand) ByTag(tag string) ([]models.Note, error) {
 	if !strings.HasPrefix(tag, "#") {
 		tag = "#" + tag
 	}
-	return s.Search(tag, SearchOptions{})
+	opts := DefaultContentOptions()
+	return s.Search(tag, opts)
 }
 
 // Recent returns notes from the last 7 days
 func (s *SearchCommand) Recent(limit int) ([]models.Note, error) {
-	return s.Search("created:7d", SearchOptions{
-		Sort:  "created:desc",
-		Limit: limit,
-	})
+	opts := DefaultContentOptions()
+	opts.Sort = "created:desc"
+	opts.Limit = limit
+	return s.Search("created:7d", opts)
 }
 
 // All returns all notes sorted by creation date
 func (s *SearchCommand) All(limit int) ([]models.Note, error) {
-	return s.Search("", SearchOptions{
-		Sort:  "created:desc",
-		Limit: limit,
-	})
+	opts := DefaultContentOptions()
+	opts.Sort = "created:desc"
+	opts.Limit = limit
+	// Use a wide date range since empty query is not allowed
+	return s.Search("created:10000d", opts)
 }

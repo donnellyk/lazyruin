@@ -213,10 +213,18 @@ func (gui *Gui) setupPreviewKeybindings() error {
 	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.previewBack); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.focusNoteFromPreview); err != nil {
+		return err
+	}
+
+	// Display toggles
 	if err := gui.g.SetKeybinding(view, 'f', gocui.ModNone, gui.toggleFrontmatter); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.focusNoteFromPreview); err != nil {
+	if err := gui.g.SetKeybinding(view, 't', gocui.ModNone, gui.toggleTitle); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'T', gocui.ModNone, gui.toggleGlobalTags); err != nil {
 		return err
 	}
 

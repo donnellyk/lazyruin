@@ -198,9 +198,11 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   Preview Panel
   ──────────────────────────────────────────
   j / k          Scroll down / up
-  f              Toggle frontmatter
   Enter          Focus selected card
   Esc            Back to previous panel
+  f              Toggle frontmatter
+  t              Toggle title
+  T              Toggle global tags
 
   Press any key to close
 `

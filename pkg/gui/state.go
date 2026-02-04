@@ -39,6 +39,7 @@ type GuiState struct {
 	SearchQuery     string
 	SearchMode      bool
 	Initialized     bool
+	EditFilePath    string // Path to edit after exiting main loop
 }
 
 type NotesState struct {
@@ -63,6 +64,8 @@ type PreviewState struct {
 	SelectedCardIndex int
 	ScrollOffset      int
 	ShowFrontmatter   bool
+	ShowTitle         bool
+	ShowGlobalTags    bool
 	CardViewNames     []string // Track card view names for cleanup
 }
 

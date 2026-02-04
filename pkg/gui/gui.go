@@ -25,6 +25,26 @@ func NewGui(ruinCmd *commands.RuinCommand) *Gui {
 
 // Run starts the GUI event loop.
 func (gui *Gui) Run() error {
+	for {
+		if err := gui.runMainLoop(); err != nil {
+			if err == ErrEditFile {
+				// Run editor and restart GUI
+				path := gui.state.EditFilePath
+				gui.state.EditFilePath = ""
+				gui.runEditor(path)
+				gui.state.Initialized = false // Force re-initialization
+				continue
+			}
+			if err != gocui.ErrQuit {
+				return err
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+func (gui *Gui) runMainLoop() error {
 	g, err := gocui.NewGui(gocui.NewGuiOpts{
 		OutputMode: gocui.OutputTrue,
 	})
@@ -34,6 +54,7 @@ func (gui *Gui) Run() error {
 	defer g.Close()
 
 	gui.g = g
+	gui.views = &Views{} // Reset views for fresh layout
 	g.Mouse = true
 	g.Cursor = false
 	g.SetManager(gocui.ManagerFunc(gui.layout))
@@ -42,13 +63,7 @@ func (gui *Gui) Run() error {
 		return err
 	}
 
-	gui.refreshAll()
-
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		return err
-	}
-
-	return nil
+	return g.MainLoop()
 }
 
 func (gui *Gui) refreshAll() {
