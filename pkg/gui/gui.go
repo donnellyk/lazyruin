@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"time"
+
 	"kvnd/lazyruin/pkg/commands"
 
 	"github.com/jesseduffield/gocui"
@@ -12,6 +14,7 @@ type Gui struct {
 	views   *Views
 	state   *GuiState
 	ruinCmd *commands.RuinCommand
+	stopBg  chan struct{}
 }
 
 // NewGui creates a new Gui instance.
@@ -52,7 +55,31 @@ func (gui *Gui) runMainLoop() error {
 		return err
 	}
 
-	return g.MainLoop()
+	gui.stopBg = make(chan struct{})
+	go gui.backgroundRefresh()
+
+	err = g.MainLoop()
+	close(gui.stopBg)
+	return err
+}
+
+// backgroundRefresh polls for external changes every 30 seconds.
+func (gui *Gui) backgroundRefresh() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-gui.stopBg:
+			return
+		case <-ticker.C:
+			gui.g.Update(func(g *gocui.Gui) error {
+				gui.refreshAll()
+				gui.renderAll()
+				return nil
+			})
+		}
+	}
 }
 
 // renderAll re-renders all views with current state (e.g. after resize)
