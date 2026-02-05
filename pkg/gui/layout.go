@@ -84,9 +84,17 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 	if !gui.state.Initialized {
 		gui.state.Initialized = true
+		gui.state.lastWidth = maxX
+		gui.state.lastHeight = maxY
 		g.SetCurrentView(NotesView)
 		gui.refreshAll()
 		gui.renderPreview()
+	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
+		gui.state.lastWidth = maxX
+		gui.state.lastHeight = maxY
+		gui.state.Preview.ScrollOffset = 0
+		gocui.Screen.Clear()
+		gui.renderAll()
 	}
 
 	return nil

@@ -67,6 +67,15 @@ func (gui *Gui) runMainLoop() error {
 	return g.MainLoop()
 }
 
+// renderAll re-renders all views with current state (e.g. after resize)
+func (gui *Gui) renderAll() {
+	gui.renderNotes()
+	gui.renderQueries()
+	gui.renderTags()
+	gui.renderPreview()
+	gui.updateStatusBar()
+}
+
 func (gui *Gui) refreshAll() {
 	gui.refreshNotes()
 	gui.refreshTags()

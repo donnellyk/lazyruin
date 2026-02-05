@@ -41,6 +41,8 @@ type GuiState struct {
 	SearchMode      bool
 	Initialized     bool
 	EditFilePath    string // Path to edit after exiting main loop
+	lastWidth       int
+	lastHeight      int
 }
 
 type NotesState struct {
