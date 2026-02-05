@@ -338,6 +338,49 @@ func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) previewScrollDown(g *gocui.Gui, v *gocui.View) error {
+	if v == nil || v.Name() != PreviewView {
+		return nil
+	}
+	gui.state.Preview.ScrollOffset += 3
+	v.SetOrigin(0, gui.state.Preview.ScrollOffset)
+	return nil
+}
+
+func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
+	if v == nil || v.Name() != PreviewView {
+		return nil
+	}
+	gui.state.Preview.ScrollOffset -= 3
+	if gui.state.Preview.ScrollOffset < 0 {
+		gui.state.Preview.ScrollOffset = 0
+	}
+	v.SetOrigin(0, gui.state.Preview.ScrollOffset)
+	return nil
+}
+
+func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Preview.Mode != PreviewModeCardList {
+		gui.setContext(PreviewContext)
+		return nil
+	}
+
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	absY := cy + oy
+
+	for i, lr := range gui.state.Preview.CardLineRanges {
+		if absY >= lr[0] && absY < lr[1] {
+			gui.state.Preview.SelectedCardIndex = i
+			gui.setContext(PreviewContext)
+			return nil
+		}
+	}
+
+	gui.setContext(PreviewContext)
+	return nil
+}
+
 func (gui *Gui) previewBack(g *gocui.Gui, v *gocui.View) error {
 	gui.setContext(gui.state.PreviousContext)
 	return nil

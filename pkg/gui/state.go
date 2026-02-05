@@ -67,6 +67,7 @@ type PreviewState struct {
 	ShowFrontmatter   bool
 	ShowTitle         bool
 	ShowGlobalTags    bool
+	CardLineRanges    [][2]int // [startLine, endLine) for each card
 }
 
 func NewGuiState() *GuiState {

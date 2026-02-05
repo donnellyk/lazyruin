@@ -79,6 +79,14 @@ func (gui *Gui) setupGlobalKeybindings() error {
 		return err
 	}
 
+	// Mouse wheel scrolling (only acts on preview when hovering over it)
+	if err := gui.g.SetKeybinding("", gocui.MouseWheelDown, gocui.ModNone, gui.previewScrollDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding("", gocui.MouseWheelUp, gocui.ModNone, gui.previewScrollUp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -202,8 +210,8 @@ func (gui *Gui) setupTagsKeybindings() error {
 func (gui *Gui) setupPreviewKeybindings() error {
 	view := PreviewView
 
-	// Mouse click to focus
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusPreview); err != nil {
+	// Mouse click to focus and select card
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.previewClick); err != nil {
 		return err
 	}
 

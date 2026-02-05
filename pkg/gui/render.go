@@ -214,14 +214,16 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		contentWidth = 10
 	}
 
-	// Track line positions for scrolling
+	// Track line positions for scrolling and click mapping
 	isActive := gui.state.CurrentContext == PreviewContext
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
+	gui.state.Preview.CardLineRanges = make([][2]int, len(cards))
 
 	for i, note := range cards {
 		selected := isActive && i == gui.state.Preview.SelectedCardIndex
+		gui.state.Preview.CardLineRanges[i][0] = currentLine
 
 		if selected {
 			selectedStartLine = currentLine
@@ -262,6 +264,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		lowerSep := gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected)
 		fmt.Fprintln(v, lowerSep)
 		currentLine++
+
+		gui.state.Preview.CardLineRanges[i][1] = currentLine
 
 		if selected {
 			selectedEndLine = currentLine
