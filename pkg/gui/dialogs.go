@@ -14,15 +14,24 @@ const (
 	HelpView    = "help"
 )
 
+// MenuItem represents a single item in a menu dialog
+type MenuItem struct {
+	Label string
+	Key   string // shortcut key hint (e.g. "j", "k")
+	OnRun func() error
+}
+
 // DialogState tracks the current dialog state
 type DialogState struct {
-	Active      bool
-	Type        string
-	Title       string
-	Message     string
-	OnConfirm   func() error
-	OnCancel    func()
-	InputBuffer string
+	Active        bool
+	Type          string
+	Title         string
+	Message       string
+	OnConfirm     func() error
+	OnCancel      func()
+	InputBuffer   string
+	MenuItems     []MenuItem
+	MenuSelection int
 }
 
 // showConfirm displays a confirmation dialog
@@ -58,12 +67,18 @@ func (gui *Gui) showHelp() {
 	}
 }
 
-// showMergeOverlay displays the merge direction chooser
+// showMergeOverlay displays the merge direction chooser as a menu
 func (gui *Gui) showMergeOverlay() {
 	gui.state.Dialog = &DialogState{
 		Active: true,
-		Type:   "merge",
+		Type:   "menu",
 		Title:  "Merge",
+		MenuItems: []MenuItem{
+			{Label: "Merge with note below", Key: "j", OnRun: func() error { return gui.executeMerge("down") }},
+			{Label: "Merge with note above", Key: "k", OnRun: func() error { return gui.executeMerge("up") }},
+			{Label: "Cancel", OnRun: func() error { return nil }},
+		},
+		MenuSelection: 0,
 	}
 }
 
@@ -76,7 +91,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(ConfirmView)
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(HelpView)
-	gui.g.DeleteView(MergeView)
+	gui.g.DeleteView(MenuView)
 }
 
 // createConfirmDialog renders the confirmation dialog
@@ -232,33 +247,73 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
-// createMergeDialog renders the merge direction chooser overlay
-func (gui *Gui) createMergeDialog(g *gocui.Gui, maxX, maxY int) error {
-	if gui.state.Dialog == nil || gui.state.Dialog.Type != "merge" {
+// createMenuDialog renders a navigable menu list overlay
+func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
+	if gui.state.Dialog == nil || gui.state.Dialog.Type != "menu" {
 		return nil
 	}
 
-	width := 44
-	height := 5
+	items := gui.state.Dialog.MenuItems
+
+	// Size: width based on longest item, height based on item count
+	width := 30
+	for _, item := range items {
+		l := len(item.Label) + 6 // padding + index
+		if item.Key != "" {
+			l += len(item.Key) + 3 // " (k)"
+		}
+		if l > width {
+			width = l
+		}
+	}
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	height := len(items) + 2 // border
 	x0 := (maxX - width) / 2
 	y0 := (maxY - height) / 2
 	x1 := x0 + width
 	y1 := y0 + height
 
-	v, err := g.SetView(MergeView, x0, y0, x1, y1, 0)
+	v, err := g.SetView(MenuView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
-	v.Title = " Merge "
+	v.Title = " " + gui.state.Dialog.Title + " "
+	v.Footer = fmt.Sprintf("%d of %d", gui.state.Dialog.MenuSelection+1, len(items))
+	v.Highlight = false
 	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
 	v.Clear()
 
-	fmt.Fprintln(v, "")
-	fmt.Fprintln(v, "  [j] Merge Down  [k] Merge Up  [Esc] Cancel")
+	innerWidth, _ := v.InnerSize()
+	if innerWidth < 10 {
+		innerWidth = width - 2
+	}
 
-	g.SetViewOnTop(MergeView)
-	g.SetCurrentView(MergeView)
+	for i, item := range items {
+		selected := i == gui.state.Dialog.MenuSelection
+
+		label := fmt.Sprintf(" %s", item.Label)
+		if item.Key != "" {
+			label += fmt.Sprintf(" (%s)", item.Key)
+		}
+
+		if selected {
+			pad := innerWidth - len([]rune(label))
+			if pad > 0 {
+				label += strings.Repeat(" ", pad)
+			}
+			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", label)
+		} else {
+			fmt.Fprintln(v, label)
+		}
+	}
+
+	g.SetViewOnTop(MenuView)
+	g.SetCurrentView(MenuView)
 
 	return nil
 }
@@ -269,7 +324,7 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		g.DeleteView(ConfirmView)
 		g.DeleteView(InputView)
 		g.DeleteView(HelpView)
-		g.DeleteView(MergeView)
+		g.DeleteView(MenuView)
 		return nil
 	}
 
@@ -280,8 +335,8 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		return gui.createInputDialog(g, maxX, maxY)
 	case "help":
 		return gui.createHelpDialog(g, maxX, maxY)
-	case "merge":
-		return gui.createMergeDialog(g, maxX, maxY)
+	case "menu":
+		return gui.createMenuDialog(g, maxX, maxY)
 	}
 
 	return nil
@@ -322,14 +377,23 @@ func (gui *Gui) setupDialogKeybindings() error {
 		return err
 	}
 
-	// Merge dialog
-	if err := gui.g.SetKeybinding(MergeView, 'j', gocui.ModNone, gui.mergeDown); err != nil {
+	// Menu dialog
+	if err := gui.g.SetKeybinding(MenuView, 'j', gocui.ModNone, gui.menuDown); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(MergeView, 'k', gocui.ModNone, gui.mergeUp); err != nil {
+	if err := gui.g.SetKeybinding(MenuView, 'k', gocui.ModNone, gui.menuUp); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(MergeView, gocui.KeyEsc, gocui.ModNone, gui.closeMergeDialog); err != nil {
+	if err := gui.g.SetKeybinding(MenuView, gocui.KeyArrowDown, gocui.ModNone, gui.menuDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MenuView, gocui.KeyArrowUp, gocui.ModNone, gui.menuUp); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MenuView, gocui.KeyEnter, gocui.ModNone, gui.menuConfirm); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MenuView, gocui.KeyEsc, gocui.ModNone, gui.menuCancel); err != nil {
 		return err
 	}
 
@@ -377,17 +441,39 @@ func (gui *Gui) closeHelpDialog(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) mergeDown(g *gocui.Gui, v *gocui.View) error {
-	gui.closeDialog()
-	return gui.executeMerge("down")
+func (gui *Gui) menuDown(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Dialog == nil {
+		return nil
+	}
+	if gui.state.Dialog.MenuSelection < len(gui.state.Dialog.MenuItems)-1 {
+		gui.state.Dialog.MenuSelection++
+	}
+	return nil
 }
 
-func (gui *Gui) mergeUp(g *gocui.Gui, v *gocui.View) error {
-	gui.closeDialog()
-	return gui.executeMerge("up")
+func (gui *Gui) menuUp(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Dialog == nil {
+		return nil
+	}
+	if gui.state.Dialog.MenuSelection > 0 {
+		gui.state.Dialog.MenuSelection--
+	}
+	return nil
 }
 
-func (gui *Gui) closeMergeDialog(g *gocui.Gui, v *gocui.View) error {
+func (gui *Gui) menuConfirm(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Dialog == nil {
+		return nil
+	}
+	item := gui.state.Dialog.MenuItems[gui.state.Dialog.MenuSelection]
+	gui.closeDialog()
+	if item.OnRun != nil {
+		return item.OnRun()
+	}
+	return nil
+}
+
+func (gui *Gui) menuCancel(g *gocui.Gui, v *gocui.View) error {
 	gui.closeDialog()
 	return nil
 }
