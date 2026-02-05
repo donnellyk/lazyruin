@@ -21,7 +21,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		sidebarWidth = 20
 	}
 
-	statusHeight := 2
+	statusHeight := 3
 	contentHeight := maxY - statusHeight
 
 	// Search filter pane height (only shown when search is active)
@@ -280,23 +280,69 @@ func (gui *Gui) updateStatusBar() {
 
 	gui.views.Status.Clear()
 
-	var hints string
-	switch gui.state.CurrentContext {
-	case NotesContext:
-		hints = "[1] Cycle Tab  [/] Search  [n] New  [Enter] Edit  [d] Delete  [?] Help"
-	case QueriesContext:
-		hints = "[Enter] Run  [e] Edit  [d] Delete  [n] New  [Tab] Next  [?] Help"
-	case TagsContext:
-		hints = "[Enter] Filter  [r] Rename  [d] Delete  [Tab] Next  [?] Help"
-	case PreviewContext:
-		hints = "[j/k] Scroll  [Enter] Focus  [f] Frontmatter  [Esc] Back  [?] Help"
-	case SearchContext:
-		hints = "[Enter] Search  [Esc] Cancel  [Tab] Autocomplete"
-	default:
-		hints = "[q] Quit  [?] Help"
+	type hint struct {
+		action string
+		key    string
 	}
 
-	fmt.Fprint(gui.views.Status, hints)
+	var hints []hint
+	switch gui.state.CurrentContext {
+	case NotesContext:
+		hints = []hint{
+			{"Edit", "enter"},
+			{"New", "n"},
+			{"Delete", "d"},
+			{"Search", "/"},
+			{"Tab", "1"},
+			{"Copy Path", "y"},
+			{"Keybindings", "?"},
+		}
+	case QueriesContext:
+		hints = []hint{
+			{"Run", "enter"},
+			{"Delete", "d"},
+			{"Keybindings", "?"},
+		}
+	case TagsContext:
+		hints = []hint{
+			{"Filter", "enter"},
+			{"Rename", "r"},
+			{"Delete", "d"},
+			{"Keybindings", "?"},
+		}
+	case PreviewContext:
+		hints = []hint{
+			{"Navigate", "j/k"},
+			{"Focus Note", "enter"},
+			{"Frontmatter", "f"},
+			{"Back", "esc"},
+			{"Keybindings", "?"},
+		}
+	case SearchContext:
+		hints = []hint{
+			{"Search", "enter"},
+			{"Cancel", "esc"},
+		}
+	case SearchFilterContext:
+		hints = []hint{
+			{"Clear", "x"},
+			{"Keybindings", "?"},
+		}
+	default:
+		hints = []hint{
+			{"Quit", "q"},
+			{"Keybindings", "?"},
+		}
+	}
+
+	cyan := "\x1b[36m"
+	reset := "\x1b[0m"
+	for i, h := range hints {
+		if i > 0 {
+			fmt.Fprint(gui.views.Status, " | ")
+		}
+		fmt.Fprintf(gui.views.Status, "%s: %s%s%s", h.action, cyan, h.key, reset)
+	}
 }
 
 // notesTabIndex returns the index for the current tab
