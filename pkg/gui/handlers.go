@@ -454,14 +454,51 @@ func (gui *Gui) toggleGlobalTags(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// reloadContent reloads notes from CLI with current toggle settings
+// reloadContent reloads notes from CLI with current toggle settings,
+// preserving selection indices and preview mode.
 func (gui *Gui) reloadContent() {
-	// Reload notes for the Notes pane
-	gui.loadNotesForCurrentTab()
+	// Reload notes for the Notes pane, preserving selection
+	savedNoteIdx := gui.state.Notes.SelectedIndex
+	gui.loadNotesForCurrentTabPreserve()
+	if savedNoteIdx < len(gui.state.Notes.Items) {
+		gui.state.Notes.SelectedIndex = savedNoteIdx
+	}
+	gui.renderNotes()
 
 	// Reload cards in Preview pane if in card list mode
 	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
+		savedCardIdx := gui.state.Preview.SelectedCardIndex
 		gui.reloadPreviewCards()
+		if savedCardIdx < len(gui.state.Preview.Cards) {
+			gui.state.Preview.SelectedCardIndex = savedCardIdx
+		}
+		gui.renderPreview()
+	} else {
+		gui.renderPreview()
+	}
+}
+
+// loadNotesForCurrentTabPreserve reloads notes without resetting selection or touching preview.
+func (gui *Gui) loadNotesForCurrentTabPreserve() {
+	var notes []models.Note
+	var err error
+
+	opts := gui.buildSearchOptions()
+	opts.Sort = "created:desc"
+
+	switch gui.state.Notes.CurrentTab {
+	case NotesTabAll:
+		opts.Limit = 50
+		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
+	case NotesTabToday:
+		notes, err = gui.ruinCmd.Search.Today()
+	case NotesTabRecent:
+		opts.Limit = 20
+		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)
+	}
+
+	if err == nil {
+		gui.state.Notes.Items = notes
 	}
 }
 
