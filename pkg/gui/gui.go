@@ -74,12 +74,49 @@ func (gui *Gui) backgroundRefresh() {
 			return
 		case <-ticker.C:
 			gui.g.Update(func(g *gocui.Gui) error {
-				gui.refreshAll()
-				gui.renderAll()
+				gui.backgroundRefreshData()
 				return nil
 			})
 		}
 	}
+}
+
+// backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
+func (gui *Gui) backgroundRefreshData() {
+	// Preserve selections
+	noteIdx := gui.state.Notes.SelectedIndex
+	tagIdx := gui.state.Tags.SelectedIndex
+	queryIdx := gui.state.Queries.SelectedIndex
+	cardIdx := gui.state.Preview.SelectedCardIndex
+
+	gui.loadNotesForCurrentTabPreserve()
+	if noteIdx < len(gui.state.Notes.Items) {
+		gui.state.Notes.SelectedIndex = noteIdx
+	}
+
+	if tags, err := gui.ruinCmd.Tags.List(); err == nil {
+		gui.state.Tags.Items = tags
+		if tagIdx < len(tags) {
+			gui.state.Tags.SelectedIndex = tagIdx
+		}
+	}
+
+	if queries, err := gui.ruinCmd.Queries.List(); err == nil {
+		gui.state.Queries.Items = queries
+		if queryIdx < len(queries) {
+			gui.state.Queries.SelectedIndex = queryIdx
+		}
+	}
+
+	if gui.state.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.state.Preview.Cards) {
+		gui.state.Preview.SelectedCardIndex = cardIdx
+	}
+
+	gui.renderNotes()
+	gui.renderTags()
+	gui.renderQueries()
+	gui.renderPreview()
+	gui.updateStatusBar()
 }
 
 // renderAll re-renders all views with current state (e.g. after resize)
