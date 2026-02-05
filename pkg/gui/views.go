@@ -11,6 +11,7 @@ const (
 	SearchView       = "search"
 	SearchFilterView = "searchFilter"
 	StatusView       = "status"
+	MergeView        = "merge"
 )
 
 // Views holds references to all views.

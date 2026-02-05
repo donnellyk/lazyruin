@@ -297,7 +297,8 @@ func (gui *Gui) updateStatusBar() {
 	switch gui.state.CurrentContext {
 	case NotesContext:
 		hints = []hint{
-			{"Edit", "enter"},
+			{"Edit", "e/enter"},
+			{"Edit Mode", "E"},
 			{"New", "n"},
 			{"Delete", "d"},
 			{"Search", "/"},
@@ -319,12 +320,23 @@ func (gui *Gui) updateStatusBar() {
 			{"Keybindings", "?"},
 		}
 	case PreviewContext:
-		hints = []hint{
-			{"Navigate", "j/k"},
-			{"Focus Note", "enter"},
-			{"Frontmatter", "f"},
-			{"Back", "esc"},
-			{"Keybindings", "?"},
+		if gui.state.Preview.EditMode {
+			hints = []hint{
+				{"Delete", "d"},
+				{"Move Up", "K"},
+				{"Move Down", "J"},
+				{"Merge", "m"},
+				{"Navigate", "j/k"},
+				{"Back", "esc"},
+			}
+		} else {
+			hints = []hint{
+				{"Navigate", "j/k"},
+				{"Focus Note", "enter"},
+				{"Frontmatter", "f"},
+				{"Back", "esc"},
+				{"Keybindings", "?"},
+			}
 		}
 	case SearchContext:
 		hints = []hint{

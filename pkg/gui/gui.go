@@ -25,23 +25,11 @@ func NewGui(ruinCmd *commands.RuinCommand) *Gui {
 
 // Run starts the GUI event loop.
 func (gui *Gui) Run() error {
-	for {
-		if err := gui.runMainLoop(); err != nil {
-			if err == ErrEditFile {
-				// Run editor and restart GUI
-				path := gui.state.EditFilePath
-				gui.state.EditFilePath = ""
-				gui.runEditor(path)
-				gui.state.Initialized = false // Force re-initialization
-				continue
-			}
-			if err != gocui.ErrQuit {
-				return err
-			}
-			return nil
-		}
-		return nil
+	err := gui.runMainLoop()
+	if err != nil && err != gocui.ErrQuit {
+		return err
 	}
+	return nil
 }
 
 func (gui *Gui) runMainLoop() error {
@@ -120,13 +108,16 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	gui.renderQueries()
 	gui.renderTags()
 
-	// Update preview based on new context
+	// Refresh data and update preview based on new context
 	switch ctx {
 	case NotesContext:
+		gui.refreshNotes()
 		gui.updatePreviewForNotes()
 	case QueriesContext:
+		gui.refreshQueries()
 		gui.updatePreviewForQueries()
 	case TagsContext:
+		gui.refreshTags()
 		gui.updatePreviewForTags()
 	case PreviewContext:
 		gui.renderPreview()

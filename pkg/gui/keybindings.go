@@ -130,6 +130,9 @@ func (gui *Gui) setupNotesKeybindings() error {
 	if err := gui.g.SetKeybinding(view, 'e', gocui.ModNone, gui.editNote); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, 'E', gocui.ModNone, gui.editNotesInPreview); err != nil {
+		return err
+	}
 	if err := gui.g.SetKeybinding(view, 'n', gocui.ModNone, gui.newNote); err != nil {
 		return err
 	}
@@ -233,6 +236,20 @@ func (gui *Gui) setupPreviewKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.focusNoteFromPreview); err != nil {
+		return err
+	}
+
+	// Edit mode actions (guarded by EditMode in handlers)
+	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteCardFromPreview); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'J', gocui.ModNone, gui.moveCardDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'K', gocui.ModNone, gui.moveCardUp); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, 'm', gocui.ModNone, gui.mergeCardHandler); err != nil {
 		return err
 	}
 

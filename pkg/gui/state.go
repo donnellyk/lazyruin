@@ -39,9 +39,8 @@ type GuiState struct {
 	PreviousContext ContextKey
 	SearchQuery     string
 	SearchMode      bool
-	Initialized     bool
-	EditFilePath    string // Path to edit after exiting main loop
-	lastWidth       int
+	Initialized bool
+	lastWidth   int
 	lastHeight      int
 }
 
@@ -70,6 +69,7 @@ type PreviewState struct {
 	ShowTitle         bool
 	ShowGlobalTags    bool
 	CardLineRanges    [][2]int // [startLine, endLine) for each card
+	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
 }
 
 func NewGuiState() *GuiState {

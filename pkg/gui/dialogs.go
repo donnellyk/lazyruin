@@ -58,6 +58,15 @@ func (gui *Gui) showHelp() {
 	}
 }
 
+// showMergeOverlay displays the merge direction chooser
+func (gui *Gui) showMergeOverlay() {
+	gui.state.Dialog = &DialogState{
+		Active: true,
+		Type:   "merge",
+		Title:  "Merge",
+	}
+}
+
 // closeDialog closes any open dialog
 func (gui *Gui) closeDialog() {
 	if gui.state.Dialog != nil && gui.state.Dialog.OnCancel != nil {
@@ -67,6 +76,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(ConfirmView)
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(HelpView)
+	gui.g.DeleteView(MergeView)
 }
 
 // createConfirmDialog renders the confirmation dialog
@@ -178,6 +188,7 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   j / k          Move down / up
   g / G          Go to top / bottom
   Enter / e      Edit note in $EDITOR
+  E              Enter edit mode (bulk ops)
   n              New note
   d              Delete note
   y              Copy note path
@@ -204,6 +215,13 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   t              Toggle title
   T              Toggle global tags
 
+  Edit Mode (Preview)
+  ──────────────────────────────────────────
+  d              Delete card
+  J / K          Move card down / up
+  m              Merge card (j=down, k=up)
+  Esc            Exit edit mode
+
   Press any key to close
 `
 	fmt.Fprint(v, help)
@@ -214,12 +232,44 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
+// createMergeDialog renders the merge direction chooser overlay
+func (gui *Gui) createMergeDialog(g *gocui.Gui, maxX, maxY int) error {
+	if gui.state.Dialog == nil || gui.state.Dialog.Type != "merge" {
+		return nil
+	}
+
+	width := 44
+	height := 5
+	x0 := (maxX - width) / 2
+	y0 := (maxY - height) / 2
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(MergeView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	v.Title = " Merge "
+	setRoundedCorners(v)
+	v.Clear()
+
+	fmt.Fprintln(v, "")
+	fmt.Fprintln(v, "  [j] Merge Down  [k] Merge Up  [Esc] Cancel")
+
+	g.SetViewOnTop(MergeView)
+	g.SetCurrentView(MergeView)
+
+	return nil
+}
+
 // renderDialogs renders any active dialog
 func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || !gui.state.Dialog.Active {
 		g.DeleteView(ConfirmView)
 		g.DeleteView(InputView)
 		g.DeleteView(HelpView)
+		g.DeleteView(MergeView)
 		return nil
 	}
 
@@ -230,6 +280,8 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		return gui.createInputDialog(g, maxX, maxY)
 	case "help":
 		return gui.createHelpDialog(g, maxX, maxY)
+	case "merge":
+		return gui.createMergeDialog(g, maxX, maxY)
 	}
 
 	return nil
@@ -267,6 +319,17 @@ func (gui *Gui) setupDialogKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(HelpView, gocui.KeySpace, gocui.ModNone, gui.closeHelpDialog); err != nil {
+		return err
+	}
+
+	// Merge dialog
+	if err := gui.g.SetKeybinding(MergeView, 'j', gocui.ModNone, gui.mergeDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MergeView, 'k', gocui.ModNone, gui.mergeUp); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MergeView, gocui.KeyEsc, gocui.ModNone, gui.closeMergeDialog); err != nil {
 		return err
 	}
 
@@ -310,6 +373,21 @@ func (gui *Gui) inputCancel(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) closeHelpDialog(g *gocui.Gui, v *gocui.View) error {
+	gui.closeDialog()
+	return nil
+}
+
+func (gui *Gui) mergeDown(g *gocui.Gui, v *gocui.View) error {
+	gui.closeDialog()
+	return gui.executeMerge("down")
+}
+
+func (gui *Gui) mergeUp(g *gocui.Gui, v *gocui.View) error {
+	gui.closeDialog()
+	return gui.executeMerge("up")
+}
+
+func (gui *Gui) closeMergeDialog(g *gocui.Gui, v *gocui.View) error {
 	gui.closeDialog()
 	return nil
 }
