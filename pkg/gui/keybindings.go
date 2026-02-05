@@ -98,6 +98,11 @@ func (gui *Gui) setupNotesKeybindings() error {
 		return err
 	}
 
+	// Tab click to switch tabs
+	if err := gui.g.SetTabClickBinding(view, gui.switchNotesTabByIndex); err != nil {
+		return err
+	}
+
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.notesDown); err != nil {
 		return err

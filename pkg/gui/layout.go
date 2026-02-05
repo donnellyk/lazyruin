@@ -2,7 +2,6 @@ package gui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -130,9 +129,11 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Notes = v
-	v.Title = gui.getNotesTitle()
-	v.SelBgColor = gocui.ColorBlue
-	v.SelFgColor = gocui.ColorWhite
+	v.TitlePrefix = "[1]"
+	// v.Title = "[1]"
+	v.Tabs = []string{"All", "Today", "Recent"}
+	v.SelFgColor = gocui.ColorGreen
+	gui.updateNotesTab()
 	setRoundedCorners(v)
 
 	// Notes uses manual multi-line highlighting in renderNotes()
@@ -140,10 +141,8 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	if gui.state.CurrentContext == NotesContext {
 		v.FrameColor = gocui.ColorGreen
-		v.TitleColor = gocui.ColorGreen
 	} else {
 		v.FrameColor = gocui.ColorDefault
-		v.TitleColor = gocui.ColorDefault
 	}
 
 	return nil
@@ -297,33 +296,24 @@ func (gui *Gui) updateStatusBar() {
 	fmt.Fprint(gui.views.Status, hints)
 }
 
-// getNotesTitle returns the title for the Notes view with tab indicator
-// Selected tab is marked with brackets, entire title colored via TitleColor
-func (gui *Gui) getNotesTitle() string {
-	tabs := []struct {
-		tab  NotesTab
-		name string
-	}{
-		{NotesTabAll, "All"},
-		{NotesTabToday, "Today"},
-		{NotesTabRecent, "Recent"},
+// notesTabIndex returns the index for the current tab
+func (gui *Gui) notesTabIndex() int {
+	switch gui.state.Notes.CurrentTab {
+	case NotesTabToday:
+		return 1
+	case NotesTabRecent:
+		return 2
+	default:
+		return 0
 	}
-
-	var parts []string
-	for _, t := range tabs {
-		if t.tab == gui.state.Notes.CurrentTab {
-			parts = append(parts, "["+t.name+"]")
-		} else {
-			parts = append(parts, t.name)
-		}
-	}
-
-	return "[1]-" + strings.Join(parts, "-")
 }
 
-// updateNotesTitle updates the Notes view title to reflect current tab
-func (gui *Gui) updateNotesTitle() {
+// notesTabs maps tab indices to NotesTab values
+var notesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
+
+// updateNotesTab syncs the gocui view's TabIndex with the current tab
+func (gui *Gui) updateNotesTab() {
 	if gui.views.Notes != nil {
-		gui.views.Notes.Title = gui.getNotesTitle()
+		gui.views.Notes.TabIndex = gui.notesTabIndex()
 	}
 }

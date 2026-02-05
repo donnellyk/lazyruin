@@ -81,14 +81,20 @@ func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
 
 // cycleNotesTab cycles through All -> Today -> Recent tabs
 func (gui *Gui) cycleNotesTab() {
-	tabs := []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
-	for i, tab := range tabs {
-		if tab == gui.state.Notes.CurrentTab {
-			gui.state.Notes.CurrentTab = tabs[(i+1)%len(tabs)]
-			break
-		}
-	}
+	idx := (gui.notesTabIndex() + 1) % len(notesTabs)
+	gui.state.Notes.CurrentTab = notesTabs[idx]
 	gui.loadNotesForCurrentTab()
+}
+
+// switchNotesTabByIndex switches to a specific tab by index (for tab click)
+func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
+	if tabIndex < 0 || tabIndex >= len(notesTabs) {
+		return nil
+	}
+	gui.state.Notes.CurrentTab = notesTabs[tabIndex]
+	gui.loadNotesForCurrentTab()
+	gui.setContext(NotesContext)
+	return nil
 }
 
 // buildSearchOptions returns SearchOptions based on current preview toggle state
@@ -124,7 +130,7 @@ func (gui *Gui) loadNotesForCurrentTab() {
 		gui.state.Notes.SelectedIndex = 0
 	}
 	gui.renderNotes()
-	gui.updateNotesTitle()
+	gui.updateNotesTab()
 	gui.updatePreviewForNotes()
 }
 
