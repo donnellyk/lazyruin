@@ -67,7 +67,6 @@ type PreviewState struct {
 	ShowFrontmatter   bool
 	ShowTitle         bool
 	ShowGlobalTags    bool
-	CardViewNames     []string // Track card view names for cleanup
 }
 
 func NewGuiState() *GuiState {

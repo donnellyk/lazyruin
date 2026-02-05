@@ -144,22 +144,11 @@ func (gui *Gui) renderPreview() {
 
 	v.Clear()
 
-	// Clean up old card views first
-	gui.cleanupCardViews()
-
 	if gui.state.Preview.Mode == PreviewModeCardList {
-		gui.renderCardViews()
+		gui.renderSeparatorCards(v)
 	} else {
 		gui.renderSingleNotes(v)
 	}
-}
-
-// cleanupCardViews removes any existing card views
-func (gui *Gui) cleanupCardViews() {
-	for _, name := range gui.state.Preview.CardViewNames {
-		gui.g.DeleteView(name)
-	}
-	gui.state.Preview.CardViewNames = nil
 }
 
 func (gui *Gui) renderSingleNotes(v *gocui.View) {
@@ -206,134 +195,142 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 	}
 }
 
-// padOrTruncate ensures a string is exactly 'length' display characters
-func padOrTruncate(s string, length int) string {
-	// Replace tabs with spaces for consistent width
-	s = strings.ReplaceAll(s, "\t", "    ")
-
-	runes := []rune(s)
-	if len(runes) > length {
-		if length > 3 {
-			return string(runes[:length-3]) + "..."
-		}
-		return string(runes[:length])
-	}
-	return s + strings.Repeat(" ", length-len(runes))
-}
-
-// renderCardViews creates actual gocui views for each card
-func (gui *Gui) renderCardViews() {
+// renderSeparatorCards renders cards using separator lines instead of frames
+func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	cards := gui.state.Preview.Cards
 	if len(cards) == 0 {
-		fmt.Fprintln(gui.views.Preview, "No matching notes.")
+		fmt.Fprintln(v, "No matching notes.")
 		return
 	}
 
-	// Get the preview panel's position
-	x0, y0, x1, y1 := gui.views.Preview.Dimensions()
-
-	// Card dimensions
-	cardHeight := 8 // Height of each card view
-	if gui.state.Preview.ShowFrontmatter {
-		cardHeight += 2
-	}
-	cardWidth := x1 - x0 - 2 // Leave margin inside preview
-	availableHeight := y1 - y0 - 2
-
-	// Calculate how many cards fit on screen
-	cardsPerPage := availableHeight / (cardHeight + 1)
-	if cardsPerPage < 1 {
-		cardsPerPage = 1
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
 	}
 
-	// Calculate scroll offset to keep selected card visible
-	selectedIdx := gui.state.Preview.SelectedCardIndex
-	if selectedIdx >= gui.state.Preview.ScrollOffset+cardsPerPage {
-		gui.state.Preview.ScrollOffset = selectedIdx - cardsPerPage + 1
-	} else if selectedIdx < gui.state.Preview.ScrollOffset {
-		gui.state.Preview.ScrollOffset = selectedIdx
+	// Content width inside the │ prefix
+	contentWidth := width - 1
+	if contentWidth < 10 {
+		contentWidth = 10
 	}
 
-	// Starting position for first card (inside preview panel)
-	startX := x0 + 1
-	startY := y0 + 1
-	currentY := startY
+	// Track line position for scrolling to selected card
+	selectedStartLine := 0
+	currentLine := 0
 
-	// Start from scroll offset
-	startIdx := gui.state.Preview.ScrollOffset
-	for i := startIdx; i < len(cards); i++ {
-		note := cards[i]
-
-		// Stop if we run out of vertical space
-		if currentY+cardHeight > y1-1 {
-			break
-		}
-
+	for i, note := range cards {
 		selected := i == gui.state.Preview.SelectedCardIndex
-		viewName := fmt.Sprintf("card-%d", i-startIdx)
 
-		// Create the card view
-		cardView, err := gui.g.SetView(viewName, startX, currentY, startX+cardWidth, currentY+cardHeight, 0)
-		if err != nil && err.Error() != "unknown view" {
-			continue
+		if selected {
+			selectedStartLine = currentLine
 		}
 
-		// Track for cleanup
-		gui.state.Preview.CardViewNames = append(gui.state.Preview.CardViewNames, viewName)
-
-		// Configure the card view
+		// Upper separator with title
 		title := note.Title
 		if title == "" {
 			title = "Untitled"
 		}
-		cardView.Title = " " + title + " "
-		cardView.Footer = fmt.Sprintf("%s-%s", note.TagsString(), note.ShortDate())
-		cardView.Wrap = true
-		setRoundedCorners(cardView)
-
-		// Set frame color based on selection
-		if selected {
-			cardView.FrameColor = gocui.ColorGreen
-			cardView.TitleColor = gocui.ColorGreen
-		} else {
-			cardView.FrameColor = gocui.ColorDefault
-			cardView.TitleColor = gocui.ColorDefault
-		}
-
-		// Render card content
-		cardView.Clear()
+		upperSep := gui.buildSeparatorLine(true, " "+title+" ", "", width, selected)
+		fmt.Fprintln(v, upperSep)
+		currentLine++
 
 		// Frontmatter if enabled
 		if gui.state.Preview.ShowFrontmatter {
-			fmt.Fprintf(cardView, "uuid: %s\n", note.UUID)
-			fmt.Fprintf(cardView, "created: %s\n", note.Created.Format("2006-01-02"))
+			fmt.Fprintf(v, "uuid: %s\n", note.UUID)
+			fmt.Fprintf(v, "created: %s\n", note.Created.Format("2006-01-02"))
+			currentLine += 2
 		}
 
-		// Content preview
+		// Full content with wrapping
 		content := note.Content
 		if content == "" {
 			content, _ = gui.loadNoteContent(note.Path)
 		}
-		contentLines := strings.Split(content, "\n")
-		maxLines := 4
-		for j, l := range contentLines {
-			if j >= maxLines {
-				fmt.Fprintln(cardView, "...")
-				break
+		for _, l := range strings.Split(content, "\n") {
+			wrapped := wrapLine(l, contentWidth)
+			for _, wl := range wrapped {
+				fmt.Fprintln(v, " "+wl)
+				currentLine++
 			}
-			fmt.Fprintln(cardView, l)
 		}
 
-		// Move to next card position
-		currentY += cardHeight + 1
+		// Lower separator with tags and date
+		tags := note.TagsString()
+		date := note.ShortDate()
+		lowerSep := gui.buildSeparatorLine(false, " "+tags+" ", " "+date+" ", width, selected)
+		fmt.Fprintln(v, lowerSep)
+		currentLine++
+
+		// Blank line between cards (except last)
+		if i < len(cards)-1 {
+			fmt.Fprintln(v, "")
+			currentLine++
+		}
 	}
+
+	// Scroll to keep selected card visible at top of view
+	v.SetOrigin(0, selectedStartLine)
 }
 
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
+// wrapLine breaks a line into chunks that fit within the given width
+func wrapLine(s string, width int) []string {
+	s = strings.ReplaceAll(s, "\t", "    ")
+	runes := []rune(s)
+	if len(runes) <= width {
+		return []string{s}
 	}
-	return s[:maxLen-3] + "..."
+	var lines []string
+	for len(runes) > width {
+		lines = append(lines, string(runes[:width]))
+		runes = runes[width:]
+	}
+	lines = append(lines, string(runes))
+	return lines
+}
+
+// buildSeparatorLine creates a separator line with optional left and right text
+func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
+	// ANSI codes for cyan (highlight)
+	cyan := "\x1b[36m"
+	reset := "\x1b[0m"
+	sep := "─"
+	leftLen := len([]rune(leftText))
+	rightLen := len([]rune(rightText))
+
+	// Calculate fill length
+	fillLen := width - leftLen - rightLen - 4 // 4 for leading/trailing separator chars,//
+	if fillLen < 0 {
+		fillLen = 0
+	}
+	// v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
+	// Build the line: sep sep leftText sep...sep rightText sep sep
+	var sb strings.Builder
+	if highlight {
+		sb.WriteString(cyan)
+	}
+	if upper {
+		sb.WriteString("╭")
+	} else {
+		sb.WriteString("╰")
+	}
+	sb.WriteString(sep)
+	sb.WriteString(leftText)
+	for i := 0; i < fillLen; i++ {
+		sb.WriteString(sep)
+	}
+	sb.WriteString(rightText)
+	sb.WriteString(sep)
+	if upper {
+		sb.WriteString("╮")
+	} else {
+		sb.WriteString("╯")
+	}
+
+	if highlight {
+		sb.WriteString(reset)
+	}
+
+	return sb.String()
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {
