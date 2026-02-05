@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // RuinCommand wraps the ruin CLI for executing commands.
@@ -44,12 +46,18 @@ func (r *RuinCommand) VaultPath() string {
 	return r.vaultPath
 }
 
-// VaultExists checks if the vault is accessible.
-func (r *RuinCommand) VaultExists() bool {
-	// Use 'ruin today' as a lightweight check that the vault is valid
+// CheckVault verifies the vault is accessible, returning an error with details if not.
+func (r *RuinCommand) CheckVault() error {
 	cmd := exec.Command("ruin", "today", "--vault", r.vaultPath)
-	err := cmd.Run()
-	return err == nil
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(output))
+		if msg != "" {
+			return fmt.Errorf("vault check failed for %q: %s", r.vaultPath, msg)
+		}
+		return fmt.Errorf("vault check failed for %q: %w", r.vaultPath, err)
+	}
+	return nil
 }
 
 // Execute runs a ruin command with the given arguments.

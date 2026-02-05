@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
@@ -41,9 +42,8 @@ func NewApp(vaultOverride string) (*App, error) {
 
 // Run starts the application.
 func (a *App) Run() error {
-	// Verify vault exists
-	if !a.RuinCmd.VaultExists() {
-		return errors.New("vault not found - run 'ruin init' or set vault path in config")
+	if err := a.RuinCmd.CheckVault(); err != nil {
+		return err
 	}
 
 	// Initialize and run GUI
@@ -51,21 +51,34 @@ func (a *App) Run() error {
 	return a.Gui.Run()
 }
 
+// expandPath expands ~ to the user's home directory and resolves to absolute path.
+func expandPath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			path = filepath.Join(home, path[2:])
+		}
+	}
+	if abs, err := filepath.Abs(path); err == nil {
+		return abs
+	}
+	return path
+}
+
 // resolveVaultPath determines the vault path from CLI flag, config, env, or ruin CLI.
 func resolveVaultPath(cfg *config.Config, cliOverride string) (string, error) {
 	// 1. Check CLI flag (highest priority)
 	if cliOverride != "" {
-		return cliOverride, nil
+		return expandPath(cliOverride), nil
 	}
 
 	// 2. Check config
 	if cfg.VaultPath != "" {
-		return cfg.VaultPath, nil
+		return expandPath(cfg.VaultPath), nil
 	}
 
 	// 3. Check environment
 	if envVault := os.Getenv("LAZYRUIN_VAULT"); envVault != "" {
-		return envVault, nil
+		return expandPath(envVault), nil
 	}
 
 	// 4. Ask ruin CLI for its configured vault path
