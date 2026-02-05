@@ -208,8 +208,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		width = 40
 	}
 
-	// Content width inside the │ prefix
-	contentWidth := width - 1
+	// Content width
+	contentWidth := width - 2
 	if contentWidth < 10 {
 		contentWidth = 10
 	}
@@ -272,7 +272,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	v.SetOrigin(0, selectedStartLine)
 }
 
-// wrapLine breaks a line into chunks that fit within the given width
+// wrapLine breaks a line into chunks that fit within the given width,
+// wrapping at word boundaries when possible.
 func wrapLine(s string, width int) []string {
 	s = strings.ReplaceAll(s, "\t", "    ")
 	runes := []rune(s)
@@ -281,17 +282,33 @@ func wrapLine(s string, width int) []string {
 	}
 	var lines []string
 	for len(runes) > width {
-		lines = append(lines, string(runes[:width]))
-		runes = runes[width:]
+		// Find the last space at or before the width limit
+		breakAt := -1
+		for i := width; i >= 0; i-- {
+			if runes[i] == ' ' {
+				breakAt = i
+				break
+			}
+		}
+		if breakAt <= 0 {
+			// No space found; hard break at width
+			lines = append(lines, string(runes[:width]))
+			runes = runes[width:]
+		} else {
+			lines = append(lines, string(runes[:breakAt]))
+			runes = runes[breakAt+1:] // skip the space
+		}
 	}
-	lines = append(lines, string(runes))
+	if len(runes) > 0 {
+		lines = append(lines, string(runes))
+	}
 	return lines
 }
 
 // buildSeparatorLine creates a separator line with optional left and right text
 func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
-	// ANSI codes for cyan (highlight)
-	cyan := "\x1b[36m"
+	// ANSI codes for green (highlight)
+	cyan := "\x1b[32m"
 	reset := "\x1b[0m"
 	sep := "─"
 	leftLen := len([]rune(leftText))
