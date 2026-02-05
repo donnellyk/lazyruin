@@ -68,6 +68,17 @@ func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	idx := (cy + oy) / 2 // 2 lines per note
+	if idx >= 0 && idx < len(gui.state.Notes.Items) {
+		gui.state.Notes.SelectedIndex = idx
+	}
+	gui.setContext(NotesContext)
+	return nil
+}
+
 // cycleNotesTab cycles through All -> Today -> Recent tabs
 func (gui *Gui) cycleNotesTab() {
 	tabs := []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
@@ -122,7 +133,29 @@ func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	idx := (cy + oy) / 2 // 2 lines per query
+	if idx >= 0 && idx < len(gui.state.Queries.Items) {
+		gui.state.Queries.SelectedIndex = idx
+	}
+	gui.setContext(QueriesContext)
+	return nil
+}
+
 func (gui *Gui) focusTags(g *gocui.Gui, v *gocui.View) error {
+	gui.setContext(TagsContext)
+	return nil
+}
+
+func (gui *Gui) tagsClick(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	idx := cy + oy // 1 line per tag
+	if idx >= 0 && idx < len(gui.state.Tags.Items) {
+		gui.state.Tags.SelectedIndex = idx
+	}
 	gui.setContext(TagsContext)
 	return nil
 }

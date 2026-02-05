@@ -93,8 +93,8 @@ func (gui *Gui) setupGlobalKeybindings() error {
 func (gui *Gui) setupNotesKeybindings() error {
 	view := NotesView
 
-	// Mouse click to focus
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusNotes); err != nil {
+	// Mouse click to focus and select
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.notesClick); err != nil {
 		return err
 	}
 
@@ -141,8 +141,8 @@ func (gui *Gui) setupNotesKeybindings() error {
 func (gui *Gui) setupQueriesKeybindings() error {
 	view := QueriesView
 
-	// Mouse click to focus
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusQueries); err != nil {
+	// Mouse click to focus and select
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.queriesClick); err != nil {
 		return err
 	}
 
@@ -174,8 +174,8 @@ func (gui *Gui) setupQueriesKeybindings() error {
 func (gui *Gui) setupTagsKeybindings() error {
 	view := TagsView
 
-	// Mouse click to focus
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.focusTags); err != nil {
+	// Mouse click to focus and select
+	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.tagsClick); err != nil {
 		return err
 	}
 
