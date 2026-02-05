@@ -327,7 +327,7 @@ func wrapLine(s string, width int) []string {
 
 // buildSeparatorLine creates a separator line with optional left and right text
 func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
-	// ANSI codes for green (highlight)
+	dim := "\x1b[2m"
 	green := "\x1b[32m"
 	reset := "\x1b[0m"
 
@@ -336,7 +336,7 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	rightLen := len([]rune(rightText))
 
 	// Calculate fill length
-	fillLen := width - leftLen - rightLen - 4 // 4 for leading/trailing separator chars,//
+	fillLen := width - leftLen - rightLen - 4 // 4 for leading/trailing separator chars
 	if fillLen < 0 {
 		fillLen = 0
 	}
@@ -345,6 +345,7 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	if highlight {
 		sb.WriteString(green)
 	}
+	sb.WriteString(dim)
 	if upper {
 		sb.WriteString("╭")
 	} else {
@@ -362,10 +363,7 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	} else {
 		sb.WriteString("╯")
 	}
-
-	if highlight {
-		sb.WriteString(reset)
-	}
+	sb.WriteString(reset)
 
 	return sb.String()
 }
