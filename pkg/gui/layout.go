@@ -141,8 +141,10 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	if gui.state.CurrentContext == NotesContext {
 		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
 	} else {
 		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
 	}
 
 	return nil
@@ -213,6 +215,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		v.Title = "Preview"
 		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
 	} else {
+		v.Footer = ""
 		v.Title = " Preview "
 	}
 
