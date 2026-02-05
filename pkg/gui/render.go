@@ -214,8 +214,9 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		contentWidth = 10
 	}
 
-	// Track line position for scrolling to selected card
+	// Track line positions for scrolling
 	selectedStartLine := 0
+	selectedEndLine := 0
 	currentLine := 0
 
 	for i, note := range cards {
@@ -261,6 +262,10 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		fmt.Fprintln(v, lowerSep)
 		currentLine++
 
+		if selected {
+			selectedEndLine = currentLine
+		}
+
 		// Blank line between cards (except last)
 		if i < len(cards)-1 {
 			fmt.Fprintln(v, "")
@@ -268,8 +273,18 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		}
 	}
 
-	// Scroll to keep selected card visible at top of view
-	v.SetOrigin(0, selectedStartLine)
+	// Only scroll when the selected card isn't fully visible
+	_, viewHeight := v.InnerSize()
+	originY := gui.state.Preview.ScrollOffset
+	if selectedStartLine < originY {
+		// Selected card starts above the viewport — scroll up
+		originY = selectedStartLine
+	} else if selectedEndLine > originY+viewHeight {
+		// Selected card ends below the viewport — scroll down just enough
+		originY = selectedEndLine - viewHeight
+	}
+	gui.state.Preview.ScrollOffset = originY
+	v.SetOrigin(0, originY)
 }
 
 // wrapLine breaks a line into chunks that fit within the given width,
