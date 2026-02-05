@@ -119,6 +119,8 @@ func (gui *Gui) setContext(ctx ContextKey) {
 		gui.updatePreviewForQueries()
 	case TagsContext:
 		gui.updatePreviewForTags()
+	case PreviewContext:
+		gui.renderPreview()
 	}
 
 	gui.updateStatusBar()

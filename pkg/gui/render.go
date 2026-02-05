@@ -215,12 +215,13 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	}
 
 	// Track line positions for scrolling
+	isActive := gui.state.CurrentContext == PreviewContext
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
 
 	for i, note := range cards {
-		selected := i == gui.state.Preview.SelectedCardIndex
+		selected := isActive && i == gui.state.Preview.SelectedCardIndex
 
 		if selected {
 			selectedStartLine = currentLine
