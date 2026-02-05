@@ -259,7 +259,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		// Lower separator with tags and date
 		tags := note.TagsString()
 		date := note.ShortDate()
-		lowerSep := gui.buildSeparatorLine(false, " "+tags+" ", " "+date+" ", width, selected)
+		lowerSep := gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected)
 		fmt.Fprintln(v, lowerSep)
 		currentLine++
 
@@ -324,8 +324,9 @@ func wrapLine(s string, width int) []string {
 // buildSeparatorLine creates a separator line with optional left and right text
 func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
 	// ANSI codes for green (highlight)
-	cyan := "\x1b[32m"
+	green := "\x1b[32m"
 	reset := "\x1b[0m"
+
 	sep := "─"
 	leftLen := len([]rune(leftText))
 	rightLen := len([]rune(rightText))
@@ -335,11 +336,10 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	if fillLen < 0 {
 		fillLen = 0
 	}
-	// v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	// Build the line: sep sep leftText sep...sep rightText sep sep
+
 	var sb strings.Builder
 	if highlight {
-		sb.WriteString(cyan)
+		sb.WriteString(green)
 	}
 	if upper {
 		sb.WriteString("╭")
