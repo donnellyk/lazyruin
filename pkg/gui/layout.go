@@ -211,7 +211,8 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	// Set title with card count for multi-card mode
 	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
-		v.Title = fmt.Sprintf(" Preview (%d of %d) ", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
+		v.Title = "Preview"
+		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
 	} else {
 		v.Title = " Preview "
 	}
