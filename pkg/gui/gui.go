@@ -84,37 +84,16 @@ func (gui *Gui) backgroundRefresh() {
 // backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
 func (gui *Gui) backgroundRefreshData() {
 	// Preserve selections
-	noteIdx := gui.state.Notes.SelectedIndex
-	tagIdx := gui.state.Tags.SelectedIndex
-	queryIdx := gui.state.Queries.SelectedIndex
 	cardIdx := gui.state.Preview.SelectedCardIndex
 
-	gui.loadNotesForCurrentTabPreserve()
-	if noteIdx < len(gui.state.Notes.Items) {
-		gui.state.Notes.SelectedIndex = noteIdx
-	}
-
-	if tags, err := gui.ruinCmd.Tags.List(); err == nil {
-		gui.state.Tags.Items = tags
-		if tagIdx < len(tags) {
-			gui.state.Tags.SelectedIndex = tagIdx
-		}
-	}
-
-	if queries, err := gui.ruinCmd.Queries.List(); err == nil {
-		gui.state.Queries.Items = queries
-		if queryIdx < len(queries) {
-			gui.state.Queries.SelectedIndex = queryIdx
-		}
-	}
+	gui.refreshNotes(true)
+	gui.refreshTags(true)
+	gui.refreshQueries(true)
 
 	if gui.state.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.state.Preview.Cards) {
 		gui.state.Preview.SelectedCardIndex = cardIdx
 	}
 
-	gui.renderNotes()
-	gui.renderTags()
-	gui.renderQueries()
 	gui.renderPreview()
 	gui.updateStatusBar()
 }
@@ -129,68 +108,50 @@ func (gui *Gui) renderAll() {
 }
 
 func (gui *Gui) refreshAll() {
-	gui.refreshNotes()
-	gui.refreshTags()
-	gui.refreshQueries()
+	gui.refreshNotes(false)
+	gui.refreshTags(false)
+	gui.refreshQueries(false)
 }
 
-func (gui *Gui) refreshNotes() {
-	gui.loadNotesForCurrentTab()
-}
-
-func (gui *Gui) refreshNotesPreserve() {
-	idx := gui.state.Notes.SelectedIndex
-	gui.loadNotesForCurrentTabPreserve()
-	if idx < len(gui.state.Notes.Items) {
-		gui.state.Notes.SelectedIndex = idx
+func (gui *Gui) refreshNotes(preserve bool) {
+	if preserve {
+		idx := gui.state.Notes.SelectedIndex
+		gui.loadNotesForCurrentTabPreserve()
+		if idx < len(gui.state.Notes.Items) {
+			gui.state.Notes.SelectedIndex = idx
+		}
+		gui.renderNotes()
+	} else {
+		gui.loadNotesForCurrentTab()
 	}
-	gui.renderNotes()
 }
 
-func (gui *Gui) refreshTags() {
-	tags, err := gui.ruinCmd.Tags.List()
-	if err != nil {
-		return
-	}
-
-	gui.state.Tags.Items = tags
-	gui.state.Tags.SelectedIndex = 0
-	gui.renderTags()
-}
-
-func (gui *Gui) refreshTagsPreserve() {
+func (gui *Gui) refreshTags(preserve bool) {
 	idx := gui.state.Tags.SelectedIndex
 	tags, err := gui.ruinCmd.Tags.List()
 	if err != nil {
 		return
 	}
 	gui.state.Tags.Items = tags
-	if idx < len(tags) {
+	if preserve && idx < len(tags) {
 		gui.state.Tags.SelectedIndex = idx
+	} else {
+		gui.state.Tags.SelectedIndex = 0
 	}
 	gui.renderTags()
 }
 
-func (gui *Gui) refreshQueries() {
-	queries, err := gui.ruinCmd.Queries.List()
-	if err != nil {
-		return
-	}
-
-	gui.state.Queries.Items = queries
-	gui.state.Queries.SelectedIndex = 0
-	gui.renderQueries()
-}
-
-func (gui *Gui) refreshQueriesPreserve() {
+func (gui *Gui) refreshQueries(preserve bool) {
 	idx := gui.state.Queries.SelectedIndex
 	queries, err := gui.ruinCmd.Queries.List()
 	if err != nil {
 		return
 	}
 	gui.state.Queries.Items = queries
-	if idx < len(queries) {
+	if preserve && idx < len(queries) {
 		gui.state.Queries.SelectedIndex = idx
+	} else {
+		gui.state.Queries.SelectedIndex = 0
 	}
 	gui.renderQueries()
 }
@@ -210,13 +171,13 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	// Refresh data (preserving selections) and update preview based on new context
 	switch ctx {
 	case NotesContext:
-		gui.refreshNotesPreserve()
+		gui.refreshNotes(true)
 		gui.updatePreviewForNotes()
 	case QueriesContext:
-		gui.refreshQueriesPreserve()
+		gui.refreshQueries(true)
 		gui.updatePreviewForQueries()
 	case TagsContext:
-		gui.refreshTagsPreserve()
+		gui.refreshTags(true)
 		gui.updatePreviewForTags()
 	case PreviewContext:
 		gui.renderPreview()

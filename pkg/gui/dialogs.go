@@ -34,6 +34,13 @@ type DialogState struct {
 	MenuSelection int
 }
 
+// centerRect computes centered coordinates for a dialog of the given size.
+func centerRect(maxX, maxY, width, height int) (x0, y0, x1, y1 int) {
+	x0 = (maxX - width) / 2
+	y0 = (maxY - height) / 2
+	return x0, y0, x0 + width, y0 + height
+}
+
 // showConfirm displays a confirmation dialog
 func (gui *Gui) showConfirm(title, message string, onConfirm func() error) {
 	gui.state.Dialog = &DialogState{
@@ -100,12 +107,7 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	width := 50
-	height := 7
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerRect(maxX, maxY, 50, 7)
 
 	v, err := g.SetView(ConfirmView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -133,12 +135,7 @@ func (gui *Gui) createInputDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	width := 50
-	height := 7
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerRect(maxX, maxY, 50, 7)
 
 	v, err := g.SetView(InputView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -167,15 +164,11 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	width := 60
 	height := 25
 	if height > maxY-4 {
 		height = maxY - 4
 	}
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerRect(maxX, maxY, 60, height)
 
 	v, err := g.SetView(HelpView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -270,10 +263,7 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 		width = maxX - 4
 	}
 	height := len(items) + 2 // border
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
 	v, err := g.SetView(MenuView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -306,7 +296,7 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 			if pad > 0 {
 				label += strings.Repeat(" ", pad)
 			}
-			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", label)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, label, AnsiReset)
 		} else {
 			fmt.Fprintln(v, label)
 		}
