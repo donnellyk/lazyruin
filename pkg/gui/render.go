@@ -71,7 +71,10 @@ func (gui *Gui) renderNotes() {
 		// fmt.Fprintln(v, "")
 	}
 
-	v.SetOrigin(0, 0)
+	// Scroll to keep selection visible (2 lines per note)
+	_, viewHeight := v.Size()
+	selLine := gui.state.Notes.SelectedIndex * 2
+	scrollListView(v, selLine, 2, viewHeight)
 }
 
 func (gui *Gui) renderQueries() {
@@ -101,9 +104,12 @@ func (gui *Gui) renderQueries() {
 		fmt.Fprintf(v, "    %s\n", queryStr)
 	}
 
-	// Sync view cursor with selection for highlight (2 lines per query)
-	v.SetCursor(0, gui.state.Queries.SelectedIndex*2)
-	v.SetOrigin(0, 0)
+	// Scroll to keep selection visible (2 lines per query)
+	_, viewHeight := v.Size()
+	selLine := gui.state.Queries.SelectedIndex * 2
+	scrollListView(v, selLine, 2, viewHeight)
+	_, oy := v.Origin()
+	v.SetCursor(0, selLine-oy)
 }
 
 func (gui *Gui) renderTags() {
@@ -131,9 +137,12 @@ func (gui *Gui) renderTags() {
 		fmt.Fprintf(v, "%s%s %s\n", prefix, name, count)
 	}
 
-	// Sync view cursor with selection for highlight
-	v.SetCursor(0, gui.state.Tags.SelectedIndex)
-	v.SetOrigin(0, 0)
+	// Scroll to keep selection visible (1 line per tag)
+	_, viewHeight := v.Size()
+	selLine := gui.state.Tags.SelectedIndex
+	scrollListView(v, selLine, 1, viewHeight)
+	_, oy := v.Origin()
+	v.SetCursor(0, selLine-oy)
 }
 
 func (gui *Gui) renderPreview() {
@@ -366,6 +375,23 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	sb.WriteString(reset)
 
 	return sb.String()
+}
+
+// scrollListView sets the origin of a list view to keep selLine visible.
+func scrollListView(v *gocui.View, selLine, itemHeight, viewHeight int) {
+	_, currentOrigin := v.Origin()
+	origin := currentOrigin
+
+	// If selected item ends beyond viewport, scroll down
+	if selLine+itemHeight > origin+viewHeight {
+		origin = selLine + itemHeight - viewHeight
+	}
+	// If selected item starts above viewport, scroll up
+	if selLine < origin {
+		origin = selLine
+	}
+
+	v.SetOrigin(0, origin)
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {

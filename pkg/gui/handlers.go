@@ -200,6 +200,28 @@ func (gui *Gui) refresh(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+// Generic view scroll handlers (viewport only, no selection change)
+
+func (gui *Gui) scrollViewDown(g *gocui.Gui, v *gocui.View) error {
+	if v == nil {
+		return nil
+	}
+	_, oy := v.Origin()
+	v.SetOrigin(0, oy+1)
+	return nil
+}
+
+func (gui *Gui) scrollViewUp(g *gocui.Gui, v *gocui.View) error {
+	if v == nil {
+		return nil
+	}
+	_, oy := v.Origin()
+	if oy > 0 {
+		v.SetOrigin(0, oy-1)
+	}
+	return nil
+}
+
 // Notes handlers
 
 func (gui *Gui) notesDown(g *gocui.Gui, v *gocui.View) error {

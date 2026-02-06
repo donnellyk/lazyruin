@@ -143,6 +143,14 @@ func (gui *Gui) setupNotesKeybindings() error {
 		return err
 	}
 
+	// Mouse wheel scrolls viewport
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -173,6 +181,14 @@ func (gui *Gui) setupQueriesKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteQuery); err != nil {
+		return err
+	}
+
+	// Mouse wheel scrolls viewport
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
 		return err
 	}
 
@@ -209,6 +225,14 @@ func (gui *Gui) setupTagsKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteTag); err != nil {
+		return err
+	}
+
+	// Mouse wheel scrolls viewport
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
 		return err
 	}
 
