@@ -46,9 +46,15 @@ func (r *RuinCommand) VaultPath() string {
 	return r.vaultPath
 }
 
+// buildCommand creates an exec.Cmd for the ruin CLI with --vault appended.
+func (r *RuinCommand) buildCommand(args ...string) *exec.Cmd {
+	fullArgs := append(args, "--vault", r.vaultPath)
+	return exec.Command("ruin", fullArgs...)
+}
+
 // CheckVault verifies the vault is accessible, returning an error with details if not.
 func (r *RuinCommand) CheckVault() error {
-	cmd := exec.Command("ruin", "today", "--vault", r.vaultPath)
+	cmd := r.buildCommand("today")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		msg := strings.TrimSpace(string(output))
@@ -69,7 +75,6 @@ func (r *RuinCommand) Execute(args ...string) ([]byte, error) {
 	}
 
 	// Default to CLI execution
-	fullArgs := append(args, "--json", "--vault", r.vaultPath)
-	cmd := exec.Command("ruin", fullArgs...)
+	cmd := r.buildCommand(append(args, "--json")...)
 	return cmd.Output()
 }
