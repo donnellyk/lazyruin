@@ -355,8 +355,8 @@ func (gui *Gui) updateStatusBar() {
 		}
 	}
 
-	cyan := "\x1b[36m"
-	reset := "\x1b[0m"
+	cyan := AnsiCyan
+	reset := AnsiReset
 	for i, h := range hints {
 		if i > 0 {
 			fmt.Fprint(gui.views.Status, " | ")

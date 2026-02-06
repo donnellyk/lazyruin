@@ -61,8 +61,8 @@ func (gui *Gui) renderNotes() {
 			line1 = line1 + strings.Repeat(" ", width-len(line1))
 			line2 = line2 + strings.Repeat(" ", width-len(line2))
 			// Blue background, white text
-			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", line1)
-			fmt.Fprintf(v, "\x1b[44;37m%s\x1b[0m\n", line2)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line1, AnsiReset)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line2, AnsiReset)
 		} else {
 			fmt.Fprintln(v, line1)
 			fmt.Fprintln(v, line2)
@@ -336,9 +336,9 @@ func wrapLine(s string, width int) []string {
 
 // buildSeparatorLine creates a separator line with optional left and right text
 func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
-	dim := "\x1b[2m"
-	green := "\x1b[32m"
-	reset := "\x1b[0m"
+	dim := AnsiDim
+	green := AnsiGreen
+	reset := AnsiReset
 
 	sep := "─"
 	leftLen := len([]rune(leftText))
