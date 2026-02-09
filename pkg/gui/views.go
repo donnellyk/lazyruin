@@ -4,14 +4,17 @@ import "github.com/jesseduffield/gocui"
 
 // View name constants.
 const (
-	NotesView        = "notes"
-	QueriesView      = "queries"
-	TagsView         = "tags"
-	PreviewView      = "preview"
-	SearchView       = "search"
-	SearchFilterView = "searchFilter"
-	StatusView       = "status"
-	MenuView         = "menu"
+	NotesView          = "notes"
+	QueriesView        = "queries"
+	TagsView           = "tags"
+	PreviewView        = "preview"
+	SearchView         = "search"
+	SearchFilterView   = "searchFilter"
+	SearchSuggestView  = "searchSuggest"
+	CaptureView        = "capture"
+	CaptureSuggestView = "captureSuggest"
+	StatusView         = "status"
+	MenuView           = "menu"
 )
 
 // Views holds references to all views.
@@ -22,5 +25,6 @@ type Views struct {
 	Preview      *gocui.View
 	Search       *gocui.View
 	SearchFilter *gocui.View
+	Capture      *gocui.View
 	Status       *gocui.View
 }

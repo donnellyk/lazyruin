@@ -11,6 +11,7 @@ const (
 	PreviewContext      ContextKey = "preview"
 	SearchContext       ContextKey = "search"
 	SearchFilterContext ContextKey = "searchFilter"
+	CaptureContext      ContextKey = "capture"
 )
 
 // NotesTab represents the sub-tabs within the Notes panel
@@ -46,9 +47,12 @@ type GuiState struct {
 	Dialog          *DialogState
 	CurrentContext  ContextKey
 	PreviousContext ContextKey
-	SearchQuery     string
-	SearchMode      bool
-	Initialized     bool
+	SearchQuery        string
+	SearchMode         bool
+	CaptureMode        bool
+	SearchCompletion   *CompletionState
+	CaptureCompletion  *CompletionState
+	Initialized        bool
 	lastWidth       int
 	lastHeight      int
 }
@@ -95,9 +99,11 @@ func NewGuiState() *GuiState {
 		Queries: &QueriesState{
 			CurrentTab: QueriesTabQueries,
 		},
-		Tags:           &TagsState{},
-		Parents:        &ParentsState{},
-		Preview:        &PreviewState{},
-		CurrentContext: NotesContext,
+		Tags:              &TagsState{},
+		Parents:           &ParentsState{},
+		Preview:           &PreviewState{},
+		SearchCompletion:  NewCompletionState(),
+		CaptureCompletion: NewCompletionState(),
+		CurrentContext:     NotesContext,
 	}
 }

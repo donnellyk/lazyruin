@@ -25,6 +25,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.setupSearchFilterKeybindings(); err != nil {
 		return err
 	}
+	if err := gui.setupCaptureKeybindings(); err != nil {
+		return err
+	}
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
@@ -298,10 +301,29 @@ func (gui *Gui) setupPreviewKeybindings() error {
 func (gui *Gui) setupSearchKeybindings() error {
 	view := SearchView
 
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.executeSearch); err != nil {
+	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.searchEnter); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.cancelSearch); err != nil {
+	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.searchEsc); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.KeyTab, gocui.ModNone, gui.searchTab); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) setupCaptureKeybindings() error {
+	view := CaptureView
+
+	if err := gui.g.SetKeybinding(view, gocui.KeyCtrlS, gocui.ModNone, gui.submitCapture); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.cancelCapture); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(view, gocui.KeyTab, gocui.ModNone, gui.captureTab); err != nil {
 		return err
 	}
 

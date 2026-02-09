@@ -74,7 +74,18 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			return err
 		}
 	} else {
-		g.DeleteView(SearchView) // ignore error if view doesn't exist
+		g.DeleteView(SearchView)
+		g.DeleteView(SearchSuggestView)
+	}
+
+	if gui.state.CaptureMode {
+		if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(CaptureView)
+		g.DeleteView(CaptureSuggestView)
+		gui.views.Capture = nil
 	}
 
 	// Render any active dialogs
@@ -257,10 +268,10 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	if width > maxX-4 {
 		width = maxX - 4
 	}
-	height := 15
+	height := 3
 
 	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
+	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
 	x1 := x0 + width
 	y1 := y0 + height
 
@@ -271,12 +282,70 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 
 	gui.views.Search = v
 	v.Title = " Search "
+	v.Footer = " / for filters | # for tags | Tab: complete | Esc: cancel "
 	v.Editable = true
 	v.Wrap = false
+	v.Editor = &searchEditor{gui: gui}
 	setRoundedCorners(v)
+	v.RenderTextArea() // ensure view has content so footer renders
 
+	g.Cursor = true
 	g.SetViewOnTop(SearchView)
 	g.SetCurrentView(SearchView)
+
+	// Render suggestion dropdown below the search popup
+	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.state.SearchCompletion, x0, y1, width); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	height := 15
+	if height > maxY-4 {
+		height = maxY - 4
+	}
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY - height) / 2
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(CaptureView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	gui.views.Capture = v
+	v.Title = " New Note "
+	v.Footer = " Ctrl+S: save | Esc: cancel | # for tags "
+	v.Editable = true
+	v.Wrap = true
+	v.Editor = &captureEditor{gui: gui}
+	setRoundedCorners(v)
+	v.RenderTextArea() // ensure view has content so footer renders
+
+	g.Cursor = true
+	g.SetViewOnTop(CaptureView)
+	g.SetCurrentView(CaptureView)
+
+	// Render suggestion dropdown below the capture popup
+	suggestY := y0 + 3 // position below a few lines into the popup
+	if gui.state.CaptureCompletion.Active {
+		_, cy := v.TextArea.GetCursorXY()
+		suggestY = y0 + cy + 2 // position relative to cursor line
+		if suggestY > y1-2 {
+			suggestY = y1 // below the popup if cursor is near bottom
+		}
+	}
+	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.state.CaptureCompletion, x0, suggestY, width); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -351,6 +420,13 @@ func (gui *Gui) updateStatusBar() {
 	case SearchContext:
 		hints = []hint{
 			{"Search", "enter"},
+			{"Complete", "tab"},
+			{"Cancel", "esc"},
+		}
+	case CaptureContext:
+		hints = []hint{
+			{"Save", "ctrl+s"},
+			{"Complete", "tab"},
 			{"Cancel", "esc"},
 		}
 	case SearchFilterContext:

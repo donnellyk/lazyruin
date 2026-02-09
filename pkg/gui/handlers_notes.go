@@ -133,18 +133,7 @@ func (gui *Gui) editNote(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) newNote(g *gocui.Gui, v *gocui.View) error {
-	gui.showInput("New Note", "Enter note content:", func(content string) error {
-		if content == "" {
-			return nil
-		}
-		_, err := gui.ruinCmd.Execute("log", content)
-		if err != nil {
-			return nil
-		}
-		gui.refreshNotes(false)
-		return nil
-	})
-	return nil
+	return gui.openCapture(g, v)
 }
 
 func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {

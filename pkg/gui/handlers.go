@@ -117,6 +117,7 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) openSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchMode = true
+	gui.state.SearchCompletion = NewCompletionState()
 	gui.setContext(SearchContext)
 	return nil
 }
@@ -159,8 +160,33 @@ func (gui *Gui) scrollViewUp(g *gocui.Gui, v *gocui.View) error {
 
 // Search handlers
 
+func (gui *Gui) searchEnter(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.SearchCompletion.Active {
+		gui.acceptCompletion(v, gui.state.SearchCompletion, gui.searchTriggers())
+		return nil
+	}
+	return gui.executeSearch(g, v)
+}
+
+func (gui *Gui) searchEsc(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.SearchCompletion.Active {
+		gui.state.SearchCompletion.Active = false
+		gui.state.SearchCompletion.Items = nil
+		gui.state.SearchCompletion.SelectedIndex = 0
+		return nil
+	}
+	return gui.cancelSearch(g, v)
+}
+
+func (gui *Gui) searchTab(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.SearchCompletion.Active {
+		gui.acceptCompletion(v, gui.state.SearchCompletion, gui.searchTriggers())
+	}
+	return nil
+}
+
 func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
-	query := strings.TrimSpace(v.Buffer())
+	query := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 	if query == "" {
 		return gui.cancelSearch(g, v)
 	}
@@ -174,6 +200,8 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	// Store search query for the search filter pane
 	gui.state.SearchQuery = query
 	gui.state.SearchMode = false
+	gui.state.SearchCompletion = NewCompletionState()
+	g.Cursor = false
 
 	// Display results in Preview pane (like tags)
 	gui.state.Preview.Mode = PreviewModeCardList
@@ -191,6 +219,8 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchMode = false
+	gui.state.SearchCompletion = NewCompletionState()
+	g.Cursor = false
 	gui.setContext(gui.state.PreviousContext)
 	return nil
 }

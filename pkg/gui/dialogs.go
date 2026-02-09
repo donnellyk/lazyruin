@@ -197,7 +197,7 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   g / G          Go to top / bottom
   Enter / e      Edit note in $EDITOR
   E              Enter edit mode (bulk ops)
-  n              New note
+  n              New note (multi-line, Ctrl+S to save)
   d              Delete note
   y              Copy note path
 
@@ -230,6 +230,14 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   J / K          Move card down / up
   m              Merge card (j=down, k=up)
   Esc            Exit edit mode
+
+  Search / Capture Completion
+  ──────────────────────────────────────────
+  #              Tag suggestions
+  created:       Date shortcut suggestions (search)
+  Tab / Enter    Accept suggestion
+  Esc            Dismiss suggestions
+  Ctrl+S         Save note (capture popup)
 
   Press any key to close
 `
