@@ -409,18 +409,18 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 // markdownCandidates returns common Markdown syntax snippets.
 func markdownCandidates(filter string) []CompletionItem {
 	items := []CompletionItem{
-		{Label: "# Heading 1", InsertText: "# ", Detail: "h1"},
-		{Label: "## Heading 2", InsertText: "## ", Detail: "h2"},
-		{Label: "### Heading 3", InsertText: "### ", Detail: "h3"},
-		{Label: "- List item", InsertText: "- ", Detail: "bullet"},
-		{Label: "1. Numbered", InsertText: "1. ", Detail: "ordered"},
-		{Label: "- [ ] Task", InsertText: "- [ ] ", Detail: "checkbox"},
-		{Label: "> Quote", InsertText: "> ", Detail: "blockquote"},
+		{Label: "# Heading 1", InsertText: "#", Detail: "h1"},
+		{Label: "## Heading 2", InsertText: "##", Detail: "h2"},
+		{Label: "### Heading 3", InsertText: "###", Detail: "h3"},
+		{Label: "- List item", InsertText: "-", Detail: "bullet"},
+		{Label: "1. Numbered", InsertText: "1.", Detail: "ordered"},
+		{Label: "- [ ] Task", InsertText: "- [ ]", Detail: "checkbox"},
+		{Label: "> Quote", InsertText: ">", Detail: "blockquote"},
 		{Label: "--- Rule", InsertText: "---", Detail: "divider"},
-		{Label: "``` Code block", InsertText: "```\n", Detail: "code"},
-		{Label: "**bold**", InsertText: "**", Detail: "bold"},
-		{Label: "*italic*", InsertText: "*", Detail: "italic"},
-		{Label: "[link](url)", InsertText: "[]()", Detail: "link"},
+		{Label: "``` Code block", InsertText: "```\n", Detail: "code", ContinueCompleting: true},
+		{Label: "**bold**", InsertText: "**", Detail: "bold", ContinueCompleting: true},
+		{Label: "*italic*", InsertText: "*", Detail: "italic", ContinueCompleting: true},
+		{Label: "[link](url)", InsertText: "[]()", Detail: "link", ContinueCompleting: true},
 	}
 
 	if filter == "" {
