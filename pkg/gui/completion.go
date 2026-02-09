@@ -459,14 +459,20 @@ func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *Compl
 	// Calculate dimensions
 	itemCount := min(len(state.Items), maxSuggestionItems)
 
-	// Find widest item for sizing
-	width := 20
+	// Find max label and detail widths for column alignment
+	maxLabelW := 0
+	maxDetailW := 0
 	for _, item := range state.Items {
-		w := len(item.Label) + len(item.Detail) + 4 // padding
-		if w > width {
-			width = w
+		if lw := len([]rune(item.Label)); lw > maxLabelW {
+			maxLabelW = lw
+		}
+		if dw := len([]rune(item.Detail)); dw > maxDetailW {
+			maxDetailW = dw
 		}
 	}
+
+	// width = " " + label column + gap + detail column + " " + frame
+	width := max(1+maxLabelW+2+maxDetailW+1+2, 20)
 	if width > maxWidth {
 		width = maxWidth
 	}
@@ -499,20 +505,24 @@ func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *Compl
 		startIdx = max(endIdx-itemCount, 0)
 	}
 
+	// Detail column starts at a fixed position
+	detailCol := innerWidth - maxDetailW - 1 // 1 for trailing space
+
 	for i := startIdx; i < endIdx; i++ {
 		item := state.Items[i]
 		selected := i == state.SelectedIndex
 
 		label := " " + item.Label
-		detail := item.Detail + " "
+		detail := item.Detail
 
-		// Calculate padding between label and detail
-		pad := max(innerWidth-len([]rune(label))-len([]rune(detail)), 1)
+		// Pad label to reach detail column
+		labelRunes := len([]rune(label))
+		pad := max(detailCol-labelRunes, 1)
 
-		line := label + strings.Repeat(" ", pad) + detail
-		// Ensure line fills width for highlight
-		lineLen := len([]rune(line))
-		line = line + strings.Repeat(" ", max(innerWidth-lineLen, 0))
+		line := label + strings.Repeat(" ", pad) + AnsiDim + detail + AnsiReset
+		// Pad to full width for highlight (account for ANSI not taking visual space)
+		visualLen := labelRunes + pad + len([]rune(detail))
+		line = line + strings.Repeat(" ", max(innerWidth-visualLen, 0))
 
 		if selected {
 			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line, AnsiReset)
