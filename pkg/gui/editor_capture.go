@@ -21,6 +21,9 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 		case gocui.KeyArrowUp:
 			completionUp(state)
 			return true
+		case gocui.KeyEnter:
+			e.gui.acceptCompletion(v, state, e.gui.captureTriggers())
+			return true
 		}
 	}
 
