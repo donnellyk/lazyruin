@@ -16,12 +16,22 @@ func (gui *Gui) openCapture(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) submitCapture(g *gocui.Gui, v *gocui.View) error {
 	content := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 	if content == "" {
+		if gui.QuickCapture {
+			return gocui.ErrQuit
+		}
 		return gui.closeCapture(g)
 	}
 
 	_, err := gui.ruinCmd.Execute("log", content)
 	if err != nil {
+		if gui.QuickCapture {
+			return gocui.ErrQuit
+		}
 		return gui.closeCapture(g)
+	}
+
+	if gui.QuickCapture {
+		return gocui.ErrQuit
 	}
 
 	gui.closeCapture(g)
@@ -36,6 +46,9 @@ func (gui *Gui) cancelCapture(g *gocui.Gui, v *gocui.View) error {
 		gui.state.CaptureCompletion.Items = nil
 		gui.state.CaptureCompletion.SelectedIndex = 0
 		return nil
+	}
+	if gui.QuickCapture {
+		return gocui.ErrQuit
 	}
 	return gui.closeCapture(g)
 }

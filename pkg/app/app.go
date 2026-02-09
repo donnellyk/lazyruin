@@ -14,9 +14,10 @@ import (
 
 // App is the main application struct that bootstraps and runs lazyruin.
 type App struct {
-	Config  *config.Config
-	RuinCmd *commands.RuinCommand
-	Gui     *gui.Gui
+	Config       *config.Config
+	RuinCmd      *commands.RuinCommand
+	Gui          *gui.Gui
+	QuickCapture bool // when true, open directly into new note and exit on save
 }
 
 // NewApp creates a new application instance.
@@ -48,6 +49,7 @@ func (a *App) Run() error {
 
 	// Initialize and run GUI
 	a.Gui = gui.NewGui(a.RuinCmd)
+	a.Gui.QuickCapture = a.QuickCapture
 	return a.Gui.Run()
 }
 

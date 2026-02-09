@@ -100,6 +100,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		g.SetCurrentView(NotesView)
 		gui.refreshAll()
 		gui.renderPreview()
+		if gui.QuickCapture {
+			gui.state.CaptureMode = true
+			gui.state.CaptureCompletion = NewCompletionState()
+			gui.state.CurrentContext = CaptureContext
+		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY

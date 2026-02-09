@@ -9,6 +9,10 @@ run = "go build -o bin/lazyruin ."
 description = "Build and run lazyruin"
 run = "go build -o bin/lazyruin . && ./bin/lazyruin"
 
+[tasks.run-new]
+description = "Build and run lazyruin directly into new note capture"
+run = "go build -o bin/lazyruin . && ./bin/lazyruin --new"
+
 [tasks.run-vault]
 description = "Build and run lazyruin with a specific vault"
 run = "go build -o bin/lazyruin . && ./bin/lazyruin --vault {{arg(name='vault')}}"

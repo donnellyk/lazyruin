@@ -10,6 +10,7 @@ import (
 
 func main() {
 	vaultPath := flag.String("vault", "", "Path to the ruin vault")
+	newNote := flag.Bool("new", false, "Open directly into new note capture, exit on save")
 	flag.Parse()
 
 	a, err := app.NewApp(*vaultPath)
@@ -17,6 +18,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+
+	a.QuickCapture = *newNote
 
 	if err := a.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
