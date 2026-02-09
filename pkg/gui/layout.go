@@ -292,6 +292,8 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &searchEditor{gui: gui}
 	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
 	v.RenderTextArea() // ensure view has content so footer renders
 
 	g.Cursor = true
@@ -333,6 +335,8 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = true
 	v.Editor = &captureEditor{gui: gui}
 	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
 	v.RenderTextArea() // ensure view has content so footer renders
 
 	g.Cursor = true
