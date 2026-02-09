@@ -328,7 +328,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 
 	gui.views.Capture = v
 	v.Title = " New Note "
-	v.Footer = " Ctrl+S: save | Esc: cancel | # for tags "
+	v.Footer = " Ctrl+S: save | Esc: cancel | # tags | / markdown "
 	v.Editable = true
 	v.Wrap = true
 	v.Editor = &captureEditor{gui: gui}

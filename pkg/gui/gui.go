@@ -10,11 +10,12 @@ import (
 
 // Gui manages the terminal user interface.
 type Gui struct {
-	g       *gocui.Gui
-	views   *Views
-	state   *GuiState
-	ruinCmd *commands.RuinCommand
-	stopBg  chan struct{}
+	g            *gocui.Gui
+	views        *Views
+	state        *GuiState
+	ruinCmd      *commands.RuinCommand
+	stopBg       chan struct{}
+	QuickCapture bool // when true, open capture on start and quit on save
 }
 
 // NewGui creates a new Gui instance.

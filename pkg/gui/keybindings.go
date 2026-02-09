@@ -72,6 +72,11 @@ func (gui *Gui) setupGlobalKeybindings() error {
 		return err
 	}
 
+	// New note
+	if err := gui.g.SetKeybinding("", 'n', gocui.ModNone, gui.newNote); err != nil {
+		return err
+	}
+
 	// Refresh
 	if err := gui.g.SetKeybinding("", gocui.KeyCtrlR, gocui.ModNone, gui.refresh); err != nil {
 		return err
@@ -134,9 +139,6 @@ func (gui *Gui) setupNotesKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, 'E', gocui.ModNone, gui.editNotesInPreview); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'n', gocui.ModNone, gui.newNote); err != nil {
 		return err
 	}
 	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteNote); err != nil {

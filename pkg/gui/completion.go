@@ -393,10 +393,43 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 	return triggers
 }
 
+// markdownCandidates returns common Markdown syntax snippets.
+func markdownCandidates(filter string) []CompletionItem {
+	items := []CompletionItem{
+		{Label: "# Heading 1", InsertText: "# ", Detail: "h1"},
+		{Label: "## Heading 2", InsertText: "## ", Detail: "h2"},
+		{Label: "### Heading 3", InsertText: "### ", Detail: "h3"},
+		{Label: "- List item", InsertText: "- ", Detail: "bullet"},
+		{Label: "1. Numbered", InsertText: "1. ", Detail: "ordered"},
+		{Label: "- [ ] Task", InsertText: "- [ ] ", Detail: "checkbox"},
+		{Label: "> Quote", InsertText: "> ", Detail: "blockquote"},
+		{Label: "--- Rule", InsertText: "---", Detail: "divider"},
+		{Label: "``` Code block", InsertText: "```\n", Detail: "code"},
+		{Label: "**bold**", InsertText: "**", Detail: "bold"},
+		{Label: "*italic*", InsertText: "*", Detail: "italic"},
+		{Label: "[link](url)", InsertText: "[]()", Detail: "link"},
+	}
+
+	if filter == "" {
+		return items
+	}
+
+	filter = strings.ToLower(filter)
+	var filtered []CompletionItem
+	for _, item := range items {
+		if strings.Contains(strings.ToLower(item.Label), filter) ||
+			strings.Contains(strings.ToLower(item.Detail), filter) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
 		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "/", Candidates: markdownCandidates},
 	}
 }
 
