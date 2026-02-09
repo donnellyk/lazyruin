@@ -74,6 +74,8 @@ func extractTokenAtCursor(content string, cursorPos int) (string, int) {
 
 // detectTrigger checks if the token at the cursor matches any trigger prefix.
 // Returns the matching trigger and the filter text (portion after the prefix), or nil.
+// As a fallback, scans backward for unclosed [[ to support bracket-style triggers
+// whose filter text may contain spaces.
 func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) (*CompletionTrigger, string, int) {
 	token, tokenStart := extractTokenAtCursor(content, cursorPos)
 	for i := range triggers {
@@ -83,6 +85,23 @@ func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) 
 			return t, filter, tokenStart
 		}
 	}
+
+	// Fallback: scan for unclosed [[ before cursor (allows spaces in filter)
+	cp := cursorPos
+	if cp > len(content) {
+		cp = len(content)
+	}
+	if idx := strings.LastIndex(content[:cp], "[["); idx >= 0 {
+		after := content[idx+2 : cp]
+		if !strings.Contains(after, "]]") {
+			for i := range triggers {
+				if triggers[i].Prefix == "[[" {
+					return &triggers[i], after, idx
+				}
+			}
+		}
+	}
+
 	return nil, "", 0
 }
 
@@ -329,6 +348,29 @@ func (gui *Gui) titleCandidates(filter string) []CompletionItem {
 	return items
 }
 
+// wikiLinkCandidates returns note titles for [[ wiki-style link completion.
+func (gui *Gui) wikiLinkCandidates(filter string) []CompletionItem {
+	filter = strings.ToLower(filter)
+	seen := make(map[string]bool)
+	var items []CompletionItem
+	for _, note := range gui.state.Notes.Items {
+		title := note.Title
+		if title == "" || seen[title] {
+			continue
+		}
+		if filter != "" && !strings.Contains(strings.ToLower(title), filter) {
+			continue
+		}
+		seen[title] = true
+		items = append(items, CompletionItem{
+			Label:      title,
+			InsertText: "[[" + title + "]]",
+			Detail:     note.ShortDate(),
+		})
+	}
+	return items
+}
+
 // pathCandidates returns path: filter hint.
 func (gui *Gui) pathCandidates(filter string) []CompletionItem {
 	if filter != "" {
@@ -486,6 +528,7 @@ func markdownCandidates(filter string) []CompletionItem {
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
+		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}
