@@ -13,6 +13,7 @@ type RuinCommand struct {
 	Search    *SearchCommand
 	Tags      *TagsCommand
 	Queries   *QueriesCommand
+	Parent    *ParentCommand
 }
 
 // NewRuinCommand creates a new RuinCommand with the given vault path.
@@ -23,6 +24,7 @@ func NewRuinCommand(vaultPath string) *RuinCommand {
 	r.Search = NewSearchCommand(r)
 	r.Tags = NewTagsCommand(r)
 	r.Queries = NewQueriesCommand(r)
+	r.Parent = NewParentCommand(r)
 
 	return r
 }
@@ -37,6 +39,7 @@ func NewRuinCommandWithExecutor(executor Executor, vaultPath string) *RuinComman
 	r.Search = NewSearchCommand(r)
 	r.Tags = NewTagsCommand(r)
 	r.Queries = NewQueriesCommand(r)
+	r.Parent = NewParentCommand(r)
 
 	return r
 }

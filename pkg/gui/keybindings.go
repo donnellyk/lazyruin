@@ -162,6 +162,11 @@ func (gui *Gui) setupQueriesKeybindings() error {
 		return err
 	}
 
+	// Tab click to switch tabs
+	if err := gui.g.SetTabClickBinding(view, gui.switchQueriesTabByIndex); err != nil {
+		return err
+	}
+
 	// Navigation
 	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.queriesDown); err != nil {
 		return err

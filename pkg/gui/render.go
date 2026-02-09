@@ -78,6 +78,14 @@ func (gui *Gui) renderNotes() {
 }
 
 func (gui *Gui) renderQueries() {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		gui.renderParents()
+		return
+	}
+	gui.renderQueriesList()
+}
+
+func (gui *Gui) renderQueriesList() {
 	v := gui.views.Queries
 	if v == nil {
 		return
@@ -90,26 +98,83 @@ func (gui *Gui) renderQueries() {
 		return
 	}
 
-	for _, query := range gui.state.Queries.Items {
-		prefix := "  "
+	width, _ := v.Size()
+	if width < 10 {
+		width = 30
+	}
 
-		// Line 1
-		fmt.Fprintf(v, "%s%s\n", prefix, query.Name)
+	isActive := gui.state.CurrentContext == QueriesContext
 
-		// Line 2
+	for i, query := range gui.state.Queries.Items {
+		selected := isActive && i == gui.state.Queries.SelectedIndex
+
+		line1 := "  " + query.Name
 		queryStr := query.Query
 		if len(queryStr) > 25 {
 			queryStr = queryStr[:22] + "..."
 		}
-		fmt.Fprintf(v, "    %s\n", queryStr)
+		line2 := "    " + queryStr
+
+		if selected {
+			line1 = line1 + strings.Repeat(" ", max(0, width-len(line1)))
+			line2 = line2 + strings.Repeat(" ", max(0, width-len(line2)))
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line1, AnsiReset)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line2, AnsiReset)
+		} else {
+			fmt.Fprintln(v, line1)
+			fmt.Fprintln(v, line2)
+		}
 	}
 
-	// Scroll to keep selection visible (2 lines per query)
 	_, viewHeight := v.Size()
 	selLine := gui.state.Queries.SelectedIndex * 2
 	scrollListView(v, selLine, 2, viewHeight)
-	_, oy := v.Origin()
-	v.SetCursor(0, selLine-oy)
+}
+
+func (gui *Gui) renderParents() {
+	v := gui.views.Queries
+	if v == nil {
+		return
+	}
+
+	v.Clear()
+
+	if len(gui.state.Parents.Items) == 0 {
+		fmt.Fprintln(v, " No parent bookmarks.")
+		return
+	}
+
+	width, _ := v.Size()
+	if width < 10 {
+		width = 30
+	}
+
+	isActive := gui.state.CurrentContext == QueriesContext
+
+	for i, parent := range gui.state.Parents.Items {
+		selected := isActive && i == gui.state.Parents.SelectedIndex
+
+		line1 := "  " + parent.Name
+		title := parent.Title
+		if len(title) > width-6 {
+			title = title[:width-9] + "..."
+		}
+		line2 := "    " + title
+
+		if selected {
+			line1 = line1 + strings.Repeat(" ", max(0, width-len(line1)))
+			line2 = line2 + strings.Repeat(" ", max(0, width-len(line2)))
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line1, AnsiReset)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line2, AnsiReset)
+		} else {
+			fmt.Fprintln(v, line1)
+			fmt.Fprintln(v, line2)
+		}
+	}
+
+	_, viewHeight := v.Size()
+	selLine := gui.state.Parents.SelectedIndex * 2
+	scrollListView(v, selLine, 2, viewHeight)
 }
 
 func (gui *Gui) renderTags() {

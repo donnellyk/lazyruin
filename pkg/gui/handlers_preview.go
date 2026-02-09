@@ -174,7 +174,15 @@ func (gui *Gui) reloadPreviewCards() {
 			}
 		}
 	case QueriesContext:
-		if len(gui.state.Queries.Items) > 0 {
+		if gui.state.Queries.CurrentTab == QueriesTabParents {
+			if len(gui.state.Parents.Items) > 0 {
+				parent := gui.state.Parents.Items[gui.state.Parents.SelectedIndex]
+				composed, err := gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
+				if err == nil {
+					gui.state.Preview.Cards = []models.Note{composed}
+				}
+			}
+		} else if len(gui.state.Queries.Items) > 0 {
 			query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
 			notes, err := gui.ruinCmd.Queries.Run(query.Name)
 			if err == nil {

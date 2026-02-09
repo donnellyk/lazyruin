@@ -14,6 +14,8 @@ type MockExecutor struct {
 	notes     []models.Note
 	tags      []models.Tag
 	queries   []models.Query
+	parents   []models.ParentBookmark
+	compose   []byte // raw JSON for compose tree
 	err       error
 }
 
@@ -39,6 +41,18 @@ func (m *MockExecutor) WithTags(tags ...models.Tag) *MockExecutor {
 // WithQueries sets the queries to return for query list.
 func (m *MockExecutor) WithQueries(queries ...models.Query) *MockExecutor {
 	m.queries = queries
+	return m
+}
+
+// WithParents sets the parent bookmarks to return.
+func (m *MockExecutor) WithParents(parents ...models.ParentBookmark) *MockExecutor {
+	m.parents = parents
+	return m
+}
+
+// WithCompose sets the raw JSON for compose tree responses.
+func (m *MockExecutor) WithCompose(data []byte) *MockExecutor {
+	m.compose = data
 	return m
 }
 
@@ -97,6 +111,23 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 			case "save", "delete":
 				return []byte("{}"), nil
 			}
+		}
+		return []byte("{}"), nil
+
+	case "parent":
+		if len(args) > 1 {
+			switch args[1] {
+			case "list":
+				return json.Marshal(m.parents)
+			case "delete":
+				return []byte("{}"), nil
+			}
+		}
+		return []byte("{}"), nil
+
+	case "compose":
+		if m.compose != nil {
+			return m.compose, nil
 		}
 		return []byte("{}"), nil
 

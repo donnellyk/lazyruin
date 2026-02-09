@@ -89,6 +89,7 @@ func (gui *Gui) backgroundRefreshData() {
 	gui.refreshNotes(true)
 	gui.refreshTags(true)
 	gui.refreshQueries(true)
+	gui.refreshParents(true)
 
 	if gui.state.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.state.Preview.Cards) {
 		gui.state.Preview.SelectedCardIndex = cardIdx
@@ -111,6 +112,7 @@ func (gui *Gui) refreshAll() {
 	gui.refreshNotes(false)
 	gui.refreshTags(false)
 	gui.refreshQueries(false)
+	gui.refreshParents(false)
 }
 
 func (gui *Gui) refreshNotes(preserve bool) {
@@ -174,8 +176,13 @@ func (gui *Gui) setContext(ctx ContextKey) {
 		gui.refreshNotes(true)
 		gui.updatePreviewForNotes()
 	case QueriesContext:
-		gui.refreshQueries(true)
-		gui.updatePreviewForQueries()
+		if gui.state.Queries.CurrentTab == QueriesTabParents {
+			gui.refreshParents(true)
+			gui.updatePreviewForParents()
+		} else {
+			gui.refreshQueries(true)
+			gui.updatePreviewForQueries()
+		}
 	case TagsContext:
 		gui.refreshTags(true)
 		gui.updatePreviewForTags()

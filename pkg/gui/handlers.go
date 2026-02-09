@@ -78,6 +78,10 @@ func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.CurrentContext == QueriesContext {
+		gui.cycleQueriesTab()
+		return nil
+	}
 	gui.setContext(QueriesContext)
 	return nil
 }

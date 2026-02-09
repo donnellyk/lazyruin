@@ -208,11 +208,12 @@ func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
   r              Rename tag
   d              Delete tag
 
-  Queries Panel
+  Queries / Parents Panel
   ──────────────────────────────────────────
+  2              Cycle tabs (Queries/Parents)
   j / k          Move down / up
-  Enter          Run query
-  d              Delete query
+  Enter          Run query / View parent tree
+  d              Delete query / parent
 
   Preview Panel
   ──────────────────────────────────────────

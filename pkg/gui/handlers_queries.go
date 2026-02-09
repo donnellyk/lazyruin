@@ -7,6 +7,9 @@ import (
 )
 
 func (gui *Gui) queriesDown(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		return gui.parentsDown(g, v)
+	}
 	if listMove(&gui.state.Queries.SelectedIndex, len(gui.state.Queries.Items), 1) {
 		gui.renderQueries()
 		gui.updatePreviewForQueries()
@@ -15,6 +18,9 @@ func (gui *Gui) queriesDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) queriesUp(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		return gui.parentsUp(g, v)
+	}
 	if listMove(&gui.state.Queries.SelectedIndex, len(gui.state.Queries.Items), -1) {
 		gui.renderQueries()
 		gui.updatePreviewForQueries()
@@ -23,6 +29,9 @@ func (gui *Gui) queriesUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		return gui.parentsClick(g, v)
+	}
 	_, cy := v.Cursor()
 	_, oy := v.Origin()
 	idx := (cy + oy) / 2 // 2 lines per query
@@ -34,6 +43,9 @@ func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		return gui.viewParent(g, v)
+	}
 	if len(gui.state.Queries.Items) == 0 {
 		return nil
 	}
@@ -55,6 +67,9 @@ func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		return gui.deleteParent(g, v)
+	}
 	if len(gui.state.Queries.Items) == 0 {
 		return nil
 	}
@@ -73,6 +88,10 @@ func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) updatePreviewForQueries() {
+	if gui.state.Queries.CurrentTab == QueriesTabParents {
+		gui.updatePreviewForParents()
+		return
+	}
 	if len(gui.state.Queries.Items) == 0 {
 		return
 	}

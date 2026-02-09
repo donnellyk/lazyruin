@@ -165,19 +165,19 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Queries = v
-	v.Title = "[2]-Queries"
-	v.SelBgColor = gocui.ColorBlue
-	v.SelFgColor = gocui.ColorWhite
+	v.TitlePrefix = "[2]"
+	v.Tabs = []string{"Queries", "Parents"}
+	v.SelFgColor = gocui.ColorGreen
+	v.Highlight = false
+	gui.updateQueriesTab()
 	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == QueriesContext {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
-		v.Highlight = true
 	} else {
 		v.FrameColor = gocui.ColorDefault
 		v.TitleColor = gocui.ColorDefault
-		v.Highlight = false
 	}
 
 	return nil
@@ -307,10 +307,20 @@ func (gui *Gui) updateStatusBar() {
 			{"Keybindings", "?"},
 		}
 	case QueriesContext:
-		hints = []hint{
-			{"Run", "enter"},
-			{"Delete", "d"},
-			{"Keybindings", "?"},
+		if gui.state.Queries.CurrentTab == QueriesTabParents {
+			hints = []hint{
+				{"View", "enter"},
+				{"Delete", "d"},
+				{"Tab", "2"},
+				{"Keybindings", "?"},
+			}
+		} else {
+			hints = []hint{
+				{"Run", "enter"},
+				{"Delete", "d"},
+				{"Tab", "2"},
+				{"Keybindings", "?"},
+			}
 		}
 	case TagsContext:
 		hints = []hint{
@@ -384,5 +394,25 @@ var notesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
 func (gui *Gui) updateNotesTab() {
 	if gui.views.Notes != nil {
 		gui.views.Notes.TabIndex = gui.notesTabIndex()
+	}
+}
+
+// queriesTabIndex returns the index for the current queries tab
+func (gui *Gui) queriesTabIndex() int {
+	switch gui.state.Queries.CurrentTab {
+	case QueriesTabParents:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// queriesTabs maps tab indices to QueriesTab values
+var queriesTabs = []QueriesTab{QueriesTabQueries, QueriesTabParents}
+
+// updateQueriesTab syncs the gocui view's TabIndex with the current queries tab
+func (gui *Gui) updateQueriesTab() {
+	if gui.views.Queries != nil {
+		gui.views.Queries.TabIndex = gui.queriesTabIndex()
 	}
 }

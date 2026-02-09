@@ -22,6 +22,14 @@ const (
 	NotesTabRecent NotesTab = "recent"
 )
 
+// QueriesTab represents the sub-tabs within the Queries panel
+type QueriesTab string
+
+const (
+	QueriesTabQueries QueriesTab = "queries"
+	QueriesTabParents QueriesTab = "parents"
+)
+
 type PreviewMode int
 
 const (
@@ -33,14 +41,15 @@ type GuiState struct {
 	Notes           *NotesState
 	Queries         *QueriesState
 	Tags            *TagsState
+	Parents         *ParentsState
 	Preview         *PreviewState
 	Dialog          *DialogState
 	CurrentContext  ContextKey
 	PreviousContext ContextKey
 	SearchQuery     string
 	SearchMode      bool
-	Initialized bool
-	lastWidth   int
+	Initialized     bool
+	lastWidth       int
 	lastHeight      int
 }
 
@@ -52,6 +61,12 @@ type NotesState struct {
 
 type QueriesState struct {
 	Items         []models.Query
+	SelectedIndex int
+	CurrentTab    QueriesTab
+}
+
+type ParentsState struct {
+	Items         []models.ParentBookmark
 	SelectedIndex int
 }
 
@@ -77,8 +92,11 @@ func NewGuiState() *GuiState {
 		Notes: &NotesState{
 			CurrentTab: NotesTabAll,
 		},
-		Queries:        &QueriesState{},
+		Queries: &QueriesState{
+			CurrentTab: QueriesTabQueries,
+		},
 		Tags:           &TagsState{},
+		Parents:        &ParentsState{},
 		Preview:        &PreviewState{},
 		CurrentContext: NotesContext,
 	}

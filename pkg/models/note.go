@@ -13,6 +13,9 @@ type Note struct {
 }
 
 func (n *Note) ShortDate() string {
+	if n.Created.IsZero() {
+		return ""
+	}
 	return n.Created.Format("Jan 02")
 }
 
