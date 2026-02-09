@@ -305,14 +305,27 @@ func (gui *Gui) betweenCandidates(filter string) []CompletionItem {
 	return items
 }
 
-// titleCandidates returns title: filter hint.
+// titleCandidates returns note titles as completion items.
 func (gui *Gui) titleCandidates(filter string) []CompletionItem {
-	if filter != "" {
-		return nil // user is already typing their search term
+	filter = strings.ToLower(filter)
+	seen := make(map[string]bool)
+	var items []CompletionItem
+	for _, note := range gui.state.Notes.Items {
+		title := note.Title
+		if title == "" || seen[title] {
+			continue
+		}
+		if filter != "" && !strings.Contains(strings.ToLower(title), filter) {
+			continue
+		}
+		seen[title] = true
+		items = append(items, CompletionItem{
+			Label:      "title:" + title,
+			InsertText: "title:" + title,
+			Detail:     note.ShortDate(),
+		})
 	}
-	return []CompletionItem{
-		{Label: "title:", InsertText: "title:", Detail: "search by title"},
-	}
+	return items
 }
 
 // pathCandidates returns path: filter hint.
