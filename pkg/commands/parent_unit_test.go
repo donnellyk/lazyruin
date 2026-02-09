@@ -41,57 +41,36 @@ func TestParentCommand_List_Empty_Unit(t *testing.T) {
 	}
 }
 
-func TestParentCommand_Compose_Unit(t *testing.T) {
-	tree := struct {
-		UUID     string `json:"uuid"`
-		Title    string `json:"title"`
-		Path     string `json:"path"`
-		Content  string `json:"content"`
-		Children []struct {
-			UUID     string        `json:"uuid"`
-			Title    string        `json:"title"`
-			Path     string        `json:"path"`
-			Content  string        `json:"content"`
-			Children []interface{} `json:"children"`
-		} `json:"children"`
+func TestParentCommand_ComposeFlat_Unit(t *testing.T) {
+	result := struct {
+		UUID    string `json:"uuid"`
+		Title   string `json:"title"`
+		Path    string `json:"path"`
+		Content string `json:"content"`
 	}{
 		UUID:    "root-1",
 		Title:   "Root Note",
 		Path:    "/vault/root.md",
-		Content: "Root content",
-		Children: []struct {
-			UUID     string        `json:"uuid"`
-			Title    string        `json:"title"`
-			Path     string        `json:"path"`
-			Content  string        `json:"content"`
-			Children []interface{} `json:"children"`
-		}{
-			{UUID: "child-1", Title: "Child A", Path: "/vault/a.md", Content: "Child A content", Children: nil},
-			{UUID: "child-2", Title: "Child B", Path: "/vault/b.md", Content: "Child B content", Children: nil},
-		},
+		Content: "Root content\n\n## Child A\n\nChild A content\n\n## Child B\n\nChild B content",
 	}
 
-	data, _ := json.Marshal(tree)
+	data, _ := json.Marshal(result)
 	mock := NewMockExecutor().WithCompose(data)
 
 	ruin := NewRuinCommandWithExecutor(mock, mock.VaultPath())
-	notes, err := ruin.Parent.Compose("root-1")
+	note, err := ruin.Parent.ComposeFlat("root-1", "My Bookmark")
 	if err != nil {
-		t.Fatalf("Compose() error: %v", err)
+		t.Fatalf("ComposeFlat() error: %v", err)
 	}
 
-	if len(notes) != 3 {
-		t.Fatalf("Compose() returned %d notes, want 3", len(notes))
+	if note.Title != "My Bookmark" {
+		t.Errorf("Title = %q, want %q", note.Title, "My Bookmark")
 	}
-
-	if notes[0].Title != "Root Note" {
-		t.Errorf("notes[0].Title = %q, want %q", notes[0].Title, "Root Note")
+	if note.UUID != "root-1" {
+		t.Errorf("UUID = %q, want %q", note.UUID, "root-1")
 	}
-	if notes[1].Title != "Child A" {
-		t.Errorf("notes[1].Title = %q, want %q", notes[1].Title, "Child A")
-	}
-	if notes[2].Title != "Child B" {
-		t.Errorf("notes[2].Title = %q, want %q", notes[2].Title, "Child B")
+	if note.Content == "" {
+		t.Error("Content is empty")
 	}
 }
 

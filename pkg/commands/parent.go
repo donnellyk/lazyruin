@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/json"
-	"strings"
 
 	"kvnd/lazyruin/pkg/models"
 )
@@ -29,70 +28,31 @@ func (p *ParentCommand) List() ([]models.ParentBookmark, error) {
 	return parents, nil
 }
 
-type composeNode struct {
-	UUID     string        `json:"uuid"`
-	Title    string        `json:"title"`
-	Path     string        `json:"path"`
-	Content  string        `json:"content"`
-	Children []composeNode `json:"children"`
+type composeResult struct {
+	UUID    string `json:"uuid"`
+	Title   string `json:"title"`
+	Path    string `json:"path"`
+	Content string `json:"content"`
 }
 
-func (p *ParentCommand) Compose(uuid string) ([]models.Note, error) {
-	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags")
-	if err != nil {
-		return nil, err
-	}
-
-	var root composeNode
-	if err := json.Unmarshal(output, &root); err != nil {
-		return nil, err
-	}
-
-	var notes []models.Note
-	flattenComposeDFS(root, &notes)
-
-	return notes, nil
-}
-
-// ComposeFlat assembles the tree into a single Note whose Content is the
-// concatenation of every node's content (DFS order), separated by headings.
+// ComposeFlat runs compose and returns the fully-assembled document as a single Note.
 func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, error) {
-	notes, err := p.Compose(uuid)
+	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--content")
 	if err != nil {
 		return models.Note{}, err
 	}
 
-	var sb strings.Builder
-	for i, n := range notes {
-		if i > 0 {
-			sb.WriteString("\n")
-		}
-		if i > 0 && n.Title != "" {
-			sb.WriteString("## ")
-			sb.WriteString(n.Title)
-			sb.WriteString("\n\n")
-		}
-		sb.WriteString(n.Content)
-		sb.WriteString("\n")
+	var root composeResult
+	if err := json.Unmarshal(output, &root); err != nil {
+		return models.Note{}, err
 	}
 
 	return models.Note{
-		UUID:    uuid,
+		UUID:    root.UUID,
 		Title:   title,
-		Content: sb.String(),
+		Path:    root.Path,
+		Content: root.Content,
 	}, nil
-}
-
-func flattenComposeDFS(node composeNode, out *[]models.Note) {
-	*out = append(*out, models.Note{
-		UUID:    node.UUID,
-		Title:   node.Title,
-		Path:    node.Path,
-		Content: node.Content,
-	})
-	for _, child := range node.Children {
-		flattenComposeDFS(child, out)
-	}
 }
 
 func (p *ParentCommand) Delete(name string) error {
