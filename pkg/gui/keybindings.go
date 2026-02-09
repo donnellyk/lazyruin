@@ -148,11 +148,11 @@ func (gui *Gui) setupNotesKeybindings() error {
 		return err
 	}
 
-	// Mouse wheel scrolls viewport
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+	// Mouse wheel scrolls viewport (selection-aware)
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.notesWheelDown); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.notesWheelUp); err != nil {
 		return err
 	}
 
@@ -194,11 +194,11 @@ func (gui *Gui) setupQueriesKeybindings() error {
 		return err
 	}
 
-	// Mouse wheel scrolls viewport
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+	// Mouse wheel scrolls viewport (selection-aware)
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.queriesWheelDown); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.queriesWheelUp); err != nil {
 		return err
 	}
 
@@ -238,11 +238,11 @@ func (gui *Gui) setupTagsKeybindings() error {
 		return err
 	}
 
-	// Mouse wheel scrolls viewport
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.scrollViewDown); err != nil {
+	// Mouse wheel scrolls viewport (selection-aware)
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.tagsWheelDown); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.scrollViewUp); err != nil {
+	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.tagsWheelUp); err != nil {
 		return err
 	}
 

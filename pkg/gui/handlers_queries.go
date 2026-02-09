@@ -32,13 +32,21 @@ func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.Queries.CurrentTab == QueriesTabParents {
 		return gui.parentsClick(g, v)
 	}
-	_, cy := v.Cursor()
-	_, oy := v.Origin()
-	idx := (cy + oy) / 2 // 2 lines per query
+	idx := listClickIndex(v, 2)
 	if idx >= 0 && idx < len(gui.state.Queries.Items) {
 		gui.state.Queries.SelectedIndex = idx
 	}
 	gui.setContext(QueriesContext)
+	return nil
+}
+
+func (gui *Gui) queriesWheelDown(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, 3)
+	return nil
+}
+
+func (gui *Gui) queriesWheelUp(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, -3)
 	return nil
 }
 

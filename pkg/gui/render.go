@@ -72,7 +72,7 @@ func (gui *Gui) renderNotes() {
 	}
 
 	// Scroll to keep selection visible (2 lines per note)
-	_, viewHeight := v.Size()
+	_, viewHeight := v.InnerSize()
 	selLine := gui.state.Notes.SelectedIndex * 2
 	scrollListView(v, selLine, 2, viewHeight)
 }
@@ -126,7 +126,7 @@ func (gui *Gui) renderQueriesList() {
 		}
 	}
 
-	_, viewHeight := v.Size()
+	_, viewHeight := v.InnerSize()
 	selLine := gui.state.Queries.SelectedIndex * 2
 	scrollListView(v, selLine, 2, viewHeight)
 }
@@ -172,7 +172,7 @@ func (gui *Gui) renderParents() {
 		}
 	}
 
-	_, viewHeight := v.Size()
+	_, viewHeight := v.InnerSize()
 	selLine := gui.state.Parents.SelectedIndex * 2
 	scrollListView(v, selLine, 2, viewHeight)
 }
@@ -190,24 +190,35 @@ func (gui *Gui) renderTags() {
 		return
 	}
 
-	for _, tag := range gui.state.Tags.Items {
-		prefix := " "
+	width, _ := v.Size()
+	if width < 10 {
+		width = 30
+	}
+
+	isActive := gui.state.CurrentContext == TagsContext
+
+	for i, tag := range gui.state.Tags.Items {
+		selected := isActive && i == gui.state.Tags.SelectedIndex
 
 		name := tag.Name
 		if len(name) > 0 && name[0] != '#' {
 			name = "#" + name
 		}
 		count := fmt.Sprintf("(%d)", tag.Count)
+		line := fmt.Sprintf(" %s %s", name, count)
 
-		fmt.Fprintf(v, "%s%s %s\n", prefix, name, count)
+		if selected {
+			line = line + strings.Repeat(" ", max(0, width-len(line)))
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line, AnsiReset)
+		} else {
+			fmt.Fprintln(v, line)
+		}
 	}
 
 	// Scroll to keep selection visible (1 line per tag)
-	_, viewHeight := v.Size()
+	_, viewHeight := v.InnerSize()
 	selLine := gui.state.Tags.SelectedIndex
 	scrollListView(v, selLine, 1, viewHeight)
-	_, oy := v.Origin()
-	v.SetCursor(0, selLine-oy)
 }
 
 func (gui *Gui) renderPreview() {
@@ -457,6 +468,26 @@ func scrollListView(v *gocui.View, selLine, itemHeight, viewHeight int) {
 	}
 
 	v.SetOrigin(0, origin)
+}
+
+// scrollViewport scrolls a list view's origin by delta lines without
+// constraining the selection to stay visible. Keyboard navigation uses
+// scrollListView instead, which does keep the selection on-screen.
+func scrollViewport(v *gocui.View, delta int) {
+	_, oy := v.Origin()
+	newOy := oy + delta
+	if newOy < 0 {
+		newOy = 0
+	}
+	v.SetOrigin(0, newOy)
+}
+
+// listClickIndex returns the item index for a mouse click in a list view
+// with the given item height (lines per item).
+func listClickIndex(v *gocui.View, itemHeight int) int {
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	return (cy + oy) / itemHeight
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {

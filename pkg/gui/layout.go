@@ -207,18 +207,15 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.Tags = v
 	v.Title = "[3]-Tags"
-	v.SelBgColor = gocui.ColorBlue
-	v.SelFgColor = gocui.ColorWhite
+	v.Highlight = false
 	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == TagsContext {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
-		v.Highlight = true
 	} else {
 		v.FrameColor = gocui.ColorDefault
 		v.TitleColor = gocui.ColorDefault
-		v.Highlight = false
 	}
 
 	return nil

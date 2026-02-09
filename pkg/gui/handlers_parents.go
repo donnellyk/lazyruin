@@ -69,9 +69,7 @@ func (gui *Gui) parentsUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) parentsClick(g *gocui.Gui, v *gocui.View) error {
-	_, cy := v.Cursor()
-	_, oy := v.Origin()
-	idx := (cy + oy) / 2 // 2 lines per parent
+	idx := listClickIndex(v, 2)
 	if idx >= 0 && idx < len(gui.state.Parents.Items) {
 		gui.state.Parents.SelectedIndex = idx
 	}

@@ -138,28 +138,6 @@ func (gui *Gui) buildSearchOptions() commands.SearchOptions {
 	}
 }
 
-// Generic view scroll handlers (viewport only, no selection change)
-
-func (gui *Gui) scrollViewDown(g *gocui.Gui, v *gocui.View) error {
-	if v == nil {
-		return nil
-	}
-	_, oy := v.Origin()
-	v.SetOrigin(0, oy+1)
-	return nil
-}
-
-func (gui *Gui) scrollViewUp(g *gocui.Gui, v *gocui.View) error {
-	if v == nil {
-		return nil
-	}
-	_, oy := v.Origin()
-	if oy > 0 {
-		v.SetOrigin(0, oy-1)
-	}
-	return nil
-}
-
 // Search handlers
 
 func (gui *Gui) searchEnter(g *gocui.Gui, v *gocui.View) error {

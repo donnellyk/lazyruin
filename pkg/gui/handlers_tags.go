@@ -23,13 +23,21 @@ func (gui *Gui) tagsUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) tagsClick(g *gocui.Gui, v *gocui.View) error {
-	_, cy := v.Cursor()
-	_, oy := v.Origin()
-	idx := cy + oy // 1 line per tag
+	idx := listClickIndex(v, 1)
 	if idx >= 0 && idx < len(gui.state.Tags.Items) {
 		gui.state.Tags.SelectedIndex = idx
 	}
 	gui.setContext(TagsContext)
+	return nil
+}
+
+func (gui *Gui) tagsWheelDown(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, 3)
+	return nil
+}
+
+func (gui *Gui) tagsWheelUp(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, -3)
 	return nil
 }
 

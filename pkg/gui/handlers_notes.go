@@ -11,13 +11,21 @@ import (
 )
 
 func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
-	_, cy := v.Cursor()
-	_, oy := v.Origin()
-	idx := (cy + oy) / 2 // 2 lines per note
+	idx := listClickIndex(v, 2)
 	if idx >= 0 && idx < len(gui.state.Notes.Items) {
 		gui.state.Notes.SelectedIndex = idx
 	}
 	gui.setContext(NotesContext)
+	return nil
+}
+
+func (gui *Gui) notesWheelDown(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, 3)
+	return nil
+}
+
+func (gui *Gui) notesWheelUp(g *gocui.Gui, v *gocui.View) error {
+	scrollViewport(v, -3)
 	return nil
 }
 
