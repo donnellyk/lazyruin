@@ -99,6 +99,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 		"title:":   "search title",
 		"path:":    "search path",
 		"parent:":  "parent filter",
+		"sort:":    "sort results",
 	}
 	var items []CompletionItem
 	for _, t := range triggers {
@@ -369,6 +370,49 @@ func (gui *Gui) parentCandidates(filter string) []CompletionItem {
 	return items
 }
 
+// sortCandidates returns sort: completion items for the search popup.
+func sortCandidates(filter string) []CompletionItem {
+	items := []CompletionItem{
+		{Label: "sort:created:desc", InsertText: "sort:created:desc", Detail: "newest first"},
+		{Label: "sort:created:asc", InsertText: "sort:created:asc", Detail: "oldest first"},
+		{Label: "sort:updated:desc", InsertText: "sort:updated:desc", Detail: "recently updated"},
+		{Label: "sort:updated:asc", InsertText: "sort:updated:asc", Detail: "least updated"},
+		{Label: "sort:title:asc", InsertText: "sort:title:asc", Detail: "A-Z"},
+		{Label: "sort:title:desc", InsertText: "sort:title:desc", Detail: "Z-A"},
+		{Label: "sort:order:asc", InsertText: "sort:order:asc", Detail: "manual order"},
+		{Label: "sort:order:desc", InsertText: "sort:order:desc", Detail: "manual reverse"},
+	}
+
+	if filter == "" {
+		return items
+	}
+
+	filter = strings.ToLower(filter)
+	var filtered []CompletionItem
+	for _, item := range items {
+		suffix := strings.TrimPrefix(item.InsertText, "sort:")
+		if strings.Contains(suffix, filter) || strings.Contains(strings.ToLower(item.Detail), filter) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+// extractSort removes any "sort:field:dir" token from the query, returning
+// the cleaned query and the sort value (e.g. "created:desc") for the -s flag.
+func extractSort(query string) (string, string) {
+	var remaining []string
+	var sortVal string
+	for _, token := range strings.Fields(query) {
+		if v, ok := strings.CutPrefix(token, "sort:"); ok {
+			sortVal = v
+		} else {
+			remaining = append(remaining, token)
+		}
+	}
+	return strings.Join(remaining, " "), sortVal
+}
+
 // searchTriggers returns the completion triggers for the search popup.
 // The "/" trigger shows an overview of all available filter prefixes.
 func (gui *Gui) searchTriggers() []CompletionTrigger {
@@ -382,6 +426,7 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 		{Prefix: "title:", Candidates: gui.titleCandidates},
 		{Prefix: "path:", Candidates: gui.pathCandidates},
 		{Prefix: "parent:", Candidates: gui.parentCandidates},
+		{Prefix: "sort:", Candidates: sortCandidates},
 	}
 	// Capture triggers slice for the "/" hint candidate closure
 	hintTriggers := triggers

@@ -99,8 +99,10 @@ func (gui *Gui) focusPreview(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.SearchQuery != "" {
 		// Re-run search to restore results to Preview pane
+		query, sort := extractSort(gui.state.SearchQuery)
 		opts := gui.buildSearchOptions()
-		notes, err := gui.ruinCmd.Search.Search(gui.state.SearchQuery, opts)
+		opts.Sort = sort
+		notes, err := gui.ruinCmd.Search.Search(query, opts)
 		if err == nil {
 			gui.state.Preview.Mode = PreviewModeCardList
 			gui.state.Preview.Cards = notes
@@ -186,19 +188,21 @@ func (gui *Gui) searchTab(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
-	query := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-	if query == "" {
+	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+	if raw == "" {
 		return gui.cancelSearch(g, v)
 	}
 
+	query, sort := extractSort(raw)
 	opts := gui.buildSearchOptions()
+	opts.Sort = sort
 	notes, err := gui.ruinCmd.Search.Search(query, opts)
 	if err != nil {
 		return nil
 	}
 
-	// Store search query for the search filter pane
-	gui.state.SearchQuery = query
+	// Store full input for the search filter pane display
+	gui.state.SearchQuery = raw
 	gui.state.SearchMode = false
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false

@@ -165,6 +165,34 @@ func TestCompletionDown_Inactive(t *testing.T) {
 	}
 }
 
+func TestExtractSort(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantQuery string
+		wantSort  string
+	}{
+		{"no sort", "#log", "#log", ""},
+		{"sort only", "sort:created:desc", "", "created:desc"},
+		{"query with sort", "#log sort:order:asc", "#log", "order:asc"},
+		{"sort in middle", "#log sort:title:asc #project", "#log #project", "title:asc"},
+		{"multiple sorts last wins", "sort:created:asc sort:updated:desc", "", "updated:desc"},
+		{"empty", "", "", ""},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			query, sort := extractSort(tc.input)
+			if query != tc.wantQuery {
+				t.Errorf("query = %q, want %q", query, tc.wantQuery)
+			}
+			if sort != tc.wantSort {
+				t.Errorf("sort = %q, want %q", sort, tc.wantSort)
+			}
+		})
+	}
+}
+
 func TestNewCompletionState(t *testing.T) {
 	state := NewCompletionState()
 	if state.Active {
