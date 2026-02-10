@@ -193,6 +193,59 @@ func TestExtractSort(t *testing.T) {
 	}
 }
 
+func TestExtractHeaders(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    []headerInfo
+	}{
+		{
+			"basic headings",
+			"# Title\n## Section\n### Sub",
+			[]headerInfo{{1, "Title"}, {2, "Section"}, {3, "Sub"}},
+		},
+		{
+			"skips code blocks",
+			"# Real\n```\n# Not a heading\n```\n## Also Real",
+			[]headerInfo{{1, "Real"}, {2, "Also Real"}},
+		},
+		{
+			"skips empty headings",
+			"# \n## Valid",
+			[]headerInfo{{2, "Valid"}},
+		},
+		{
+			"all levels",
+			"# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6",
+			[]headerInfo{{1, "H1"}, {2, "H2"}, {3, "H3"}, {4, "H4"}, {5, "H5"}, {6, "H6"}},
+		},
+		{
+			"non-heading hash lines",
+			"not a heading\n#tag is not a heading",
+			nil,
+		},
+		{
+			"empty content",
+			"",
+			nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractHeaders(tc.content)
+			if len(got) != len(tc.want) {
+				t.Fatalf("got %d headers, want %d: %v", len(got), len(tc.want), got)
+			}
+			for i := range got {
+				if got[i] != tc.want[i] {
+					t.Errorf("header[%d] = %+v, want %+v", i, got[i], tc.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestNewCompletionState(t *testing.T) {
 	state := NewCompletionState()
 	if state.Active {

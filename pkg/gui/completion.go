@@ -349,8 +349,15 @@ func (gui *Gui) titleCandidates(filter string) []CompletionItem {
 }
 
 // wikiLinkCandidates returns note titles for [[ wiki-style link completion.
+// When the filter contains '#', it switches to header mode for the specified note.
 func (gui *Gui) wikiLinkCandidates(filter string) []CompletionItem {
-	filter = strings.ToLower(filter)
+	// Header mode: filter contains '#'
+	if noteTitle, after, ok := strings.Cut(filter, "#"); ok {
+		headerFilter := strings.ToLower(after)
+		return gui.headerCandidates(noteTitle, headerFilter)
+	}
+
+	filterLower := strings.ToLower(filter)
 	seen := make(map[string]bool)
 	var items []CompletionItem
 	for _, note := range gui.state.Notes.Items {
@@ -358,7 +365,7 @@ func (gui *Gui) wikiLinkCandidates(filter string) []CompletionItem {
 		if title == "" || seen[title] {
 			continue
 		}
-		if filter != "" && !strings.Contains(strings.ToLower(title), filter) {
+		if filter != "" && !strings.Contains(strings.ToLower(title), filterLower) {
 			continue
 		}
 		seen[title] = true
@@ -366,6 +373,92 @@ func (gui *Gui) wikiLinkCandidates(filter string) []CompletionItem {
 			Label:      title,
 			InsertText: "[[" + title + "]]",
 			Detail:     note.ShortDate(),
+		})
+	}
+	return items
+}
+
+// headerInfo represents a markdown heading extracted from note content.
+type headerInfo struct {
+	Level int    // 1-6
+	Text  string // heading text without # prefix
+}
+
+// extractHeaders parses markdown content and returns all headings.
+// Skips headings inside fenced code blocks.
+func extractHeaders(content string) []headerInfo {
+	var headers []headerInfo
+	inCodeBlock := false
+	for line := range strings.SplitSeq(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") {
+			inCodeBlock = !inCodeBlock
+			continue
+		}
+		if inCodeBlock {
+			continue
+		}
+		if !strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		// Count heading level
+		level := 0
+		for _, ch := range trimmed {
+			if ch == '#' {
+				level++
+			} else {
+				break
+			}
+		}
+		if level < 1 || level > 6 || level >= len(trimmed) {
+			continue
+		}
+		// Markdown headings require a space after the # prefix
+		if trimmed[level] != ' ' {
+			continue
+		}
+		text := strings.TrimSpace(trimmed[level:])
+		if text == "" {
+			continue
+		}
+		headers = append(headers, headerInfo{Level: level, Text: text})
+	}
+	return headers
+}
+
+// headerCandidates returns completion items for headers within a specific note.
+func (gui *Gui) headerCandidates(noteTitle, filter string) []CompletionItem {
+	// Find the note by exact title match
+	var content string
+	for i, note := range gui.state.Notes.Items {
+		if note.Title == noteTitle {
+			if note.Content == "" {
+				loaded, err := gui.loadNoteContent(note.Path)
+				if err != nil {
+					return nil
+				}
+				gui.state.Notes.Items[i].Content = loaded
+				content = loaded
+			} else {
+				content = note.Content
+			}
+			break
+		}
+	}
+	if content == "" {
+		return nil
+	}
+
+	headers := extractHeaders(content)
+	var items []CompletionItem
+	for _, h := range headers {
+		if filter != "" && !strings.Contains(strings.ToLower(h.Text), filter) {
+			continue
+		}
+		items = append(items, CompletionItem{
+			Label:      h.Text,
+			InsertText: "[[" + noteTitle + "#" + h.Text + "]]",
+			Detail:     fmt.Sprintf("h%d", h.Level),
 		})
 	}
 	return items
@@ -508,6 +601,7 @@ func markdownCandidates(filter string) []CompletionItem {
 		{Label: "**bold**", InsertText: "**", Detail: "bold", ContinueCompleting: true},
 		{Label: "*italic*", InsertText: "*", Detail: "italic", ContinueCompleting: true},
 		{Label: "[link](url)", InsertText: "[]()", Detail: "link", ContinueCompleting: true},
+		{Label: "[[wikilink]]", InsertText: "[[", Detail: "wikilink", ContinueCompleting: true},
 	}
 
 	if filter == "" {

@@ -327,7 +327,6 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 
 	gui.views.Capture = v
 	v.Title = " New Note "
-	v.Footer = " Ctrl+S: save | Esc: cancel | # tags | / markdown "
 	v.Editable = true
 	v.Wrap = true
 	v.Editor = &captureEditor{gui: gui}
@@ -433,8 +432,8 @@ func (gui *Gui) updateStatusBar() {
 	case CaptureContext:
 		hints = []hint{
 			{"Save", "ctrl+s"},
-			{"Complete", "tab"},
 			{"Cancel", "esc"},
+			{"Formatting", "/"},
 		}
 	case SearchFilterContext:
 		hints = []hint{
