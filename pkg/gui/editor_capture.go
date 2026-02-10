@@ -26,11 +26,19 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 			completionUp(state)
 			return true
 		case gocui.KeyEnter:
+			if isParentCompletion(v, state) {
+				e.gui.acceptParentCompletion(v, state)
+				return true
+			}
 			e.gui.acceptCompletion(v, state, e.gui.captureTriggers())
 			return true
 		case 0: // rune input
 			if (ch == '/' || ch == '#') && isWikiLinkCompletion(v, state) {
 				e.gui.drillWikiLinkHeader(v, state)
+				return true
+			}
+			if ch == '/' && isParentCompletion(v, state) {
+				e.gui.drillParentChild(v, state)
 				return true
 			}
 		}
@@ -116,4 +124,98 @@ func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
 
 	// Re-run completion — the filter now contains '#', triggering header mode
 	gui.updateCompletion(v, gui.captureTriggers(), state)
+}
+
+// isParentCompletion returns true if the active completion is triggered by >.
+func isParentCompletion(v *gocui.View, state *CompletionState) bool {
+	if !state.Active {
+		return false
+	}
+	content := v.TextArea.GetUnwrappedContent()
+	start := state.TriggerStart
+	return start < len(content) && content[start] == '>'
+}
+
+// drillParentChild commits the selected parent and transitions to showing its children.
+// Pushes the selection onto the drill stack and rewrites the token as >Parent/Child/.../
+func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState) {
+	if !state.Active || len(state.Items) == 0 {
+		return
+	}
+
+	item := state.Items[state.SelectedIndex]
+	state.ParentDrill = append(state.ParentDrill, ParentDrillEntry{
+		Name: item.Label,
+		UUID: item.Value,
+	})
+
+	content := v.TextArea.GetUnwrappedContent()
+	cx, cy := v.TextArea.GetCursorXY()
+	cursorPos := cursorBytePos(content, cx, cy)
+
+	// Backspace from cursor to trigger start
+	charsToDelete := cursorPos - state.TriggerStart
+	for range charsToDelete {
+		v.TextArea.BackSpaceChar()
+	}
+
+	// Rebuild the path from the drill stack: >Parent/Child/
+	var path strings.Builder
+	path.WriteByte('>')
+	for _, entry := range state.ParentDrill {
+		path.WriteString(entry.Name)
+		path.WriteByte('/')
+	}
+	v.TextArea.TypeString(path.String())
+
+	// Clear completion state
+	state.Active = false
+	state.Items = nil
+	state.SelectedIndex = 0
+
+	v.RenderTextArea()
+
+	// Re-run completion to show children
+	gui.updateCompletion(v, gui.captureTriggers(), state)
+}
+
+// acceptParentCompletion sets the selected note as the capture parent,
+// removes the >... token from the content, and updates the footer.
+func (gui *Gui) acceptParentCompletion(v *gocui.View, state *CompletionState) {
+	if !state.Active || len(state.Items) == 0 {
+		return
+	}
+
+	item := state.Items[state.SelectedIndex]
+
+	// Build display title from drill stack + selected item
+	var parts []string
+	for _, entry := range state.ParentDrill {
+		parts = append(parts, entry.Name)
+	}
+	parts = append(parts, item.Label)
+
+	gui.state.CaptureParent = &CaptureParentInfo{
+		UUID:  item.Value,
+		Title: strings.Join(parts, " / "),
+	}
+
+	content := v.TextArea.GetUnwrappedContent()
+	cx, cy := v.TextArea.GetCursorXY()
+	cursorPos := cursorBytePos(content, cx, cy)
+
+	// Remove the >... token from content
+	charsToDelete := cursorPos - state.TriggerStart
+	for range charsToDelete {
+		v.TextArea.BackSpaceChar()
+	}
+
+	// Clear completion and drill state
+	state.Active = false
+	state.Items = nil
+	state.SelectedIndex = 0
+	state.ParentDrill = nil
+
+	v.RenderTextArea()
+	gui.updateCaptureFooter()
 }

@@ -38,6 +38,12 @@ const (
 	PreviewModeCardList
 )
 
+// CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
+type CaptureParentInfo struct {
+	UUID  string
+	Title string // display title for footer (e.g. "Parent / Child")
+}
+
 type GuiState struct {
 	Notes           *NotesState
 	Queries         *QueriesState
@@ -50,6 +56,7 @@ type GuiState struct {
 	SearchQuery        string
 	SearchMode         bool
 	CaptureMode        bool
+	CaptureParent      *CaptureParentInfo
 	SearchCompletion   *CompletionState
 	CaptureCompletion  *CompletionState
 	Initialized        bool

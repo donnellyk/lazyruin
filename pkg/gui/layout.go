@@ -333,6 +333,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
+	gui.updateCaptureFooter()
 	v.RenderTextArea() // ensure view has content so footer renders
 
 	g.Cursor = true
@@ -353,6 +354,18 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	return nil
+}
+
+// updateCaptureFooter sets the capture popup footer to show the selected parent.
+func (gui *Gui) updateCaptureFooter() {
+	if gui.views.Capture == nil {
+		return
+	}
+	if gui.state.CaptureParent != nil {
+		gui.views.Capture.Footer = " Parent: " + gui.state.CaptureParent.Title + " "
+	} else {
+		gui.views.Capture.Footer = ""
+	}
 }
 
 func (gui *Gui) updateStatusBar() {
@@ -434,6 +447,7 @@ func (gui *Gui) updateStatusBar() {
 			{"Save", "ctrl+s"},
 			{"Cancel", "esc"},
 			{"Formatting", "/"},
+			{"Parent", ">"},
 		}
 	case SearchFilterContext:
 		hints = []hint{

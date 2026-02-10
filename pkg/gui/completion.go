@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"kvnd/lazyruin/pkg/commands"
+
 	"github.com/jesseduffield/gocui"
 )
 
@@ -13,6 +15,7 @@ type CompletionItem struct {
 	InsertText        string // text to insert (e.g. "#project")
 	Detail            string // right-aligned detail (e.g. "(5)")
 	ContinueCompleting bool   // if true, don't add trailing space -- allows chaining into next trigger
+	Value              string // opaque data (e.g. UUID) for use by accept handlers
 }
 
 // CompletionTrigger defines a prefix that activates completion with a candidate provider.
@@ -21,12 +24,19 @@ type CompletionTrigger struct {
 	Candidates func(filter string) []CompletionItem
 }
 
+// ParentDrillEntry records a parent selected during drill-down navigation.
+type ParentDrillEntry struct {
+	Name string
+	UUID string
+}
+
 // CompletionState tracks the current state of a completion session.
 type CompletionState struct {
 	Active        bool
 	TriggerStart  int // byte offset where the trigger token starts
 	Items         []CompletionItem
 	SelectedIndex int
+	ParentDrill   []ParentDrillEntry // stack of drilled-into parents for > completion
 }
 
 // NewCompletionState returns an initialized CompletionState.
@@ -619,11 +629,72 @@ func markdownCandidates(filter string) []CompletionItem {
 	return filtered
 }
 
+// parentCaptureCandidates returns parent note candidates for the > trigger in capture mode.
+// At the top level it shows bookmarked parents; after drilling with / it shows children.
+func (gui *Gui) parentCaptureCandidates(filter string) []CompletionItem {
+	state := gui.state.CaptureCompletion
+
+	// Determine the typing filter (text after the last /)
+	typingFilter := filter
+	if idx := strings.LastIndex(filter, "/"); idx >= 0 {
+		typingFilter = filter[idx+1:]
+	}
+
+	// Sync drill stack: if user backspaced past a /, truncate the stack
+	slashCount := strings.Count(filter, "/")
+	if slashCount < len(state.ParentDrill) {
+		state.ParentDrill = state.ParentDrill[:slashCount]
+	}
+
+	typingFilter = strings.ToLower(typingFilter)
+
+	if len(state.ParentDrill) == 0 {
+		// Top level: show bookmarked parents
+		var items []CompletionItem
+		for _, p := range gui.state.Parents.Items {
+			if typingFilter != "" && !strings.Contains(strings.ToLower(p.Name), typingFilter) &&
+				!strings.Contains(strings.ToLower(p.Title), typingFilter) {
+				continue
+			}
+			items = append(items, CompletionItem{
+				Label:  p.Name,
+				Detail: p.Title,
+				Value:  p.UUID,
+			})
+		}
+		return items
+	}
+
+	// Drilled: fetch children of the last drilled parent
+	lastUUID := state.ParentDrill[len(state.ParentDrill)-1].UUID
+	children, err := gui.ruinCmd.Search.Search("parent:"+lastUUID, commands.SearchOptions{
+		Sort:  "created:desc",
+		Limit: 50,
+	})
+	if err != nil {
+		return nil
+	}
+
+	var items []CompletionItem
+	for _, note := range children {
+		if typingFilter != "" && !strings.Contains(strings.ToLower(note.Title), typingFilter) {
+			continue
+		}
+		items = append(items, CompletionItem{
+			Label:  note.Title,
+			Detail: note.ShortDate(),
+			Value:  note.UUID,
+		})
+	}
+	return items
+}
+
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: ">", Candidates: gui.parentCaptureCandidates},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}
 }
