@@ -11,7 +11,7 @@ import (
 )
 
 func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
-	idx := listClickIndex(v, 2)
+	idx := listClickIndex(v, 3)
 	if idx >= 0 && idx < len(gui.state.Notes.Items) {
 		gui.state.Notes.SelectedIndex = idx
 	}
@@ -54,13 +54,16 @@ func (gui *Gui) loadNotesForCurrentTab() {
 
 	opts := gui.buildSearchOptions()
 	opts.Sort = "created:desc"
+	opts.IncludeContent = true
+	opts.StripTitle = true
+	opts.StripGlobalTags = true
 
 	switch gui.state.Notes.CurrentTab {
 	case NotesTabAll:
 		opts.Limit = 50
 		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
 	case NotesTabToday:
-		notes, err = gui.ruinCmd.Search.Today()
+		notes, err = gui.ruinCmd.Search.Search("created:today", opts)
 	case NotesTabRecent:
 		opts.Limit = 20
 		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)
@@ -82,13 +85,16 @@ func (gui *Gui) loadNotesForCurrentTabPreserve() {
 
 	opts := gui.buildSearchOptions()
 	opts.Sort = "created:desc"
+	opts.IncludeContent = true
+	opts.StripTitle = true
+	opts.StripGlobalTags = true
 
 	switch gui.state.Notes.CurrentTab {
 	case NotesTabAll:
 		opts.Limit = 50
 		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
 	case NotesTabToday:
-		notes, err = gui.ruinCmd.Search.Today()
+		notes, err = gui.ruinCmd.Search.Search("created:today", opts)
 	case NotesTabRecent:
 		opts.Limit = 20
 		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)

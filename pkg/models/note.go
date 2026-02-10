@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Note struct {
 	UUID    string    `json:"uuid"`
@@ -17,6 +20,17 @@ func (n *Note) ShortDate() string {
 		return ""
 	}
 	return n.Created.Format("Jan 02")
+}
+
+// FirstLine returns the first non-empty line of the note's content.
+func (n *Note) FirstLine() string {
+	for line := range strings.SplitSeq(n.Content, "\n") {
+		t := strings.TrimSpace(line)
+		if t != "" {
+			return t
+		}
+	}
+	return ""
 }
 
 func (n *Note) TagsString() string {
