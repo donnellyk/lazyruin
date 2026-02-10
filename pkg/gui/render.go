@@ -67,7 +67,7 @@ func (gui *Gui) renderNotes() {
 
 		if selected {
 			pad := func(s string) string {
-				return s + strings.Repeat(" ", max(0, width-len(s)))
+				return s + strings.Repeat(" ", max(0, width-len([]rune(s))))
 			}
 			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line1), AnsiReset)
 			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line2), AnsiReset)
