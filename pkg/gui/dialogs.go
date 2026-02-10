@@ -11,14 +11,14 @@ import (
 const (
 	ConfirmView = "confirm"
 	InputView   = "input"
-	HelpView    = "help"
 )
 
 // MenuItem represents a single item in a menu dialog
 type MenuItem struct {
-	Label string
-	Key   string // shortcut key hint (e.g. "j", "k")
-	OnRun func() error
+	Label    string
+	Key      string // shortcut key hint (e.g. "j", "k")
+	OnRun    func() error
+	IsHeader bool
 }
 
 // DialogState tracks the current dialog state
@@ -65,12 +65,119 @@ func (gui *Gui) showInput(title, message string, onConfirm func(input string) er
 	}
 }
 
-// showHelp displays the help overlay
+// showHelp displays a context-sensitive keybindings menu
 func (gui *Gui) showHelp() {
+	var items []MenuItem
+
+	// Context-specific section
+	switch gui.state.CurrentContext {
+	case NotesContext:
+		items = append(items,
+			MenuItem{Label: "Notes", IsHeader: true},
+			MenuItem{Key: "e/enter", Label: "Edit note in $EDITOR"},
+			MenuItem{Key: "E", Label: "Enter edit mode"},
+			MenuItem{Key: "n", Label: "New note"},
+			MenuItem{Key: "d", Label: "Delete note"},
+			MenuItem{Key: "y", Label: "Copy note path"},
+			MenuItem{Key: "1", Label: "Cycle tabs"},
+		)
+	case QueriesContext:
+		switch gui.state.Queries.CurrentTab {
+		case QueriesTabQueries:
+			items = append(items,
+				MenuItem{Label: "Queries", IsHeader: true},
+				MenuItem{Key: "enter", Label: "Run query"},
+				MenuItem{Key: "d", Label: "Delete query"},
+				MenuItem{Key: "2", Label: "Cycle tabs"},
+			)
+		case QueriesTabParents:
+			items = append(items,
+				MenuItem{Label: "Parents", IsHeader: true},
+				MenuItem{Key: "enter", Label: "View parent"},
+				MenuItem{Key: "d", Label: "Delete parent"},
+				MenuItem{Key: "2", Label: "Cycle tabs"},
+			)
+		}
+	case TagsContext:
+		items = append(items,
+			MenuItem{Label: "Tags", IsHeader: true},
+			MenuItem{Key: "enter", Label: "Filter notes by tag"},
+			MenuItem{Key: "r", Label: "Rename tag"},
+			MenuItem{Key: "d", Label: "Delete tag"},
+		)
+	case PreviewContext:
+		if gui.state.Preview.EditMode {
+			items = append(items,
+				MenuItem{Label: "Edit Mode", IsHeader: true},
+				MenuItem{Key: "d", Label: "Delete card"},
+				MenuItem{Key: "m", Label: "Move card"},
+				MenuItem{Key: "M", Label: "Merge card"},
+				MenuItem{Key: "esc", Label: "Exit edit mode"},
+			)
+		} else {
+			items = append(items,
+				MenuItem{Label: "Preview", IsHeader: true},
+				MenuItem{Key: "enter", Label: "Focus note"},
+				MenuItem{Key: "f", Label: "Toggle frontmatter"},
+				MenuItem{Key: "t", Label: "Toggle title"},
+				MenuItem{Key: "T", Label: "Toggle global tags"},
+				MenuItem{Key: "M", Label: "Toggle markdown"},
+				MenuItem{Key: "esc", Label: "Back"},
+			)
+		}
+	case SearchFilterContext:
+		items = append(items,
+			MenuItem{Label: "Search Filter", IsHeader: true},
+			MenuItem{Key: "x", Label: "Clear filter"},
+		)
+	}
+
+	// Blank separator
+	items = append(items, MenuItem{})
+
+	// Global section
+	items = append(items,
+		MenuItem{Label: "Global", IsHeader: true},
+		MenuItem{Key: "/", Label: "Search"},
+		MenuItem{Key: "p", Label: "Focus preview"},
+		MenuItem{Key: "Tab", Label: "Next panel"},
+		MenuItem{Key: "<c-r>", Label: "Refresh"},
+		MenuItem{Key: "q", Label: "Quit"},
+	)
+
+	// Navigation section (varies by context)
+	switch gui.state.CurrentContext {
+	case NotesContext, QueriesContext, TagsContext:
+		items = append(items, MenuItem{}) // blank separator
+		items = append(items,
+			MenuItem{Label: "Navigation", IsHeader: true},
+			MenuItem{Key: "j/k", Label: "Move down/up"},
+			MenuItem{Key: "g", Label: "Go to top"},
+			MenuItem{Key: "G", Label: "Go to bottom"},
+		)
+	case PreviewContext:
+		items = append(items, MenuItem{}) // blank separator
+		items = append(items,
+			MenuItem{Label: "Navigation", IsHeader: true},
+			MenuItem{Key: "j/k", Label: "Scroll down/up"},
+		)
+	}
+
+	// Find first non-header item for initial selection
+	initialSel := 0
+	for i, item := range items {
+		if !item.IsHeader && item.Label != "" {
+			initialSel = i
+			break
+		}
+	}
+
 	gui.state.Dialog = &DialogState{
-		Active: true,
-		Type:   "help",
-		Title:  "Keybindings",
+		Active:        true,
+		Type:          "menu",
+		Title:         "Keybindings",
+		MenuItems:     items,
+		MenuSelection: initialSel,
 	}
 }
 
@@ -81,9 +188,8 @@ func (gui *Gui) showMergeOverlay() {
 		Type:   "menu",
 		Title:  "Merge",
 		MenuItems: []MenuItem{
-			{Label: "Merge with note below", Key: "j", OnRun: func() error { return gui.executeMerge("down") }},
-			{Label: "Merge with note above", Key: "k", OnRun: func() error { return gui.executeMerge("up") }},
-			{Label: "Cancel", OnRun: func() error { return nil }},
+			{Label: "Merge with note above", Key: "u", OnRun: func() error { return gui.executeMerge("up") }},
+			{Label: "Merge with note below", Key: "d", OnRun: func() error { return gui.executeMerge("down") }},
 		},
 		MenuSelection: 0,
 	}
@@ -97,7 +203,6 @@ func (gui *Gui) closeDialog() {
 	gui.state.Dialog = nil
 	gui.g.DeleteView(ConfirmView)
 	gui.g.DeleteView(InputView)
-	gui.g.DeleteView(HelpView)
 	gui.g.DeleteView(MenuView)
 }
 
@@ -158,97 +263,6 @@ func (gui *Gui) createInputDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
-// createHelpDialog renders the help overlay
-func (gui *Gui) createHelpDialog(g *gocui.Gui, maxX, maxY int) error {
-	if gui.state.Dialog == nil || gui.state.Dialog.Type != "help" {
-		return nil
-	}
-
-	height := 25
-	if height > maxY-4 {
-		height = maxY - 4
-	}
-	x0, y0, x1, y1 := centerRect(maxX, maxY, 60, height)
-
-	v, err := g.SetView(HelpView, x0, y0, x1, y1, 0)
-	if err != nil && err.Error() != "unknown view" {
-		return err
-	}
-
-	v.Title = " Keybindings "
-	setRoundedCorners(v)
-	v.Clear()
-
-	help := `
-  Global
-  ──────────────────────────────────────────
-  q / Ctrl+C     Quit
-  Tab            Next panel
-  1 / 2 / 3      Focus Notes / Queries / Tags
-  p              Focus Preview
-  /              Search
-  Ctrl+R         Refresh all
-  ?              Show this help
-
-  Notes Panel
-  ──────────────────────────────────────────
-  1              Cycle tabs (All/Today/Recent)
-  j / k          Move down / up
-  g / G          Go to top / bottom
-  Enter / e      Edit note in $EDITOR
-  E              Enter edit mode (bulk ops)
-  n              New note (multi-line, Ctrl+S to save)
-  d              Delete note
-  y              Copy note path
-
-  Tags Panel
-  ──────────────────────────────────────────
-  j / k          Move down / up
-  Enter          Filter notes by tag
-  r              Rename tag
-  d              Delete tag
-
-  Queries / Parents Panel
-  ──────────────────────────────────────────
-  2              Cycle tabs (Queries/Parents)
-  j / k          Move down / up
-  Enter          Run query / View parent tree
-  d              Delete query / parent
-
-  Preview Panel
-  ──────────────────────────────────────────
-  j / k          Scroll down / up
-  Enter          Focus selected card
-  Esc            Back to previous panel
-  f              Toggle frontmatter
-  t              Toggle title
-  T              Toggle global tags
-
-  Edit Mode (Preview)
-  ──────────────────────────────────────────
-  d              Delete card
-  J / K          Move card down / up
-  m              Merge card (j=down, k=up)
-  Esc            Exit edit mode
-
-  Search / Capture Completion
-  ──────────────────────────────────────────
-  #              Tag suggestions
-  created:       Date shortcut suggestions (search)
-  Tab / Enter    Accept suggestion
-  Esc            Dismiss suggestions
-  Ctrl+S         Save note (capture popup)
-
-  Press any key to close
-`
-	fmt.Fprint(v, help)
-
-	g.SetViewOnTop(HelpView)
-	g.SetCurrentView(HelpView)
-
-	return nil
-}
-
 // createMenuDialog renders a navigable menu list overlay
 func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || gui.state.Dialog.Type != "menu" {
@@ -257,12 +271,33 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 
 	items := gui.state.Dialog.MenuItems
 
+	// Check if any item is actionable (has OnRun)
+	hasActions := false
+	for _, item := range items {
+		if item.OnRun != nil {
+			hasActions = true
+			break
+		}
+	}
+
+	// Find max key width for column alignment
+	maxKeyLen := 0
+	for _, item := range items {
+		if !item.IsHeader && len(item.Key) > maxKeyLen {
+			maxKeyLen = len(item.Key)
+		}
+	}
+
 	// Size: width based on longest item, height based on item count
 	width := 30
 	for _, item := range items {
-		l := len(item.Label) + 6 // padding + index
-		if item.Key != "" {
-			l += len(item.Key) + 3 // " (k)"
+		var l int
+		if item.IsHeader {
+			l = len(item.Label) + 10 // " --- Label --- "
+		} else if item.Key != "" {
+			l = 1 + maxKeyLen + 2 + len(item.Label) + 1 // " key  label "
+		} else {
+			l = 1 + maxKeyLen + 2 + len(item.Label) + 1
 		}
 		if l > width {
 			width = l
@@ -272,6 +307,9 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 		width = maxX - 4
 	}
 	height := len(items) + 2 // border
+	if height > maxY-4 {
+		height = maxY - 4
+	}
 	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
 	v, err := g.SetView(MenuView, x0, y0, x1, y1, 0)
@@ -280,7 +318,11 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	v.Title = " " + gui.state.Dialog.Title + " "
-	v.Footer = fmt.Sprintf("%d of %d", gui.state.Dialog.MenuSelection+1, len(items))
+	if hasActions {
+		v.Footer = fmt.Sprintf("%d of %d", gui.state.Dialog.MenuSelection+1, len(items))
+	} else {
+		v.Footer = ""
+	}
 	v.Highlight = false
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
@@ -293,23 +335,41 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	for i, item := range items {
+		// Header items
+		if item.IsHeader {
+			fmt.Fprintf(v, " %s--- %s ---%s\n", AnsiCyan, item.Label, AnsiReset)
+			continue
+		}
+
 		selected := i == gui.state.Dialog.MenuSelection
 
-		label := fmt.Sprintf(" %s", item.Label)
+		// Build column-aligned line: " key  label"
+		keyPad := maxKeyLen - len(item.Key)
+		var line string
 		if item.Key != "" {
-			label += fmt.Sprintf(" (%s)", item.Key)
+			line = fmt.Sprintf(" %s%s  %s", item.Key, strings.Repeat(" ", keyPad), item.Label)
+		} else {
+			line = fmt.Sprintf(" %s  %s", strings.Repeat(" ", maxKeyLen), item.Label)
 		}
 
 		if selected {
-			pad := innerWidth - len([]rune(label))
+			pad := innerWidth - len([]rune(line))
 			if pad > 0 {
-				label += strings.Repeat(" ", pad)
+				line += strings.Repeat(" ", pad)
 			}
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, label, AnsiReset)
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line, AnsiReset)
 		} else {
-			fmt.Fprintln(v, label)
+			if item.Key != "" {
+				fmt.Fprintf(v, " %s%-*s%s  %s\n", AnsiGreen, maxKeyLen, item.Key, AnsiReset, item.Label)
+			} else {
+				fmt.Fprintf(v, " %s  %s\n", strings.Repeat(" ", maxKeyLen), item.Label)
+			}
 		}
 	}
+
+	// Scroll to keep selection visible
+	viewHeight := height - 2
+	scrollListView(v, gui.state.Dialog.MenuSelection, 1, viewHeight)
 
 	g.SetViewOnTop(MenuView)
 	g.SetCurrentView(MenuView)
@@ -322,7 +382,6 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || !gui.state.Dialog.Active {
 		g.DeleteView(ConfirmView)
 		g.DeleteView(InputView)
-		g.DeleteView(HelpView)
 		g.DeleteView(MenuView)
 		return nil
 	}
@@ -332,8 +391,6 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		return gui.createConfirmDialog(g, maxX, maxY)
 	case "input":
 		return gui.createInputDialog(g, maxX, maxY)
-	case "help":
-		return gui.createHelpDialog(g, maxX, maxY)
 	case "menu":
 		return gui.createMenuDialog(g, maxX, maxY)
 	}
@@ -359,20 +416,6 @@ func (gui *Gui) setupDialogKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(InputView, gocui.KeyEsc, gocui.ModNone, gui.inputCancel); err != nil {
-		return err
-	}
-
-	// Help dialog - any key closes
-	if err := gui.g.SetKeybinding(HelpView, gocui.KeyEsc, gocui.ModNone, gui.closeHelpDialog); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(HelpView, 'q', gocui.ModNone, gui.closeHelpDialog); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(HelpView, gocui.KeyEnter, gocui.ModNone, gui.closeHelpDialog); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(HelpView, gocui.KeySpace, gocui.ModNone, gui.closeHelpDialog); err != nil {
 		return err
 	}
 
@@ -435,17 +478,24 @@ func (gui *Gui) inputCancel(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) closeHelpDialog(g *gocui.Gui, v *gocui.View) error {
-	gui.closeDialog()
-	return nil
-}
-
 func (gui *Gui) menuDown(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.Dialog == nil {
 		return nil
 	}
-	if gui.state.Dialog.MenuSelection < len(gui.state.Dialog.MenuItems)-1 {
-		gui.state.Dialog.MenuSelection++
+	items := gui.state.Dialog.MenuItems
+	for _, item := range items {
+		if item.Key == "j" && item.OnRun != nil {
+			gui.closeDialog()
+			return item.OnRun()
+		}
+	}
+	// Find next non-header item
+	sel := gui.state.Dialog.MenuSelection + 1
+	for sel < len(items) && items[sel].IsHeader {
+		sel++
+	}
+	if sel < len(items) {
+		gui.state.Dialog.MenuSelection = sel
 	}
 	return nil
 }
@@ -454,8 +504,20 @@ func (gui *Gui) menuUp(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.Dialog == nil {
 		return nil
 	}
-	if gui.state.Dialog.MenuSelection > 0 {
-		gui.state.Dialog.MenuSelection--
+	items := gui.state.Dialog.MenuItems
+	for _, item := range items {
+		if item.Key == "k" && item.OnRun != nil {
+			gui.closeDialog()
+			return item.OnRun()
+		}
+	}
+	// Find previous non-header item
+	sel := gui.state.Dialog.MenuSelection - 1
+	for sel >= 0 && items[sel].IsHeader {
+		sel--
+	}
+	if sel >= 0 {
+		gui.state.Dialog.MenuSelection = sel
 	}
 	return nil
 }

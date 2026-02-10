@@ -277,13 +277,10 @@ func (gui *Gui) setupPreviewKeybindings() error {
 	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteCardFromPreview); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, 'J', gocui.ModNone, gui.moveCardDown); err != nil {
+	if err := gui.g.SetKeybinding(view, 'm', gocui.ModNone, gui.moveCardHandler); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(view, 'K', gocui.ModNone, gui.moveCardUp); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'm', gocui.ModNone, gui.mergeCardHandler); err != nil {
+	if err := gui.g.SetKeybinding(view, 'M', gocui.ModNone, gui.mergeCardHandler); err != nil {
 		return err
 	}
 

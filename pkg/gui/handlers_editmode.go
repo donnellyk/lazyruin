@@ -41,30 +41,45 @@ func (gui *Gui) deleteCardFromPreview(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) moveCardUp(g *gocui.Gui, v *gocui.View) error {
+func (gui *Gui) moveCardHandler(g *gocui.Gui, v *gocui.View) error {
 	if !gui.state.Preview.EditMode {
 		return nil
 	}
-	idx := gui.state.Preview.SelectedCardIndex
-	if idx <= 0 {
+	if len(gui.state.Preview.Cards) <= 1 {
 		return nil
 	}
-	gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx-1] = gui.state.Preview.Cards[idx-1], gui.state.Preview.Cards[idx]
-	gui.state.Preview.SelectedCardIndex--
-	gui.renderPreview()
+	gui.showMoveOverlay()
 	return nil
 }
 
-func (gui *Gui) moveCardDown(g *gocui.Gui, v *gocui.View) error {
-	if !gui.state.Preview.EditMode {
-		return nil
+func (gui *Gui) showMoveOverlay() {
+	gui.state.Dialog = &DialogState{
+		Active: true,
+		Type:   "menu",
+		Title:  "Move",
+		MenuItems: []MenuItem{
+			{Label: "Move card up", Key: "u", OnRun: func() error { return gui.moveCard("up") }},
+			{Label: "Move card down", Key: "d", OnRun: func() error { return gui.moveCard("down") }},
+		},
+		MenuSelection: 0,
 	}
+}
+
+func (gui *Gui) moveCard(direction string) error {
 	idx := gui.state.Preview.SelectedCardIndex
-	if idx >= len(gui.state.Preview.Cards)-1 {
-		return nil
+	if direction == "up" {
+		if idx <= 0 {
+			return nil
+		}
+		gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx-1] = gui.state.Preview.Cards[idx-1], gui.state.Preview.Cards[idx]
+		gui.state.Preview.SelectedCardIndex--
+	} else {
+		if idx >= len(gui.state.Preview.Cards)-1 {
+			return nil
+		}
+		gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx+1] = gui.state.Preview.Cards[idx+1], gui.state.Preview.Cards[idx]
+		gui.state.Preview.SelectedCardIndex++
 	}
-	gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx+1] = gui.state.Preview.Cards[idx+1], gui.state.Preview.Cards[idx]
-	gui.state.Preview.SelectedCardIndex++
 	gui.renderPreview()
 	return nil
 }

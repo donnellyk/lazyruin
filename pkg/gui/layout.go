@@ -428,9 +428,8 @@ func (gui *Gui) updateStatusBar() {
 		if gui.state.Preview.EditMode {
 			hints = []hint{
 				{"Delete", "d"},
-				{"Move Up", "K"},
-				{"Move Down", "J"},
-				{"Merge", "m"},
+				{"Move", "m"},
+				{"Merge", "M"},
 				{"Navigate", "j/k"},
 				{"Back", "esc"},
 			}
