@@ -4,8 +4,10 @@ import (
 	"time"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/config"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/muesli/termenv"
 )
 
 // Gui manages the terminal user interface.
@@ -13,14 +15,17 @@ type Gui struct {
 	g            *gocui.Gui
 	views        *Views
 	state        *GuiState
+	config       *config.Config
 	ruinCmd      *commands.RuinCommand
-	stopBg       chan struct{}
-	QuickCapture bool // when true, open capture on start and quit on save
+	stopBg         chan struct{}
+	QuickCapture   bool // when true, open capture on start and quit on save
+	darkBackground bool
 }
 
 // NewGui creates a new Gui instance.
-func NewGui(ruinCmd *commands.RuinCommand) *Gui {
+func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	return &Gui{
+		config:  cfg,
 		ruinCmd: ruinCmd,
 		views:   &Views{},
 		state:   NewGuiState(),
@@ -29,6 +34,9 @@ func NewGui(ruinCmd *commands.RuinCommand) *Gui {
 
 // Run starts the GUI event loop.
 func (gui *Gui) Run() error {
+	// Detect terminal background before gocui takes over the terminal.
+	gui.darkBackground = termenv.HasDarkBackground()
+
 	err := gui.runMainLoop()
 	if err != nil && err != gocui.ErrQuit {
 		return err

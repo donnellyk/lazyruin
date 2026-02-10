@@ -297,6 +297,9 @@ func (gui *Gui) setupPreviewKeybindings() error {
 	if err := gui.g.SetKeybinding(view, 'T', gocui.ModNone, gui.toggleGlobalTags); err != nil {
 		return err
 	}
+	if err := gui.g.SetKeybinding(view, 'M', gocui.ModNone, gui.toggleMarkdown); err != nil {
+		return err
+	}
 	return nil
 }
 

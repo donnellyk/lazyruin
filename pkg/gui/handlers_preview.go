@@ -107,6 +107,12 @@ func (gui *Gui) focusNoteFromPreview(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) toggleMarkdown(g *gocui.Gui, v *gocui.View) error {
+	gui.state.Preview.RenderMarkdown = !gui.state.Preview.RenderMarkdown
+	gui.renderPreview()
+	return nil
+}
+
 func (gui *Gui) toggleFrontmatter(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.ShowFrontmatter = !gui.state.Preview.ShowFrontmatter
 	gui.renderPreview()

@@ -48,7 +48,7 @@ func (a *App) Run() error {
 	}
 
 	// Initialize and run GUI
-	a.Gui = gui.NewGui(a.RuinCmd)
+	a.Gui = gui.NewGui(a.Config, a.RuinCmd)
 	a.Gui.QuickCapture = a.QuickCapture
 	return a.Gui.Run()
 }

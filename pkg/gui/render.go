@@ -5,7 +5,14 @@ import (
 	"os"
 	"strings"
 
+	"bytes"
+
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/jesseduffield/gocui"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 func (gui *Gui) renderNotes() {
@@ -269,14 +276,30 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 		fmt.Fprintln(v, "")
 	}
 
-	lines := strings.Split(note.Content, "\n")
-	start := gui.state.Preview.ScrollOffset
-	if start >= len(lines) {
-		start = 0
-	}
-
-	for i := start; i < len(lines); i++ {
-		fmt.Fprintln(v, lines[i])
+	content := note.Content
+	if gui.state.Preview.RenderMarkdown {
+		width, _ := v.InnerSize()
+		if width < 10 {
+			width = 40
+		}
+		rendered := gui.renderMarkdown(content, width-2)
+		lines := strings.Split(rendered, "\n")
+		start := gui.state.Preview.ScrollOffset
+		if start >= len(lines) {
+			start = 0
+		}
+		for i := start; i < len(lines); i++ {
+			fmt.Fprintln(v, lines[i])
+		}
+	} else {
+		lines := strings.Split(content, "\n")
+		start := gui.state.Preview.ScrollOffset
+		if start >= len(lines) {
+			start = 0
+		}
+		for i := start; i < len(lines); i++ {
+			fmt.Fprintln(v, lines[i])
+		}
 	}
 }
 
@@ -335,11 +358,19 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		if content == "" {
 			content, _ = gui.loadNoteContent(note.Path)
 		}
-		for _, l := range strings.Split(content, "\n") {
-			wrapped := wrapLine(l, contentWidth)
-			for _, wl := range wrapped {
-				fmt.Fprintln(v, " "+wl)
+		if gui.state.Preview.RenderMarkdown {
+			rendered := gui.renderMarkdown(content, contentWidth)
+			for _, rl := range strings.Split(rendered, "\n") {
+				fmt.Fprintln(v, " "+rl)
 				currentLine++
+			}
+		} else {
+			for _, l := range strings.Split(content, "\n") {
+				wrapped := wrapLine(l, contentWidth)
+				for _, wl := range wrapped {
+					fmt.Fprintln(v, " "+wl)
+					currentLine++
+				}
 			}
 		}
 
@@ -488,6 +519,44 @@ func listClickIndex(v *gocui.View, itemHeight int) int {
 	_, cy := v.Cursor()
 	_, oy := v.Origin()
 	return (cy + oy) / itemHeight
+}
+
+func (gui *Gui) renderMarkdown(content string, width int) string {
+	lexer := lexers.Get("markdown")
+	if lexer == nil {
+		return content
+	}
+	lexer = chroma.Coalesce(lexer)
+
+	styleName := gui.config.ChromaTheme
+	if styleName == "" {
+		styleName = "catppuccin-mocha"
+		if !gui.darkBackground {
+			styleName = "catppuccin-latte"
+		}
+	}
+	style := styles.Get(styleName)
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	formatter := formatters.Get("terminal256")
+	if formatter == nil {
+		return content
+	}
+
+	iter, err := lexer.Tokenise(nil, content)
+	if err != nil {
+		return content
+	}
+
+	var buf bytes.Buffer
+	if err := formatter.Format(&buf, style, iter); err != nil {
+		return content
+	}
+
+	wrapped := wordwrap.String(buf.String(), width)
+	return strings.TrimRight(wrapped, "\n")
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {

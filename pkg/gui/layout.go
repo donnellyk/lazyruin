@@ -419,6 +419,7 @@ func (gui *Gui) updateStatusBar() {
 				{"Navigate", "j/k"},
 				{"Focus Note", "enter"},
 				{"Frontmatter", "f"},
+				{"Markdown", "M"},
 				{"Back", "esc"},
 				{"Keybindings", "?"},
 			}

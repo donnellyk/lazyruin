@@ -9,7 +9,8 @@ import (
 
 // Config holds the application configuration.
 type Config struct {
-	VaultPath string `yaml:"vault_path"`
+	VaultPath  string `yaml:"vault_path"`
+	ChromaTheme string `yaml:"chroma_theme"`
 }
 
 // Load reads the configuration from the default config file.

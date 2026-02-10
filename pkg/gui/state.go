@@ -89,6 +89,7 @@ type PreviewState struct {
 	ShowGlobalTags    bool
 	CardLineRanges    [][2]int // [startLine, endLine) for each card
 	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
+	RenderMarkdown    bool     // true to render markdown with glamour
 }
 
 func NewGuiState() *GuiState {
@@ -101,7 +102,7 @@ func NewGuiState() *GuiState {
 		},
 		Tags:              &TagsState{},
 		Parents:           &ParentsState{},
-		Preview:           &PreviewState{},
+		Preview:           &PreviewState{RenderMarkdown: true},
 		SearchCompletion:  NewCompletionState(),
 		CaptureCompletion: NewCompletionState(),
 		CurrentContext:     NotesContext,
