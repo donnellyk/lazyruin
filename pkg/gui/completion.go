@@ -112,6 +112,28 @@ func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) 
 		}
 	}
 
+	// Fallback: scan backward on the current line for > at a word boundary
+	// (parent completion whose filter may contain spaces after drilling)
+	for i := cp - 1; i >= 0; i-- {
+		ch := content[i]
+		if ch == '\n' {
+			break
+		}
+		if ch == '>' && (i == 0 || content[i-1] == ' ' || content[i-1] == '\t' || content[i-1] == '\n') {
+			after := content[i+1 : cp]
+			// Exclude blockquotes: "> " with a space and no / is a quote, not a parent
+			if len(after) > 0 && after[0] == ' ' {
+				break
+			}
+			for j := range triggers {
+				if triggers[j].Prefix == ">" {
+					return &triggers[j], after, i
+				}
+			}
+			break
+		}
+	}
+
 	return nil, "", 0
 }
 
@@ -630,18 +652,25 @@ func markdownCandidates(filter string) []CompletionItem {
 }
 
 // parentCaptureCandidates returns parent note candidates for the > trigger in capture mode.
-// At the top level it shows bookmarked parents; after drilling with / it shows children.
+// At the top level it shows bookmarked parents; >> shows all notes; after drilling with / it shows children.
 func (gui *Gui) parentCaptureCandidates(filter string) []CompletionItem {
 	state := gui.state.CaptureCompletion
 
+	// Detect >> mode (all notes) and strip the extra > for path parsing
+	allNotesMode := strings.HasPrefix(filter, ">")
+	workingFilter := filter
+	if allNotesMode {
+		workingFilter = filter[1:]
+	}
+
 	// Determine the typing filter (text after the last /)
-	typingFilter := filter
-	if idx := strings.LastIndex(filter, "/"); idx >= 0 {
-		typingFilter = filter[idx+1:]
+	typingFilter := workingFilter
+	if idx := strings.LastIndex(workingFilter, "/"); idx >= 0 {
+		typingFilter = workingFilter[idx+1:]
 	}
 
 	// Sync drill stack: if user backspaced past a /, truncate the stack
-	slashCount := strings.Count(filter, "/")
+	slashCount := strings.Count(workingFilter, "/")
 	if slashCount < len(state.ParentDrill) {
 		state.ParentDrill = state.ParentDrill[:slashCount]
 	}
@@ -649,6 +678,9 @@ func (gui *Gui) parentCaptureCandidates(filter string) []CompletionItem {
 	typingFilter = strings.ToLower(typingFilter)
 
 	if len(state.ParentDrill) == 0 {
+		if allNotesMode {
+			return gui.allNoteCandidates(typingFilter)
+		}
 		// Top level: show bookmarked parents
 		var items []CompletionItem
 		for _, p := range gui.state.Parents.Items {
@@ -680,6 +712,27 @@ func (gui *Gui) parentCaptureCandidates(filter string) []CompletionItem {
 		if typingFilter != "" && !strings.Contains(strings.ToLower(note.Title), typingFilter) {
 			continue
 		}
+		items = append(items, CompletionItem{
+			Label:  note.Title,
+			Detail: note.ShortDate(),
+			Value:  note.UUID,
+		})
+	}
+	return items
+}
+
+// allNoteCandidates returns all notes as parent candidates (for >> mode).
+func (gui *Gui) allNoteCandidates(filter string) []CompletionItem {
+	seen := make(map[string]bool)
+	var items []CompletionItem
+	for _, note := range gui.state.Notes.Items {
+		if note.Title == "" || seen[note.Title] {
+			continue
+		}
+		if filter != "" && !strings.Contains(strings.ToLower(note.Title), filter) {
+			continue
+		}
+		seen[note.Title] = true
 		items = append(items, CompletionItem{
 			Label:  note.Title,
 			Detail: note.ShortDate(),

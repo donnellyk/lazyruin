@@ -362,7 +362,13 @@ func (gui *Gui) updateCaptureFooter() {
 		return
 	}
 	if gui.state.CaptureParent != nil {
-		gui.views.Capture.Footer = " Parent: " + gui.state.CaptureParent.Title + " "
+		footer := " Parent: " + gui.state.CaptureParent.Title + " "
+		maxLen := gui.views.Capture.InnerWidth()
+		if len([]rune(footer)) > maxLen && maxLen > 4 {
+			runes := []rune(footer)
+			footer = string(runes[:maxLen-1]) + "…"
+		}
+		gui.views.Capture.Footer = footer
 	} else {
 		gui.views.Capture.Footer = ""
 	}
