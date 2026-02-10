@@ -72,3 +72,21 @@ func currentLine(content string, cy int) string {
 	}
 	return lines[cy]
 }
+
+// currentLineAtPos returns the line containing the given byte position.
+func currentLineAtPos(content string, pos int) string {
+	if pos > len(content) {
+		pos = len(content)
+	}
+	start := strings.LastIndex(content[:pos], "\n")
+	if start < 0 {
+		start = 0
+	} else {
+		start++ // skip the \n
+	}
+	end := strings.Index(content[pos:], "\n")
+	if end < 0 {
+		return content[start:]
+	}
+	return content[start : pos+end]
+}

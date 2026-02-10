@@ -329,6 +329,8 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Title = " New Note "
 	v.Editable = true
 	v.Wrap = true
+	v.TextArea.AutoWrap = true
+	v.TextArea.AutoWrapWidth = v.InnerWidth()
 	v.Editor = &captureEditor{gui: gui}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen

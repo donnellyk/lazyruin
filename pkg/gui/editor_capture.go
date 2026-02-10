@@ -47,8 +47,8 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 	// Intercept Enter for markdown continuation
 	if key == gocui.KeyEnter && !state.Active {
 		content := v.TextArea.GetUnwrappedContent()
-		_, cy := v.TextArea.GetCursorXY()
-		line := currentLine(content, cy)
+		pos := viewCursorBytePos(v)
+		line := currentLineAtPos(content, pos)
 
 		if cont := markdownContinuation(line); cont != nil {
 			if cont.Empty {
@@ -102,9 +102,7 @@ func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
 		return
 	}
 
-	content := v.TextArea.GetUnwrappedContent()
-	cx, cy := v.TextArea.GetCursorXY()
-	cursorPos := cursorBytePos(content, cx, cy)
+	cursorPos := viewCursorBytePos(v)
 
 	// Backspace from cursor to trigger start
 	charsToDelete := cursorPos - state.TriggerStart
@@ -150,8 +148,7 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState) {
 	})
 
 	content := v.TextArea.GetUnwrappedContent()
-	cx, cy := v.TextArea.GetCursorXY()
-	cursorPos := cursorBytePos(content, cx, cy)
+	cursorPos := viewCursorBytePos(v)
 
 	// Backspace from cursor to trigger start
 	charsToDelete := cursorPos - state.TriggerStart
@@ -198,9 +195,7 @@ func (gui *Gui) acceptParentCompletion(v *gocui.View, state *CompletionState) {
 		Title: item.Label,
 	}
 
-	content := v.TextArea.GetUnwrappedContent()
-	cx, cy := v.TextArea.GetCursorXY()
-	cursorPos := cursorBytePos(content, cx, cy)
+	cursorPos := viewCursorBytePos(v)
 
 	// Remove the >... token from content
 	charsToDelete := cursorPos - state.TriggerStart

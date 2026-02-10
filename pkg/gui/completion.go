@@ -44,8 +44,8 @@ func NewCompletionState() *CompletionState {
 	return &CompletionState{}
 }
 
-// cursorBytePos converts a TextArea's 2D cursor position (cx, cy) into a byte
-// offset within the unwrapped content string.
+// cursorBytePos converts a 2D cursor position (cx, cy) into a byte offset
+// within the given content string (split by "\n").
 func cursorBytePos(content string, cx, cy int) int {
 	lines := strings.Split(content, "\n")
 	pos := 0
@@ -63,6 +63,35 @@ func cursorBytePos(content string, cx, cy int) int {
 		pos = len(content)
 	}
 	return pos
+}
+
+// viewCursorBytePos returns the cursor's byte offset in the unwrapped content.
+// It handles both AutoWrap (wrapped cursor coordinates) and non-AutoWrap views.
+func viewCursorBytePos(v *gocui.View) int {
+	cx, cy := v.TextArea.GetCursorXY()
+	unwrapped := v.TextArea.GetUnwrappedContent()
+
+	if !v.TextArea.AutoWrap {
+		return cursorBytePos(unwrapped, cx, cy)
+	}
+
+	// AutoWrap: cursor coordinates are in wrapped space.
+	// Use GetContent() (includes soft newlines) to find the wrapped byte position,
+	// then map back to unwrapped content.
+	wrapped := v.TextArea.GetContent()
+	wPos := cursorBytePos(wrapped, cx, cy)
+
+	// Walk both strings; soft newlines only exist in wrapped content.
+	wi, ui := 0, 0
+	for wi < wPos && ui < len(unwrapped) {
+		if wrapped[wi] == unwrapped[ui] {
+			wi++
+			ui++
+		} else {
+			wi++ // soft newline
+		}
+	}
+	return ui
 }
 
 // extractTokenAtCursor scans backward from cursorPos to find the current token
@@ -175,8 +204,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 // is active and updates the CompletionState accordingly.
 func (gui *Gui) updateCompletion(v *gocui.View, triggers []CompletionTrigger, state *CompletionState) {
 	content := v.TextArea.GetUnwrappedContent()
-	cx, cy := v.TextArea.GetCursorXY()
-	cursorPos := cursorBytePos(content, cx, cy)
+	cursorPos := viewCursorBytePos(v)
 
 	trigger, filter, tokenStart := detectTrigger(content, cursorPos, triggers)
 	if trigger != nil {
@@ -206,9 +234,7 @@ func (gui *Gui) acceptCompletion(v *gocui.View, state *CompletionState, triggers
 	}
 
 	item := state.Items[state.SelectedIndex]
-	content := v.TextArea.GetUnwrappedContent()
-	cx, cy := v.TextArea.GetCursorXY()
-	cursorPos := cursorBytePos(content, cx, cy)
+	cursorPos := viewCursorBytePos(v)
 
 	// Calculate how many chars to backspace (from cursorPos back to TriggerStart)
 	charsToDelete := cursorPos - state.TriggerStart
