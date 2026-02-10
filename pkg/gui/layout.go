@@ -327,6 +327,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 
 	gui.views.Capture = v
 	v.Title = " New Note "
+	v.Subtitle = " <c-s> to save "
 	v.Editable = true
 	v.Wrap = true
 	v.TextArea.AutoWrap = true
@@ -452,7 +453,7 @@ func (gui *Gui) updateStatusBar() {
 		}
 	case CaptureContext:
 		hints = []hint{
-			{"Save", "ctrl+s"},
+			{"Save", "<c-s>"},
 			{"Cancel", "esc"},
 			{"Formatting", "/"},
 			{"Parent", ">"},
