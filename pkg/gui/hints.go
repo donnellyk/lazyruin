@@ -189,6 +189,7 @@ func (gui *Gui) navigationHints() []contextHint {
 		return []contextHint{
 			{"j/k", "Scroll line-by-line"},
 			{"J/K", "Jump between cards"},
+			{"]/[", "Next/prev header"},
 		}
 	default:
 		return nil
