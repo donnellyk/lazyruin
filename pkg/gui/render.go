@@ -180,13 +180,17 @@ func (gui *Gui) renderTags() {
 				name = "#" + name
 			}
 			count := fmt.Sprintf("(%d)", tag.Count)
+			scope := ""
+			if len(tag.Scope) > 0 {
+				scope = " [" + strings.Join(tag.Scope, ", ") + "]"
+			}
 			if selected {
 				return listItem{Lines: []string{
-					fmt.Sprintf(" %s %s", name, count),
+					fmt.Sprintf(" %s %s%s", name, count, scope),
 				}}
 			}
 			return listItem{Lines: []string{
-				fmt.Sprintf(" %s %s%s%s", name, AnsiDim, count, AnsiReset),
+				fmt.Sprintf(" %s %s%s%s%s", name, AnsiDim, count, scope, AnsiReset),
 			}}
 		})
 }
