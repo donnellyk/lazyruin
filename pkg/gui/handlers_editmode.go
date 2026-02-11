@@ -141,11 +141,24 @@ func (gui *Gui) executeMerge(direction string) error {
 		mergedTags = append(mergedTags, t)
 	}
 
+	// Merge inline tags (union)
+	inlineTagSet := make(map[string]bool)
+	for _, t := range target.InlineTags {
+		inlineTagSet[t] = true
+	}
+	for _, t := range source.InlineTags {
+		inlineTagSet[t] = true
+	}
+	var mergedInlineTags []string
+	for t := range inlineTagSet {
+		mergedInlineTags = append(mergedInlineTags, t)
+	}
+
 	// Combine content
 	combined := strings.TrimRight(targetContent, "\n") + "\n\n" + strings.TrimRight(sourceContent, "\n") + "\n"
 
 	// Rewrite target file
-	err = gui.writeNoteFile(target.Path, combined, mergedTags)
+	err = gui.writeNoteFile(target.Path, combined, mergedTags, mergedInlineTags)
 	if err != nil {
 		gui.showError(err)
 		return nil
@@ -169,7 +182,7 @@ func (gui *Gui) executeMerge(direction string) error {
 }
 
 // writeNoteFile rewrites a note file preserving uuid/created/updated, with merged tags and new content.
-func (gui *Gui) writeNoteFile(path, content string, tags []string) error {
+func (gui *Gui) writeNoteFile(path, content string, tags, inlineTags []string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -223,6 +236,12 @@ func (gui *Gui) writeNoteFile(path, content string, tags []string) error {
 		}
 	} else {
 		fm.WriteString("tags: []\n")
+	}
+	if len(inlineTags) > 0 {
+		fm.WriteString("inline-tags:\n")
+		for _, t := range inlineTags {
+			fm.WriteString("  - " + t + "\n")
+		}
 	}
 	fm.WriteString("---\n")
 

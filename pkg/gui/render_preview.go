@@ -54,6 +54,9 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 		fmt.Fprintf(v, "created: %s\n", note.Created.Format("2006-01-02 15:04"))
 		fmt.Fprintf(v, "updated: %s\n", note.Updated.Format("2006-01-02 15:04"))
 		fmt.Fprintf(v, "tags: %v\n", note.Tags)
+		if len(note.InlineTags) > 0 {
+			fmt.Fprintf(v, "inline-tags: %v\n", note.InlineTags)
+		}
 		fmt.Fprintln(v, strings.Repeat("─", 40))
 		fmt.Fprintln(v, "")
 	}

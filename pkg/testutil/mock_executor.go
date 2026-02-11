@@ -79,16 +79,29 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		return json.Marshal(m.notes)
 
 	case "search":
-		// Filter notes by tag if searching by tag
+		// Filter notes by tag if searching by tag (matches both global and inline)
 		if len(args) > 1 && strings.HasPrefix(args[1], "#") {
-			tag := strings.TrimPrefix(args[1], "#")
+			tag := args[1]
+			tagBare := strings.TrimPrefix(tag, "#")
 			var filtered []models.Note
 			for _, n := range m.notes {
+				found := false
 				for _, t := range n.Tags {
-					if t == tag {
-						filtered = append(filtered, n)
+					if t == tagBare || t == tag {
+						found = true
 						break
 					}
+				}
+				if !found {
+					for _, t := range n.InlineTags {
+						if t == tagBare || t == tag {
+							found = true
+							break
+						}
+					}
+				}
+				if found {
+					filtered = append(filtered, n)
 				}
 			}
 			return json.Marshal(filtered)

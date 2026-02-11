@@ -14,11 +14,11 @@ import (
 func defaultMock() *testutil.MockExecutor {
 	return testutil.NewMockExecutor().
 		WithNotes(
-			models.Note{UUID: "1", Title: "Note One", Tags: []string{"daily"}, Created: time.Now()},
+			models.Note{UUID: "1", Title: "Note One", Tags: []string{"daily"}, InlineTags: []string{"#followup"}, Created: time.Now()},
 			models.Note{UUID: "2", Title: "Note Two", Tags: []string{"work"}, Created: time.Now()},
-			models.Note{UUID: "3", Title: "Note Three", Tags: []string{"daily"}, Created: time.Now()},
+			models.Note{UUID: "3", Title: "Note Three", Tags: []string{"daily"}, InlineTags: []string{"#todo"}, Created: time.Now()},
 			models.Note{UUID: "4", Title: "Note Four", Tags: []string{"project"}, Created: time.Now()},
-			models.Note{UUID: "5", Title: "Note Five", Tags: []string{"daily"}, Created: time.Now()},
+			models.Note{UUID: "5", Title: "Note Five", Tags: []string{"daily"}, InlineTags: []string{"#followup", "#todo"}, Created: time.Now()},
 		).
 		WithTags(
 			models.Tag{Name: "daily", Count: 3},
