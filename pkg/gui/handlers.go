@@ -132,6 +132,10 @@ func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusTags(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.CurrentContext == TagsContext {
+		gui.cycleTagsTab()
+		return nil
+	}
 	gui.setContext(TagsContext)
 	return nil
 }

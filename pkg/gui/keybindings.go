@@ -58,6 +58,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.g.SetTabClickBinding(QueriesView, gui.switchQueriesTabByIndex); err != nil {
 		return err
 	}
+	if err := gui.g.SetTabClickBinding(TagsView, gui.switchTagsTabByIndex); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -21,14 +21,10 @@ func (gui *Gui) tagCandidates(filter string) []CompletionItem {
 		if filter != "" && !strings.Contains(strings.ToLower(nameWithoutHash), filter) {
 			continue
 		}
-		detail := fmt.Sprintf("(%d)", tag.Count)
-		if len(tag.Scope) > 0 {
-			detail += " [" + strings.Join(tag.Scope, ", ") + "]"
-		}
 		items = append(items, CompletionItem{
 			Label:      name,
 			InsertText: name,
-			Detail:     detail,
+			Detail:     fmt.Sprintf("(%d)", tag.Count),
 		})
 	}
 	return items

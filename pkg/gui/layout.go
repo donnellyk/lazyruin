@@ -216,8 +216,11 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	gui.views.Tags = v
-	v.Title = "[3]-Tags"
+	v.TitlePrefix = "[3]"
+	v.Tabs = []string{"All", "Global", "Inline"}
+	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
+	gui.updateTagsTab()
 	setRoundedCorners(v)
 
 	if gui.state.CurrentContext == TagsContext {

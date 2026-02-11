@@ -77,11 +77,13 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"enter", "Filter notes by tag"},
 				{"r", "Rename tag"},
 				{"d", "Delete tag"},
+				{"3", "Cycle tabs"},
 			},
 			statusBar: []contextHint{
 				{"enter", "Filter"},
 				{"r", "Rename"},
 				{"d", "Delete"},
+				{"3", "Tab"},
 				{"?", "Keybindings"},
 			},
 		}

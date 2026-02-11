@@ -8,6 +8,7 @@ import (
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 func (gui *Gui) renderPreview() {
@@ -250,6 +251,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 	if width < 10 {
 		width = 40
 	}
+	contentWidth := max(width-2, 10)
 
 	isActive := gui.state.CurrentContext == PreviewContext
 	selectedStartLine := 0
@@ -275,12 +277,20 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 
 		// Render each match line
 		for _, match := range result.Matches {
-			tags := ""
-			if len(match.Tags) > 0 {
-				tags = AnsiDim + "  " + strings.Join(match.Tags, " ") + AnsiReset
+			lineNum := fmt.Sprintf("%02d", match.Line)
+			prefix := fmt.Sprintf("  L%s: ", lineNum)
+			prefixLen := len(prefix)
+			highlighted := gui.highlightMarkdown(match.Content)
+			wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
+			indent := strings.Repeat(" ", prefixLen)
+			for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
+				if j == 0 {
+					fmt.Fprintf(v, "  %sL%s:%s %s\n", AnsiDim, lineNum, AnsiReset, line)
+				} else {
+					fmt.Fprintf(v, "%s%s\n", indent, line)
+				}
+				currentLine++
 			}
-			fmt.Fprintf(v, "  %sL%d:%s %s%s\n", AnsiDim, match.Line, AnsiReset, match.Content, tags)
-			currentLine++
 		}
 
 		// Lower separator

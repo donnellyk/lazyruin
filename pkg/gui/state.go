@@ -32,6 +32,15 @@ const (
 	QueriesTabParents QueriesTab = "parents"
 )
 
+// TagsTab represents the sub-tabs within the Tags panel
+type TagsTab string
+
+const (
+	TagsTabAll    TagsTab = "all"
+	TagsTabGlobal TagsTab = "global"
+	TagsTabInline TagsTab = "inline"
+)
+
 type PreviewMode int
 
 const (
@@ -91,6 +100,7 @@ type ParentsState struct {
 type TagsState struct {
 	Items         []models.Tag
 	SelectedIndex int
+	CurrentTab    TagsTab
 }
 
 type PreviewState struct {
@@ -115,7 +125,7 @@ func NewGuiState() *GuiState {
 		Queries: &QueriesState{
 			CurrentTab: QueriesTabQueries,
 		},
-		Tags:              &TagsState{},
+		Tags:              &TagsState{CurrentTab: TagsTabAll},
 		Parents:           &ParentsState{},
 		Preview:           &PreviewState{RenderMarkdown: true},
 		SearchCompletion:  NewCompletionState(),

@@ -170,27 +170,24 @@ func (gui *Gui) renderTags() {
 		return
 	}
 
-	renderList(v, len(gui.state.Tags.Items), gui.state.Tags.SelectedIndex,
+	items := gui.filteredTagItems()
+	renderList(v, len(items), gui.state.Tags.SelectedIndex,
 		gui.state.CurrentContext == TagsContext, 1,
 		" No tags found.",
 		func(i int, selected bool) listItem {
-			tag := gui.state.Tags.Items[i]
+			tag := items[i]
 			name := tag.Name
 			if len(name) > 0 && name[0] != '#' {
 				name = "#" + name
 			}
 			count := fmt.Sprintf("(%d)", tag.Count)
-			scope := ""
-			if len(tag.Scope) > 0 {
-				scope = " [" + strings.Join(tag.Scope, ", ") + "]"
-			}
 			if selected {
 				return listItem{Lines: []string{
-					fmt.Sprintf(" %s %s%s", name, count, scope),
+					fmt.Sprintf(" %s %s", name, count),
 				}}
 			}
 			return listItem{Lines: []string{
-				fmt.Sprintf(" %s %s%s%s%s", name, AnsiDim, count, scope, AnsiReset),
+				fmt.Sprintf(" %s %s%s%s", name, AnsiDim, count, AnsiReset),
 			}}
 		})
 }

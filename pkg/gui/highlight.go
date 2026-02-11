@@ -11,7 +11,9 @@ import (
 	"github.com/muesli/reflow/wordwrap"
 )
 
-func (gui *Gui) renderMarkdown(content string, width int) string {
+// highlightMarkdown applies chroma syntax highlighting to markdown content
+// without wrapping. Returns the original content unchanged on any error.
+func (gui *Gui) highlightMarkdown(content string) string {
 	lexer := lexers.Get("markdown")
 	if lexer == nil {
 		return content
@@ -47,7 +49,12 @@ func (gui *Gui) renderMarkdown(content string, width int) string {
 		return content
 	}
 
-	wrapped := wordwrap.String(buf.String(), width)
+	return strings.TrimRight(buf.String(), "\n")
+}
+
+func (gui *Gui) renderMarkdown(content string, width int) string {
+	highlighted := gui.highlightMarkdown(content)
+	wrapped := wordwrap.String(highlighted, width)
 	return strings.TrimRight(wrapped, "\n")
 }
 

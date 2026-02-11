@@ -88,3 +88,25 @@ func (gui *Gui) updateQueriesTab() {
 		gui.views.Queries.TabIndex = gui.queriesTabIndex()
 	}
 }
+
+// tagsTabIndex returns the index for the current tags tab
+func (gui *Gui) tagsTabIndex() int {
+	switch gui.state.Tags.CurrentTab {
+	case TagsTabGlobal:
+		return 1
+	case TagsTabInline:
+		return 2
+	default:
+		return 0
+	}
+}
+
+// tagsTabs maps tab indices to TagsTab values
+var tagsTabs = []TagsTab{TagsTabAll, TagsTabGlobal, TagsTabInline}
+
+// updateTagsTab syncs the gocui view's TabIndex with the current tags tab
+func (gui *Gui) updateTagsTab() {
+	if gui.views.Tags != nil {
+		gui.views.Tags.TabIndex = gui.tagsTabIndex()
+	}
+}
