@@ -1,10 +1,20 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
 )
+
+// unmarshalJSON is a generic helper that unmarshals JSON data into a value of type T.
+func unmarshalJSON[T any](data []byte) (T, error) {
+	var result T
+	if err := json.Unmarshal(data, &result); err != nil {
+		return result, err
+	}
+	return result, nil
+}
 
 // RuinCommand wraps the ruin CLI for executing commands.
 type RuinCommand struct {

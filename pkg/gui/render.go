@@ -7,83 +7,104 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
+// listItem holds the formatted lines for a single list item.
+// Lines[0] is always rendered plain when selected, Lines[1:] are dim when unselected.
+// Lines must not contain ANSI codes that would conflict with selection highlighting.
+type listItem struct {
+	Lines []string
+}
+
+// renderList is a shared helper for rendering list panels with selection highlighting.
+// It handles clear, empty state, per-item formatting via the builder callback,
+// selection highlighting with blue background, and scroll management.
+// The builder receives the item index and whether it's currently selected.
+func renderList(v *gocui.View, itemCount int, selectedIndex int, isActive bool, linesPerItem int, emptyMsg string, builder func(index int, selected bool) listItem) {
+	v.Clear()
+
+	if itemCount == 0 {
+		fmt.Fprintln(v, emptyMsg)
+		return
+	}
+
+	width, _ := v.Size()
+	if width < 10 {
+		width = 30
+	}
+
+	pad := func(s string) string {
+		return s + strings.Repeat(" ", max(0, width-len([]rune(s))))
+	}
+
+	for i := range itemCount {
+		selected := isActive && i == selectedIndex
+		item := builder(i, selected)
+
+		if selected {
+			for _, line := range item.Lines {
+				fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line), AnsiReset)
+			}
+		} else {
+			for j, line := range item.Lines {
+				if j == 0 {
+					fmt.Fprintln(v, line)
+				} else {
+					fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line, AnsiReset)
+				}
+			}
+		}
+	}
+
+	_, viewHeight := v.InnerSize()
+	selLine := selectedIndex * linesPerItem
+	scrollListView(v, selLine, linesPerItem, viewHeight)
+}
+
 func (gui *Gui) renderNotes() {
 	v := gui.views.Notes
 	if v == nil {
 		return
 	}
 
-	v.Clear()
-
-	if len(gui.state.Notes.Items) == 0 {
-		fmt.Fprintln(v, "")
-		fmt.Fprintln(v, " No notes found.")
-		fmt.Fprintln(v, "")
-		fmt.Fprintln(v, " Press 'n' to create a new note")
-		fmt.Fprintln(v, " or '/' to search")
-		return
-	}
-
-	// Get usable content width (excludes frame)
 	width := v.InnerWidth()
 	if width < 10 {
 		width = 30
 	}
 
-	// Check if this panel is focused for highlighting
-	isActive := gui.state.CurrentContext == NotesContext
+	renderList(v, len(gui.state.Notes.Items), gui.state.Notes.SelectedIndex,
+		gui.state.CurrentContext == NotesContext, 3,
+		"\n No notes found.\n\n Press 'n' to create a new note\n or '/' to search",
+		func(i int, _ bool) listItem {
+			note := gui.state.Notes.Items[i]
 
-	for i, note := range gui.state.Notes.Items {
-		selected := isActive && i == gui.state.Notes.SelectedIndex
-
-		// Line 1 - Title (1-space prefix)
-		title := note.Title
-		if title == "" {
-			title = note.Path
-		}
-		titleRunes := []rune(title)
-		if len(titleRunes) > width-1 {
-			title = strings.TrimRight(string(titleRunes[:width-4]), " ") + "..."
-		}
-		line1 := " " + title
-
-		// Line 2 - First line of content (2-space prefix)
-		snippet := note.FirstLine()
-		snippetRunes := []rune(snippet)
-		if len(snippetRunes) > width-2 {
-			snippet = strings.TrimRight(string(snippetRunes[:width-5]), " ") + "..."
-		}
-		line2 := "  " + snippet
-
-		// Line 3 - Date and tags (2-space prefix)
-		date := note.ShortDate()
-		tags := note.TagsString()
-		maxTagLen := width - len(date) - 5 // "  " + " · "
-		tagRunes := []rune(tags)
-		if maxTagLen > 0 && len(tagRunes) > maxTagLen {
-			tags = string(tagRunes[:maxTagLen-3]) + "..."
-		}
-		line3 := fmt.Sprintf("  %s · %s", date, tags)
-
-		if selected {
-			pad := func(s string) string {
-				return s + strings.Repeat(" ", max(0, width-len([]rune(s))))
+			title := note.Title
+			if title == "" {
+				title = note.Path
 			}
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line1), AnsiReset)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line2), AnsiReset)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line3), AnsiReset)
-		} else {
-			fmt.Fprintln(v, line1)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line2, AnsiReset)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line3, AnsiReset)
-		}
+			titleRunes := []rune(title)
+			if len(titleRunes) > width-1 {
+				title = strings.TrimRight(string(titleRunes[:width-4]), " ") + "..."
+			}
 
-	}
+			snippet := note.FirstLine()
+			snippetRunes := []rune(snippet)
+			if len(snippetRunes) > width-2 {
+				snippet = strings.TrimRight(string(snippetRunes[:width-5]), " ") + "..."
+			}
 
-	// Scroll to keep selection visible (3 lines per note)
-	_, viewHeight := v.InnerSize()
-	selLine := gui.state.Notes.SelectedIndex * 3
-	scrollListView(v, selLine, 3, viewHeight)
+			date := note.ShortDate()
+			tags := note.TagsString()
+			maxTagLen := width - len(date) - 5
+			tagRunes := []rune(tags)
+			if maxTagLen > 0 && len(tagRunes) > maxTagLen {
+				tags = string(tagRunes[:maxTagLen-3]) + "..."
+			}
+
+			return listItem{Lines: []string{
+				" " + title,
+				"  " + snippet,
+				fmt.Sprintf("  %s · %s", date, tags),
+			}}
+		})
 }
 
 func (gui *Gui) renderQueries() {
@@ -100,44 +121,20 @@ func (gui *Gui) renderQueriesList() {
 		return
 	}
 
-	v.Clear()
-
-	if len(gui.state.Queries.Items) == 0 {
-		fmt.Fprintln(v, " No saved queries.")
-		return
-	}
-
-	width, _ := v.Size()
-	if width < 10 {
-		width = 30
-	}
-
-	isActive := gui.state.CurrentContext == QueriesContext
-
-	for i, query := range gui.state.Queries.Items {
-		selected := isActive && i == gui.state.Queries.SelectedIndex
-
-		line1 := "  " + query.Name
-		queryStr := query.Query
-		if len(queryStr) > 25 {
-			queryStr = queryStr[:22] + "..."
-		}
-		line2 := "    " + queryStr
-
-		if selected {
-			line1 = line1 + strings.Repeat(" ", max(0, width-len(line1)))
-			line2 = line2 + strings.Repeat(" ", max(0, width-len(line2)))
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line1, AnsiReset)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line2, AnsiReset)
-		} else {
-			fmt.Fprintln(v, line1)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line2, AnsiReset)
-		}
-	}
-
-	_, viewHeight := v.InnerSize()
-	selLine := gui.state.Queries.SelectedIndex * 2
-	scrollListView(v, selLine, 2, viewHeight)
+	renderList(v, len(gui.state.Queries.Items), gui.state.Queries.SelectedIndex,
+		gui.state.CurrentContext == QueriesContext, 2,
+		" No saved queries.",
+		func(i int, _ bool) listItem {
+			query := gui.state.Queries.Items[i]
+			queryStr := query.Query
+			if len(queryStr) > 25 {
+				queryStr = queryStr[:22] + "..."
+			}
+			return listItem{Lines: []string{
+				"  " + query.Name,
+				"    " + queryStr,
+			}}
+		})
 }
 
 func (gui *Gui) renderParents() {
@@ -146,44 +143,25 @@ func (gui *Gui) renderParents() {
 		return
 	}
 
-	v.Clear()
-
-	if len(gui.state.Parents.Items) == 0 {
-		fmt.Fprintln(v, " No parent bookmarks.")
-		return
-	}
-
 	width, _ := v.Size()
 	if width < 10 {
 		width = 30
 	}
 
-	isActive := gui.state.CurrentContext == QueriesContext
-
-	for i, parent := range gui.state.Parents.Items {
-		selected := isActive && i == gui.state.Parents.SelectedIndex
-
-		line1 := "  " + parent.Name
-		title := parent.Title
-		if len(title) > width-6 {
-			title = title[:width-9] + "..."
-		}
-		line2 := "    " + title
-
-		if selected {
-			line1 = line1 + strings.Repeat(" ", max(0, width-len(line1)))
-			line2 = line2 + strings.Repeat(" ", max(0, width-len(line2)))
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line1, AnsiReset)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line2, AnsiReset)
-		} else {
-			fmt.Fprintln(v, line1)
-			fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line2, AnsiReset)
-		}
-	}
-
-	_, viewHeight := v.InnerSize()
-	selLine := gui.state.Parents.SelectedIndex * 2
-	scrollListView(v, selLine, 2, viewHeight)
+	renderList(v, len(gui.state.Parents.Items), gui.state.Parents.SelectedIndex,
+		gui.state.CurrentContext == QueriesContext, 2,
+		" No parent bookmarks.",
+		func(i int, _ bool) listItem {
+			parent := gui.state.Parents.Items[i]
+			title := parent.Title
+			if len(title) > width-6 {
+				title = title[:width-9] + "..."
+			}
+			return listItem{Lines: []string{
+				"  " + parent.Name,
+				"    " + title,
+			}}
+		})
 }
 
 func (gui *Gui) renderTags() {
@@ -192,42 +170,25 @@ func (gui *Gui) renderTags() {
 		return
 	}
 
-	v.Clear()
-
-	if len(gui.state.Tags.Items) == 0 {
-		fmt.Fprintln(v, " No tags found.")
-		return
-	}
-
-	width, _ := v.Size()
-	if width < 10 {
-		width = 30
-	}
-
-	isActive := gui.state.CurrentContext == TagsContext
-
-	for i, tag := range gui.state.Tags.Items {
-		selected := isActive && i == gui.state.Tags.SelectedIndex
-
-		name := tag.Name
-		if len(name) > 0 && name[0] != '#' {
-			name = "#" + name
-		}
-		count := fmt.Sprintf("(%d)", tag.Count)
-
-		if selected {
-			line := fmt.Sprintf(" %s %s", name, count)
-			line = line + strings.Repeat(" ", max(0, width-len(line)))
-			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, line, AnsiReset)
-		} else {
-			fmt.Fprintf(v, " %s %s%s%s\n", name, AnsiDim, count, AnsiReset)
-		}
-	}
-
-	// Scroll to keep selection visible (1 line per tag)
-	_, viewHeight := v.InnerSize()
-	selLine := gui.state.Tags.SelectedIndex
-	scrollListView(v, selLine, 1, viewHeight)
+	renderList(v, len(gui.state.Tags.Items), gui.state.Tags.SelectedIndex,
+		gui.state.CurrentContext == TagsContext, 1,
+		" No tags found.",
+		func(i int, selected bool) listItem {
+			tag := gui.state.Tags.Items[i]
+			name := tag.Name
+			if len(name) > 0 && name[0] != '#' {
+				name = "#" + name
+			}
+			count := fmt.Sprintf("(%d)", tag.Count)
+			if selected {
+				return listItem{Lines: []string{
+					fmt.Sprintf(" %s %s", name, count),
+				}}
+			}
+			return listItem{Lines: []string{
+				fmt.Sprintf(" %s %s%s%s", name, AnsiDim, count, AnsiReset),
+			}}
+		})
 }
 
 // wrapLine breaks a line into chunks that fit within the given width,

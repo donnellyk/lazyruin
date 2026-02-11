@@ -1,10 +1,6 @@
 package commands
 
-import (
-	"encoding/json"
-
-	"kvnd/lazyruin/pkg/models"
-)
+import "kvnd/lazyruin/pkg/models"
 
 type ParentCommand struct {
 	ruin *RuinCommand
@@ -20,12 +16,7 @@ func (p *ParentCommand) List() ([]models.ParentBookmark, error) {
 		return nil, err
 	}
 
-	var parents []models.ParentBookmark
-	if err := json.Unmarshal(output, &parents); err != nil {
-		return nil, err
-	}
-
-	return parents, nil
+	return unmarshalJSON[[]models.ParentBookmark](output)
 }
 
 type composeResult struct {
@@ -42,8 +33,8 @@ func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, error) {
 		return models.Note{}, err
 	}
 
-	var root composeResult
-	if err := json.Unmarshal(output, &root); err != nil {
+	root, err := unmarshalJSON[composeResult](output)
+	if err != nil {
 		return models.Note{}, err
 	}
 

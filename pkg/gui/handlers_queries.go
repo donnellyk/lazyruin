@@ -6,26 +6,28 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
+func (gui *Gui) queriesPanel() *listPanel {
+	return &listPanel{
+		selectedIndex: &gui.state.Queries.SelectedIndex,
+		itemCount:     func() int { return len(gui.state.Queries.Items) },
+		render:        gui.renderQueries,
+		updatePreview: gui.updatePreviewForQueries,
+		context:       QueriesContext,
+	}
+}
+
 func (gui *Gui) queriesDown(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.Queries.CurrentTab == QueriesTabParents {
 		return gui.parentsDown(g, v)
 	}
-	if listMove(&gui.state.Queries.SelectedIndex, len(gui.state.Queries.Items), 1) {
-		gui.renderQueries()
-		gui.updatePreviewForQueries()
-	}
-	return nil
+	return gui.queriesPanel().listDown(g, v)
 }
 
 func (gui *Gui) queriesUp(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.Queries.CurrentTab == QueriesTabParents {
 		return gui.parentsUp(g, v)
 	}
-	if listMove(&gui.state.Queries.SelectedIndex, len(gui.state.Queries.Items), -1) {
-		gui.renderQueries()
-		gui.updatePreviewForQueries()
-	}
-	return nil
+	return gui.queriesPanel().listUp(g, v)
 }
 
 func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
@@ -61,6 +63,7 @@ func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 	query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
 	notes, err := gui.ruinCmd.Queries.Run(query.Name)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 
@@ -87,6 +90,7 @@ func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
 	gui.showConfirm("Delete Query", "Delete query \""+query.Name+"\"?", func() error {
 		err := gui.ruinCmd.Queries.Delete(query.Name)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		gui.refreshQueries(false)

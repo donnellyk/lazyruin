@@ -27,6 +27,7 @@ func (gui *Gui) deleteCardFromPreview(g *gocui.Gui, v *gocui.View) error {
 	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
 		err := os.Remove(card.Path)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		idx := gui.state.Preview.SelectedCardIndex
@@ -118,10 +119,12 @@ func (gui *Gui) executeMerge(direction string) error {
 	// Read both files' raw content (after stripping frontmatter)
 	targetContent, err := gui.loadNoteContent(target.Path)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 	sourceContent, err := gui.loadNoteContent(source.Path)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 
@@ -144,6 +147,7 @@ func (gui *Gui) executeMerge(direction string) error {
 	// Rewrite target file
 	err = gui.writeNoteFile(target.Path, combined, mergedTags)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 

@@ -1,9 +1,6 @@
 package commands
 
-import (
-	"encoding/json"
-	"kvnd/lazyruin/pkg/models"
-)
+import "kvnd/lazyruin/pkg/models"
 
 type QueriesCommand struct {
 	ruin *RuinCommand
@@ -19,12 +16,7 @@ func (q *QueriesCommand) List() ([]models.Query, error) {
 		return nil, err
 	}
 
-	var queries []models.Query
-	if err := json.Unmarshal(output, &queries); err != nil {
-		return nil, err
-	}
-
-	return queries, nil
+	return unmarshalJSON[[]models.Query](output)
 }
 
 func (q *QueriesCommand) Run(name string) ([]models.Note, error) {
@@ -33,11 +25,10 @@ func (q *QueriesCommand) Run(name string) ([]models.Note, error) {
 		return nil, err
 	}
 
-	var notes []models.Note
-	if err := json.Unmarshal(output, &notes); err != nil {
+	notes, err := unmarshalJSON[[]models.Note](output)
+	if err != nil {
 		return []models.Note{}, nil
 	}
-
 	return notes, nil
 }
 

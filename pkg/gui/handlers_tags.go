@@ -6,20 +6,22 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-func (gui *Gui) tagsDown(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Tags.SelectedIndex, len(gui.state.Tags.Items), 1) {
-		gui.renderTags()
-		gui.updatePreviewForTags()
+func (gui *Gui) tagsPanel() *listPanel {
+	return &listPanel{
+		selectedIndex: &gui.state.Tags.SelectedIndex,
+		itemCount:     func() int { return len(gui.state.Tags.Items) },
+		render:        gui.renderTags,
+		updatePreview: gui.updatePreviewForTags,
+		context:       TagsContext,
 	}
-	return nil
+}
+
+func (gui *Gui) tagsDown(g *gocui.Gui, v *gocui.View) error {
+	return gui.tagsPanel().listDown(g, v)
 }
 
 func (gui *Gui) tagsUp(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Tags.SelectedIndex, len(gui.state.Tags.Items), -1) {
-		gui.renderTags()
-		gui.updatePreviewForTags()
-	}
-	return nil
+	return gui.tagsPanel().listUp(g, v)
 }
 
 func (gui *Gui) tagsClick(g *gocui.Gui, v *gocui.View) error {
@@ -50,6 +52,7 @@ func (gui *Gui) filterByTag(g *gocui.Gui, v *gocui.View) error {
 	opts := gui.buildSearchOptions()
 	notes, err := gui.ruinCmd.Search.Search(tag.Name, opts)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 
@@ -76,6 +79,7 @@ func (gui *Gui) renameTag(g *gocui.Gui, v *gocui.View) error {
 		}
 		err := gui.ruinCmd.Tags.Rename(tag.Name, newName)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		gui.refreshTags(false)
@@ -95,6 +99,7 @@ func (gui *Gui) deleteTag(g *gocui.Gui, v *gocui.View) error {
 	gui.showConfirm("Delete Tag", "Delete #"+tag.Name+" from all notes?", func() error {
 		err := gui.ruinCmd.Tags.Delete(tag.Name)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		gui.refreshTags(false)

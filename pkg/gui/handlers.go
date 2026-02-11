@@ -21,6 +21,51 @@ func listMove(index *int, count int, delta int) bool {
 	return true
 }
 
+// listPanel describes a generic list panel for shared navigation handlers.
+type listPanel struct {
+	selectedIndex *int
+	itemCount     func() int
+	render        func()
+	updatePreview func()
+	context       ContextKey
+}
+
+// listDown moves the selection down in a list panel and re-renders.
+func (lp *listPanel) listDown(g *gocui.Gui, v *gocui.View) error {
+	if listMove(lp.selectedIndex, lp.itemCount(), 1) {
+		lp.render()
+		lp.updatePreview()
+	}
+	return nil
+}
+
+// listUp moves the selection up in a list panel and re-renders.
+func (lp *listPanel) listUp(g *gocui.Gui, v *gocui.View) error {
+	if listMove(lp.selectedIndex, lp.itemCount(), -1) {
+		lp.render()
+		lp.updatePreview()
+	}
+	return nil
+}
+
+// listTop jumps to the first item.
+func (lp *listPanel) listTop(g *gocui.Gui, v *gocui.View) error {
+	*lp.selectedIndex = 0
+	lp.render()
+	lp.updatePreview()
+	return nil
+}
+
+// listBottom jumps to the last item.
+func (lp *listPanel) listBottom(g *gocui.Gui, v *gocui.View) error {
+	if count := lp.itemCount(); count > 0 {
+		*lp.selectedIndex = count - 1
+		lp.render()
+		lp.updatePreview()
+	}
+	return nil
+}
+
 // Global handlers
 
 func (gui *Gui) quit(g *gocui.Gui, v *gocui.View) error {
@@ -176,6 +221,7 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	opts.Sort = sort
 	notes, err := gui.ruinCmd.Search.Search(query, opts)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 

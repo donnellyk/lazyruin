@@ -52,20 +52,22 @@ func (gui *Gui) refreshParents(preserve bool) {
 	gui.renderQueries()
 }
 
-func (gui *Gui) parentsDown(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Parents.SelectedIndex, len(gui.state.Parents.Items), 1) {
-		gui.renderQueries()
-		gui.updatePreviewForParents()
+func (gui *Gui) parentsPanel() *listPanel {
+	return &listPanel{
+		selectedIndex: &gui.state.Parents.SelectedIndex,
+		itemCount:     func() int { return len(gui.state.Parents.Items) },
+		render:        gui.renderQueries,
+		updatePreview: gui.updatePreviewForParents,
+		context:       QueriesContext,
 	}
-	return nil
+}
+
+func (gui *Gui) parentsDown(g *gocui.Gui, v *gocui.View) error {
+	return gui.parentsPanel().listDown(g, v)
 }
 
 func (gui *Gui) parentsUp(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Parents.SelectedIndex, len(gui.state.Parents.Items), -1) {
-		gui.renderQueries()
-		gui.updatePreviewForParents()
-	}
-	return nil
+	return gui.parentsPanel().listUp(g, v)
 }
 
 func (gui *Gui) parentsClick(g *gocui.Gui, v *gocui.View) error {
@@ -85,6 +87,7 @@ func (gui *Gui) viewParent(g *gocui.Gui, v *gocui.View) error {
 	parent := gui.state.Parents.Items[gui.state.Parents.SelectedIndex]
 	composed, err := gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
 	if err != nil {
+		gui.showError(err)
 		return nil
 	}
 
@@ -104,6 +107,7 @@ func (gui *Gui) deleteParent(g *gocui.Gui, v *gocui.View) error {
 	gui.showConfirm("Delete Parent", "Delete parent bookmark \""+parent.Name+"\"?", func() error {
 		err := gui.ruinCmd.Parent.Delete(parent.Name)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		gui.refreshParents(false)

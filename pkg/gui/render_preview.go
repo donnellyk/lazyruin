@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"kvnd/lazyruin/pkg/models"
+
 	"github.com/jesseduffield/gocui"
 )
 
@@ -83,6 +85,38 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 	}
 }
 
+// buildCardContent returns the rendered lines for a single card's body content.
+func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
+	content := note.Content
+	if content == "" {
+		content, _ = gui.loadNoteContent(note.Path)
+	}
+
+	var lines []string
+
+	if gui.state.Preview.ShowFrontmatter {
+		lines = append(lines,
+			fmt.Sprintf("uuid: %s", note.UUID),
+			fmt.Sprintf("created: %s", note.Created.Format("2006-01-02")),
+		)
+	}
+
+	if gui.state.Preview.RenderMarkdown {
+		rendered := gui.renderMarkdown(content, contentWidth)
+		for _, rl := range strings.Split(rendered, "\n") {
+			lines = append(lines, " "+rl)
+		}
+	} else {
+		for _, l := range strings.Split(content, "\n") {
+			for _, wl := range wrapLine(l, contentWidth) {
+				lines = append(lines, " "+wl)
+			}
+		}
+	}
+
+	return lines
+}
+
 // renderSeparatorCards renders cards using separator lines instead of frames
 func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	cards := gui.state.Preview.Cards
@@ -95,14 +129,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	if width < 10 {
 		width = 40
 	}
+	contentWidth := max(width-2, 10)
 
-	// Content width
-	contentWidth := width - 2
-	if contentWidth < 10 {
-		contentWidth = 10
-	}
-
-	// Track line positions for scrolling and click mapping
 	isActive := gui.state.CurrentContext == PreviewContext
 	selectedStartLine := 0
 	selectedEndLine := 0
@@ -122,47 +150,22 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		if title == "" {
 			title = "Untitled"
 		}
-		upperSep := gui.buildSeparatorLine(true, " "+title+" ", "", width, selected)
-		fmt.Fprintln(v, upperSep)
+		fmt.Fprintln(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected))
 		currentLine++
 
-		// Frontmatter if enabled
-		if gui.state.Preview.ShowFrontmatter {
-			fmt.Fprintf(v, "uuid: %s\n", note.UUID)
-			fmt.Fprintf(v, "created: %s\n", note.Created.Format("2006-01-02"))
-			currentLine += 2
-		}
-
-		// Full content with wrapping
-		content := note.Content
-		if content == "" {
-			content, _ = gui.loadNoteContent(note.Path)
-		}
-		if gui.state.Preview.RenderMarkdown {
-			rendered := gui.renderMarkdown(content, contentWidth)
-			for _, rl := range strings.Split(rendered, "\n") {
-				fmt.Fprintln(v, " "+rl)
-				currentLine++
-			}
-		} else {
-			for _, l := range strings.Split(content, "\n") {
-				wrapped := wrapLine(l, contentWidth)
-				for _, wl := range wrapped {
-					fmt.Fprintln(v, " "+wl)
-					currentLine++
-				}
-			}
+		// Card body content
+		for _, line := range gui.buildCardContent(note, contentWidth) {
+			fmt.Fprintln(v, line)
+			currentLine++
 		}
 
 		// Lower separator with tags and date
 		tags := note.TagsString()
 		date := note.ShortDate()
-		lowerSep := gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected)
-		fmt.Fprintln(v, lowerSep)
+		fmt.Fprintln(v, gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected))
 		currentLine++
 
 		gui.state.Preview.CardLineRanges[i][1] = currentLine
-
 		if selected {
 			selectedEndLine = currentLine
 		}
@@ -174,14 +177,12 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		}
 	}
 
-	// Only scroll when the selected card isn't fully visible
+	// Scroll to keep selected card visible
 	_, viewHeight := v.InnerSize()
 	originY := gui.state.Preview.ScrollOffset
 	if selectedStartLine < originY {
-		// Selected card starts above the viewport — scroll up
 		originY = selectedStartLine
 	} else if selectedEndLine > originY+viewHeight {
-		// Selected card ends below the viewport — scroll down just enough
 		originY = selectedEndLine - viewHeight
 	}
 	gui.state.Preview.ScrollOffset = originY

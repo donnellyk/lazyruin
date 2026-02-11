@@ -105,36 +105,30 @@ func (gui *Gui) loadNotesForCurrentTabPreserve() {
 	}
 }
 
-func (gui *Gui) notesDown(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Notes.SelectedIndex, len(gui.state.Notes.Items), 1) {
-		gui.renderNotes()
-		gui.updatePreviewForNotes()
+func (gui *Gui) notesPanel() *listPanel {
+	return &listPanel{
+		selectedIndex: &gui.state.Notes.SelectedIndex,
+		itemCount:     func() int { return len(gui.state.Notes.Items) },
+		render:        gui.renderNotes,
+		updatePreview: gui.updatePreviewForNotes,
+		context:       NotesContext,
 	}
-	return nil
+}
+
+func (gui *Gui) notesDown(g *gocui.Gui, v *gocui.View) error {
+	return gui.notesPanel().listDown(g, v)
 }
 
 func (gui *Gui) notesUp(g *gocui.Gui, v *gocui.View) error {
-	if listMove(&gui.state.Notes.SelectedIndex, len(gui.state.Notes.Items), -1) {
-		gui.renderNotes()
-		gui.updatePreviewForNotes()
-	}
-	return nil
+	return gui.notesPanel().listUp(g, v)
 }
 
 func (gui *Gui) notesTop(g *gocui.Gui, v *gocui.View) error {
-	gui.state.Notes.SelectedIndex = 0
-	gui.renderNotes()
-	gui.updatePreviewForNotes()
-	return nil
+	return gui.notesPanel().listTop(g, v)
 }
 
 func (gui *Gui) notesBottom(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) > 0 {
-		gui.state.Notes.SelectedIndex = len(gui.state.Notes.Items) - 1
-		gui.renderNotes()
-		gui.updatePreviewForNotes()
-	}
-	return nil
+	return gui.notesPanel().listBottom(g, v)
 }
 
 func (gui *Gui) editNote(g *gocui.Gui, v *gocui.View) error {
@@ -167,6 +161,7 @@ func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
 	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
 		err := os.Remove(note.Path)
 		if err != nil {
+			gui.showError(err)
 			return nil
 		}
 		gui.refreshNotes(false)

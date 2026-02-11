@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"kvnd/lazyruin/pkg/models"
 	"strconv"
 )
@@ -46,12 +45,7 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 		return nil, err
 	}
 
-	var notes []models.Note
-	if err := json.Unmarshal(output, &notes); err != nil {
-		return nil, err
-	}
-
-	return notes, nil
+	return unmarshalJSON[[]models.Note](output)
 }
 
 func (s *SearchCommand) Today() ([]models.Note, error) {
@@ -60,10 +54,9 @@ func (s *SearchCommand) Today() ([]models.Note, error) {
 		return nil, err
 	}
 
-	var notes []models.Note
-	if err := json.Unmarshal(output, &notes); err != nil {
+	notes, err := unmarshalJSON[[]models.Note](output)
+	if err != nil {
 		return []models.Note{}, nil // Empty results are not an error
 	}
-
 	return notes, nil
 }

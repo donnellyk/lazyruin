@@ -2,348 +2,174 @@ package gui
 
 import "github.com/jesseduffield/gocui"
 
+type binding struct {
+	view    string
+	key     any
+	handler func(*gocui.Gui, *gocui.View) error
+}
+
+// registerBindings registers a slice of keybindings.
+func (gui *Gui) registerBindings(bindings []binding) error {
+	for _, b := range bindings {
+		if err := gui.g.SetKeybinding(b.view, b.key, gocui.ModNone, b.handler); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // setupKeybindings configures all keyboard shortcuts.
 func (gui *Gui) setupKeybindings() error {
-	if err := gui.setupGlobalKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.globalBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupNotesKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.notesBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupQueriesKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.queriesBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupTagsKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.tagsBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupPreviewKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.previewBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupSearchKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.searchBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupSearchFilterKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.captureBindings()); err != nil {
 		return err
 	}
-	if err := gui.setupCaptureKeybindings(); err != nil {
+	if err := gui.registerBindings(gui.searchFilterBindings()); err != nil {
 		return err
 	}
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (gui *Gui) setupGlobalKeybindings() error {
-	// Quit
-	if err := gui.g.SetKeybinding("", 'q', gocui.ModNone, gui.quit); err != nil {
+	// Tab click bindings (different signature, can't be table-driven)
+	if err := gui.g.SetTabClickBinding(NotesView, gui.switchNotesTabByIndex); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, gui.quit); err != nil {
-		return err
-	}
-
-	// Panel navigation
-	if err := gui.g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, gui.nextPanel); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", gocui.KeyBacktab, gocui.ModNone, gui.prevPanel); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", '1', gocui.ModNone, gui.focusNotes); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", '2', gocui.ModNone, gui.focusQueries); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", '3', gocui.ModNone, gui.focusTags); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", '0', gocui.ModNone, gui.focusSearchFilter); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", 'p', gocui.ModNone, gui.focusPreview); err != nil {
-		return err
-	}
-
-	// Search
-	if err := gui.g.SetKeybinding("", '/', gocui.ModNone, gui.openSearch); err != nil {
-		return err
-	}
-
-	// New note
-	if err := gui.g.SetKeybinding("", 'n', gocui.ModNone, gui.newNote); err != nil {
-		return err
-	}
-
-	// Refresh
-	if err := gui.g.SetKeybinding("", gocui.KeyCtrlR, gocui.ModNone, gui.refresh); err != nil {
-		return err
-	}
-
-	// Help
-	if err := gui.g.SetKeybinding("", '?', gocui.ModNone, gui.showHelpHandler); err != nil {
-		return err
-	}
-
-	// Mouse wheel scrolling (only acts on preview when hovering over it)
-	if err := gui.g.SetKeybinding("", gocui.MouseWheelDown, gocui.ModNone, gui.previewScrollDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding("", gocui.MouseWheelUp, gocui.ModNone, gui.previewScrollUp); err != nil {
+	if err := gui.g.SetTabClickBinding(QueriesView, gui.switchQueriesTabByIndex); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (gui *Gui) setupNotesKeybindings() error {
-	view := NotesView
-
-	// Mouse click to focus and select
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.notesClick); err != nil {
-		return err
+func (gui *Gui) globalBindings() []binding {
+	return []binding{
+		{"", 'q', gui.quit},
+		{"", gocui.KeyCtrlC, gui.quit},
+		{"", gocui.KeyTab, gui.nextPanel},
+		{"", gocui.KeyBacktab, gui.prevPanel},
+		{"", '1', gui.focusNotes},
+		{"", '2', gui.focusQueries},
+		{"", '3', gui.focusTags},
+		{"", '0', gui.focusSearchFilter},
+		{"", 'p', gui.focusPreview},
+		{"", '/', gui.openSearch},
+		{"", 'n', gui.newNote},
+		{"", gocui.KeyCtrlR, gui.refresh},
+		{"", '?', gui.showHelpHandler},
+		{"", gocui.MouseWheelDown, gui.previewScrollDown},
+		{"", gocui.MouseWheelUp, gui.previewScrollUp},
 	}
-
-	// Tab click to switch tabs
-	if err := gui.g.SetTabClickBinding(view, gui.switchNotesTabByIndex); err != nil {
-		return err
-	}
-
-	// Navigation
-	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.notesDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'k', gocui.ModNone, gui.notesUp); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowDown, gocui.ModNone, gui.notesDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowUp, gocui.ModNone, gui.notesUp); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'g', gocui.ModNone, gui.notesTop); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'G', gocui.ModNone, gui.notesBottom); err != nil {
-		return err
-	}
-
-	// Actions
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.editNote); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'e', gocui.ModNone, gui.editNote); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'E', gocui.ModNone, gui.editNotesInPreview); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteNote); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'y', gocui.ModNone, gui.copyNotePath); err != nil {
-		return err
-	}
-
-	// Mouse wheel scrolls viewport (selection-aware)
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.notesWheelDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.notesWheelUp); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (gui *Gui) setupQueriesKeybindings() error {
-	view := QueriesView
-
-	// Mouse click to focus and select
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.queriesClick); err != nil {
-		return err
+func (gui *Gui) notesBindings() []binding {
+	v := NotesView
+	return []binding{
+		{v, gocui.MouseLeft, gui.notesClick},
+		{v, 'j', gui.notesDown},
+		{v, 'k', gui.notesUp},
+		{v, gocui.KeyArrowDown, gui.notesDown},
+		{v, gocui.KeyArrowUp, gui.notesUp},
+		{v, 'g', gui.notesTop},
+		{v, 'G', gui.notesBottom},
+		{v, gocui.KeyEnter, gui.editNote},
+		{v, 'e', gui.editNote},
+		{v, 'E', gui.editNotesInPreview},
+		{v, 'd', gui.deleteNote},
+		{v, 'y', gui.copyNotePath},
+		{v, gocui.MouseWheelDown, gui.notesWheelDown},
+		{v, gocui.MouseWheelUp, gui.notesWheelUp},
 	}
-
-	// Tab click to switch tabs
-	if err := gui.g.SetTabClickBinding(view, gui.switchQueriesTabByIndex); err != nil {
-		return err
-	}
-
-	// Navigation
-	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.queriesDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'k', gocui.ModNone, gui.queriesUp); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowDown, gocui.ModNone, gui.queriesDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowUp, gocui.ModNone, gui.queriesUp); err != nil {
-		return err
-	}
-
-	// Actions
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.runQuery); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteQuery); err != nil {
-		return err
-	}
-
-	// Mouse wheel scrolls viewport (selection-aware)
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.queriesWheelDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.queriesWheelUp); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (gui *Gui) setupTagsKeybindings() error {
-	view := TagsView
-
-	// Mouse click to focus and select
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.tagsClick); err != nil {
-		return err
+func (gui *Gui) queriesBindings() []binding {
+	v := QueriesView
+	return []binding{
+		{v, gocui.MouseLeft, gui.queriesClick},
+		{v, 'j', gui.queriesDown},
+		{v, 'k', gui.queriesUp},
+		{v, gocui.KeyArrowDown, gui.queriesDown},
+		{v, gocui.KeyArrowUp, gui.queriesUp},
+		{v, gocui.KeyEnter, gui.runQuery},
+		{v, 'd', gui.deleteQuery},
+		{v, gocui.MouseWheelDown, gui.queriesWheelDown},
+		{v, gocui.MouseWheelUp, gui.queriesWheelUp},
 	}
-
-	// Navigation
-	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.tagsDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'k', gocui.ModNone, gui.tagsUp); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowDown, gocui.ModNone, gui.tagsDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyArrowUp, gocui.ModNone, gui.tagsUp); err != nil {
-		return err
-	}
-
-	// Actions
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.filterByTag); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'r', gocui.ModNone, gui.renameTag); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteTag); err != nil {
-		return err
-	}
-
-	// Mouse wheel scrolls viewport (selection-aware)
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelDown, gocui.ModNone, gui.tagsWheelDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.MouseWheelUp, gocui.ModNone, gui.tagsWheelUp); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (gui *Gui) setupPreviewKeybindings() error {
-	view := PreviewView
-
-	// Mouse click to focus and select card
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.previewClick); err != nil {
-		return err
+func (gui *Gui) tagsBindings() []binding {
+	v := TagsView
+	return []binding{
+		{v, gocui.MouseLeft, gui.tagsClick},
+		{v, 'j', gui.tagsDown},
+		{v, 'k', gui.tagsUp},
+		{v, gocui.KeyArrowDown, gui.tagsDown},
+		{v, gocui.KeyArrowUp, gui.tagsUp},
+		{v, gocui.KeyEnter, gui.filterByTag},
+		{v, 'r', gui.renameTag},
+		{v, 'd', gui.deleteTag},
+		{v, gocui.MouseWheelDown, gui.tagsWheelDown},
+		{v, gocui.MouseWheelUp, gui.tagsWheelUp},
 	}
-
-	// Navigation
-	if err := gui.g.SetKeybinding(view, 'j', gocui.ModNone, gui.previewDown); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'k', gocui.ModNone, gui.previewUp); err != nil {
-		return err
-	}
-
-	// Actions
-	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.previewBack); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.focusNoteFromPreview); err != nil {
-		return err
-	}
-
-	// Edit mode actions (guarded by EditMode in handlers)
-	if err := gui.g.SetKeybinding(view, 'd', gocui.ModNone, gui.deleteCardFromPreview); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'm', gocui.ModNone, gui.moveCardHandler); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'M', gocui.ModNone, gui.mergeCardHandler); err != nil {
-		return err
-	}
-
-	// Display toggles
-	if err := gui.g.SetKeybinding(view, 'f', gocui.ModNone, gui.toggleFrontmatter); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 't', gocui.ModNone, gui.toggleTitle); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'T', gocui.ModNone, gui.toggleGlobalTags); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, 'M', gocui.ModNone, gui.toggleMarkdown); err != nil {
-		return err
-	}
-	return nil
 }
 
-func (gui *Gui) setupSearchKeybindings() error {
-	view := SearchView
-
-	if err := gui.g.SetKeybinding(view, gocui.KeyEnter, gocui.ModNone, gui.searchEnter); err != nil {
-		return err
+func (gui *Gui) previewBindings() []binding {
+	v := PreviewView
+	return []binding{
+		{v, gocui.MouseLeft, gui.previewClick},
+		{v, 'j', gui.previewDown},
+		{v, 'k', gui.previewUp},
+		{v, gocui.KeyEsc, gui.previewBack},
+		{v, gocui.KeyEnter, gui.focusNoteFromPreview},
+		{v, 'd', gui.deleteCardFromPreview},
+		{v, 'm', gui.moveCardHandler},
+		{v, 'M', gui.mergeCardHandler},
+		{v, 'f', gui.toggleFrontmatter},
+		{v, 't', gui.toggleTitle},
+		{v, 'T', gui.toggleGlobalTags},
+		{v, 'M', gui.toggleMarkdown}, // overwrites mergeCardHandler; same as original
 	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.searchEsc); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyTab, gocui.ModNone, gui.searchTab); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (gui *Gui) setupCaptureKeybindings() error {
-	view := CaptureView
-
-	if err := gui.g.SetKeybinding(view, gocui.KeyCtrlS, gocui.ModNone, gui.submitCapture); err != nil {
-		return err
+func (gui *Gui) searchBindings() []binding {
+	v := SearchView
+	return []binding{
+		{v, gocui.KeyEnter, gui.searchEnter},
+		{v, gocui.KeyEsc, gui.searchEsc},
+		{v, gocui.KeyTab, gui.searchTab},
 	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyEsc, gocui.ModNone, gui.cancelCapture); err != nil {
-		return err
-	}
-	if err := gui.g.SetKeybinding(view, gocui.KeyTab, gocui.ModNone, gui.captureTab); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (gui *Gui) setupSearchFilterKeybindings() error {
-	view := SearchFilterView
-
-	// Mouse click clears search
-	if err := gui.g.SetKeybinding(view, gocui.MouseLeft, gocui.ModNone, gui.clearSearch); err != nil {
-		return err
+func (gui *Gui) captureBindings() []binding {
+	v := CaptureView
+	return []binding{
+		{v, gocui.KeyCtrlS, gui.submitCapture},
+		{v, gocui.KeyEsc, gui.cancelCapture},
+		{v, gocui.KeyTab, gui.captureTab},
 	}
+}
 
-	// Clear search with x
-	if err := gui.g.SetKeybinding(view, 'x', gocui.ModNone, gui.clearSearch); err != nil {
-		return err
+func (gui *Gui) searchFilterBindings() []binding {
+	v := SearchFilterView
+	return []binding{
+		{v, gocui.MouseLeft, gui.clearSearch},
+		{v, 'x', gui.clearSearch},
 	}
-
-	return nil
 }

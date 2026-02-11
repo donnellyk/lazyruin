@@ -1,9 +1,6 @@
 package commands
 
-import (
-	"encoding/json"
-	"kvnd/lazyruin/pkg/models"
-)
+import "kvnd/lazyruin/pkg/models"
 
 type TagsCommand struct {
 	ruin *RuinCommand
@@ -19,11 +16,10 @@ func (t *TagsCommand) List() ([]models.Tag, error) {
 		return nil, err
 	}
 
-	var tags []models.Tag
-	if err := json.Unmarshal(output, &tags); err != nil {
+	tags, err := unmarshalJSON[[]models.Tag](output)
+	if err != nil {
 		return []models.Tag{}, nil
 	}
-
 	return tags, nil
 }
 

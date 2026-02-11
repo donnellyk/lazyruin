@@ -69,98 +69,32 @@ func (gui *Gui) showInput(title, message string, onConfirm func(input string) er
 func (gui *Gui) showHelp() {
 	var items []MenuItem
 
-	// Context-specific section
-	switch gui.state.CurrentContext {
-	case NotesContext:
-		items = append(items,
-			MenuItem{Label: "Notes", IsHeader: true},
-			MenuItem{Key: "e/enter", Label: "Edit note in $EDITOR"},
-			MenuItem{Key: "E", Label: "Enter edit mode"},
-			MenuItem{Key: "n", Label: "New note"},
-			MenuItem{Key: "d", Label: "Delete note"},
-			MenuItem{Key: "y", Label: "Copy note path"},
-			MenuItem{Key: "1", Label: "Cycle tabs"},
-		)
-	case QueriesContext:
-		switch gui.state.Queries.CurrentTab {
-		case QueriesTabQueries:
-			items = append(items,
-				MenuItem{Label: "Queries", IsHeader: true},
-				MenuItem{Key: "enter", Label: "Run query"},
-				MenuItem{Key: "d", Label: "Delete query"},
-				MenuItem{Key: "2", Label: "Cycle tabs"},
-			)
-		case QueriesTabParents:
-			items = append(items,
-				MenuItem{Label: "Parents", IsHeader: true},
-				MenuItem{Key: "enter", Label: "View parent"},
-				MenuItem{Key: "d", Label: "Delete parent"},
-				MenuItem{Key: "2", Label: "Cycle tabs"},
-			)
-		}
-	case TagsContext:
-		items = append(items,
-			MenuItem{Label: "Tags", IsHeader: true},
-			MenuItem{Key: "enter", Label: "Filter notes by tag"},
-			MenuItem{Key: "r", Label: "Rename tag"},
-			MenuItem{Key: "d", Label: "Delete tag"},
-		)
-	case PreviewContext:
-		if gui.state.Preview.EditMode {
-			items = append(items,
-				MenuItem{Label: "Edit Mode", IsHeader: true},
-				MenuItem{Key: "d", Label: "Delete card"},
-				MenuItem{Key: "m", Label: "Move card"},
-				MenuItem{Key: "M", Label: "Merge card"},
-				MenuItem{Key: "esc", Label: "Exit edit mode"},
-			)
-		} else {
-			items = append(items,
-				MenuItem{Label: "Preview", IsHeader: true},
-				MenuItem{Key: "enter", Label: "Focus note"},
-				MenuItem{Key: "f", Label: "Toggle frontmatter"},
-				MenuItem{Key: "t", Label: "Toggle title"},
-				MenuItem{Key: "T", Label: "Toggle global tags"},
-				MenuItem{Key: "M", Label: "Toggle markdown"},
-				MenuItem{Key: "esc", Label: "Back"},
-			)
-		}
-	case SearchFilterContext:
-		items = append(items,
-			MenuItem{Label: "Search Filter", IsHeader: true},
-			MenuItem{Key: "x", Label: "Clear filter"},
-		)
+	// Context-specific section from shared hint definitions
+	def := gui.contextHintDefs()
+	if def.header != "" {
+		items = append(items, MenuItem{Label: def.header, IsHeader: true})
+	}
+	for _, h := range def.hints {
+		items = append(items, MenuItem{Key: h.key, Label: h.action})
 	}
 
 	// Blank separator
 	items = append(items, MenuItem{})
 
 	// Global section
-	items = append(items,
-		MenuItem{Label: "Global", IsHeader: true},
-		MenuItem{Key: "/", Label: "Search"},
-		MenuItem{Key: "p", Label: "Focus preview"},
-		MenuItem{Key: "Tab", Label: "Next panel"},
-		MenuItem{Key: "<c-r>", Label: "Refresh"},
-		MenuItem{Key: "q", Label: "Quit"},
-	)
+	items = append(items, MenuItem{Label: "Global", IsHeader: true})
+	for _, h := range globalHints() {
+		items = append(items, MenuItem{Key: h.key, Label: h.action})
+	}
 
-	// Navigation section (varies by context)
-	switch gui.state.CurrentContext {
-	case NotesContext, QueriesContext, TagsContext:
+	// Navigation section
+	navHints := gui.navigationHints()
+	if len(navHints) > 0 {
 		items = append(items, MenuItem{}) // blank separator
-		items = append(items,
-			MenuItem{Label: "Navigation", IsHeader: true},
-			MenuItem{Key: "j/k", Label: "Move down/up"},
-			MenuItem{Key: "g", Label: "Go to top"},
-			MenuItem{Key: "G", Label: "Go to bottom"},
-		)
-	case PreviewContext:
-		items = append(items, MenuItem{}) // blank separator
-		items = append(items,
-			MenuItem{Label: "Navigation", IsHeader: true},
-			MenuItem{Key: "j/k", Label: "Scroll down/up"},
-		)
+		items = append(items, MenuItem{Label: "Navigation", IsHeader: true})
+		for _, h := range navHints {
+			items = append(items, MenuItem{Key: h.key, Label: h.action})
+		}
 	}
 
 	// Find first non-header item for initial selection
