@@ -320,13 +320,13 @@ func sortCandidates(filter string) []CompletionItem {
 // markdownCandidates returns common Markdown syntax snippets.
 func markdownCandidates(filter string) []CompletionItem {
 	items := []CompletionItem{
-		{Label: "# Heading 1", InsertText: "#", Detail: "h1"},
-		{Label: "## Heading 2", InsertText: "##", Detail: "h2"},
-		{Label: "### Heading 3", InsertText: "###", Detail: "h3"},
-		{Label: "- List item", InsertText: "-", Detail: "bullet"},
-		{Label: "1. Numbered", InsertText: "1.", Detail: "ordered"},
-		{Label: "- [ ] Task", InsertText: "- [ ]", Detail: "checkbox"},
-		{Label: "> Quote", InsertText: ">", Detail: "blockquote"},
+		{Label: "# Heading 1", InsertText: "#", Detail: "h1", PrependToLine: true},
+		{Label: "## Heading 2", InsertText: "##", Detail: "h2", PrependToLine: true},
+		{Label: "### Heading 3", InsertText: "###", Detail: "h3", PrependToLine: true},
+		{Label: "- List item", InsertText: "-", Detail: "bullet", PrependToLine: true},
+		{Label: "1. Numbered", InsertText: "1.", Detail: "ordered", PrependToLine: true},
+		{Label: "- [ ] Task", InsertText: "- [ ]", Detail: "checkbox", PrependToLine: true},
+		{Label: "> Quote", InsertText: ">", Detail: "blockquote", PrependToLine: true},
 		{Label: "--- Rule", InsertText: "---", Detail: "divider"},
 		{Label: "``` Code block", InsertText: "```\n", Detail: "code", ContinueCompleting: true},
 		{Label: "**bold**", InsertText: "**", Detail: "bold", ContinueCompleting: true},

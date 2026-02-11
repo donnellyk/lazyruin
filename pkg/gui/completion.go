@@ -13,6 +13,7 @@ type CompletionItem struct {
 	Detail             string // right-aligned detail (e.g. "(5)")
 	ContinueCompleting bool   // if true, don't add trailing space -- allows chaining into next trigger
 	Value              string // opaque data (e.g. UUID) for use by accept handlers
+	PrependToLine      bool   // if true, prepend InsertText to existing line content instead of replacing trigger
 }
 
 // CompletionTrigger defines a prefix that activates completion with a candidate provider.
@@ -147,6 +148,16 @@ func (gui *Gui) acceptCompletion(v *gocui.View, state *CompletionState, triggers
 	}
 
 	item := state.Items[state.SelectedIndex]
+
+	if item.PrependToLine {
+		gui.acceptPrependCompletion(v, state, item)
+	} else {
+		gui.acceptReplaceCompletion(v, state, item, triggers)
+	}
+}
+
+// acceptReplaceCompletion is the standard completion: replace the trigger token with InsertText.
+func (gui *Gui) acceptReplaceCompletion(v *gocui.View, state *CompletionState, item CompletionItem, triggers []CompletionTrigger) {
 	cursorPos := viewCursorBytePos(v)
 
 	// Calculate how many chars to backspace (from cursorPos back to TriggerStart)
@@ -172,6 +183,54 @@ func (gui *Gui) acceptCompletion(v *gocui.View, state *CompletionState, triggers
 	if item.ContinueCompleting && triggers != nil {
 		gui.updateCompletion(v, triggers, state)
 	}
+}
+
+// acceptPrependCompletion prepends InsertText to the current line content,
+// removing the trigger token. Used for line-prefix items like headings and bullets.
+func (gui *Gui) acceptPrependCompletion(v *gocui.View, state *CompletionState, item CompletionItem) {
+	content := v.TextArea.GetUnwrappedContent()
+	cursorPos := viewCursorBytePos(v)
+
+	// Find line boundaries around the trigger
+	lineStart := strings.LastIndex(content[:state.TriggerStart], "\n") + 1
+	lineEnd := strings.Index(content[cursorPos:], "\n")
+	if lineEnd == -1 {
+		lineEnd = len(content)
+	} else {
+		lineEnd += cursorPos
+	}
+
+	// Extract line content without the trigger token
+	beforeTrigger := content[lineStart:state.TriggerStart]
+	afterCursor := content[cursorPos:lineEnd]
+	lineContent := strings.TrimSpace(beforeTrigger + afterCursor)
+
+	// Delete from cursor back to trigger start
+	for range cursorPos - state.TriggerStart {
+		v.TextArea.BackSpaceChar()
+	}
+	// Delete forward to end of line
+	for range []rune(afterCursor) {
+		v.TextArea.DeleteChar()
+	}
+	// Delete backward to start of line
+	for range []rune(beforeTrigger) {
+		v.TextArea.BackSpaceChar()
+	}
+
+	// Type the new line: prefix + existing content
+	if lineContent != "" {
+		v.TextArea.TypeString(item.InsertText + " " + lineContent)
+	} else {
+		v.TextArea.TypeString(item.InsertText + " ")
+	}
+
+	// Clear completion state
+	state.Active = false
+	state.Items = nil
+	state.SelectedIndex = 0
+
+	v.RenderTextArea()
 }
 
 // completionDown moves the selection down in the completion list.
