@@ -497,7 +497,7 @@ func TestRunQuery_EmptyQueries_Noop(t *testing.T) {
 
 // --- Preview navigation tests ---
 
-func TestPreviewDown_CardListMode(t *testing.T) {
+func TestPreviewCardDown_CardListMode(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
@@ -509,14 +509,14 @@ func TestPreviewDown_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
 	}
 
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
+	tg.gui.previewCardDown(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.SelectedCardIndex != 1 {
 		t.Errorf("SelectedCardIndex = %d, want 1", tg.gui.state.Preview.SelectedCardIndex)
 	}
 }
 
-func TestPreviewUp_CardListMode(t *testing.T) {
+func TestPreviewCardUp_CardListMode(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
@@ -527,8 +527,8 @@ func TestPreviewUp_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
 	}
 
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
-	tg.gui.previewUp(tg.g, tg.gui.views.Preview)
+	tg.gui.previewCardDown(tg.g, tg.gui.views.Preview)
+	tg.gui.previewCardUp(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.SelectedCardIndex != 0 {
 		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.state.Preview.SelectedCardIndex)

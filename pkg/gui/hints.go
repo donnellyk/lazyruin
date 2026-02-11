@@ -101,7 +101,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 					{"d", "Delete"},
 					{"m", "Move"},
 					{"M", "Merge"},
-					{"j/k", "Navigate"},
+					{"j/k", "Scroll"},
+					{"J/K", "Card"},
 					{"esc", "Back"},
 				},
 			}
@@ -109,6 +110,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 		return contextHintDef{
 			header: "Preview",
 			hints: []contextHint{
+				{"j/k", "Scroll line-by-line"},
+				{"J/K", "Jump between cards"},
 				{"enter", "Focus note"},
 				{"f", "Toggle frontmatter"},
 				{"t", "Toggle title"},
@@ -117,7 +120,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Back"},
 			},
 			statusBar: []contextHint{
-				{"j/k", "Navigate"},
+				{"j/k", "Scroll"},
+				{"J/K", "Card"},
 				{"enter", "Focus Note"},
 				{"f", "Frontmatter"},
 				{"M", "Markdown"},
@@ -183,7 +187,8 @@ func (gui *Gui) navigationHints() []contextHint {
 		}
 	case PreviewContext:
 		return []contextHint{
-			{"j/k", "Scroll down/up"},
+			{"j/k", "Scroll line-by-line"},
+			{"J/K", "Jump between cards"},
 		}
 	default:
 		return nil

@@ -6,10 +6,69 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
+// isMultiCardPreview returns true when the preview shows multiple selectable items.
+func (gui *Gui) isMultiCardPreview() bool {
+	return gui.state.Preview.Mode == PreviewModeCardList || gui.state.Preview.Mode == PreviewModePickResults
+}
+
+// multiCardCount returns the number of items in the current multi-card preview.
+func (gui *Gui) multiCardCount() int {
+	switch gui.state.Preview.Mode {
+	case PreviewModeCardList:
+		return len(gui.state.Preview.Cards)
+	case PreviewModePickResults:
+		return len(gui.state.Preview.PickResults)
+	default:
+		return 0
+	}
+}
+
+// isContentLine returns true if lineNum is a body/content line (not a separator or blank).
+func (gui *Gui) isContentLine(lineNum int) bool {
+	for _, r := range gui.state.Preview.CardLineRanges {
+		if lineNum > r[0] && lineNum < r[1]-1 {
+			return true
+		}
+	}
+	return false
+}
+
+// syncCardIndexFromCursor updates SelectedCardIndex based on CursorLine position.
+func (gui *Gui) syncCardIndexFromCursor() {
+	ranges := gui.state.Preview.CardLineRanges
+	cursor := gui.state.Preview.CursorLine
+	for i, r := range ranges {
+		if cursor >= r[0] && cursor < r[1] {
+			gui.state.Preview.SelectedCardIndex = i
+			return
+		}
+	}
+	// On blank line between cards - attribute to next card
+	for i := 0; i < len(ranges)-1; i++ {
+		if cursor >= ranges[i][1] && cursor < ranges[i+1][0] {
+			gui.state.Preview.SelectedCardIndex = i + 1
+			return
+		}
+	}
+}
+
 func (gui *Gui) previewDown(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.Mode == PreviewModeCardList {
-		if listMove(&gui.state.Preview.SelectedCardIndex, len(gui.state.Preview.Cards), 1) {
-			gui.renderPreview()
+	if gui.isMultiCardPreview() {
+		ranges := gui.state.Preview.CardLineRanges
+		if len(ranges) > 0 {
+			maxLine := ranges[len(ranges)-1][1] - 1
+			cursor := gui.state.Preview.CursorLine
+			for cursor < maxLine {
+				cursor++
+				if gui.isContentLine(cursor) {
+					break
+				}
+			}
+			if gui.isContentLine(cursor) && cursor != gui.state.Preview.CursorLine {
+				gui.state.Preview.CursorLine = cursor
+				gui.syncCardIndexFromCursor()
+				gui.renderPreview()
+			}
 		}
 	} else {
 		gui.state.Preview.ScrollOffset++
@@ -19,13 +78,80 @@ func (gui *Gui) previewDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.Mode == PreviewModeCardList {
-		if listMove(&gui.state.Preview.SelectedCardIndex, len(gui.state.Preview.Cards), -1) {
+	if gui.isMultiCardPreview() {
+		cursor := gui.state.Preview.CursorLine
+		for cursor > 0 {
+			cursor--
+			if gui.isContentLine(cursor) {
+				break
+			}
+		}
+		if gui.isContentLine(cursor) && cursor != gui.state.Preview.CursorLine {
+			gui.state.Preview.CursorLine = cursor
+			gui.syncCardIndexFromCursor()
 			gui.renderPreview()
 		}
 	} else {
 		if gui.state.Preview.ScrollOffset > 0 {
 			gui.state.Preview.ScrollOffset--
+			gui.renderPreview()
+		}
+	}
+	return nil
+}
+
+// previewCardDown jumps to the next card (J).
+func (gui *Gui) previewCardDown(g *gocui.Gui, v *gocui.View) error {
+	if gui.isMultiCardPreview() {
+		if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), 1) {
+			ranges := gui.state.Preview.CardLineRanges
+			idx := gui.state.Preview.SelectedCardIndex
+			if idx < len(ranges) {
+				gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
+			}
+			gui.renderPreview()
+		}
+	}
+	return nil
+}
+
+// previewNextHeader jumps to the next markdown header (]).
+func (gui *Gui) previewNextHeader(g *gocui.Gui, v *gocui.View) error {
+	cursor := gui.state.Preview.CursorLine
+	for _, h := range gui.state.Preview.HeaderLines {
+		if h > cursor {
+			gui.state.Preview.CursorLine = h
+			gui.syncCardIndexFromCursor()
+			gui.renderPreview()
+			return nil
+		}
+	}
+	return nil
+}
+
+// previewPrevHeader jumps to the previous markdown header ([).
+func (gui *Gui) previewPrevHeader(g *gocui.Gui, v *gocui.View) error {
+	cursor := gui.state.Preview.CursorLine
+	for i := len(gui.state.Preview.HeaderLines) - 1; i >= 0; i-- {
+		if gui.state.Preview.HeaderLines[i] < cursor {
+			gui.state.Preview.CursorLine = gui.state.Preview.HeaderLines[i]
+			gui.syncCardIndexFromCursor()
+			gui.renderPreview()
+			return nil
+		}
+	}
+	return nil
+}
+
+// previewCardUp jumps to the previous card (K).
+func (gui *Gui) previewCardUp(g *gocui.Gui, v *gocui.View) error {
+	if gui.isMultiCardPreview() {
+		if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), -1) {
+			ranges := gui.state.Preview.CardLineRanges
+			idx := gui.state.Preview.SelectedCardIndex
+			if idx < len(ranges) {
+				gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
+			}
 			gui.renderPreview()
 		}
 	}
@@ -54,7 +180,7 @@ func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.Mode != PreviewModeCardList {
+	if !gui.isMultiCardPreview() {
 		gui.setContext(PreviewContext)
 		return nil
 	}
@@ -63,15 +189,21 @@ func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
 	_, oy := v.Origin()
 	absY := cy + oy
 
+	// Snap click to nearest content line within the card
+	clickLine := absY
 	for i, lr := range gui.state.Preview.CardLineRanges {
 		if absY >= lr[0] && absY < lr[1] {
 			gui.state.Preview.SelectedCardIndex = i
-			gui.setContext(PreviewContext)
-			return nil
+			if !gui.isContentLine(clickLine) {
+				clickLine = lr[0] + 1 // first content line
+			}
+			break
 		}
 	}
+	gui.state.Preview.CursorLine = clickLine
 
 	gui.setContext(PreviewContext)
+	gui.renderPreview()
 	return nil
 }
 
@@ -218,6 +350,8 @@ func (gui *Gui) updatePreviewCardList(title string, loadFn func() ([]models.Note
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
+	gui.state.Preview.ScrollOffset = 0
 	gui.state.Preview.EditMode = false
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = title

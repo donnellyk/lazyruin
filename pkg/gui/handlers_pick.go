@@ -77,6 +77,7 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 	gui.state.Preview.Mode = PreviewModePickResults
 	gui.state.Preview.PickResults = results
 	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Pick: " + raw + " "

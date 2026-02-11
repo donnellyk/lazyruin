@@ -108,10 +108,12 @@ type PreviewState struct {
 	Cards             []models.Note
 	SelectedCardIndex int
 	ScrollOffset      int
+	CursorLine        int // highlighted line in multi-card modes (-1 = no cursor)
 	ShowFrontmatter   bool
 	ShowTitle         bool
 	ShowGlobalTags    bool
 	CardLineRanges    [][2]int // [startLine, endLine) for each card
+	HeaderLines       []int    // absolute line numbers containing markdown headers
 	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
 	RenderMarkdown    bool     // true to render markdown with glamour
 	PickResults       []models.PickResult

@@ -143,6 +143,8 @@ func (gui *Gui) previewBindings() []binding {
 		{v, gocui.MouseLeft, gui.previewClick},
 		{v, 'j', gui.previewDown},
 		{v, 'k', gui.previewUp},
+		{v, 'J', gui.previewCardDown},
+		{v, 'K', gui.previewCardUp},
 		{v, gocui.KeyEsc, gui.previewBack},
 		{v, gocui.KeyEnter, gui.focusNoteFromPreview},
 		{v, 'd', gui.deleteCardFromPreview},

@@ -27,6 +27,7 @@ func (gui *Gui) renderPreview() {
 	default:
 		gui.renderSingleNotes(v)
 	}
+
 }
 
 func (gui *Gui) renderSingleNotes(v *gocui.View) {
@@ -92,6 +93,55 @@ func (gui *Gui) renderSingleNotes(v *gocui.View) {
 	}
 }
 
+// stripAnsi removes ANSI escape sequences from a string.
+func stripAnsi(s string) string {
+	var sb strings.Builder
+	inEsc := false
+	for _, r := range s {
+		if inEsc {
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+				inEsc = false
+			}
+			continue
+		}
+		if r == '\x1b' {
+			inEsc = true
+			continue
+		}
+		sb.WriteRune(r)
+	}
+	return sb.String()
+}
+
+// visibleWidth returns the number of visible runes in a string, ignoring ANSI escape sequences.
+func visibleWidth(s string) int {
+	return len([]rune(stripAnsi(s)))
+}
+
+// isHeaderLine checks whether a rendered line is a markdown header.
+func isHeaderLine(line string) bool {
+	trimmed := strings.TrimLeft(stripAnsi(line), " ")
+	return strings.HasPrefix(trimmed, "#")
+}
+
+// fprintPreviewLine writes a line to the preview view, applying a dim background
+// highlight across the full view width when lineNum matches the current CursorLine.
+func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highlight bool) {
+	if highlight && lineNum == gui.state.Preview.CursorLine {
+		width, _ := v.InnerSize()
+		pad := width - visibleWidth(line)
+		if pad < 0 {
+			pad = 0
+		}
+		// Re-apply background after every ANSI reset so chroma formatting
+		// doesn't clear our highlight mid-line.
+		patched := strings.ReplaceAll(line, AnsiReset, AnsiReset+AnsiDimBg)
+		fmt.Fprintf(v, "%s%s%s%s\n", AnsiDimBg, patched, strings.Repeat(" ", pad), AnsiReset)
+	} else {
+		fmt.Fprintln(v, line)
+	}
+}
+
 // buildCardContent returns the rendered lines for a single card's body content.
 func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 	content := note.Content
@@ -121,6 +171,14 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 		}
 	}
 
+	// Trim visually empty lines from start and end
+	for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+		lines = lines[1:]
+	}
+	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+		lines = lines[:len(lines)-1]
+	}
+
 	return lines
 }
 
@@ -143,6 +201,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	selectedEndLine := 0
 	currentLine := 0
 	gui.state.Preview.CardLineRanges = make([][2]int, len(cards))
+	gui.state.Preview.HeaderLines = gui.state.Preview.HeaderLines[:0]
 
 	for i, note := range cards {
 		selected := isActive && i == gui.state.Preview.SelectedCardIndex
@@ -157,19 +216,22 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		if title == "" {
 			title = "Untitled"
 		}
-		fmt.Fprintln(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected))
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), currentLine, isActive)
 		currentLine++
 
 		// Card body content
 		for _, line := range gui.buildCardContent(note, contentWidth) {
-			fmt.Fprintln(v, line)
+			if isHeaderLine(line) {
+				gui.state.Preview.HeaderLines = append(gui.state.Preview.HeaderLines, currentLine)
+			}
+			gui.fprintPreviewLine(v, line, currentLine, isActive)
 			currentLine++
 		}
 
 		// Lower separator with tags and date
 		tags := note.TagsString()
 		date := note.ShortDate()
-		fmt.Fprintln(v, gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected))
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected), currentLine, isActive)
 		currentLine++
 
 		gui.state.Preview.CardLineRanges[i][1] = currentLine
@@ -179,18 +241,27 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 
 		// Blank line between cards (except last)
 		if i < len(cards)-1 {
-			fmt.Fprintln(v, "")
+			gui.fprintPreviewLine(v, "", currentLine, isActive)
 			currentLine++
 		}
 	}
 
-	// Scroll to keep selected card visible
+	// Scroll to keep cursor/card visible
 	_, viewHeight := v.InnerSize()
 	originY := gui.state.Preview.ScrollOffset
-	if selectedStartLine < originY {
-		originY = selectedStartLine
-	} else if selectedEndLine > originY+viewHeight {
-		originY = selectedEndLine - viewHeight
+	if isActive {
+		cl := gui.state.Preview.CursorLine
+		if cl < originY {
+			originY = cl
+		} else if cl >= originY+viewHeight {
+			originY = cl - viewHeight + 1
+		}
+	} else {
+		if selectedStartLine < originY {
+			originY = selectedStartLine
+		} else if selectedEndLine > originY+viewHeight {
+			originY = selectedEndLine - viewHeight
+		}
 	}
 	gui.state.Preview.ScrollOffset = originY
 	v.SetOrigin(0, originY)
@@ -258,6 +329,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 	selectedEndLine := 0
 	currentLine := 0
 	gui.state.Preview.CardLineRanges = make([][2]int, len(results))
+	gui.state.Preview.HeaderLines = gui.state.Preview.HeaderLines[:0]
 
 	for i, result := range results {
 		selected := isActive && i == gui.state.Preview.SelectedCardIndex
@@ -272,7 +344,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 		if title == "" {
 			title = "Untitled"
 		}
-		fmt.Fprintln(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected))
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), currentLine, isActive)
 		currentLine++
 
 		// Render each match line
@@ -284,18 +356,20 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 			wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
 			indent := strings.Repeat(" ", prefixLen)
 			for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
+				var formatted string
 				if j == 0 {
-					fmt.Fprintf(v, "  %sL%s:%s %s\n", AnsiDim, lineNum, AnsiReset, line)
+					formatted = fmt.Sprintf("  %sL%s:%s %s", AnsiDim, lineNum, AnsiReset, line)
 				} else {
-					fmt.Fprintf(v, "%s%s\n", indent, line)
+					formatted = indent + line
 				}
+				gui.fprintPreviewLine(v, formatted, currentLine, isActive)
 				currentLine++
 			}
 		}
 
 		// Lower separator
 		matchCount := fmt.Sprintf(" %d matches ", len(result.Matches))
-		fmt.Fprintln(v, gui.buildSeparatorLine(false, "", matchCount, width, selected))
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", matchCount, width, selected), currentLine, isActive)
 		currentLine++
 
 		gui.state.Preview.CardLineRanges[i][1] = currentLine
@@ -305,18 +379,27 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 
 		// Blank line between groups (except last)
 		if i < len(results)-1 {
-			fmt.Fprintln(v, "")
+			gui.fprintPreviewLine(v, "", currentLine, isActive)
 			currentLine++
 		}
 	}
 
-	// Scroll to keep selected group visible
+	// Scroll to keep cursor/group visible
 	_, viewHeight := v.InnerSize()
 	originY := gui.state.Preview.ScrollOffset
-	if selectedStartLine < originY {
-		originY = selectedStartLine
-	} else if selectedEndLine > originY+viewHeight {
-		originY = selectedEndLine - viewHeight
+	if isActive {
+		cl := gui.state.Preview.CursorLine
+		if cl < originY {
+			originY = cl
+		} else if cl >= originY+viewHeight {
+			originY = cl - viewHeight + 1
+		}
+	} else {
+		if selectedStartLine < originY {
+			originY = selectedStartLine
+		} else if selectedEndLine > originY+viewHeight {
+			originY = selectedEndLine - viewHeight
+		}
 	}
 	gui.state.Preview.ScrollOffset = originY
 	v.SetOrigin(0, originY)

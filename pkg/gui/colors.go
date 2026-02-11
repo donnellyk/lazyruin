@@ -7,4 +7,5 @@ const (
 	AnsiYellow      = "\x1b[33m"
 	AnsiCyan        = "\x1b[36m"
 	AnsiBlueBgWhite = "\x1b[44;37m"
+	AnsiDimBg       = "\x1b[48;5;238m" // subtle dark gray background
 )

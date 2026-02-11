@@ -144,6 +144,7 @@ func (gui *Gui) filterByTagPick(tag *models.Tag) error {
 	gui.state.Preview.Mode = PreviewModePickResults
 	gui.state.Preview.PickResults = results
 	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
 	gui.views.Preview.Title = " Pick: #" + tag.Name + " "
 	gui.renderPreview()
@@ -217,6 +218,7 @@ func (gui *Gui) updatePreviewPickResults(tag *models.Tag) {
 	gui.state.Preview.Mode = PreviewModePickResults
 	gui.state.Preview.PickResults = results
 	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Pick: #" + tag.Name + " "
