@@ -84,6 +84,14 @@ func (gui *Gui) captureTriggers() []CompletionTrigger {
 	}
 }
 
+// pickTriggers returns the completion triggers for the pick popup.
+// Only tag completion is supported since pick only accepts inline tags.
+func (gui *Gui) pickTriggers() []CompletionTrigger {
+	return []CompletionTrigger{
+		{Prefix: "#", Candidates: gui.tagCandidates},
+	}
+}
+
 // extractSort removes any "sort:field:dir" token from the query, returning
 // the cleaned query and the sort value (e.g. "created:desc") for the -s flag.
 func extractSort(query string) (string, string) {

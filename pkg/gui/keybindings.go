@@ -44,6 +44,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.registerBindings(gui.searchFilterBindings()); err != nil {
 		return err
 	}
+	if err := gui.registerBindings(gui.pickBindings()); err != nil {
+		return err
+	}
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
@@ -76,6 +79,7 @@ func (gui *Gui) globalBindings() []binding {
 		{"", '?', gui.showHelpHandler},
 		{"", gocui.MouseWheelDown, gui.previewScrollDown},
 		{"", gocui.MouseWheelUp, gui.previewScrollUp},
+		{"", '\\', gui.openPick},
 	}
 }
 
@@ -163,6 +167,16 @@ func (gui *Gui) captureBindings() []binding {
 		{v, gocui.KeyCtrlS, gui.submitCapture},
 		{v, gocui.KeyEsc, gui.cancelCapture},
 		{v, gocui.KeyTab, gui.captureTab},
+	}
+}
+
+func (gui *Gui) pickBindings() []binding {
+	v := PickView
+	return []binding{
+		{v, gocui.KeyEnter, gui.pickEnter},
+		{v, gocui.KeyEsc, gui.pickEsc},
+		{v, gocui.KeyTab, gui.pickTab},
+		{v, gocui.KeyCtrlA, gui.togglePickAny},
 	}
 }
 

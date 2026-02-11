@@ -13,6 +13,8 @@ const (
 	SearchSuggestView  = "searchSuggest"
 	CaptureView        = "capture"
 	CaptureSuggestView = "captureSuggest"
+	PickView           = "pick"
+	PickSuggestView    = "pickSuggest"
 	StatusView         = "status"
 	MenuView           = "menu"
 )
@@ -26,5 +28,6 @@ type Views struct {
 	Search       *gocui.View
 	SearchFilter *gocui.View
 	Capture      *gocui.View
+	Pick         *gocui.View
 	Status       *gocui.View
 }

@@ -218,6 +218,8 @@ func (gui *Gui) contextToView(ctx ContextKey) string {
 		return SearchFilterView
 	case CaptureContext:
 		return CaptureView
+	case PickContext:
+		return PickView
 	}
 	return NotesView
 }

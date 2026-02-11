@@ -88,6 +88,16 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.Capture = nil
 	}
 
+	if gui.state.PickMode {
+		if err := gui.createPickPopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(PickView)
+		g.DeleteView(PickSuggestView)
+		gui.views.Pick = nil
+	}
+
 	// Render any active dialogs
 	if err := gui.renderDialogs(g, maxX, maxY); err != nil {
 		return err
@@ -231,11 +241,15 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Wrap = true
 	setRoundedCorners(v)
 
-	// Set title with card count for multi-card mode
-	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
+	// Set title with card count for multi-card/pick mode
+	switch {
+	case gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0:
 		v.Title = "Preview"
 		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
-	} else {
+	case gui.state.Preview.Mode == PreviewModePickResults && len(gui.state.Preview.PickResults) > 0:
+		v.Title = " Pick: " + gui.state.PickQuery + " "
+		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.PickResults))
+	default:
 		v.Footer = ""
 		v.Title = " Preview "
 	}
@@ -356,6 +370,60 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	return nil
+}
+
+func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	height := 3
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(PickView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	gui.views.Pick = v
+	v.Title = " Pick "
+	v.Footer = gui.pickFooter()
+	v.Editable = true
+	v.Wrap = false
+	v.Editor = &pickEditor{gui: gui}
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+	// Seed "#" on first open so tag completion appears immediately
+	if gui.state.PickSeedHash {
+		gui.state.PickSeedHash = false
+		v.TextArea.TypeString("#")
+		gui.updateCompletion(v, gui.pickTriggers(), gui.state.PickCompletion)
+	}
+
+	v.RenderTextArea()
+
+	g.Cursor = true
+	g.SetViewOnTop(PickView)
+	g.SetCurrentView(PickView)
+
+	if err := gui.renderSuggestionView(g, PickSuggestView, gui.state.PickCompletion, x0, y1, width); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) pickFooter() string {
+	anyLabel := "off"
+	if gui.state.PickAnyMode {
+		anyLabel = "on"
+	}
+	return " # for tags | --any: " + anyLabel + " | <c-a>: toggle | Tab: complete | Esc: cancel "
 }
 
 // updateCaptureFooter sets the capture popup footer to show the selected parent.

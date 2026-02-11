@@ -18,9 +18,12 @@ func (gui *Gui) renderPreview() {
 
 	v.Clear()
 
-	if gui.state.Preview.Mode == PreviewModeCardList {
+	switch gui.state.Preview.Mode {
+	case PreviewModeCardList:
 		gui.renderSeparatorCards(v)
-	} else {
+	case PreviewModePickResults:
+		gui.renderPickResults(v)
+	default:
 		gui.renderSingleNotes(v)
 	}
 }
@@ -233,6 +236,80 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	sb.WriteString(reset)
 
 	return sb.String()
+}
+
+// renderPickResults renders line-level pick results grouped by note title
+func (gui *Gui) renderPickResults(v *gocui.View) {
+	results := gui.state.Preview.PickResults
+	if len(results) == 0 {
+		fmt.Fprintln(v, "No matching lines.")
+		return
+	}
+
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+
+	isActive := gui.state.CurrentContext == PreviewContext
+	selectedStartLine := 0
+	selectedEndLine := 0
+	currentLine := 0
+	gui.state.Preview.CardLineRanges = make([][2]int, len(results))
+
+	for i, result := range results {
+		selected := isActive && i == gui.state.Preview.SelectedCardIndex
+		gui.state.Preview.CardLineRanges[i][0] = currentLine
+
+		if selected {
+			selectedStartLine = currentLine
+		}
+
+		// Separator header with note title
+		title := result.Title
+		if title == "" {
+			title = "Untitled"
+		}
+		fmt.Fprintln(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected))
+		currentLine++
+
+		// Render each match line
+		for _, match := range result.Matches {
+			tags := ""
+			if len(match.Tags) > 0 {
+				tags = AnsiDim + "  " + strings.Join(match.Tags, " ") + AnsiReset
+			}
+			fmt.Fprintf(v, "  %sL%d:%s %s%s\n", AnsiDim, match.Line, AnsiReset, match.Content, tags)
+			currentLine++
+		}
+
+		// Lower separator
+		matchCount := fmt.Sprintf(" %d matches ", len(result.Matches))
+		fmt.Fprintln(v, gui.buildSeparatorLine(false, "", matchCount, width, selected))
+		currentLine++
+
+		gui.state.Preview.CardLineRanges[i][1] = currentLine
+		if selected {
+			selectedEndLine = currentLine
+		}
+
+		// Blank line between groups (except last)
+		if i < len(results)-1 {
+			fmt.Fprintln(v, "")
+			currentLine++
+		}
+	}
+
+	// Scroll to keep selected group visible
+	_, viewHeight := v.InnerSize()
+	originY := gui.state.Preview.ScrollOffset
+	if selectedStartLine < originY {
+		originY = selectedStartLine
+	} else if selectedEndLine > originY+viewHeight {
+		originY = selectedEndLine - viewHeight
+	}
+	gui.state.Preview.ScrollOffset = originY
+	v.SetOrigin(0, originY)
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {

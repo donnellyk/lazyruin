@@ -12,6 +12,7 @@ const (
 	SearchContext       ContextKey = "search"
 	SearchFilterContext ContextKey = "searchFilter"
 	CaptureContext      ContextKey = "capture"
+	PickContext         ContextKey = "pick"
 )
 
 // NotesTab represents the sub-tabs within the Notes panel
@@ -36,6 +37,7 @@ type PreviewMode int
 const (
 	PreviewModeSingleNote PreviewMode = iota
 	PreviewModeCardList
+	PreviewModePickResults
 )
 
 // CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
@@ -59,6 +61,11 @@ type GuiState struct {
 	CaptureParent      *CaptureParentInfo
 	SearchCompletion   *CompletionState
 	CaptureCompletion  *CompletionState
+	PickMode           bool
+	PickCompletion     *CompletionState
+	PickQuery          string
+	PickAnyMode        bool
+	PickSeedHash       bool
 	Initialized        bool
 	lastWidth       int
 	lastHeight      int
@@ -97,6 +104,7 @@ type PreviewState struct {
 	CardLineRanges    [][2]int // [startLine, endLine) for each card
 	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
 	RenderMarkdown    bool     // true to render markdown with glamour
+	PickResults       []models.PickResult
 }
 
 func NewGuiState() *GuiState {
@@ -112,6 +120,7 @@ func NewGuiState() *GuiState {
 		Preview:           &PreviewState{RenderMarkdown: true},
 		SearchCompletion:  NewCompletionState(),
 		CaptureCompletion: NewCompletionState(),
+		PickCompletion:    NewCompletionState(),
 		CurrentContext:     NotesContext,
 	}
 }

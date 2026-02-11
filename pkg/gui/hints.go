@@ -140,6 +140,15 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{">", "Parent"},
 			},
 		}
+	case PickContext:
+		return contextHintDef{
+			hints: []contextHint{
+				{"enter", "Pick"},
+				{"tab", "Complete"},
+				{"<c-a>", "Toggle --any"},
+				{"esc", "Cancel"},
+			},
+		}
 	case SearchFilterContext:
 		return contextHintDef{
 			header: "Search Filter",
@@ -183,6 +192,7 @@ func (gui *Gui) navigationHints() []contextHint {
 func globalHints() []contextHint {
 	return []contextHint{
 		{"/", "Search"},
+		{"\\", "Pick"},
 		{"p", "Focus preview"},
 		{"Tab", "Next panel"},
 		{"<c-r>", "Refresh"},
