@@ -171,11 +171,12 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 		}
 	}
 
-	// Trim visually empty lines from start and end
-	for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+	// Trim visually empty lines from start and end (strip ANSI before checking,
+	// since rendered markdown lines contain escape codes even when visually blank)
+	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[0])) == "" {
 		lines = lines[1:]
 	}
-	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[len(lines)-1])) == "" {
 		lines = lines[:len(lines)-1]
 	}
 

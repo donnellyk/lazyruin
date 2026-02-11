@@ -112,6 +112,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 			hints: []contextHint{
 				{"j/k", "Scroll line-by-line"},
 				{"J/K", "Jump between cards"},
+				{"]/[", "Next/prev header"},
+				{"x", "Toggle todo"},
 				{"enter", "Focus note"},
 				{"f", "Toggle frontmatter"},
 				{"t", "Toggle title"},
@@ -122,6 +124,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 			statusBar: []contextHint{
 				{"j/k", "Scroll"},
 				{"J/K", "Card"},
+				{"x", "Todo"},
 				{"enter", "Focus Note"},
 				{"f", "Frontmatter"},
 				{"M", "Markdown"},
@@ -190,6 +193,7 @@ func (gui *Gui) navigationHints() []contextHint {
 			{"j/k", "Scroll line-by-line"},
 			{"J/K", "Jump between cards"},
 			{"]/[", "Next/prev header"},
+			{"x", "Toggle todo"},
 		}
 	default:
 		return nil
