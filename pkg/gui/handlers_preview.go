@@ -348,6 +348,12 @@ func (gui *Gui) toggleTodo(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewScrollDown(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.PaletteMode {
+		if gui.views.PaletteList != nil {
+			scrollViewport(gui.views.PaletteList, 3)
+		}
+		return nil
+	}
 	if v == nil || v.Name() != PreviewView {
 		return nil
 	}
@@ -357,6 +363,12 @@ func (gui *Gui) previewScrollDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.PaletteMode {
+		if gui.views.PaletteList != nil {
+			scrollViewport(gui.views.PaletteList, -3)
+		}
+		return nil
+	}
 	if v == nil || v.Name() != PreviewView {
 		return nil
 	}

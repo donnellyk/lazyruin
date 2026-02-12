@@ -220,6 +220,8 @@ func (gui *Gui) contextToView(ctx ContextKey) string {
 		return CaptureView
 	case PickContext:
 		return PickView
+	case PaletteContext:
+		return PaletteView
 	}
 	return NotesView
 }

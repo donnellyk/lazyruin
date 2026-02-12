@@ -47,6 +47,9 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.registerBindings(gui.pickBindings()); err != nil {
 		return err
 	}
+	if err := gui.registerBindings(gui.paletteBindings()); err != nil {
+		return err
+	}
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
@@ -83,6 +86,7 @@ func (gui *Gui) globalBindings() []binding {
 		{"", gocui.MouseWheelDown, gui.previewScrollDown},
 		{"", gocui.MouseWheelUp, gui.previewScrollUp},
 		{"", '\\', gui.openPick},
+		{"", ':', gui.openPalette},
 	}
 }
 
@@ -185,6 +189,16 @@ func (gui *Gui) pickBindings() []binding {
 		{v, gocui.KeyEsc, gui.pickEsc},
 		{v, gocui.KeyTab, gui.pickTab},
 		{v, gocui.KeyCtrlA, gui.togglePickAny},
+	}
+}
+
+func (gui *Gui) paletteBindings() []binding {
+	v := PaletteView
+	lv := PaletteListView
+	return []binding{
+		{v, gocui.KeyEnter, gui.paletteEnter},
+		{v, gocui.KeyEsc, gui.paletteEsc},
+		{lv, gocui.MouseLeft, gui.paletteListClick},
 	}
 }
 

@@ -17,6 +17,8 @@ const (
 	PickSuggestView    = "pickSuggest"
 	StatusView         = "status"
 	MenuView           = "menu"
+	PaletteView        = "palette"
+	PaletteListView    = "paletteList"
 )
 
 // Views holds references to all views.
@@ -30,4 +32,6 @@ type Views struct {
 	Capture      *gocui.View
 	Pick         *gocui.View
 	Status       *gocui.View
+	Palette      *gocui.View
+	PaletteList  *gocui.View
 }

@@ -13,6 +13,7 @@ const (
 	SearchFilterContext ContextKey = "searchFilter"
 	CaptureContext      ContextKey = "capture"
 	PickContext         ContextKey = "pick"
+	PaletteContext     ContextKey = "palette"
 )
 
 // NotesTab represents the sub-tabs within the Notes panel
@@ -75,6 +76,8 @@ type GuiState struct {
 	PickQuery          string
 	PickAnyMode        bool
 	PickSeedHash       bool
+	PaletteMode        bool
+	Palette            *PaletteState
 	Initialized        bool
 	lastWidth       int
 	lastHeight      int
@@ -117,6 +120,24 @@ type PreviewState struct {
 	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
 	RenderMarkdown    bool     // true to render markdown with glamour
 	PickResults       []models.PickResult
+}
+
+// PaletteCommand represents a single command in the command palette.
+type PaletteCommand struct {
+	Name     string
+	Category string
+	Key      string
+	OnRun    func() error
+	Context  ContextKey // empty = always available
+}
+
+// PaletteState holds the runtime state of the command palette.
+type PaletteState struct {
+	Commands      []PaletteCommand
+	Filtered      []PaletteCommand
+	SelectedIndex int
+	FilterText    string
+	OriginContext ContextKey
 }
 
 func NewGuiState() *GuiState {

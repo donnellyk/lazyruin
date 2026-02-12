@@ -98,6 +98,17 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.Pick = nil
 	}
 
+	if gui.state.PaletteMode {
+		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(PaletteView)
+		g.DeleteView(PaletteListView)
+		gui.views.Palette = nil
+		gui.views.PaletteList = nil
+	}
+
 	// Render any active dialogs
 	if err := gui.renderDialogs(g, maxX, maxY); err != nil {
 		return err
@@ -416,6 +427,75 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 
 	if err := gui.renderSuggestionView(g, PickSuggestView, gui.state.PickCompletion, x0, y1, width); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+
+	// Input view (3 lines)
+	inputHeight := 3
+	// List view (up to 15 visible lines + 2 for border)
+	listHeight := 17
+	totalHeight := inputHeight + listHeight
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY-totalHeight)/2 - 1
+	if y0 < 0 {
+		y0 = 0
+	}
+	x1 := x0 + width
+	y1 := y0 + inputHeight
+
+	// Input view
+	v, err := g.SetView(PaletteView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+	gui.views.Palette = v
+	v.Title = " Command Palette "
+	v.Editable = true
+	v.Wrap = false
+	v.Editor = &paletteEditor{gui: gui}
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+	v.RenderTextArea()
+
+	g.Cursor = true
+	g.SetViewOnTop(PaletteView)
+	g.SetCurrentView(PaletteView)
+
+	// List view below input
+	ly0 := y1
+	ly1 := ly0 + listHeight
+	if ly1 >= maxY {
+		ly1 = maxY - 1
+	}
+
+	lv, lvErr := g.SetView(PaletteListView, x0, ly0, x1, ly1, 0)
+	if lvErr != nil && lvErr.Error() != "unknown view" {
+		return lvErr
+	}
+	gui.views.PaletteList = lv
+	lv.Wrap = false
+	setRoundedCorners(lv)
+	lv.FrameColor = gocui.ColorGreen
+
+	g.SetViewOnTop(PaletteListView)
+
+	// Only render on first creation; subsequent updates come from
+	// the editor (filter changes) and paletteSelectMove (selection changes).
+	// Re-rendering every layout cycle would clear the buffer and
+	// reset the scrollable range, breaking mouse wheel scrolling.
+	if lvErr != nil {
+		gui.renderPaletteList()
+		gui.scrollPaletteToSelection()
 	}
 
 	return nil

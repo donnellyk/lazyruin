@@ -158,6 +158,14 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Cancel"},
 			},
 		}
+	case PaletteContext:
+		return contextHintDef{
+			hints: []contextHint{
+				{"enter", "Execute"},
+				{"up/down", "Navigate"},
+				{"esc", "Cancel"},
+			},
+		}
 	case SearchFilterContext:
 		return contextHintDef{
 			header: "Search Filter",
@@ -205,6 +213,7 @@ func globalHints() []contextHint {
 	return []contextHint{
 		{"/", "Search"},
 		{"\\", "Pick"},
+		{":", "Command palette"},
 		{"p", "Focus preview"},
 		{"Tab", "Next panel"},
 		{"<c-r>", "Refresh"},
