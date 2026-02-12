@@ -44,8 +44,8 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 		{Name: "Quit", Category: "Global", Key: "q", OnRun: gui.wrap(gui.quit)},
 
 		// Notes
-		{Name: "Edit Note", Category: "Notes", Key: "e", OnRun: gui.wrap(gui.editNote), Context: NotesContext},
-		{Name: "Enter Edit Mode", Category: "Notes", Key: "E", OnRun: gui.wrap(gui.editNotesInPreview), Context: NotesContext},
+		{Name: "View in Preview", Category: "Notes", Key: "enter", OnRun: gui.wrap(gui.viewNoteInPreview), Context: NotesContext},
+		{Name: "Open in Editor", Category: "Notes", Key: "E", OnRun: gui.wrap(gui.editNote), Context: NotesContext},
 		{Name: "Delete Note", Category: "Notes", Key: "d", OnRun: gui.wrap(gui.deleteNote), Context: NotesContext},
 		{Name: "Copy Note Path", Category: "Notes", Key: "y", OnRun: gui.wrap(gui.copyNotePath), Context: NotesContext},
 
@@ -59,6 +59,8 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 		{Name: "Delete Query", Category: "Queries", Key: "d", OnRun: gui.wrap(gui.deleteQuery), Context: QueriesContext},
 
 		// Preview
+		{Name: "Delete Card", Category: "Preview", Key: "d", OnRun: gui.wrap(gui.deleteCardFromPreview), Context: PreviewContext},
+		{Name: "Move Card", Category: "Preview", Key: "m", OnRun: gui.wrap(gui.moveCardHandler), Context: PreviewContext},
 		{Name: "Toggle Frontmatter", Category: "Preview", Key: "f", OnRun: gui.wrap(gui.toggleFrontmatter), Context: PreviewContext},
 		{Name: "Toggle Title", Category: "Preview", Key: "t", OnRun: gui.wrap(gui.toggleTitle), Context: PreviewContext},
 		{Name: "Toggle Global Tags", Category: "Preview", Key: "T", OnRun: gui.wrap(gui.toggleGlobalTags), Context: PreviewContext},
@@ -230,7 +232,6 @@ func (gui *Gui) paletteListClick(g *gocui.Gui, v *gocui.View) error {
 	}
 	return nil
 }
-
 
 // renderPaletteList writes the filtered command list to the view.
 // It does NOT adjust scroll origin -- callers that change selection or filter

@@ -100,9 +100,8 @@ func (gui *Gui) notesBindings() []binding {
 		{v, gocui.KeyArrowUp, gui.notesUp},
 		{v, 'g', gui.notesTop},
 		{v, 'G', gui.notesBottom},
-		{v, gocui.KeyEnter, gui.editNote},
-		{v, 'e', gui.editNote},
-		{v, 'E', gui.editNotesInPreview},
+		{v, gocui.KeyEnter, gui.viewNoteInPreview},
+		{v, 'E', gui.editNote},
 		{v, 'd', gui.deleteNote},
 		{v, 'y', gui.copyNotePath},
 		{v, gocui.MouseWheelDown, gui.notesWheelDown},
@@ -156,11 +155,10 @@ func (gui *Gui) previewBindings() []binding {
 		{v, gocui.KeyEnter, gui.focusNoteFromPreview},
 		{v, 'd', gui.deleteCardFromPreview},
 		{v, 'm', gui.moveCardHandler},
-		{v, 'M', gui.mergeCardHandler},
 		{v, 'f', gui.toggleFrontmatter},
 		{v, 't', gui.toggleTitle},
 		{v, 'T', gui.toggleGlobalTags},
-		{v, 'M', gui.toggleMarkdown}, // overwrites mergeCardHandler; same as original
+		{v, 'M', gui.toggleMarkdown},
 	}
 }
 

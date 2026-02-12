@@ -9,12 +9,7 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// isMultiCardPreview returns true when the preview shows multiple selectable items.
-func (gui *Gui) isMultiCardPreview() bool {
-	return gui.state.Preview.Mode == PreviewModeCardList || gui.state.Preview.Mode == PreviewModePickResults
-}
-
-// multiCardCount returns the number of items in the current multi-card preview.
+// multiCardCount returns the number of items in the current preview.
 func (gui *Gui) multiCardCount() int {
 	switch gui.state.Preview.Mode {
 	case PreviewModeCardList:
@@ -56,35 +51,12 @@ func (gui *Gui) syncCardIndexFromCursor() {
 }
 
 func (gui *Gui) previewDown(g *gocui.Gui, v *gocui.View) error {
-	if gui.isMultiCardPreview() {
-		ranges := gui.state.Preview.CardLineRanges
-		if len(ranges) > 0 {
-			maxLine := ranges[len(ranges)-1][1] - 1
-			cursor := gui.state.Preview.CursorLine
-			for cursor < maxLine {
-				cursor++
-				if gui.isContentLine(cursor) {
-					break
-				}
-			}
-			if gui.isContentLine(cursor) && cursor != gui.state.Preview.CursorLine {
-				gui.state.Preview.CursorLine = cursor
-				gui.syncCardIndexFromCursor()
-				gui.renderPreview()
-			}
-		}
-	} else {
-		gui.state.Preview.ScrollOffset++
-		gui.renderPreview()
-	}
-	return nil
-}
-
-func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
-	if gui.isMultiCardPreview() {
+	ranges := gui.state.Preview.CardLineRanges
+	if len(ranges) > 0 {
+		maxLine := ranges[len(ranges)-1][1] - 1
 		cursor := gui.state.Preview.CursorLine
-		for cursor > 0 {
-			cursor--
+		for cursor < maxLine {
+			cursor++
 			if gui.isContentLine(cursor) {
 				break
 			}
@@ -94,26 +66,35 @@ func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
 			gui.syncCardIndexFromCursor()
 			gui.renderPreview()
 		}
-	} else {
-		if gui.state.Preview.ScrollOffset > 0 {
-			gui.state.Preview.ScrollOffset--
-			gui.renderPreview()
+	}
+	return nil
+}
+
+func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
+	cursor := gui.state.Preview.CursorLine
+	for cursor > 0 {
+		cursor--
+		if gui.isContentLine(cursor) {
+			break
 		}
+	}
+	if gui.isContentLine(cursor) && cursor != gui.state.Preview.CursorLine {
+		gui.state.Preview.CursorLine = cursor
+		gui.syncCardIndexFromCursor()
+		gui.renderPreview()
 	}
 	return nil
 }
 
 // previewCardDown jumps to the next card (J).
 func (gui *Gui) previewCardDown(g *gocui.Gui, v *gocui.View) error {
-	if gui.isMultiCardPreview() {
-		if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), 1) {
-			ranges := gui.state.Preview.CardLineRanges
-			idx := gui.state.Preview.SelectedCardIndex
-			if idx < len(ranges) {
-				gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
-			}
-			gui.renderPreview()
+	if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), 1) {
+		ranges := gui.state.Preview.CardLineRanges
+		idx := gui.state.Preview.SelectedCardIndex
+		if idx < len(ranges) {
+			gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
 		}
+		gui.renderPreview()
 	}
 	return nil
 }
@@ -148,15 +129,13 @@ func (gui *Gui) previewPrevHeader(g *gocui.Gui, v *gocui.View) error {
 
 // previewCardUp jumps to the previous card (K).
 func (gui *Gui) previewCardUp(g *gocui.Gui, v *gocui.View) error {
-	if gui.isMultiCardPreview() {
-		if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), -1) {
-			ranges := gui.state.Preview.CardLineRanges
-			idx := gui.state.Preview.SelectedCardIndex
-			if idx < len(ranges) {
-				gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
-			}
-			gui.renderPreview()
+	if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), -1) {
+		ranges := gui.state.Preview.CardLineRanges
+		idx := gui.state.Preview.SelectedCardIndex
+		if idx < len(ranges) {
+			gui.state.Preview.CursorLine = ranges[idx][0] + 1 // first content line
 		}
+		gui.renderPreview()
 	}
 	return nil
 }
@@ -238,10 +217,6 @@ func reorderTodoGroup(lines []string, groupStart, groupEnd, toggledIdx int, comp
 }
 
 func (gui *Gui) toggleTodo(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.Mode != PreviewModeCardList {
-		return nil
-	}
-
 	idx := gui.state.Preview.SelectedCardIndex
 	ranges := gui.state.Preview.CardLineRanges
 	if idx >= len(ranges) || idx >= len(gui.state.Preview.Cards) {
@@ -381,11 +356,6 @@ func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
-	if !gui.isMultiCardPreview() {
-		gui.setContext(PreviewContext)
-		return nil
-	}
-
 	_, cy := v.Cursor()
 	_, oy := v.Origin()
 	absY := cy + oy
@@ -409,19 +379,11 @@ func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewBack(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.EditMode {
-		gui.state.Preview.EditMode = false
-		gui.refreshNotes(false)
-	}
 	gui.setContext(gui.state.PreviousContext)
 	return nil
 }
 
 func (gui *Gui) focusNoteFromPreview(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Preview.Mode != PreviewModeCardList {
-		return nil
-	}
-
 	if len(gui.state.Preview.Cards) == 0 {
 		return nil
 	}
@@ -475,17 +437,15 @@ func (gui *Gui) reloadContent() {
 	}
 	gui.renderNotes()
 
-	// Reload cards in Preview pane if in card list mode
-	if gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0 {
+	// Reload cards in Preview pane
+	if len(gui.state.Preview.Cards) > 0 {
 		savedCardIdx := gui.state.Preview.SelectedCardIndex
 		gui.reloadPreviewCards()
 		if savedCardIdx < len(gui.state.Preview.Cards) {
 			gui.state.Preview.SelectedCardIndex = savedCardIdx
 		}
-		gui.renderPreview()
-	} else {
-		gui.renderPreview()
 	}
+	gui.renderPreview()
 }
 
 // reloadPreviewCards reloads the preview cards based on what generated them
@@ -534,12 +494,255 @@ func (gui *Gui) reloadPreviewCards() {
 }
 
 func (gui *Gui) updatePreviewForNotes() {
-	gui.state.Preview.Mode = PreviewModeSingleNote
+	if len(gui.state.Notes.Items) == 0 {
+		return
+	}
+	idx := gui.state.Notes.SelectedIndex
+	if idx >= len(gui.state.Notes.Items) {
+		return
+	}
+	note := gui.state.Notes.Items[idx]
+	gui.state.Preview.Mode = PreviewModeCardList
+	gui.state.Preview.Cards = []models.Note{note}
+	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Preview "
 		gui.renderPreview()
 	}
+}
+
+func (gui *Gui) deleteCardFromPreview(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Preview.Cards) == 0 {
+		return nil
+	}
+
+	card := gui.state.Preview.Cards[gui.state.Preview.SelectedCardIndex]
+	title := card.Title
+	if title == "" {
+		title = card.Path
+	}
+	if len(title) > 30 {
+		title = title[:30] + "..."
+	}
+
+	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
+		err := os.Remove(card.Path)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		idx := gui.state.Preview.SelectedCardIndex
+		gui.state.Preview.Cards = append(gui.state.Preview.Cards[:idx], gui.state.Preview.Cards[idx+1:]...)
+		if gui.state.Preview.SelectedCardIndex >= len(gui.state.Preview.Cards) && gui.state.Preview.SelectedCardIndex > 0 {
+			gui.state.Preview.SelectedCardIndex--
+		}
+		gui.refreshNotes(false)
+		gui.renderPreview()
+		return nil
+	})
+	return nil
+}
+
+func (gui *Gui) moveCardHandler(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Preview.Cards) <= 1 {
+		return nil
+	}
+	gui.showMoveOverlay()
+	return nil
+}
+
+func (gui *Gui) showMoveOverlay() {
+	gui.state.Dialog = &DialogState{
+		Active: true,
+		Type:   "menu",
+		Title:  "Move",
+		MenuItems: []MenuItem{
+			{Label: "Move card up", Key: "u", OnRun: func() error { return gui.moveCard("up") }},
+			{Label: "Move card down", Key: "d", OnRun: func() error { return gui.moveCard("down") }},
+		},
+		MenuSelection: 0,
+	}
+}
+
+func (gui *Gui) moveCard(direction string) error {
+	idx := gui.state.Preview.SelectedCardIndex
+	if direction == "up" {
+		if idx <= 0 {
+			return nil
+		}
+		gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx-1] = gui.state.Preview.Cards[idx-1], gui.state.Preview.Cards[idx]
+		gui.state.Preview.SelectedCardIndex--
+	} else {
+		if idx >= len(gui.state.Preview.Cards)-1 {
+			return nil
+		}
+		gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx+1] = gui.state.Preview.Cards[idx+1], gui.state.Preview.Cards[idx]
+		gui.state.Preview.SelectedCardIndex++
+	}
+	gui.renderPreview()
+	return nil
+}
+
+func (gui *Gui) mergeCardHandler(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Preview.Cards) <= 1 {
+		return nil
+	}
+	gui.showMergeOverlay()
+	return nil
+}
+
+func (gui *Gui) executeMerge(direction string) error {
+	idx := gui.state.Preview.SelectedCardIndex
+	var targetIdx, sourceIdx int
+	if direction == "down" {
+		if idx >= len(gui.state.Preview.Cards)-1 {
+			return nil
+		}
+		targetIdx = idx
+		sourceIdx = idx + 1
+	} else {
+		if idx <= 0 {
+			return nil
+		}
+		targetIdx = idx
+		sourceIdx = idx - 1
+	}
+
+	target := gui.state.Preview.Cards[targetIdx]
+	source := gui.state.Preview.Cards[sourceIdx]
+
+	// Read both files' raw content (after stripping frontmatter)
+	targetContent, err := gui.loadNoteContent(target.Path)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+	sourceContent, err := gui.loadNoteContent(source.Path)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+
+	// Merge tags (union)
+	tagSet := make(map[string]bool)
+	for _, t := range target.Tags {
+		tagSet[t] = true
+	}
+	for _, t := range source.Tags {
+		tagSet[t] = true
+	}
+	var mergedTags []string
+	for t := range tagSet {
+		mergedTags = append(mergedTags, t)
+	}
+
+	// Merge inline tags (union)
+	inlineTagSet := make(map[string]bool)
+	for _, t := range target.InlineTags {
+		inlineTagSet[t] = true
+	}
+	for _, t := range source.InlineTags {
+		inlineTagSet[t] = true
+	}
+	var mergedInlineTags []string
+	for t := range inlineTagSet {
+		mergedInlineTags = append(mergedInlineTags, t)
+	}
+
+	// Combine content
+	combined := strings.TrimRight(targetContent, "\n") + "\n\n" + strings.TrimRight(sourceContent, "\n") + "\n"
+
+	// Rewrite target file
+	err = gui.writeNoteFile(target.Path, combined, mergedTags, mergedInlineTags)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+
+	// Delete source file
+	os.Remove(source.Path)
+
+	// Remove source from cards
+	gui.state.Preview.Cards = append(gui.state.Preview.Cards[:sourceIdx], gui.state.Preview.Cards[sourceIdx+1:]...)
+	if gui.state.Preview.SelectedCardIndex >= len(gui.state.Preview.Cards) {
+		gui.state.Preview.SelectedCardIndex = len(gui.state.Preview.Cards) - 1
+	}
+	if gui.state.Preview.SelectedCardIndex < 0 {
+		gui.state.Preview.SelectedCardIndex = 0
+	}
+
+	gui.refreshNotes(false)
+	gui.renderPreview()
+	return nil
+}
+
+// writeNoteFile rewrites a note file preserving uuid/created/updated, with merged tags and new content.
+func (gui *Gui) writeNoteFile(path, content string, tags, inlineTags []string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	// Extract existing frontmatter fields
+	raw := string(data)
+	uuid := ""
+	created := ""
+	updated := ""
+	title := ""
+
+	if strings.HasPrefix(raw, "---") {
+		rest := raw[3:]
+		if idx := strings.Index(rest, "\n---"); idx != -1 {
+			fmBlock := rest[:idx]
+			for _, line := range strings.Split(fmBlock, "\n") {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "uuid:") {
+					uuid = strings.TrimSpace(strings.TrimPrefix(line, "uuid:"))
+				} else if strings.HasPrefix(line, "created:") {
+					created = strings.TrimSpace(strings.TrimPrefix(line, "created:"))
+				} else if strings.HasPrefix(line, "updated:") {
+					updated = strings.TrimSpace(strings.TrimPrefix(line, "updated:"))
+				} else if strings.HasPrefix(line, "title:") {
+					title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
+				}
+			}
+		}
+	}
+
+	// Build new frontmatter
+	var fm strings.Builder
+	fm.WriteString("---\n")
+	if uuid != "" {
+		fm.WriteString("uuid: " + uuid + "\n")
+	}
+	if created != "" {
+		fm.WriteString("created: " + created + "\n")
+	}
+	if updated != "" {
+		fm.WriteString("updated: " + updated + "\n")
+	}
+	if title != "" {
+		fm.WriteString("title: " + title + "\n")
+	}
+	if len(tags) > 0 {
+		fm.WriteString("tags:\n")
+		for _, t := range tags {
+			fm.WriteString("  - " + t + "\n")
+		}
+	} else {
+		fm.WriteString("tags: []\n")
+	}
+	if len(inlineTags) > 0 {
+		fm.WriteString("inline-tags:\n")
+		for _, t := range inlineTags {
+			fm.WriteString("  - " + t + "\n")
+		}
+	}
+	fm.WriteString("---\n")
+
+	return os.WriteFile(path, []byte(fm.String()+content), 0644)
 }
 
 // updatePreviewCardList is a shared helper for updating the preview with a card list.
@@ -553,7 +756,6 @@ func (gui *Gui) updatePreviewCardList(title string, loadFn func() ([]models.Note
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
-	gui.state.Preview.EditMode = false
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = title
 		gui.renderPreview()

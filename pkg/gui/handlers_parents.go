@@ -136,7 +136,6 @@ func (gui *Gui) showComposedNote(note models.Note, label string) {
 	gui.state.Preview.Cards = []models.Note{note}
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.ScrollOffset = 0
-	gui.state.Preview.EditMode = false
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Preview: " + label + " "
 		gui.renderPreview()

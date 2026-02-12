@@ -57,8 +57,8 @@ func TestNewGuiState_NotesStateDefaults(t *testing.T) {
 func TestNewGuiState_PreviewStateDefaults(t *testing.T) {
 	state := NewGuiState()
 
-	if state.Preview.Mode != PreviewModeSingleNote {
-		t.Errorf("Preview.Mode = %v, want PreviewModeSingleNote", state.Preview.Mode)
+	if state.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", state.Preview.Mode)
 	}
 	if state.Preview.SelectedCardIndex != 0 {
 		t.Errorf("Preview.SelectedCardIndex = %d, want 0", state.Preview.SelectedCardIndex)
@@ -91,11 +91,11 @@ func TestContextKey_Values(t *testing.T) {
 }
 
 func TestPreviewMode_Values(t *testing.T) {
-	if PreviewModeSingleNote != 0 {
-		t.Errorf("PreviewModeSingleNote = %d, want 0", PreviewModeSingleNote)
+	if PreviewModeCardList != 0 {
+		t.Errorf("PreviewModeCardList = %d, want 0", PreviewModeCardList)
 	}
-	if PreviewModeCardList != 1 {
-		t.Errorf("PreviewModeCardList = %d, want 1", PreviewModeCardList)
+	if PreviewModePickResults != 1 {
+		t.Errorf("PreviewModePickResults = %d, want 1", PreviewModePickResults)
 	}
 }
 
@@ -156,32 +156,28 @@ func TestNotesState_Selection(t *testing.T) {
 func TestPreviewState_ModeSwitch(t *testing.T) {
 	state := NewGuiState()
 
-	// Default is single note mode
-	if state.Preview.Mode != PreviewModeSingleNote {
-		t.Errorf("Initial mode = %v, want PreviewModeSingleNote", state.Preview.Mode)
+	// Default is card list mode
+	if state.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Initial mode = %v, want PreviewModeCardList", state.Preview.Mode)
 	}
 
-	// Switch to card list mode
-	state.Preview.Mode = PreviewModeCardList
+	// Set up card list
 	state.Preview.Cards = []models.Note{
 		{UUID: "1", Title: "Card 1"},
 		{UUID: "2", Title: "Card 2"},
 	}
 	state.Preview.SelectedCardIndex = 0
 
-	if state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Mode = %v, want PreviewModeCardList", state.Preview.Mode)
-	}
 	if len(state.Preview.Cards) != 2 {
 		t.Errorf("Cards length = %d, want 2", len(state.Preview.Cards))
 	}
 
-	// Switch back to single note mode
-	state.Preview.Mode = PreviewModeSingleNote
+	// Switch to pick results mode
+	state.Preview.Mode = PreviewModePickResults
 	state.Preview.ScrollOffset = 5
 
-	if state.Preview.Mode != PreviewModeSingleNote {
-		t.Errorf("Mode = %v, want PreviewModeSingleNote", state.Preview.Mode)
+	if state.Preview.Mode != PreviewModePickResults {
+		t.Errorf("Mode = %v, want PreviewModePickResults", state.Preview.Mode)
 	}
 	if state.Preview.ScrollOffset != 5 {
 		t.Errorf("ScrollOffset = %d, want 5", state.Preview.ScrollOffset)

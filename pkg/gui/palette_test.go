@@ -379,16 +379,16 @@ func TestPaletteEnter_SkipsUnavailableCommand(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	// Find "Edit Note" (requires NotesContext, unavailable from Tags)
+	// Find "Open in Editor" (requires NotesContext, unavailable from Tags)
 	editIdx := -1
 	for i, cmd := range tg.gui.state.Palette.Filtered {
-		if cmd.Name == "Edit Note" {
+		if cmd.Name == "Open in Editor" {
 			editIdx = i
 			break
 		}
 	}
 	if editIdx < 0 {
-		t.Fatal("Edit Note command not found in palette")
+		t.Fatal("Open in Editor command not found in palette")
 	}
 
 	tg.gui.state.Palette.SelectedIndex = editIdx

@@ -21,16 +21,16 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 		return contextHintDef{
 			header: "Notes",
 			hints: []contextHint{
-				{"e/enter", "Edit note in $EDITOR"},
-				{"E", "Enter edit mode"},
+				{"enter", "View in preview"},
+				{"E", "Open in editor"},
 				{"n", "New note"},
 				{"d", "Delete note"},
 				{"y", "Copy note path"},
 				{"1", "Cycle tabs"},
 			},
 			statusBar: []contextHint{
-				{"e/enter", "Edit"},
-				{"E", "Edit Mode"},
+				{"enter", "View"},
+				{"E", "Editor"},
 				{"n", "New"},
 				{"d", "Delete"},
 				{"/", "Search"},
@@ -88,25 +88,6 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 			},
 		}
 	case PreviewContext:
-		if gui.state.Preview.EditMode {
-			return contextHintDef{
-				header: "Edit Mode",
-				hints: []contextHint{
-					{"d", "Delete card"},
-					{"m", "Move card"},
-					{"M", "Merge card"},
-					{"esc", "Exit edit mode"},
-				},
-				statusBar: []contextHint{
-					{"d", "Delete"},
-					{"m", "Move"},
-					{"M", "Merge"},
-					{"j/k", "Scroll"},
-					{"J/K", "Card"},
-					{"esc", "Back"},
-				},
-			}
-		}
 		return contextHintDef{
 			header: "Preview",
 			hints: []contextHint{
@@ -114,6 +95,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"J/K", "Jump between cards"},
 				{"]/[", "Next/prev header"},
 				{"x", "Toggle todo"},
+				{"d", "Delete card"},
+				{"m", "Move card"},
 				{"enter", "Focus note"},
 				{"f", "Toggle frontmatter"},
 				{"t", "Toggle title"},
@@ -125,8 +108,9 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"j/k", "Scroll"},
 				{"J/K", "Card"},
 				{"x", "Todo"},
+				{"d", "Delete"},
+				{"m", "Move"},
 				{"enter", "Focus Note"},
-				{"f", "Frontmatter"},
 				{"M", "Markdown"},
 				{"esc", "Back"},
 				{"?", "Keybindings"},

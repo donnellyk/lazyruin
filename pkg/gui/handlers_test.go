@@ -390,9 +390,9 @@ func TestNotesDown_UpdatesPreview(t *testing.T) {
 	// Move down to select Note Two
 	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
 
-	// Preview should be in single note mode showing the selected note
-	if tg.gui.state.Preview.Mode != PreviewModeSingleNote {
-		t.Errorf("Preview.Mode = %v, want PreviewModeSingleNote", tg.gui.state.Preview.Mode)
+	// Preview should be in card list mode showing the selected note as a single card
+	if tg.gui.state.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.state.Preview.Mode)
 	}
 }
 
@@ -535,42 +535,58 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 	}
 }
 
-func TestPreviewDown_SingleNoteMode_Scrolls(t *testing.T) {
+func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	// In single note mode, j scrolls
-	tg.gui.focusPreview(tg.g, nil)
+	// Set up card list mode — set CardLineRanges AFTER setContext since
+	// setContext(PreviewContext) calls renderPreview which rebuilds them.
+	tg.gui.state.Preview.Mode = PreviewModeCardList
+	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.CurrentContext = PreviewContext
+	// Override with known ranges after any render
+	tg.gui.state.Preview.CursorLine = 1
+	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
+
 	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
 
-	if tg.gui.state.Preview.ScrollOffset != 1 {
-		t.Errorf("ScrollOffset = %d, want 1", tg.gui.state.Preview.ScrollOffset)
+	if tg.gui.state.Preview.CursorLine != 2 {
+		t.Errorf("CursorLine = %d, want 2 after previewDown", tg.gui.state.Preview.CursorLine)
 	}
 }
 
-func TestPreviewUp_SingleNoteMode_Scrolls(t *testing.T) {
+func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusPreview(tg.g, nil)
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
+	tg.gui.state.Preview.Mode = PreviewModeCardList
+	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.CurrentContext = PreviewContext
+	tg.gui.state.Preview.CursorLine = 3
+	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
+
 	tg.gui.previewUp(tg.g, tg.gui.views.Preview)
 
-	if tg.gui.state.Preview.ScrollOffset != 1 {
-		t.Errorf("ScrollOffset = %d, want 1", tg.gui.state.Preview.ScrollOffset)
+	if tg.gui.state.Preview.CursorLine != 2 {
+		t.Errorf("CursorLine = %d, want 2 after previewUp", tg.gui.state.Preview.CursorLine)
 	}
 }
 
-func TestPreviewUp_SingleNoteMode_ClampsAtZero(t *testing.T) {
+func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusPreview(tg.g, nil)
+	tg.gui.state.Preview.Mode = PreviewModeCardList
+	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.CurrentContext = PreviewContext
+	tg.gui.state.Preview.CursorLine = 1
+	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}}
+
 	tg.gui.previewUp(tg.g, tg.gui.views.Preview)
 
-	if tg.gui.state.Preview.ScrollOffset != 0 {
-		t.Errorf("ScrollOffset = %d, want 0 (clamped)", tg.gui.state.Preview.ScrollOffset)
+	// Cursor should stay at 1 (line 0 is a separator, not content)
+	if tg.gui.state.Preview.CursorLine != 1 {
+		t.Errorf("CursorLine = %d, want 1 (clamped at first content line)", tg.gui.state.Preview.CursorLine)
 	}
 }
 
@@ -584,22 +600,6 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 
 	if tg.gui.state.CurrentContext != TagsContext {
 		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.CurrentContext)
-	}
-}
-
-func TestPreviewBack_ExitsEditMode(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	// Enter edit mode
-	tg.gui.editNotesInPreview(tg.g, tg.gui.views.Notes)
-	if !tg.gui.state.Preview.EditMode {
-		t.Fatal("should be in edit mode")
-	}
-
-	tg.gui.previewBack(tg.g, tg.gui.views.Preview)
-	if tg.gui.state.Preview.EditMode {
-		t.Error("EditMode should be false after previewBack")
 	}
 }
 
@@ -703,40 +703,6 @@ func TestFocusQueries_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	tg.gui.focusQueries(tg.g, nil) // cycle back to Queries
 	if tg.gui.state.Queries.CurrentTab != QueriesTabQueries {
 		t.Errorf("tab = %v, want Queries (wrapped)", tg.gui.state.Queries.CurrentTab)
-	}
-}
-
-// --- Edit mode tests ---
-
-func TestEditNotesInPreview_EntersEditMode(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	tg.gui.editNotesInPreview(tg.g, tg.gui.views.Notes)
-
-	if !tg.gui.state.Preview.EditMode {
-		t.Error("EditMode should be true")
-	}
-	if tg.gui.state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.state.Preview.Mode)
-	}
-	if len(tg.gui.state.Preview.Cards) != len(tg.gui.state.Notes.Items) {
-		t.Errorf("Cards = %d, want %d (copy of notes)", len(tg.gui.state.Preview.Cards), len(tg.gui.state.Notes.Items))
-	}
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.CurrentContext)
-	}
-}
-
-func TestEditNotesInPreview_EmptyNotes_Noop(t *testing.T) {
-	mock := testutil.NewMockExecutor()
-	tg := newTestGui(t, mock)
-	defer tg.Close()
-
-	tg.gui.editNotesInPreview(tg.g, tg.gui.views.Notes)
-
-	if tg.gui.state.Preview.EditMode {
-		t.Error("EditMode should be false for empty notes")
 	}
 }
 

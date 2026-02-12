@@ -131,6 +131,14 @@ func (gui *Gui) notesBottom(g *gocui.Gui, v *gocui.View) error {
 	return gui.notesPanel().listBottom(g, v)
 }
 
+func (gui *Gui) viewNoteInPreview(g *gocui.Gui, v *gocui.View) error {
+	if len(gui.state.Notes.Items) == 0 {
+		return nil
+	}
+	gui.setContext(PreviewContext)
+	return nil
+}
+
 func (gui *Gui) editNote(g *gocui.Gui, v *gocui.View) error {
 	if len(gui.state.Notes.Items) == 0 {
 		return nil
@@ -193,24 +201,5 @@ func (gui *Gui) copyNotePath(g *gocui.Gui, v *gocui.View) error {
 	cmd.Stdin = strings.NewReader(note.Path)
 	cmd.Run()
 
-	return nil
-}
-
-func (gui *Gui) editNotesInPreview(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) == 0 {
-		return nil
-	}
-
-	gui.state.Preview.Cards = make([]models.Note, len(gui.state.Notes.Items))
-	copy(gui.state.Preview.Cards, gui.state.Notes.Items)
-	gui.state.Preview.Mode = PreviewModeCardList
-	gui.state.Preview.EditMode = true
-	gui.state.Preview.SelectedCardIndex = gui.state.Notes.SelectedIndex
-	gui.state.Preview.ScrollOffset = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Edit Mode "
-	}
-	gui.renderPreview()
-	gui.setContext(PreviewContext)
 	return nil
 }

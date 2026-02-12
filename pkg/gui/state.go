@@ -13,7 +13,7 @@ const (
 	SearchFilterContext ContextKey = "searchFilter"
 	CaptureContext      ContextKey = "capture"
 	PickContext         ContextKey = "pick"
-	PaletteContext     ContextKey = "palette"
+	PaletteContext      ContextKey = "palette"
 )
 
 // NotesTab represents the sub-tabs within the Notes panel
@@ -45,8 +45,7 @@ const (
 type PreviewMode int
 
 const (
-	PreviewModeSingleNote PreviewMode = iota
-	PreviewModeCardList
+	PreviewModeCardList PreviewMode = iota
 	PreviewModePickResults
 )
 
@@ -57,30 +56,30 @@ type CaptureParentInfo struct {
 }
 
 type GuiState struct {
-	Notes           *NotesState
-	Queries         *QueriesState
-	Tags            *TagsState
-	Parents         *ParentsState
-	Preview         *PreviewState
-	Dialog          *DialogState
-	CurrentContext  ContextKey
-	PreviousContext ContextKey
-	SearchQuery        string
-	SearchMode         bool
-	CaptureMode        bool
-	CaptureParent      *CaptureParentInfo
-	SearchCompletion   *CompletionState
-	CaptureCompletion  *CompletionState
-	PickMode           bool
-	PickCompletion     *CompletionState
-	PickQuery          string
-	PickAnyMode        bool
-	PickSeedHash       bool
-	PaletteMode        bool
-	Palette            *PaletteState
-	Initialized        bool
-	lastWidth       int
-	lastHeight      int
+	Notes             *NotesState
+	Queries           *QueriesState
+	Tags              *TagsState
+	Parents           *ParentsState
+	Preview           *PreviewState
+	Dialog            *DialogState
+	CurrentContext    ContextKey
+	PreviousContext   ContextKey
+	SearchQuery       string
+	SearchMode        bool
+	CaptureMode       bool
+	CaptureParent     *CaptureParentInfo
+	SearchCompletion  *CompletionState
+	CaptureCompletion *CompletionState
+	PickMode          bool
+	PickCompletion    *CompletionState
+	PickQuery         string
+	PickAnyMode       bool
+	PickSeedHash      bool
+	PaletteMode       bool
+	Palette           *PaletteState
+	Initialized       bool
+	lastWidth         int
+	lastHeight        int
 }
 
 type NotesState struct {
@@ -117,7 +116,6 @@ type PreviewState struct {
 	ShowGlobalTags    bool
 	CardLineRanges    [][2]int // [startLine, endLine) for each card
 	HeaderLines       []int    // absolute line numbers containing markdown headers
-	EditMode          bool     // true when in bulk edit mode (entered from Notes 'e')
 	RenderMarkdown    bool     // true to render markdown with glamour
 	PickResults       []models.PickResult
 }
@@ -154,6 +152,6 @@ func NewGuiState() *GuiState {
 		SearchCompletion:  NewCompletionState(),
 		CaptureCompletion: NewCompletionState(),
 		PickCompletion:    NewCompletionState(),
-		CurrentContext:     NotesContext,
+		CurrentContext:    NotesContext,
 	}
 }
