@@ -8,69 +8,35 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// wrap converts a standard gocui handler into a closure for palette commands.
-func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
-	return func() error {
-		return fn(gui.g, nil)
-	}
-}
-
-// paletteCommands builds the full list of commands available in the palette.
+// paletteCommands derives the palette command list from the unified command table.
 func (gui *Gui) paletteCommands() []PaletteCommand {
-	return []PaletteCommand{
-		// Focus
-		{Name: "Focus Notes", Category: "Focus", Key: "1", OnRun: gui.wrap(gui.focusNotes)},
-		{Name: "Focus Queries", Category: "Focus", Key: "2", OnRun: gui.wrap(gui.focusQueries)},
-		{Name: "Focus Tags", Category: "Focus", Key: "3", OnRun: gui.wrap(gui.focusTags)},
-		{Name: "Focus Preview", Category: "Focus", Key: "p", OnRun: gui.wrap(gui.focusPreview)},
-		{Name: "Focus Search Filter", Category: "Focus", Key: "0", OnRun: gui.wrap(gui.focusSearchFilter)},
+	var cmds []PaletteCommand
+	for _, c := range gui.commands() {
+		if c.NoPalette || c.Name == "" {
+			continue
+		}
 
-		// Tabs
-		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(0) }},
-		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(1) }},
-		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(2) }},
-		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(0) }},
-		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(1) }},
-		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(0) }},
-		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
-		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
+		hint := c.KeyHint
+		if hint == "" && len(c.Keys) > 0 {
+			hint = keyDisplayString(c.Keys[0])
+		}
 
-		// Global
-		{Name: "Search", Category: "Global", Key: "/", OnRun: gui.wrap(gui.openSearch)},
-		{Name: "Pick", Category: "Global", Key: "\\", OnRun: gui.wrap(gui.openPick)},
-		{Name: "New Note", Category: "Global", Key: "n", OnRun: gui.wrap(gui.newNote)},
-		{Name: "Refresh", Category: "Global", Key: "ctrl+r", OnRun: gui.wrap(gui.refresh)},
-		{Name: "Keybindings", Category: "Global", Key: "?", OnRun: gui.wrap(gui.showHelpHandler)},
-		{Name: "Quit", Category: "Global", Key: "q", OnRun: gui.wrap(gui.quit)},
+		var runner func() error
+		if c.OnRun != nil {
+			runner = c.OnRun
+		} else if c.Handler != nil {
+			runner = gui.wrap(c.Handler)
+		}
 
-		// Notes
-		{Name: "View in Preview", Category: "Notes", Key: "enter", OnRun: gui.wrap(gui.viewNoteInPreview), Context: NotesContext},
-		{Name: "Open in Editor", Category: "Notes", Key: "E", OnRun: gui.wrap(gui.editNote), Context: NotesContext},
-		{Name: "Delete Note", Category: "Notes", Key: "d", OnRun: gui.wrap(gui.deleteNote), Context: NotesContext},
-		{Name: "Copy Note Path", Category: "Notes", Key: "y", OnRun: gui.wrap(gui.copyNotePath), Context: NotesContext},
-
-		// Tags
-		{Name: "Filter by Tag", Category: "Tags", Key: "enter", OnRun: gui.wrap(gui.filterByTag), Context: TagsContext},
-		{Name: "Rename Tag", Category: "Tags", Key: "r", OnRun: gui.wrap(gui.renameTag), Context: TagsContext},
-		{Name: "Delete Tag", Category: "Tags", Key: "d", OnRun: gui.wrap(gui.deleteTag), Context: TagsContext},
-
-		// Queries
-		{Name: "Run Query", Category: "Queries", Key: "enter", OnRun: gui.wrap(gui.runQuery), Context: QueriesContext},
-		{Name: "Delete Query", Category: "Queries", Key: "d", OnRun: gui.wrap(gui.deleteQuery), Context: QueriesContext},
-
-		// Preview
-		{Name: "Delete Card", Category: "Preview", Key: "d", OnRun: gui.wrap(gui.deleteCardFromPreview), Context: PreviewContext},
-		{Name: "Move Card", Category: "Preview", Key: "m", OnRun: gui.wrap(gui.moveCardHandler), Context: PreviewContext},
-		{Name: "Toggle Frontmatter", Category: "Preview", Key: "f", OnRun: gui.wrap(gui.toggleFrontmatter), Context: PreviewContext},
-		{Name: "Toggle Title", Category: "Preview", Key: "t", OnRun: gui.wrap(gui.toggleTitle), Context: PreviewContext},
-		{Name: "Toggle Global Tags", Category: "Preview", Key: "T", OnRun: gui.wrap(gui.toggleGlobalTags), Context: PreviewContext},
-		{Name: "Toggle Markdown", Category: "Preview", Key: "M", OnRun: gui.wrap(gui.toggleMarkdown), Context: PreviewContext},
-		{Name: "Toggle Todo", Category: "Preview", Key: "x", OnRun: gui.wrap(gui.toggleTodo), Context: PreviewContext},
-		{Name: "Focus Note from Preview", Category: "Preview", Key: "enter", OnRun: gui.wrap(gui.focusNoteFromPreview), Context: PreviewContext},
-
-		// Search
-		{Name: "Clear Search", Category: "Search", Key: "x", OnRun: gui.wrap(gui.clearSearch), Context: SearchFilterContext},
+		cmds = append(cmds, PaletteCommand{
+			Name:     c.Name,
+			Category: c.Category,
+			Key:      hint,
+			OnRun:    runner,
+			Context:  c.Context,
+		})
 	}
+	return cmds
 }
 
 // isPaletteCommandAvailable checks if a command is available given the origin context.
@@ -252,10 +218,12 @@ func (gui *Gui) renderPaletteList() {
 	}
 
 	originCtx := gui.state.Palette.OriginContext
-	width, _ := v.Size()
+	width, _ := v.InnerSize()
 	if width < 10 {
 		width = 30
 	}
+
+	const keyCol = 8
 
 	pad := func(s string) string {
 		return s + strings.Repeat(" ", max(0, width-len([]rune(s))))
@@ -264,20 +232,20 @@ func (gui *Gui) renderPaletteList() {
 	for i, cmd := range filtered {
 		avail := isPaletteCommandAvailable(cmd, originCtx)
 
+		key := cmd.Key
 		label := fmt.Sprintf("%s: %s", cmd.Category, cmd.Name)
-		keyHint := cmd.Key
-		spacing := width - len(label) - len(keyHint)
-		if spacing < 1 {
-			spacing = 1
+		keyPad := keyCol - len(key)
+		if keyPad < 1 {
+			keyPad = 1
 		}
-		line := label + strings.Repeat(" ", spacing) + keyHint
 
 		if i == gui.state.Palette.SelectedIndex {
+			line := " " + key + strings.Repeat(" ", keyPad) + label
 			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line), AnsiReset)
 		} else if !avail {
-			fmt.Fprintf(v, "%s%s%s\n", AnsiDim, line, AnsiReset)
+			fmt.Fprintf(v, "%s %s%-*s%s%s\n", AnsiDim, AnsiGreen, keyCol, key, AnsiReset+AnsiDim, label)
 		} else {
-			fmt.Fprintln(v, line)
+			fmt.Fprintf(v, " %s%-*s%s%s\n", AnsiGreen, keyCol, key, AnsiReset, label)
 		}
 	}
 }

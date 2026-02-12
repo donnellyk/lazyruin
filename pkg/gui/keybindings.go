@@ -20,36 +20,46 @@ func (gui *Gui) registerBindings(bindings []binding) error {
 
 // setupKeybindings configures all keyboard shortcuts.
 func (gui *Gui) setupKeybindings() error {
-	if err := gui.registerBindings(gui.globalBindings()); err != nil {
-		return err
+	// Register command-table bindings (actions driven by commands())
+	for _, cmd := range gui.commands() {
+		if cmd.Handler == nil || len(cmd.Keys) == 0 {
+			continue
+		}
+		handler := cmd.Handler
+		if cmd.View == "" {
+			handler = gui.suppressDuringDialog(handler)
+		}
+		for _, key := range cmd.Keys {
+			if err := gui.g.SetKeybinding(cmd.View, key, gocui.ModNone, handler); err != nil {
+				return err
+			}
+		}
 	}
-	if err := gui.registerBindings(gui.notesBindings()); err != nil {
-		return err
+
+	// Navigation and infrastructure bindings (not user-facing commands)
+	navBindings := []func() []binding{
+		gui.globalNavBindings,
+		gui.notesNavBindings,
+		gui.queriesNavBindings,
+		gui.tagsNavBindings,
+		gui.previewNavBindings,
+		gui.searchBindings,
+		gui.captureBindings,
+		gui.pickBindings,
+		gui.paletteBindings,
 	}
-	if err := gui.registerBindings(gui.queriesBindings()); err != nil {
-		return err
+	for _, fn := range navBindings {
+		bindings := fn()
+		for i, b := range bindings {
+			if b.view == "" {
+				bindings[i].handler = gui.suppressDuringDialog(b.handler)
+			}
+		}
+		if err := gui.registerBindings(bindings); err != nil {
+			return err
+		}
 	}
-	if err := gui.registerBindings(gui.tagsBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.previewBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.searchBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.captureBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.searchFilterBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.pickBindings()); err != nil {
-		return err
-	}
-	if err := gui.registerBindings(gui.paletteBindings()); err != nil {
-		return err
-	}
+
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
@@ -68,29 +78,16 @@ func (gui *Gui) setupKeybindings() error {
 	return nil
 }
 
-func (gui *Gui) globalBindings() []binding {
+func (gui *Gui) globalNavBindings() []binding {
 	return []binding{
-		{"", 'q', gui.quit},
-		{"", gocui.KeyCtrlC, gui.quit},
 		{"", gocui.KeyTab, gui.nextPanel},
 		{"", gocui.KeyBacktab, gui.prevPanel},
-		{"", '1', gui.focusNotes},
-		{"", '2', gui.focusQueries},
-		{"", '3', gui.focusTags},
-		{"", '0', gui.focusSearchFilter},
-		{"", 'p', gui.focusPreview},
-		{"", '/', gui.openSearch},
-		{"", 'n', gui.newNote},
-		{"", gocui.KeyCtrlR, gui.refresh},
-		{"", '?', gui.showHelpHandler},
 		{"", gocui.MouseWheelDown, gui.previewScrollDown},
 		{"", gocui.MouseWheelUp, gui.previewScrollUp},
-		{"", '\\', gui.openPick},
-		{"", ':', gui.openPalette},
 	}
 }
 
-func (gui *Gui) notesBindings() []binding {
+func (gui *Gui) notesNavBindings() []binding {
 	v := NotesView
 	return []binding{
 		{v, gocui.MouseLeft, gui.notesClick},
@@ -100,16 +97,12 @@ func (gui *Gui) notesBindings() []binding {
 		{v, gocui.KeyArrowUp, gui.notesUp},
 		{v, 'g', gui.notesTop},
 		{v, 'G', gui.notesBottom},
-		{v, gocui.KeyEnter, gui.viewNoteInPreview},
-		{v, 'E', gui.editNote},
-		{v, 'd', gui.deleteNote},
-		{v, 'y', gui.copyNotePath},
 		{v, gocui.MouseWheelDown, gui.notesWheelDown},
 		{v, gocui.MouseWheelUp, gui.notesWheelUp},
 	}
 }
 
-func (gui *Gui) queriesBindings() []binding {
+func (gui *Gui) queriesNavBindings() []binding {
 	v := QueriesView
 	return []binding{
 		{v, gocui.MouseLeft, gui.queriesClick},
@@ -117,14 +110,12 @@ func (gui *Gui) queriesBindings() []binding {
 		{v, 'k', gui.queriesUp},
 		{v, gocui.KeyArrowDown, gui.queriesDown},
 		{v, gocui.KeyArrowUp, gui.queriesUp},
-		{v, gocui.KeyEnter, gui.runQuery},
-		{v, 'd', gui.deleteQuery},
 		{v, gocui.MouseWheelDown, gui.queriesWheelDown},
 		{v, gocui.MouseWheelUp, gui.queriesWheelUp},
 	}
 }
 
-func (gui *Gui) tagsBindings() []binding {
+func (gui *Gui) tagsNavBindings() []binding {
 	v := TagsView
 	return []binding{
 		{v, gocui.MouseLeft, gui.tagsClick},
@@ -132,15 +123,12 @@ func (gui *Gui) tagsBindings() []binding {
 		{v, 'k', gui.tagsUp},
 		{v, gocui.KeyArrowDown, gui.tagsDown},
 		{v, gocui.KeyArrowUp, gui.tagsUp},
-		{v, gocui.KeyEnter, gui.filterByTag},
-		{v, 'r', gui.renameTag},
-		{v, 'd', gui.deleteTag},
 		{v, gocui.MouseWheelDown, gui.tagsWheelDown},
 		{v, gocui.MouseWheelUp, gui.tagsWheelUp},
 	}
 }
 
-func (gui *Gui) previewBindings() []binding {
+func (gui *Gui) previewNavBindings() []binding {
 	v := PreviewView
 	return []binding{
 		{v, gocui.MouseLeft, gui.previewClick},
@@ -150,15 +138,6 @@ func (gui *Gui) previewBindings() []binding {
 		{v, 'K', gui.previewCardUp},
 		{v, ']', gui.previewNextHeader},
 		{v, '[', gui.previewPrevHeader},
-		{v, 'x', gui.toggleTodo},
-		{v, gocui.KeyEsc, gui.previewBack},
-		{v, gocui.KeyEnter, gui.focusNoteFromPreview},
-		{v, 'd', gui.deleteCardFromPreview},
-		{v, 'm', gui.moveCardHandler},
-		{v, 'f', gui.toggleFrontmatter},
-		{v, 't', gui.toggleTitle},
-		{v, 'T', gui.toggleGlobalTags},
-		{v, 'M', gui.toggleMarkdown},
 	}
 }
 
@@ -197,13 +176,5 @@ func (gui *Gui) paletteBindings() []binding {
 		{v, gocui.KeyEnter, gui.paletteEnter},
 		{v, gocui.KeyEsc, gui.paletteEsc},
 		{lv, gocui.MouseLeft, gui.paletteListClick},
-	}
-}
-
-func (gui *Gui) searchFilterBindings() []binding {
-	v := SearchFilterView
-	return []binding{
-		{v, gocui.MouseLeft, gui.clearSearch},
-		{v, 'x', gui.clearSearch},
 	}
 }

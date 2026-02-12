@@ -488,3 +488,73 @@ func TestContextToView_Palette(t *testing.T) {
 		t.Errorf("contextToView(PaletteContext) = %q, want %q", gui.contextToView(PaletteContext), PaletteView)
 	}
 }
+
+func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	cmds := tg.gui.commands()
+	paletteCmds := tg.gui.paletteCommands()
+
+	// Build set of palette command names+contexts
+	type key struct {
+		name    string
+		context ContextKey
+	}
+	paletteSet := make(map[key]bool)
+	for _, pc := range paletteCmds {
+		paletteSet[key{pc.Name, pc.Context}] = true
+	}
+
+	for _, cmd := range cmds {
+		if cmd.NoPalette || cmd.Name == "" || cmd.Handler == nil || len(cmd.Keys) == 0 {
+			continue
+		}
+		k := key{cmd.Name, cmd.Context}
+		if !paletteSet[k] {
+			t.Errorf("command %q (context %q) has Keys+Handler but no palette entry", cmd.Name, cmd.Context)
+		}
+	}
+}
+
+func TestCommands_NoDuplicateNameContext(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	type key struct {
+		name    string
+		context ContextKey
+	}
+	seen := make(map[key]bool)
+	for _, cmd := range tg.gui.commands() {
+		if cmd.Name == "" {
+			continue
+		}
+		k := key{cmd.Name, cmd.Context}
+		if seen[k] {
+			t.Errorf("duplicate command: Name=%q Context=%q", cmd.Name, cmd.Context)
+		}
+		seen[k] = true
+	}
+}
+
+func TestKeyDisplayString(t *testing.T) {
+	tests := []struct {
+		key  any
+		want string
+	}{
+		{'q', "q"},
+		{'/', "/"},
+		{gocui.KeyEnter, "enter"},
+		{gocui.KeyEsc, "esc"},
+		{gocui.KeyCtrlR, "<c-r>"},
+		{gocui.KeyCtrlC, "<c-c>"},
+		{gocui.KeyTab, "tab"},
+	}
+	for _, tt := range tests {
+		got := keyDisplayString(tt.key)
+		if got != tt.want {
+			t.Errorf("keyDisplayString(%v) = %q, want %q", tt.key, got, tt.want)
+		}
+	}
+}
