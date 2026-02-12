@@ -134,6 +134,8 @@ func (gui *Gui) previewNavBindings() []binding {
 		{v, gocui.MouseLeft, gui.previewClick},
 		{v, 'j', gui.previewDown},
 		{v, 'k', gui.previewUp},
+		{v, gocui.KeyArrowDown, gui.previewDown},
+		{v, gocui.KeyArrowUp, gui.previewUp},
 		{v, 'J', gui.previewCardDown},
 		{v, 'K', gui.previewCardUp},
 		{v, ']', gui.previewNextHeader},
