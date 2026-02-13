@@ -98,6 +98,15 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.Pick = nil
 	}
 
+	if gui.state.ParentInputMode {
+		if err := gui.createParentInputPopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(ParentInputView)
+		g.DeleteView(ParentInputSuggestView)
+	}
+
 	if gui.state.PaletteMode {
 		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
 			return err
@@ -333,6 +342,53 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
+func (gui *Gui) createParentInputPopup(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	height := 3
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(ParentInputView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	v.Title = " Set Parent "
+	v.Footer = " > bookmarks | >> all notes | / drill | Tab: accept | Esc: cancel "
+	v.Editable = true
+	v.Wrap = false
+	v.Editor = &parentInputEditor{gui: gui}
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+
+	// Seed ">" on first open so bookmark completion appears immediately
+	if gui.state.ParentInputSeedGt {
+		gui.state.ParentInputSeedGt = false
+		v.TextArea.TypeString(">")
+		gui.updateCompletion(v, gui.parentInputTriggers(), gui.state.ParentInputCompletion)
+	}
+
+	v.RenderTextArea()
+
+	g.Cursor = true
+	g.SetViewOnTop(ParentInputView)
+	g.SetCurrentView(ParentInputView)
+
+	// Render suggestion dropdown below
+	if err := gui.renderSuggestionView(g, ParentInputSuggestView, gui.state.ParentInputCompletion, x0, y1, width); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	width := 60
 	if width > maxX-4 {
@@ -438,8 +494,8 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 		width = maxX - 4
 	}
 
-	// Input view (3 lines)
-	inputHeight := 3
+	// Input view (single line)
+	inputHeight := 2
 	// List view (up to 15 visible lines + 2 for border)
 	listHeight := 17
 	totalHeight := inputHeight + listHeight

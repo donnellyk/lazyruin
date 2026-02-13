@@ -350,74 +350,77 @@ func markdownCandidates(filter string) []CompletionItem {
 	return filtered
 }
 
-// parentCaptureCandidates returns parent note candidates for the > trigger in capture mode.
-// At the top level it shows bookmarked parents; >> shows all notes; after drilling with / it shows children.
-func (gui *Gui) parentCaptureCandidates(filter string) []CompletionItem {
-	state := gui.state.CaptureCompletion
+// parentCandidatesFor returns a candidate function for the > trigger that uses the given
+// CompletionState for drill-down tracking. This allows both the capture editor and
+// parent input popup to share the same parent-selection logic.
+func (gui *Gui) parentCandidatesFor(completionState *CompletionState) func(string) []CompletionItem {
+	return func(filter string) []CompletionItem {
+		state := completionState
 
-	// Detect >> mode (all notes) and strip the extra > for path parsing
-	allNotesMode := strings.HasPrefix(filter, ">")
-	workingFilter := filter
-	if allNotesMode {
-		workingFilter = filter[1:]
-	}
-
-	// Determine the typing filter (text after the last /)
-	typingFilter := workingFilter
-	if idx := strings.LastIndex(workingFilter, "/"); idx >= 0 {
-		typingFilter = workingFilter[idx+1:]
-	}
-
-	// Sync drill stack: if user backspaced past a /, truncate the stack
-	slashCount := strings.Count(workingFilter, "/")
-	if slashCount < len(state.ParentDrill) {
-		state.ParentDrill = state.ParentDrill[:slashCount]
-	}
-
-	typingFilter = strings.ToLower(typingFilter)
-
-	if len(state.ParentDrill) == 0 {
+		// Detect >> mode (all notes) and strip the extra > for path parsing
+		allNotesMode := strings.HasPrefix(filter, ">")
+		workingFilter := filter
 		if allNotesMode {
-			return gui.allNoteCandidates(typingFilter)
+			workingFilter = filter[1:]
 		}
-		// Top level: show bookmarked parents
+
+		// Determine the typing filter (text after the last /)
+		typingFilter := workingFilter
+		if idx := strings.LastIndex(workingFilter, "/"); idx >= 0 {
+			typingFilter = workingFilter[idx+1:]
+		}
+
+		// Sync drill stack: if user backspaced past a /, truncate the stack
+		slashCount := strings.Count(workingFilter, "/")
+		if slashCount < len(state.ParentDrill) {
+			state.ParentDrill = state.ParentDrill[:slashCount]
+		}
+
+		typingFilter = strings.ToLower(typingFilter)
+
+		if len(state.ParentDrill) == 0 {
+			if allNotesMode {
+				return gui.allNoteCandidates(typingFilter)
+			}
+			// Top level: show bookmarked parents
+			var items []CompletionItem
+			for _, p := range gui.state.Parents.Items {
+				if typingFilter != "" && !strings.Contains(strings.ToLower(p.Name), typingFilter) &&
+					!strings.Contains(strings.ToLower(p.Title), typingFilter) {
+					continue
+				}
+				items = append(items, CompletionItem{
+					Label:  p.Name,
+					Detail: p.Title,
+					Value:  p.UUID,
+				})
+			}
+			return items
+		}
+
+		// Drilled: fetch children of the last drilled parent
+		lastUUID := state.ParentDrill[len(state.ParentDrill)-1].UUID
+		children, err := gui.ruinCmd.Search.Search("parent:"+lastUUID, commands.SearchOptions{
+			Sort:  "created:desc",
+			Limit: 50,
+		})
+		if err != nil {
+			return nil
+		}
+
 		var items []CompletionItem
-		for _, p := range gui.state.Parents.Items {
-			if typingFilter != "" && !strings.Contains(strings.ToLower(p.Name), typingFilter) &&
-				!strings.Contains(strings.ToLower(p.Title), typingFilter) {
+		for _, note := range children {
+			if typingFilter != "" && !strings.Contains(strings.ToLower(note.Title), typingFilter) {
 				continue
 			}
 			items = append(items, CompletionItem{
-				Label:  p.Name,
-				Detail: p.Title,
-				Value:  p.UUID,
+				Label:  note.Title,
+				Detail: note.ShortDate(),
+				Value:  note.UUID,
 			})
 		}
 		return items
 	}
-
-	// Drilled: fetch children of the last drilled parent
-	lastUUID := state.ParentDrill[len(state.ParentDrill)-1].UUID
-	children, err := gui.ruinCmd.Search.Search("parent:"+lastUUID, commands.SearchOptions{
-		Sort:  "created:desc",
-		Limit: 50,
-	})
-	if err != nil {
-		return nil
-	}
-
-	var items []CompletionItem
-	for _, note := range children {
-		if typingFilter != "" && !strings.Contains(strings.ToLower(note.Title), typingFilter) {
-			continue
-		}
-		items = append(items, CompletionItem{
-			Label:  note.Title,
-			Detail: note.ShortDate(),
-			Value:  note.UUID,
-		})
-	}
-	return items
 }
 
 // allNoteCandidates returns all notes as parent candidates (for >> mode).

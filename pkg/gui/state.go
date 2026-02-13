@@ -56,30 +56,34 @@ type CaptureParentInfo struct {
 }
 
 type GuiState struct {
-	Notes             *NotesState
-	Queries           *QueriesState
-	Tags              *TagsState
-	Parents           *ParentsState
-	Preview           *PreviewState
-	Dialog            *DialogState
-	CurrentContext    ContextKey
-	PreviousContext   ContextKey
-	SearchQuery       string
-	SearchMode        bool
-	CaptureMode       bool
-	CaptureParent     *CaptureParentInfo
-	SearchCompletion  *CompletionState
-	CaptureCompletion *CompletionState
-	PickMode          bool
-	PickCompletion    *CompletionState
-	PickQuery         string
-	PickAnyMode       bool
-	PickSeedHash      bool
-	PaletteMode       bool
-	Palette           *PaletteState
-	Initialized       bool
-	lastWidth         int
-	lastHeight        int
+	Notes                 *NotesState
+	Queries               *QueriesState
+	Tags                  *TagsState
+	Parents               *ParentsState
+	Preview               *PreviewState
+	Dialog                *DialogState
+	CurrentContext        ContextKey
+	PreviousContext       ContextKey
+	SearchQuery           string
+	SearchMode            bool
+	CaptureMode           bool
+	CaptureParent         *CaptureParentInfo
+	SearchCompletion      *CompletionState
+	CaptureCompletion     *CompletionState
+	PickMode              bool
+	PickCompletion        *CompletionState
+	PickQuery             string
+	PickAnyMode           bool
+	PickSeedHash          bool
+	PaletteMode           bool
+	Palette               *PaletteState
+	ParentInputMode       bool
+	ParentInputCompletion *CompletionState
+	ParentInputTargetUUID string
+	ParentInputSeedGt     bool
+	Initialized           bool
+	lastWidth             int
+	lastHeight            int
 }
 
 type NotesState struct {
@@ -157,12 +161,13 @@ func NewGuiState() *GuiState {
 		Queries: &QueriesState{
 			CurrentTab: QueriesTabQueries,
 		},
-		Tags:              &TagsState{CurrentTab: TagsTabAll},
-		Parents:           &ParentsState{},
-		Preview:           &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
-		SearchCompletion:  NewCompletionState(),
-		CaptureCompletion: NewCompletionState(),
-		PickCompletion:    NewCompletionState(),
-		CurrentContext:    NotesContext,
+		Tags:                  &TagsState{CurrentTab: TagsTabAll},
+		Parents:               &ParentsState{},
+		Preview:               &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
+		SearchCompletion:      NewCompletionState(),
+		CaptureCompletion:     NewCompletionState(),
+		PickCompletion:        NewCompletionState(),
+		ParentInputCompletion: NewCompletionState(),
+		CurrentContext:        NotesContext,
 	}
 }

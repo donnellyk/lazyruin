@@ -91,7 +91,6 @@ func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
 	gui.updateNotesTab()
 }
 
-
 func (gui *Gui) notesPanel() *listPanel {
 	return &listPanel{
 		selectedIndex: &gui.state.Notes.SelectedIndex,

@@ -38,7 +38,7 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 				return true
 			}
 			if ch == '/' && isParentCompletion(v, state) {
-				e.gui.drillParentChild(v, state)
+				e.gui.drillParentChild(v, state, e.gui.captureTriggers())
 				return true
 			}
 		}
@@ -136,7 +136,8 @@ func isParentCompletion(v *gocui.View, state *CompletionState) bool {
 
 // drillParentChild commits the selected parent and transitions to showing its children.
 // Pushes the selection onto the drill stack and rewrites the token as >Parent/Child/.../
-func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState) {
+// The triggers parameter determines which completion triggers are re-evaluated after drilling.
+func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState, triggers []CompletionTrigger) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -178,7 +179,7 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState) {
 	v.RenderTextArea()
 
 	// Re-run completion to show children
-	gui.updateCompletion(v, gui.captureTriggers(), state)
+	gui.updateCompletion(v, triggers, state)
 }
 
 // acceptParentCompletion sets the selected note as the capture parent,

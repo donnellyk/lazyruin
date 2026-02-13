@@ -921,25 +921,88 @@ func (gui *Gui) viewOptionsDialog(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// setParentDialog prompts for a parent note to set on the current card.
+// setParentDialog opens the parent input popup with > / >> completion.
 func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return nil
 	}
-	gui.showInput("Set Parent", "Parent (title, UUID, or bookmark):", func(input string) error {
-		if input == "" {
-			return nil
+	gui.state.ParentInputMode = true
+	gui.state.ParentInputCompletion = NewCompletionState()
+	gui.state.ParentInputTargetUUID = card.UUID
+	gui.state.ParentInputSeedGt = true
+	return nil
+}
+
+// parentInputEnter handles Enter in the parent input popup.
+func (gui *Gui) parentInputEnter(g *gocui.Gui, v *gocui.View) error {
+	targetUUID := gui.state.ParentInputTargetUUID
+	state := gui.state.ParentInputCompletion
+
+	if state.Active && len(state.Items) > 0 {
+		// Use the selected completion item
+		item := state.Items[state.SelectedIndex]
+		parentRef := item.Value
+		if parentRef == "" {
+			parentRef = item.Label
 		}
-		err := gui.ruinCmd.Note.SetParent(card.UUID, input)
+		gui.closeParentInput()
+		err := gui.ruinCmd.Note.SetParent(targetUUID, parentRef)
 		if err != nil {
 			gui.showError(err)
 			return nil
 		}
 		gui.reloadContent()
 		return nil
-	})
+	}
+
+	// No completion active — use raw text
+	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+	raw = strings.TrimLeft(raw, ">")
+	if raw == "" {
+		gui.closeParentInput()
+		return nil
+	}
+	gui.closeParentInput()
+	err := gui.ruinCmd.Note.SetParent(targetUUID, raw)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+	gui.reloadContent()
 	return nil
+}
+
+// parentInputTab accepts the current completion in the parent input popup.
+func (gui *Gui) parentInputTab(g *gocui.Gui, v *gocui.View) error {
+	state := gui.state.ParentInputCompletion
+	if state.Active && len(state.Items) > 0 {
+		return gui.parentInputEnter(g, v)
+	}
+	return nil
+}
+
+// parentInputEsc cancels the parent input popup.
+func (gui *Gui) parentInputEsc(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.ParentInputCompletion.Active {
+		gui.state.ParentInputCompletion.Active = false
+		gui.state.ParentInputCompletion.Items = nil
+		gui.state.ParentInputCompletion.SelectedIndex = 0
+		return nil
+	}
+	gui.closeParentInput()
+	return nil
+}
+
+// closeParentInput closes the parent input popup and restores focus.
+func (gui *Gui) closeParentInput() {
+	gui.state.ParentInputMode = false
+	gui.state.ParentInputCompletion = NewCompletionState()
+	gui.state.ParentInputTargetUUID = ""
+	gui.g.Cursor = false
+	gui.g.DeleteView(ParentInputView)
+	gui.g.DeleteView(ParentInputSuggestView)
+	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
 }
 
 // removeParent removes the parent from the current card.
@@ -1135,7 +1198,6 @@ func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
 	}
 	return nil
 }
-
 
 // orderCards persists the current card order to frontmatter order fields.
 func (gui *Gui) orderCards() error {

@@ -79,8 +79,15 @@ func (gui *Gui) captureTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
-		{Prefix: ">", Candidates: gui.parentCaptureCandidates},
+		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.CaptureCompletion)},
 		{Prefix: "/", Candidates: markdownCandidates},
+	}
+}
+
+// parentInputTriggers returns the completion triggers for the parent input popup.
+func (gui *Gui) parentInputTriggers() []CompletionTrigger {
+	return []CompletionTrigger{
+		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.ParentInputCompletion)},
 	}
 }
 
