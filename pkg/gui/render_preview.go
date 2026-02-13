@@ -86,10 +86,13 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 	var lines []string
 
 	if gui.state.Preview.ShowFrontmatter {
-		lines = append(lines,
-			fmt.Sprintf("uuid: %s", note.UUID),
-			fmt.Sprintf("created: %s", note.Created.Format("2006-01-02")),
-		)
+		if fm, err := gui.loadNoteFrontmatter(note.Path); err == nil && fm != "" {
+			lines = append(lines, " "+AnsiDim+"---"+AnsiReset)
+			for _, fl := range strings.Split(fm, "\n") {
+				lines = append(lines, " "+AnsiDim+fl+AnsiReset)
+			}
+			lines = append(lines, " "+AnsiDim+"---"+AnsiReset)
+		}
 	}
 
 	if gui.state.Preview.RenderMarkdown {
@@ -146,12 +149,16 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 			selectedStartLine = currentLine
 		}
 
-		// Upper separator with title
+		// Upper separator with title (and "Temporarily Moved" badge for multi-card)
 		title := note.Title
 		if title == "" {
 			title = "Untitled"
 		}
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), currentLine, isActive)
+		upperRight := ""
+		if gui.state.Preview.TemporarilyMoved[i] && len(cards) > 1 {
+			upperRight = " Temporarily Moved "
+		}
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), currentLine, isActive)
 		currentLine++
 
 		// Card body content
@@ -338,6 +345,25 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 	}
 	gui.state.Preview.ScrollOffset = originY
 	v.SetOrigin(0, originY)
+}
+
+// loadNoteFrontmatter returns the raw YAML frontmatter block (without the --- delimiters).
+func (gui *Gui) loadNoteFrontmatter(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	raw := string(data)
+	if !strings.HasPrefix(raw, "---") {
+		return "", nil
+	}
+	rest := raw[3:]
+	idx := strings.Index(rest, "\n---")
+	if idx == -1 {
+		return "", nil
+	}
+	fm := strings.TrimPrefix(rest[:idx], "\n")
+	return fm, nil
 }
 
 func (gui *Gui) loadNoteContent(path string) (string, error) {

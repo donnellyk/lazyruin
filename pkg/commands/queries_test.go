@@ -50,7 +50,7 @@ func TestQueriesCommand_Run(t *testing.T) {
 	tv.SaveQuery("daily-notes", "#daily")
 
 	ruin := NewRuinCommand(tv.Path)
-	notes, err := ruin.Queries.Run("daily-notes")
+	notes, err := ruin.Queries.Run("daily-notes", SearchOptions{})
 	if err != nil {
 		t.Fatalf("Run() error: %v", err)
 	}

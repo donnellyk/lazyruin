@@ -66,14 +66,29 @@ func (gui *Gui) commands() []Command {
 
 		// Preview
 		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, View: PreviewView, Handler: gui.deleteCardFromPreview, Context: PreviewContext},
+		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, View: PreviewView, Handler: gui.openCardInEditor, Context: PreviewContext},
+		{Name: "Append #done", Category: "Preview", Keys: []any{'D'}, View: PreviewView, Handler: gui.appendDone, Context: PreviewContext},
 		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, View: PreviewView, Handler: gui.moveCardHandler, Context: PreviewContext},
+		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, View: PreviewView, Handler: gui.mergeCardHandler, Context: PreviewContext},
 		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, View: PreviewView, Handler: gui.toggleFrontmatter, Context: PreviewContext},
-		{Name: "Toggle Title", Category: "Preview", Keys: []any{'t'}, View: PreviewView, Handler: gui.toggleTitle, Context: PreviewContext},
-		{Name: "Toggle Global Tags", Category: "Preview", Keys: []any{'T'}, View: PreviewView, Handler: gui.toggleGlobalTags, Context: PreviewContext},
-		{Name: "Toggle Markdown", Category: "Preview", Keys: []any{'M'}, View: PreviewView, Handler: gui.toggleMarkdown, Context: PreviewContext},
+		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, View: PreviewView, Handler: gui.viewOptionsDialog, Context: PreviewContext},
+		{Name: "Set Parent", Category: "Preview", Keys: []any{'>'}, View: PreviewView, Handler: gui.setParentDialog, Context: PreviewContext},
+		{Name: "Remove Parent", Category: "Preview", Keys: []any{'P'}, View: PreviewView, Handler: gui.removeParent, Context: PreviewContext},
+		{Name: "Add Tag", Category: "Preview", Keys: []any{'t'}, View: PreviewView, Handler: gui.addGlobalTag, Context: PreviewContext},
+		{Name: "Add Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, View: PreviewView, Handler: gui.addInlineTag, Context: PreviewContext, KeyHint: "<c-t>"},
+		{Name: "Remove Tag", Category: "Preview", Keys: []any{'T'}, View: PreviewView, Handler: gui.removeTag, Context: PreviewContext},
+		{Name: "Toggle Bookmark", Category: "Preview", Keys: []any{'b'}, View: PreviewView, Handler: gui.toggleBookmark, Context: PreviewContext},
+		{Name: "Show Info", Category: "Preview", Keys: []any{'s'}, View: PreviewView, Handler: gui.showInfoDialog, Context: PreviewContext},
+		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, View: PreviewView, Handler: gui.openLink, Context: PreviewContext},
 		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, View: PreviewView, Handler: gui.toggleTodo, Context: PreviewContext},
 		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, View: PreviewView, Handler: gui.focusNoteFromPreview, Context: PreviewContext},
 		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, View: PreviewView, Handler: gui.previewBack, NoPalette: true},
+
+		// Preview (palette-only)
+		{Name: "Toggle Title", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleTitle)},
+		{Name: "Toggle Global Tags", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleGlobalTags)},
+		{Name: "Toggle Markdown", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleMarkdown)},
+		{Name: "Order Cards", Category: "Preview", Context: PreviewContext, OnRun: gui.orderCards},
 
 		// Search Filter
 		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, View: SearchFilterView, Handler: gui.clearSearch, Context: SearchFilterContext},

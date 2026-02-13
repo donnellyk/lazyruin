@@ -105,6 +105,14 @@ type TagsState struct {
 	CurrentTab    TagsTab
 }
 
+// PreviewLink represents a detected link in the preview content.
+type PreviewLink struct {
+	Text string // display text (wiki-link target or URL)
+	Line int    // absolute line number in the rendered preview
+	Col  int    // start column (visible characters, 0-indexed)
+	Len  int    // visible length of the link text
+}
+
 type PreviewState struct {
 	Mode              PreviewMode
 	Cards             []models.Note
@@ -118,6 +126,9 @@ type PreviewState struct {
 	HeaderLines       []int    // absolute line numbers containing markdown headers
 	RenderMarkdown    bool     // true to render markdown with glamour
 	PickResults       []models.PickResult
+	Links             []PreviewLink // detected links in current render
+	HighlightedLink   int           // index into Links; -1 = none
+	TemporarilyMoved  map[int]bool  // card indices temporarily moved
 }
 
 // PaletteCommand represents a single command in the command palette.
@@ -148,7 +159,7 @@ func NewGuiState() *GuiState {
 		},
 		Tags:              &TagsState{CurrentTab: TagsTabAll},
 		Parents:           &ParentsState{},
-		Preview:           &PreviewState{RenderMarkdown: true},
+		Preview:           &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
 		SearchCompletion:  NewCompletionState(),
 		CaptureCompletion: NewCompletionState(),
 		PickCompletion:    NewCompletionState(),

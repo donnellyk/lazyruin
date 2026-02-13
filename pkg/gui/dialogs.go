@@ -138,6 +138,8 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(ConfirmView)
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(MenuView)
+	// Restore focus to the view for the current context
+	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
 }
 
 // createConfirmDialog renders the confirmation dialog
@@ -197,6 +199,29 @@ func (gui *Gui) createInputDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
+// menuEditor handles shortcut key presses in menu dialogs.
+// Keybindings (j/k/arrows/enter/esc) are handled by gocui before reaching
+// the Editor, so this only fires for unbound keys — exactly the shortcut
+// keys displayed on menu items.
+type menuEditor struct {
+	gui *Gui
+}
+
+func (e *menuEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) bool {
+	if ch == 0 || e.gui.state.Dialog == nil {
+		return false
+	}
+	pressed := string(ch)
+	for _, item := range e.gui.state.Dialog.MenuItems {
+		if item.Key == pressed && item.OnRun != nil {
+			e.gui.closeDialog()
+			item.OnRun()
+			return true
+		}
+	}
+	return false
+}
+
 // createMenuDialog renders a navigable menu list overlay
 func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || gui.state.Dialog.Type != "menu" {
@@ -252,6 +277,8 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	v.Title = " " + gui.state.Dialog.Title + " "
+	v.Editable = true
+	v.Editor = &menuEditor{gui: gui}
 	if hasActions {
 		v.Footer = fmt.Sprintf("%d of %d", gui.state.Dialog.MenuSelection+1, len(items))
 	} else {

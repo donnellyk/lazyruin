@@ -293,7 +293,10 @@ func (gui *Gui) openInEditor(path string) error {
 		return err
 	}
 
-	gui.refreshAll()
+	gui.refreshTags(false)
+	gui.refreshQueries(false)
+	gui.refreshParents(false)
+	gui.reloadContent()
 	gui.renderAll()
 	return nil
 }

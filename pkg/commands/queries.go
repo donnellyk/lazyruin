@@ -19,8 +19,16 @@ func (q *QueriesCommand) List() ([]models.Query, error) {
 	return unmarshalJSON[[]models.Query](output)
 }
 
-func (q *QueriesCommand) Run(name string) ([]models.Note, error) {
-	output, err := q.ruin.Execute("query", "run", name)
+func (q *QueriesCommand) Run(name string, opts SearchOptions) ([]models.Note, error) {
+	args := []string{"query", "run", name, "--content"}
+	if opts.StripGlobalTags {
+		args = append(args, "--strip-global-tags")
+	}
+	if opts.StripTitle {
+		args = append(args, "--strip-title")
+	}
+
+	output, err := q.ruin.Execute(args...)
 	if err != nil {
 		return nil, err
 	}

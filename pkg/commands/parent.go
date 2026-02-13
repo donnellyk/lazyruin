@@ -46,7 +46,45 @@ func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, error) {
 	}, nil
 }
 
+// Save creates a parent bookmark via `parent save <name> <note>`.
+func (p *ParentCommand) Save(name, noteRef string) error {
+	_, err := p.ruin.Execute("parent", "save", name, noteRef, "--force")
+	return err
+}
+
 func (p *ParentCommand) Delete(name string) error {
 	_, err := p.ruin.Execute("parent", "delete", name, "--force")
 	return err
+}
+
+// ChildInfo represents a child note returned by parent children.
+type ChildInfo struct {
+	UUID  string `json:"uuid"`
+	Title string `json:"title"`
+	Path  string `json:"path"`
+}
+
+// Children returns the children of a note via `parent children`.
+func (p *ParentCommand) Children(noteRef string) ([]ChildInfo, error) {
+	output, err := p.ruin.Execute("parent", "children", noteRef, "--recursive")
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalJSON[[]ChildInfo](output)
+}
+
+// TreeNode represents a node in the parent tree.
+type TreeNode struct {
+	UUID     string     `json:"uuid"`
+	Title    string     `json:"title"`
+	Children []TreeNode `json:"children,omitempty"`
+}
+
+// Tree returns the parent-child tree for a note.
+func (p *ParentCommand) Tree(noteRef string) (*TreeNode, error) {
+	output, err := p.ruin.Execute("parent", "tree", noteRef)
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalJSON[*TreeNode](output)
 }

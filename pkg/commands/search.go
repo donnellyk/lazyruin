@@ -48,6 +48,27 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 	return unmarshalJSON[[]models.Note](output)
 }
 
+// Get fetches a single note by UUID with the given search options.
+func (s *SearchCommand) Get(uuid string, opts SearchOptions) (*models.Note, error) {
+	args := []string{"get", "--uuid", uuid}
+	if opts.IncludeContent {
+		args = append(args, "--content")
+	}
+	if opts.StripGlobalTags {
+		args = append(args, "--strip-global-tags")
+	}
+	if opts.StripTitle {
+		args = append(args, "--strip-title")
+	}
+
+	output, err := s.ruin.Execute(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalJSON[*models.Note](output)
+}
+
 func (s *SearchCommand) Today() ([]models.Note, error) {
 	output, err := s.ruin.Execute("today", "--content")
 	if err != nil {

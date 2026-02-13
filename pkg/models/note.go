@@ -14,6 +14,8 @@ type Note struct {
 	InlineTags []string  `json:"inline_tags"`
 	Created    time.Time `json:"created"`
 	Updated    time.Time `json:"updated"`
+	Parent     string    `json:"parent,omitempty"`
+	Order      *int      `json:"order,omitempty"`
 }
 
 func (n *Note) ShortDate() string {

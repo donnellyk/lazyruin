@@ -1,7 +1,10 @@
 package gui
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
+	"regexp"
 	"strings"
 
 	"kvnd/lazyruin/pkg/models"
@@ -450,6 +453,7 @@ func (gui *Gui) reloadContent() {
 
 // reloadPreviewCards reloads the preview cards based on what generated them
 func (gui *Gui) reloadPreviewCards() {
+	gui.state.Preview.TemporarilyMoved = nil
 	opts := gui.buildSearchOptions()
 
 	// If there's an active search query, reload search results
@@ -464,6 +468,10 @@ func (gui *Gui) reloadPreviewCards() {
 
 	// Otherwise, reload based on previous context
 	switch gui.state.PreviousContext {
+	case NotesContext:
+		// The notes list was already refreshed by reloadContent().
+		// Find the updated note(s) by UUID.
+		gui.reloadPreviewCardsFromNotes()
 	case TagsContext:
 		if len(gui.state.Tags.Items) > 0 {
 			tag := gui.state.Tags.Items[gui.state.Tags.SelectedIndex]
@@ -483,14 +491,34 @@ func (gui *Gui) reloadPreviewCards() {
 			}
 		} else if len(gui.state.Queries.Items) > 0 {
 			query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
-			notes, err := gui.ruinCmd.Queries.Run(query.Name)
+			notes, err := gui.ruinCmd.Queries.Run(query.Name, opts)
 			if err == nil {
 				gui.state.Preview.Cards = notes
 			}
 		}
+	default:
+		gui.reloadPreviewCardsFromNotes()
 	}
 
 	gui.renderPreview()
+}
+
+// reloadPreviewCardsFromNotes re-fetches each preview card by UUID using
+// the current search options (respecting title/tag toggle state).
+func (gui *Gui) reloadPreviewCardsFromNotes() {
+	opts := gui.buildSearchOptions()
+	updated := make([]models.Note, 0, len(gui.state.Preview.Cards))
+	for _, card := range gui.state.Preview.Cards {
+		fresh, err := gui.ruinCmd.Search.Get(card.UUID, opts)
+		if err == nil && fresh != nil {
+			updated = append(updated, *fresh)
+		} else {
+			// Fallback: clear content so buildCardContent reads from disk
+			card.Content = ""
+			updated = append(updated, card)
+		}
+	}
+	gui.state.Preview.Cards = updated
 }
 
 func (gui *Gui) updatePreviewForNotes() {
@@ -581,13 +609,20 @@ func (gui *Gui) moveCard(direction string) error {
 		gui.state.Preview.Cards[idx], gui.state.Preview.Cards[idx+1] = gui.state.Preview.Cards[idx+1], gui.state.Preview.Cards[idx]
 		gui.state.Preview.SelectedCardIndex++
 	}
-	gui.renderPreview()
 
-	// Move cursor to the start of the card's new position
+	if gui.state.Preview.TemporarilyMoved == nil {
+		gui.state.Preview.TemporarilyMoved = make(map[int]bool)
+	}
+	gui.state.Preview.TemporarilyMoved[gui.state.Preview.SelectedCardIndex] = true
+
+	// Render once to compute CardLineRanges for the new order,
+	// then move cursor to the card's new position and render again.
+	gui.renderPreview()
 	newIdx := gui.state.Preview.SelectedCardIndex
 	if newIdx < len(gui.state.Preview.CardLineRanges) {
-		gui.state.Preview.CursorLine = gui.state.Preview.CardLineRanges[newIdx][0]
+		gui.state.Preview.CursorLine = gui.state.Preview.CardLineRanges[newIdx][0] + 1
 	}
+	gui.renderPreview()
 	return nil
 }
 
@@ -749,6 +784,488 @@ func (gui *Gui) writeNoteFile(path, content string, tags, inlineTags []string) e
 	fm.WriteString("---\n")
 
 	return os.WriteFile(path, []byte(fm.String()+content), 0644)
+}
+
+// currentPreviewCard returns the currently selected card, or nil if none.
+func (gui *Gui) currentPreviewCard() *models.Note {
+	idx := gui.state.Preview.SelectedCardIndex
+	if idx >= len(gui.state.Preview.Cards) {
+		return nil
+	}
+	return &gui.state.Preview.Cards[idx]
+}
+
+// resolveSourceLine maps the current visual cursor position to a 1-indexed
+// content line number in the raw source file (after frontmatter). This accounts
+// for title and global-tag lines that may be stripped from note.Content by
+// search options. Returns -1 if the cursor is not on a matchable content line.
+func (gui *Gui) resolveSourceLine(v *gocui.View) int {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return -1
+	}
+	idx := gui.state.Preview.SelectedCardIndex
+	ranges := gui.state.Preview.CardLineRanges
+	if idx >= len(ranges) {
+		return -1
+	}
+
+	// Get the visible text at the cursor
+	cardStart := ranges[idx][0]
+	lineOffset := gui.state.Preview.CursorLine - cardStart - 1 // -1 for separator
+	if lineOffset < 0 {
+		return -1
+	}
+
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+	contentWidth := max(width-2, 10)
+	cardLines := gui.buildCardContent(*card, contentWidth)
+	if lineOffset >= len(cardLines) {
+		return -1
+	}
+	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
+	if visibleLine == "" {
+		return -1
+	}
+
+	// Read the raw file and find the content start (after frontmatter)
+	data, err := os.ReadFile(card.Path)
+	if err != nil {
+		return -1
+	}
+	fileLines := strings.Split(string(data), "\n")
+
+	contentStart := 0
+	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
+		for i := 1; i < len(fileLines); i++ {
+			if strings.TrimSpace(fileLines[i]) == "---" {
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+	// Do NOT skip leading blank lines here — the CLI's --line N counts
+	// every line after the closing --- delimiter, including blanks.
+
+	// Match the visible text against raw file lines
+	for i := contentStart; i < len(fileLines); i++ {
+		if strings.TrimSpace(fileLines[i]) == visibleLine {
+			return i - contentStart + 1 // 1-indexed content line
+		}
+	}
+	return -1
+}
+
+// openCardInEditor opens the currently selected card in $EDITOR.
+func (gui *Gui) openCardInEditor(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	return gui.openInEditor(card.Path)
+}
+
+// appendDone appends " #done" to the current line via note append.
+func (gui *Gui) appendDone(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	lineNum := gui.resolveSourceLine(v)
+	if lineNum < 1 {
+		return nil
+	}
+
+	err := gui.ruinCmd.Note.Append(card.UUID, " #done", lineNum, true)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+
+	gui.reloadContent()
+	return nil
+}
+
+// viewOptionsDialog shows the view options menu (displaced toggles).
+func (gui *Gui) viewOptionsDialog(g *gocui.Gui, v *gocui.View) error {
+	fmLabel := "Show frontmatter"
+	if gui.state.Preview.ShowFrontmatter {
+		fmLabel = "Hide frontmatter"
+	}
+	titleLabel := "Show title"
+	if gui.state.Preview.ShowTitle {
+		titleLabel = "Hide title"
+	}
+	tagsLabel := "Show global tags"
+	if gui.state.Preview.ShowGlobalTags {
+		tagsLabel = "Hide global tags"
+	}
+	mdLabel := "Render markdown"
+	if gui.state.Preview.RenderMarkdown {
+		mdLabel = "Raw markdown"
+	}
+
+	gui.state.Dialog = &DialogState{
+		Active: true,
+		Type:   "menu",
+		Title:  "View Options",
+		MenuItems: []MenuItem{
+			{Label: fmLabel, Key: "f", OnRun: func() error { return gui.toggleFrontmatter(nil, nil) }},
+			{Label: titleLabel, Key: "t", OnRun: func() error { return gui.toggleTitle(nil, nil) }},
+			{Label: tagsLabel, Key: "T", OnRun: func() error { return gui.toggleGlobalTags(nil, nil) }},
+			{Label: mdLabel, Key: "M", OnRun: func() error { return gui.toggleMarkdown(nil, nil) }},
+		},
+		MenuSelection: 0,
+	}
+	return nil
+}
+
+// setParentDialog prompts for a parent note to set on the current card.
+func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	gui.showInput("Set Parent", "Parent (title, UUID, or bookmark):", func(input string) error {
+		if input == "" {
+			return nil
+		}
+		err := gui.ruinCmd.Note.SetParent(card.UUID, input)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		gui.reloadContent()
+		return nil
+	})
+	return nil
+}
+
+// removeParent removes the parent from the current card.
+func (gui *Gui) removeParent(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	err := gui.ruinCmd.Note.RemoveParent(card.UUID)
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+	gui.reloadContent()
+	return nil
+}
+
+// addGlobalTag prompts for a tag name and adds it as a global tag.
+func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	gui.showInput("Add Tag", "Tag name:", func(input string) error {
+		if input == "" {
+			return nil
+		}
+		err := gui.ruinCmd.Note.AddTag(card.UUID, input)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		gui.reloadContent()
+		gui.refreshTags(false)
+		return nil
+	})
+	return nil
+}
+
+// addInlineTag prompts for a tag and appends it to the current line.
+func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	lineNum := gui.resolveSourceLine(v)
+	if lineNum < 1 {
+		return nil
+	}
+	gui.showInput("Add Inline Tag", "Tag name:", func(input string) error {
+		if input == "" {
+			return nil
+		}
+		tag := input
+		if !strings.HasPrefix(tag, "#") {
+			tag = "#" + tag
+		}
+		err := gui.ruinCmd.Note.Append(card.UUID, " "+tag, lineNum, true)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		gui.reloadContent()
+		gui.refreshTags(false)
+		return nil
+	})
+	return nil
+}
+
+// removeTag shows a menu of tags on the current card to remove.
+func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	allTags := append(card.Tags, card.InlineTags...)
+	if len(allTags) == 0 {
+		return nil
+	}
+	var items []MenuItem
+	for _, tag := range allTags {
+		items = append(items, MenuItem{
+			Label: tag,
+			OnRun: func() error {
+				err := gui.ruinCmd.Note.RemoveTag(card.UUID, tag)
+				if err != nil {
+					gui.showError(err)
+					return nil
+				}
+				gui.reloadContent()
+				gui.refreshTags(false)
+				return nil
+			},
+		})
+	}
+	gui.state.Dialog = &DialogState{
+		Active:        true,
+		Type:          "menu",
+		Title:         "Remove Tag",
+		MenuItems:     items,
+		MenuSelection: 0,
+	}
+	return nil
+}
+
+// toggleBookmark toggles a parent bookmark for the current card.
+func (gui *Gui) toggleBookmark(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	// Check if a bookmark already exists for this note
+	bookmarks, err := gui.ruinCmd.Parent.List()
+	if err == nil {
+		for _, bm := range bookmarks {
+			if bm.UUID == card.UUID {
+				// Remove existing bookmark
+				gui.ruinCmd.Parent.Delete(bm.Name)
+				gui.refreshParents(false)
+				return nil
+			}
+		}
+	}
+	// No bookmark exists — prompt for a name
+	defaultName := card.Title
+	if defaultName == "" {
+		defaultName = card.UUID[:8]
+	}
+	gui.showInput("Save Bookmark", "Bookmark name:", func(input string) error {
+		if input == "" {
+			return nil
+		}
+		err := gui.ruinCmd.Parent.Save(input, card.UUID)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		gui.refreshParents(false)
+		return nil
+	})
+	return nil
+}
+
+// showInfoDialog shows parent structure / TOC for the current card.
+func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+
+	var items []MenuItem
+	items = append(items, MenuItem{Label: "Info: " + card.Title, IsHeader: true})
+
+	if card.Parent != "" {
+		items = append(items, MenuItem{Label: "Parent: " + card.Parent})
+	}
+	if card.Order != nil {
+		items = append(items, MenuItem{Label: fmt.Sprintf("Order: %d", *card.Order)})
+	}
+
+	// Show children
+	children, err := gui.ruinCmd.Parent.Children(card.UUID)
+	if err == nil && len(children) > 0 {
+		items = append(items, MenuItem{})
+		items = append(items, MenuItem{Label: "Children", IsHeader: true})
+		for _, child := range children {
+			items = append(items, MenuItem{Label: child.Title})
+		}
+	}
+
+	// TOC from headers
+	if len(gui.state.Preview.HeaderLines) > 0 {
+		items = append(items, MenuItem{})
+		items = append(items, MenuItem{Label: "Headers", IsHeader: true})
+		for _, hLine := range gui.state.Preview.HeaderLines {
+			// Find the text at this line
+			idx := gui.state.Preview.SelectedCardIndex
+			if idx < len(gui.state.Preview.CardLineRanges) {
+				ranges := gui.state.Preview.CardLineRanges[idx]
+				if hLine >= ranges[0] && hLine < ranges[1] {
+					items = append(items, MenuItem{Label: fmt.Sprintf("L%d", hLine)})
+				}
+			}
+		}
+	}
+
+	gui.state.Dialog = &DialogState{
+		Active:        true,
+		Type:          "menu",
+		Title:         "Info",
+		MenuItems:     items,
+		MenuSelection: 0,
+	}
+	return nil
+}
+
+
+// orderCards persists the current card order to frontmatter order fields.
+func (gui *Gui) orderCards() error {
+	for i, card := range gui.state.Preview.Cards {
+		if err := gui.ruinCmd.Note.SetOrder(card.UUID, i+1); err != nil {
+			gui.showError(err)
+			return nil
+		}
+	}
+	gui.state.Preview.TemporarilyMoved = nil
+	gui.reloadContent()
+	return nil
+}
+
+// extractLinks parses the preview content for wiki-links ([[...]]) and URLs.
+func (gui *Gui) extractLinks() {
+	gui.state.Preview.Links = nil
+	v := gui.views.Preview
+	if v == nil {
+		return
+	}
+
+	lines := v.ViewBufferLines()
+	wikiRe := regexp.MustCompile(`\[\[([^\]]+)\]\]`)
+	urlRe := regexp.MustCompile(`https?://[^\s)\]>]+`)
+
+	for lineNum, line := range lines {
+		plain := stripAnsi(line)
+		for _, match := range wikiRe.FindAllStringIndex(plain, -1) {
+			text := plain[match[0]:match[1]]
+			gui.state.Preview.Links = append(gui.state.Preview.Links, PreviewLink{
+				Text: text,
+				Line: lineNum,
+				Col:  match[0],
+				Len:  match[1] - match[0],
+			})
+		}
+		for _, match := range urlRe.FindAllStringIndex(plain, -1) {
+			text := plain[match[0]:match[1]]
+			gui.state.Preview.Links = append(gui.state.Preview.Links, PreviewLink{
+				Text: text,
+				Line: lineNum,
+				Col:  match[0],
+				Len:  match[1] - match[0],
+			})
+		}
+	}
+}
+
+// highlightNextLink cycles to the next link (l).
+func (gui *Gui) highlightNextLink(g *gocui.Gui, v *gocui.View) error {
+	gui.extractLinks()
+	links := gui.state.Preview.Links
+	if len(links) == 0 {
+		return nil
+	}
+	cur := gui.state.Preview.HighlightedLink
+	next := cur + 1
+	if next >= len(links) {
+		next = 0
+	}
+	gui.state.Preview.HighlightedLink = next
+	// Move cursor to the link's line
+	gui.state.Preview.CursorLine = links[next].Line
+	gui.syncCardIndexFromCursor()
+	gui.renderPreview()
+	return nil
+}
+
+// highlightPrevLink cycles to the previous link (L).
+func (gui *Gui) highlightPrevLink(g *gocui.Gui, v *gocui.View) error {
+	gui.extractLinks()
+	links := gui.state.Preview.Links
+	if len(links) == 0 {
+		return nil
+	}
+	cur := gui.state.Preview.HighlightedLink
+	prev := cur - 1
+	if prev < 0 {
+		prev = len(links) - 1
+	}
+	gui.state.Preview.HighlightedLink = prev
+	gui.state.Preview.CursorLine = links[prev].Line
+	gui.syncCardIndexFromCursor()
+	gui.renderPreview()
+	return nil
+}
+
+// openLink opens the currently highlighted link.
+func (gui *Gui) openLink(g *gocui.Gui, v *gocui.View) error {
+	links := gui.state.Preview.Links
+	hl := gui.state.Preview.HighlightedLink
+	if hl < 0 || hl >= len(links) {
+		return nil
+	}
+	link := links[hl]
+	text := link.Text
+
+	// Wiki-link: strip [[ and ]]
+	if strings.HasPrefix(text, "[[") && strings.HasSuffix(text, "]]") {
+		target := text[2 : len(text)-2]
+		// Strip header fragment
+		if i := strings.Index(target, "#"); i >= 0 {
+			target = target[:i]
+		}
+		// Search for the note and view in preview
+		opts := gui.buildSearchOptions()
+		notes, err := gui.ruinCmd.Search.Search(target, opts)
+		if err == nil && len(notes) > 0 {
+			gui.state.Preview.Mode = PreviewModeCardList
+			gui.state.Preview.Cards = notes[:1]
+			gui.state.Preview.SelectedCardIndex = 0
+			gui.state.Preview.CursorLine = 1
+			gui.state.Preview.ScrollOffset = 0
+			gui.state.Preview.HighlightedLink = -1
+			if gui.views.Preview != nil {
+				gui.views.Preview.Title = " " + notes[0].Title + " "
+			}
+			gui.renderPreview()
+		}
+		return nil
+	}
+
+	// URL: open in browser
+	if strings.HasPrefix(text, "http://") || strings.HasPrefix(text, "https://") {
+		exec.Command("open", text).Start()
+	}
+	return nil
 }
 
 // updatePreviewCardList is a shared helper for updating the preview with a card list.
