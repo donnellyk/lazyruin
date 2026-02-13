@@ -1441,21 +1441,23 @@ func (gui *Gui) openLink(g *gocui.Gui, v *gocui.View) error {
 		if i := strings.Index(target, "#"); i >= 0 {
 			target = target[:i]
 		}
-		// Search for the note and view in preview
-		opts := gui.buildSearchOptions()
-		notes, err := gui.ruinCmd.Search.Search(target, opts)
-		if err == nil && len(notes) > 0 {
-			gui.state.Preview.Mode = PreviewModeCardList
-			gui.state.Preview.Cards = notes[:1]
-			gui.state.Preview.SelectedCardIndex = 0
-			gui.state.Preview.CursorLine = 1
-			gui.state.Preview.ScrollOffset = 0
-			gui.state.Preview.HighlightedLink = -1
-			if gui.views.Preview != nil {
-				gui.views.Preview.Title = " " + notes[0].Title + " "
-			}
-			gui.renderPreview()
+		if target == "" {
+			return nil
 		}
+		opts := gui.buildSearchOptions()
+		note, err := gui.ruinCmd.Search.GetByTitle(target, opts)
+		if err != nil || note == nil {
+			return nil
+		}
+		gui.state.Preview.Mode = PreviewModeCardList
+		gui.state.Preview.Cards = []models.Note{*note}
+		gui.state.Preview.SelectedCardIndex = 0
+		gui.state.Preview.CursorLine = 1
+		gui.state.Preview.ScrollOffset = 0
+		if gui.views.Preview != nil {
+			gui.views.Preview.Title = " " + note.Title + " "
+		}
+		gui.renderPreview()
 		return nil
 	}
 

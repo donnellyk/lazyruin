@@ -50,7 +50,16 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 
 // Get fetches a single note by UUID with the given search options.
 func (s *SearchCommand) Get(uuid string, opts SearchOptions) (*models.Note, error) {
-	args := []string{"get", "--uuid", uuid}
+	return s.get([]string{"--uuid", uuid}, opts)
+}
+
+// GetByTitle fetches a single note by title (case-insensitive substring match).
+func (s *SearchCommand) GetByTitle(title string, opts SearchOptions) (*models.Note, error) {
+	return s.get([]string{"--title", title}, opts)
+}
+
+func (s *SearchCommand) get(filter []string, opts SearchOptions) (*models.Note, error) {
+	args := append([]string{"get"}, filter...)
 	if opts.IncludeContent {
 		args = append(args, "--content")
 	}
