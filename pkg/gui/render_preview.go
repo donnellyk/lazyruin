@@ -19,6 +19,13 @@ func (gui *Gui) renderPreview() {
 
 	v.Clear()
 
+	// Snapshot and clear link highlight — it only survives a single render
+	// cycle. highlightNextLink/highlightPrevLink set it right before calling
+	// renderPreview, so it's visible for this render but auto-clears for any
+	// subsequent render triggered by other navigation.
+	gui.state.Preview.renderedLink = gui.state.Preview.HighlightedLink
+	gui.state.Preview.HighlightedLink = -1
+
 	switch gui.state.Preview.Mode {
 	case PreviewModeCardList:
 		gui.renderSeparatorCards(v)
@@ -60,20 +67,76 @@ func isHeaderLine(line string) bool {
 
 // fprintPreviewLine writes a line to the preview view, applying a dim background
 // highlight across the full view width when lineNum matches the current CursorLine.
+// When a link is highlighted (HighlightedLink >= 0), only the link span is highlighted
+// instead of the full line.
 func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highlight bool) {
-	if highlight && lineNum == gui.state.Preview.CursorLine {
-		width, _ := v.InnerSize()
-		pad := width - visibleWidth(line)
-		if pad < 0 {
-			pad = 0
-		}
-		// Re-apply background after every ANSI reset so chroma formatting
-		// doesn't clear our highlight mid-line.
-		patched := strings.ReplaceAll(line, AnsiReset, AnsiReset+AnsiDimBg)
-		fmt.Fprintf(v, "%s%s%s%s\n", AnsiDimBg, patched, strings.Repeat(" ", pad), AnsiReset)
-	} else {
+	if !highlight || lineNum != gui.state.Preview.CursorLine {
 		fmt.Fprintln(v, line)
+		return
 	}
+
+	// Check for link-only highlight (set by renderPreview snapshot)
+	hl := gui.state.Preview.renderedLink
+	if hl >= 0 && hl < len(gui.state.Preview.Links) {
+		link := gui.state.Preview.Links[hl]
+		if link.Line == lineNum {
+			fmt.Fprintln(v, highlightSpan(line, link.Col, link.Len))
+			return
+		}
+	}
+
+	// Full-line highlight
+	width, _ := v.InnerSize()
+	pad := width - visibleWidth(line)
+	if pad < 0 {
+		pad = 0
+	}
+	// Re-apply background after every ANSI reset so chroma formatting
+	// doesn't clear our highlight mid-line.
+	patched := strings.ReplaceAll(line, AnsiReset, AnsiReset+AnsiDimBg)
+	fmt.Fprintf(v, "%s%s%s%s\n", AnsiDimBg, patched, strings.Repeat(" ", pad), AnsiReset)
+}
+
+// highlightSpan applies AnsiDimBg to a span of visible characters in an ANSI-decorated
+// string. col and length are in visible-character units (ignoring ANSI escapes).
+func highlightSpan(line string, col, length int) string {
+	var sb strings.Builder
+	runes := []rune(line)
+	visPos := 0
+	inEsc := false
+	spanStart := col
+	spanEnd := col + length
+
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if inEsc {
+			sb.WriteRune(r)
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+				inEsc = false
+			}
+			continue
+		}
+		if r == '\x1b' {
+			sb.WriteRune(r)
+			inEsc = true
+			continue
+		}
+
+		// Visible character
+		if visPos == spanStart {
+			sb.WriteString(AnsiDimBg)
+		}
+		sb.WriteRune(r)
+		visPos++
+		if visPos == spanEnd {
+			sb.WriteString(AnsiReset)
+		}
+	}
+	// Safety: close highlight if line ended before spanEnd
+	if visPos < spanEnd && visPos >= spanStart {
+		sb.WriteString(AnsiReset)
+	}
+	return sb.String()
 }
 
 // buildCardContent returns the rendered lines for a single card's body content.

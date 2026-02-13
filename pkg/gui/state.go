@@ -130,9 +130,10 @@ type PreviewState struct {
 	HeaderLines       []int    // absolute line numbers containing markdown headers
 	RenderMarkdown    bool     // true to render markdown with glamour
 	PickResults       []models.PickResult
-	Links             []PreviewLink // detected links in current render
-	HighlightedLink   int           // index into Links; -1 = none
-	TemporarilyMoved  map[int]bool  // card indices temporarily moved
+	Links            []PreviewLink // detected links in current render
+	HighlightedLink  int           // index into Links; -1 = none, auto-cleared each render
+	renderedLink     int           // snapshot of HighlightedLink used during current render
+	TemporarilyMoved map[int]bool  // card indices temporarily moved
 }
 
 // InputPopupConfig holds the configuration for the generic input popup with completion.

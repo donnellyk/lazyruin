@@ -91,6 +91,7 @@ func (gui *Gui) previewUp(g *gocui.Gui, v *gocui.View) error {
 
 // previewCardDown jumps to the next card (J).
 func (gui *Gui) previewCardDown(g *gocui.Gui, v *gocui.View) error {
+
 	if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), 1) {
 		ranges := gui.state.Preview.CardLineRanges
 		idx := gui.state.Preview.SelectedCardIndex
@@ -104,6 +105,7 @@ func (gui *Gui) previewCardDown(g *gocui.Gui, v *gocui.View) error {
 
 // previewNextHeader jumps to the next markdown header (]).
 func (gui *Gui) previewNextHeader(g *gocui.Gui, v *gocui.View) error {
+
 	cursor := gui.state.Preview.CursorLine
 	for _, h := range gui.state.Preview.HeaderLines {
 		if h > cursor {
@@ -118,6 +120,7 @@ func (gui *Gui) previewNextHeader(g *gocui.Gui, v *gocui.View) error {
 
 // previewPrevHeader jumps to the previous markdown header ([).
 func (gui *Gui) previewPrevHeader(g *gocui.Gui, v *gocui.View) error {
+
 	cursor := gui.state.Preview.CursorLine
 	for i := len(gui.state.Preview.HeaderLines) - 1; i >= 0; i-- {
 		if gui.state.Preview.HeaderLines[i] < cursor {
@@ -132,6 +135,7 @@ func (gui *Gui) previewPrevHeader(g *gocui.Gui, v *gocui.View) error {
 
 // previewCardUp jumps to the previous card (K).
 func (gui *Gui) previewCardUp(g *gocui.Gui, v *gocui.View) error {
+
 	if listMove(&gui.state.Preview.SelectedCardIndex, gui.multiCardCount(), -1) {
 		ranges := gui.state.Preview.CardLineRanges
 		idx := gui.state.Preview.SelectedCardIndex
@@ -359,6 +363,7 @@ func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
+
 	_, cy := v.Cursor()
 	_, oy := v.Origin()
 	absY := cy + oy
@@ -1388,13 +1393,12 @@ func (gui *Gui) highlightNextLink(g *gocui.Gui, v *gocui.View) error {
 	if len(links) == 0 {
 		return nil
 	}
-	cur := gui.state.Preview.HighlightedLink
+	cur := gui.state.Preview.renderedLink
 	next := cur + 1
 	if next >= len(links) {
 		next = 0
 	}
 	gui.state.Preview.HighlightedLink = next
-	// Move cursor to the link's line
 	gui.state.Preview.CursorLine = links[next].Line
 	gui.syncCardIndexFromCursor()
 	gui.renderPreview()
@@ -1408,7 +1412,7 @@ func (gui *Gui) highlightPrevLink(g *gocui.Gui, v *gocui.View) error {
 	if len(links) == 0 {
 		return nil
 	}
-	cur := gui.state.Preview.HighlightedLink
+	cur := gui.state.Preview.renderedLink
 	prev := cur - 1
 	if prev < 0 {
 		prev = len(links) - 1
@@ -1423,7 +1427,7 @@ func (gui *Gui) highlightPrevLink(g *gocui.Gui, v *gocui.View) error {
 // openLink opens the currently highlighted link.
 func (gui *Gui) openLink(g *gocui.Gui, v *gocui.View) error {
 	links := gui.state.Preview.Links
-	hl := gui.state.Preview.HighlightedLink
+	hl := gui.state.Preview.renderedLink
 	if hl < 0 || hl >= len(links) {
 		return nil
 	}
