@@ -582,6 +582,12 @@ func (gui *Gui) moveCard(direction string) error {
 		gui.state.Preview.SelectedCardIndex++
 	}
 	gui.renderPreview()
+
+	// Move cursor to the start of the card's new position
+	newIdx := gui.state.Preview.SelectedCardIndex
+	if newIdx < len(gui.state.Preview.CardLineRanges) {
+		gui.state.Preview.CursorLine = gui.state.Preview.CardLineRanges[newIdx][0]
+	}
 	return nil
 }
 
