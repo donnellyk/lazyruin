@@ -16,6 +16,11 @@ func (e *inputPopupEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui
 		return false
 	}
 
+	// Delegate to SimpleEditor for all other input if no triggers
+	if config.Triggers == nil {
+		return gocui.SimpleEditor(v, key, ch, mod)
+	}
+
 	triggers := config.Triggers()
 
 	if state.Active {

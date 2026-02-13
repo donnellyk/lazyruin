@@ -377,7 +377,9 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	if !gui.state.InputPopupSeedDone && config.Seed != "" {
 		gui.state.InputPopupSeedDone = true
 		v.TextArea.TypeString(config.Seed)
-		gui.updateCompletion(v, config.Triggers(), gui.state.InputPopupCompletion)
+		if config.Triggers != nil {
+			gui.updateCompletion(v, config.Triggers(), gui.state.InputPopupCompletion)
+		}
 	}
 
 	v.RenderTextArea()
