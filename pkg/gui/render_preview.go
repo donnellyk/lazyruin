@@ -188,15 +188,28 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		}
 	}
 
-	// Scroll to keep cursor/card visible
+	// Scroll to keep cursor/card visible, including borders when at card edges
 	_, viewHeight := v.InnerSize()
 	originY := gui.state.Preview.ScrollOffset
 	if isActive {
 		cl := gui.state.Preview.CursorLine
-		if cl < originY {
-			originY = cl
-		} else if cl >= originY+viewHeight {
-			originY = cl - viewHeight + 1
+		idx := gui.state.Preview.SelectedCardIndex
+		// If cursor is on the first content line of a card, show the upper separator too
+		showFrom := cl
+		showTo := cl
+		if idx < len(gui.state.Preview.CardLineRanges) {
+			r := gui.state.Preview.CardLineRanges[idx]
+			if cl == r[0]+1 {
+				showFrom = r[0] // include upper separator
+			}
+			if cl == r[1]-2 {
+				showTo = r[1] - 1 // include lower separator
+			}
+		}
+		if showFrom < originY {
+			originY = showFrom
+		} else if showTo >= originY+viewHeight {
+			originY = showTo - viewHeight + 1
 		}
 	} else {
 		if selectedStartLine < originY {
