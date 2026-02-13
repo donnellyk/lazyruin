@@ -75,7 +75,7 @@ func (gui *Gui) commands() []Command {
 		{Name: "Set Parent", Category: "Preview", Keys: []any{'>'}, View: PreviewView, Handler: gui.setParentDialog, Context: PreviewContext},
 		{Name: "Remove Parent", Category: "Preview", Keys: []any{'P'}, View: PreviewView, Handler: gui.removeParent, Context: PreviewContext},
 		{Name: "Add Tag", Category: "Preview", Keys: []any{'t'}, View: PreviewView, Handler: gui.addGlobalTag, Context: PreviewContext},
-		{Name: "Add Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, View: PreviewView, Handler: gui.addInlineTag, Context: PreviewContext, KeyHint: "<c-t>"},
+		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, View: PreviewView, Handler: gui.toggleInlineTag, Context: PreviewContext, KeyHint: "<c-t>"},
 		{Name: "Remove Tag", Category: "Preview", Keys: []any{'T'}, View: PreviewView, Handler: gui.removeTag, Context: PreviewContext},
 		{Name: "Toggle Bookmark", Category: "Preview", Keys: []any{'b'}, View: PreviewView, Handler: gui.toggleBookmark, Context: PreviewContext},
 		{Name: "Show Info", Category: "Preview", Keys: []any{'s'}, View: PreviewView, Handler: gui.showInfoDialog, Context: PreviewContext},

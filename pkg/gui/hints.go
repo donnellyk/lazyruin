@@ -103,7 +103,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"M", "Merge notes"},
 				{"t", "Add tag"},
 				{"T", "Remove tag"},
-				{"<c-t>", "Add inline tag"},
+				{"<c-t>", "Toggle inline tag"},
 				{">", "Set parent"},
 				{"P", "Remove parent"},
 				{"b", "Toggle bookmark"},

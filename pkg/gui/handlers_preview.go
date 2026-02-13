@@ -1068,8 +1068,37 @@ func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// addInlineTag opens the input popup to add an inline tag at the current line.
-func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
+// inlineTagRe matches #tag patterns (hashtag followed by word characters).
+var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
+
+// readSourceLine reads the raw source file and returns the content line at
+// the given 1-indexed content line number (after frontmatter). Returns ""
+// and the file lines if the line is out of range.
+func readSourceLine(path string, lineNum int) (string, []string, int) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", nil, 0
+	}
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := 0
+	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
+		for i := 1; i < len(fileLines); i++ {
+			if strings.TrimSpace(fileLines[i]) == "---" {
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+	absIdx := contentStart + lineNum - 1
+	if absIdx < 0 || absIdx >= len(fileLines) {
+		return "", fileLines, contentStart
+	}
+	return fileLines[absIdx], fileLines, contentStart
+}
+
+// toggleInlineTag opens the input popup to add or remove an inline tag on the cursor line.
+// If the selected tag already appears on the line, it is removed; otherwise it is appended.
+func (gui *Gui) toggleInlineTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return nil
@@ -1078,13 +1107,33 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 	if lineNum < 1 {
 		return nil
 	}
+
+	// Read the source line to detect existing inline tags
+	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	existingTags := make(map[string]bool)
+	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
+		existingTags[strings.ToLower(m)] = true
+	}
+
 	uuid := card.UUID
 	gui.openInputPopup(&InputPopupConfig{
-		Title:  "Add Inline Tag",
+		Title:  "Toggle Inline Tag",
 		Footer: " # for tags | Tab: accept | Esc: cancel ",
 		Seed:   "#",
 		Triggers: func() []CompletionTrigger {
-			return []CompletionTrigger{{Prefix: "#", Candidates: gui.tagCandidates}}
+			return []CompletionTrigger{{Prefix: "#", Candidates: func(filter string) []CompletionItem {
+				items := gui.tagCandidates(filter)
+				var onLine, rest []CompletionItem
+				for _, item := range items {
+					if existingTags[strings.ToLower(item.Label)] {
+						item.Detail = "*"
+						onLine = append(onLine, item)
+					} else {
+						rest = append(rest, item)
+					}
+				}
+				return append(onLine, rest...)
+			}}}
 		},
 		OnAccept: func(_ string, item *CompletionItem) error {
 			tag := ""
@@ -1097,10 +1146,19 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 			if !strings.HasPrefix(tag, "#") {
 				tag = "#" + tag
 			}
-			err := gui.ruinCmd.Note.Append(uuid, " "+tag, lineNum, true)
-			if err != nil {
-				gui.showError(err)
-				return nil
+
+			if existingTags[strings.ToLower(tag)] {
+				// Remove: strip the tag from the source line
+				if err := gui.removeInlineTagFromLine(card.Path, lineNum, tag); err != nil {
+					gui.showError(err)
+					return nil
+				}
+			} else {
+				// Add: append tag to end of line
+				if err := gui.ruinCmd.Note.Append(uuid, " "+tag, lineNum, true); err != nil {
+					gui.showError(err)
+					return nil
+				}
 			}
 			gui.reloadContent()
 			gui.refreshTags(false)
@@ -1108,6 +1166,35 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 		},
 	})
 	return nil
+}
+
+// removeInlineTagFromLine removes a specific #tag from a content line in a note file.
+func (gui *Gui) removeInlineTagFromLine(path string, lineNum int, tag string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := 0
+	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
+		for i := 1; i < len(fileLines); i++ {
+			if strings.TrimSpace(fileLines[i]) == "---" {
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+	absIdx := contentStart + lineNum - 1
+	if absIdx < 0 || absIdx >= len(fileLines) {
+		return nil
+	}
+
+	// Remove the tag (with optional leading space) case-insensitively
+	line := fileLines[absIdx]
+	re := regexp.MustCompile(`(?i)\s*` + regexp.QuoteMeta(tag))
+	fileLines[absIdx] = re.ReplaceAllString(line, "")
+
+	return os.WriteFile(path, []byte(strings.Join(fileLines, "\n")), 0644)
 }
 
 // removeTag opens the input popup showing only the current card's tags.
@@ -1172,17 +1259,23 @@ func (gui *Gui) toggleBookmark(g *gocui.Gui, v *gocui.View) error {
 	if defaultName == "" {
 		defaultName = card.UUID[:8]
 	}
-	gui.showInput("Save Bookmark", "Bookmark name:", func(input string) error {
-		if input == "" {
+	cardUUID := card.UUID
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Save Bookmark",
+		Footer: " Enter: save | Esc: cancel ",
+		Seed:   defaultName,
+		OnAccept: func(raw string, _ *CompletionItem) error {
+			if raw == "" {
+				return nil
+			}
+			err := gui.ruinCmd.Parent.Save(raw, cardUUID)
+			if err != nil {
+				gui.showError(err)
+				return nil
+			}
+			gui.refreshParents(false)
 			return nil
-		}
-		err := gui.ruinCmd.Parent.Save(input, card.UUID)
-		if err != nil {
-			gui.showError(err)
-			return nil
-		}
-		gui.refreshParents(false)
-		return nil
+		},
 	})
 	return nil
 }
