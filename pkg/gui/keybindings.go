@@ -46,6 +46,7 @@ func (gui *Gui) setupKeybindings() error {
 		gui.searchBindings,
 		gui.captureBindings,
 		gui.pickBindings,
+		gui.tagInputBindings,
 		gui.parentInputBindings,
 		gui.paletteBindings,
 	}
@@ -171,6 +172,15 @@ func (gui *Gui) pickBindings() []binding {
 		{v, gocui.KeyEsc, gui.pickEsc},
 		{v, gocui.KeyTab, gui.pickTab},
 		{v, gocui.KeyCtrlA, gui.togglePickAny},
+	}
+}
+
+func (gui *Gui) tagInputBindings() []binding {
+	v := TagInputView
+	return []binding{
+		{v, gocui.KeyEnter, gui.tagInputEnter},
+		{v, gocui.KeyEsc, gui.tagInputEsc},
+		{v, gocui.KeyTab, gui.tagInputTab},
 	}
 }
 

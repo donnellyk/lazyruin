@@ -1020,29 +1020,39 @@ func (gui *Gui) removeParent(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// addGlobalTag prompts for a tag name and adds it as a global tag.
+// openTagInput opens the tag input popup with the given config.
+func (gui *Gui) openTagInput(config *TagInputConfig) {
+	gui.state.TagInputMode = true
+	gui.state.TagInputCompletion = NewCompletionState()
+	gui.state.TagInputSeedHash = true
+	gui.state.TagInputConfig = config
+}
+
+// addGlobalTag opens the tag input popup to add a global tag.
 func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return nil
 	}
-	gui.showInput("Add Tag", "Tag name:", func(input string) error {
-		if input == "" {
+	uuid := card.UUID
+	gui.openTagInput(&TagInputConfig{
+		Title:      "Add Tag",
+		Candidates: gui.tagCandidates,
+		OnAccept: func(tag string) error {
+			err := gui.ruinCmd.Note.AddTag(uuid, tag)
+			if err != nil {
+				gui.showError(err)
+				return nil
+			}
+			gui.reloadContent()
+			gui.refreshTags(false)
 			return nil
-		}
-		err := gui.ruinCmd.Note.AddTag(card.UUID, input)
-		if err != nil {
-			gui.showError(err)
-			return nil
-		}
-		gui.reloadContent()
-		gui.refreshTags(false)
-		return nil
+		},
 	})
 	return nil
 }
 
-// addInlineTag prompts for a tag and appends it to the current line.
+// addInlineTag opens the tag input popup to add an inline tag at the current line.
 func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
@@ -1052,27 +1062,28 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 	if lineNum < 1 {
 		return nil
 	}
-	gui.showInput("Add Inline Tag", "Tag name:", func(input string) error {
-		if input == "" {
+	uuid := card.UUID
+	gui.openTagInput(&TagInputConfig{
+		Title:      "Add Inline Tag",
+		Candidates: gui.tagCandidates,
+		OnAccept: func(tag string) error {
+			if !strings.HasPrefix(tag, "#") {
+				tag = "#" + tag
+			}
+			err := gui.ruinCmd.Note.Append(uuid, " "+tag, lineNum, true)
+			if err != nil {
+				gui.showError(err)
+				return nil
+			}
+			gui.reloadContent()
+			gui.refreshTags(false)
 			return nil
-		}
-		tag := input
-		if !strings.HasPrefix(tag, "#") {
-			tag = "#" + tag
-		}
-		err := gui.ruinCmd.Note.Append(card.UUID, " "+tag, lineNum, true)
-		if err != nil {
-			gui.showError(err)
-			return nil
-		}
-		gui.reloadContent()
-		gui.refreshTags(false)
-		return nil
+		},
 	})
 	return nil
 }
 
-// removeTag shows a menu of tags on the current card to remove.
+// removeTag opens the tag input popup showing only the current card's tags.
 func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
@@ -1082,30 +1093,77 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 	if len(allTags) == 0 {
 		return nil
 	}
-	var items []MenuItem
-	for _, tag := range allTags {
-		items = append(items, MenuItem{
-			Label: tag,
-			OnRun: func() error {
-				err := gui.ruinCmd.Note.RemoveTag(card.UUID, tag)
-				if err != nil {
-					gui.showError(err)
-					return nil
-				}
-				gui.reloadContent()
-				gui.refreshTags(false)
+	uuid := card.UUID
+	gui.openTagInput(&TagInputConfig{
+		Title:      "Remove Tag",
+		Candidates: gui.currentCardTagCandidates,
+		OnAccept: func(tag string) error {
+			err := gui.ruinCmd.Note.RemoveTag(uuid, tag)
+			if err != nil {
+				gui.showError(err)
 				return nil
-			},
-		})
+			}
+			gui.reloadContent()
+			gui.refreshTags(false)
+			return nil
+		},
+	})
+	return nil
+}
+
+// tagInputEnter handles Enter in the tag input popup.
+func (gui *Gui) tagInputEnter(g *gocui.Gui, v *gocui.View) error {
+	state := gui.state.TagInputCompletion
+	config := gui.state.TagInputConfig
+
+	var tag string
+	if state.Active && len(state.Items) > 0 {
+		tag = state.Items[state.SelectedIndex].Label
+	} else {
+		tag = strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 	}
-	gui.state.Dialog = &DialogState{
-		Active:        true,
-		Type:          "menu",
-		Title:         "Remove Tag",
-		MenuItems:     items,
-		MenuSelection: 0,
+
+	if tag == "" {
+		gui.closeTagInput()
+		return nil
+	}
+
+	gui.closeTagInput()
+	if config != nil && config.OnAccept != nil {
+		return config.OnAccept(tag)
 	}
 	return nil
+}
+
+// tagInputTab accepts the current completion in the tag input popup.
+func (gui *Gui) tagInputTab(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.TagInputCompletion.Active && len(gui.state.TagInputCompletion.Items) > 0 {
+		return gui.tagInputEnter(g, v)
+	}
+	return nil
+}
+
+// tagInputEsc cancels the tag input popup.
+func (gui *Gui) tagInputEsc(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.TagInputCompletion.Active {
+		gui.state.TagInputCompletion.Active = false
+		gui.state.TagInputCompletion.Items = nil
+		gui.state.TagInputCompletion.SelectedIndex = 0
+		return nil
+	}
+	gui.closeTagInput()
+	return nil
+}
+
+// closeTagInput closes the tag input popup and restores focus.
+func (gui *Gui) closeTagInput() {
+	gui.state.TagInputMode = false
+	gui.state.TagInputCompletion = NewCompletionState()
+	gui.state.TagInputConfig = nil
+	gui.g.Cursor = false
+	gui.g.DeleteView(TagInputView)
+	gui.g.DeleteView(TagInputSuggestView)
+	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
 }
 
 // toggleBookmark toggles a parent bookmark for the current card.

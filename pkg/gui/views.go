@@ -21,6 +21,8 @@ const (
 	PaletteListView        = "paletteList"
 	ParentInputView        = "parentInput"
 	ParentInputSuggestView = "parentInputSuggest"
+	TagInputView           = "tagInput"
+	TagInputSuggestView    = "tagInputSuggest"
 )
 
 // Views holds references to all views.

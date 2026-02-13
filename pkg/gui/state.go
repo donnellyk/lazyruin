@@ -81,6 +81,10 @@ type GuiState struct {
 	ParentInputCompletion *CompletionState
 	ParentInputTargetUUID string
 	ParentInputSeedGt     bool
+	TagInputMode          bool
+	TagInputCompletion    *CompletionState
+	TagInputSeedHash      bool
+	TagInputConfig        *TagInputConfig
 	Initialized           bool
 	lastWidth             int
 	lastHeight            int
@@ -135,6 +139,13 @@ type PreviewState struct {
 	TemporarilyMoved  map[int]bool  // card indices temporarily moved
 }
 
+// TagInputConfig holds the configuration for the tag input popup.
+type TagInputConfig struct {
+	Title      string
+	Candidates func(string) []CompletionItem
+	OnAccept   func(tag string) error
+}
+
 // PaletteCommand represents a single command in the command palette.
 type PaletteCommand struct {
 	Name     string
@@ -168,6 +179,7 @@ func NewGuiState() *GuiState {
 		CaptureCompletion:     NewCompletionState(),
 		PickCompletion:        NewCompletionState(),
 		ParentInputCompletion: NewCompletionState(),
+		TagInputCompletion:    NewCompletionState(),
 		CurrentContext:        NotesContext,
 	}
 }

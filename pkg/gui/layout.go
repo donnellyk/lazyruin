@@ -98,6 +98,15 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.Pick = nil
 	}
 
+	if gui.state.TagInputMode {
+		if err := gui.createTagInputPopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(TagInputView)
+		g.DeleteView(TagInputSuggestView)
+	}
+
 	if gui.state.ParentInputMode {
 		if err := gui.createParentInputPopup(g, maxX, maxY); err != nil {
 			return err
@@ -336,6 +345,58 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 
 	// Render suggestion dropdown below the search popup
 	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.state.SearchCompletion, x0, y1, width); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gui *Gui) createTagInputPopup(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	height := 3
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY-height)/2 - 2
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(TagInputView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	title := " Tag "
+	if gui.state.TagInputConfig != nil {
+		title = " " + gui.state.TagInputConfig.Title + " "
+	}
+	v.Title = title
+	v.Footer = " # for tags | Tab: accept | Esc: cancel "
+	v.Editable = true
+	v.Wrap = false
+	v.Editor = &tagInputEditor{gui: gui}
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+
+	// Seed "#" on first open so tag suggestions appear immediately
+	if gui.state.TagInputSeedHash {
+		gui.state.TagInputSeedHash = false
+		editor := &tagInputEditor{gui: gui}
+		v.TextArea.TypeString("#")
+		gui.updateCompletion(v, editor.triggers(), gui.state.TagInputCompletion)
+	}
+
+	v.RenderTextArea()
+
+	g.Cursor = true
+	g.SetViewOnTop(TagInputView)
+	g.SetCurrentView(TagInputView)
+
+	// Render suggestion dropdown below
+	if err := gui.renderSuggestionView(g, TagInputSuggestView, gui.state.TagInputCompletion, x0, y1, width); err != nil {
 		return err
 	}
 

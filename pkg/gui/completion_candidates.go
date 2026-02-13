@@ -30,6 +30,32 @@ func (gui *Gui) tagCandidates(filter string) []CompletionItem {
 	return items
 }
 
+// currentCardTagCandidates returns tag completion items limited to tags on the current preview card.
+func (gui *Gui) currentCardTagCandidates(filter string) []CompletionItem {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	filter = strings.ToLower(filter)
+	var items []CompletionItem
+	allTags := append(card.Tags, card.InlineTags...)
+	for _, tag := range allTags {
+		name := tag
+		if !strings.HasPrefix(name, "#") {
+			name = "#" + name
+		}
+		nameWithoutHash := strings.TrimPrefix(name, "#")
+		if filter != "" && !strings.Contains(strings.ToLower(nameWithoutHash), filter) {
+			continue
+		}
+		items = append(items, CompletionItem{
+			Label:      name,
+			InsertText: name,
+		})
+	}
+	return items
+}
+
 // dateShortcuts are the common date values used by created:, updated:, before:, after:.
 var dateShortcuts = []struct {
 	value  string
