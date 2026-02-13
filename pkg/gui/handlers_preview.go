@@ -363,10 +363,18 @@ func (gui *Gui) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) previewClick(g *gocui.Gui, v *gocui.View) error {
-
-	_, cy := v.Cursor()
-	_, oy := v.Origin()
+	cx, cy := v.Cursor()
+	ox, oy := v.Origin()
+	absX := cx + ox
 	absY := cy + oy
+
+	// Check if click lands on a link
+	gui.extractLinks()
+	for _, link := range gui.state.Preview.Links {
+		if link.Line == absY && absX >= link.Col && absX < link.Col+link.Len {
+			return gui.followLink(link)
+		}
+	}
 
 	// Snap click to nearest content line within the card
 	clickLine := absY
@@ -1431,7 +1439,11 @@ func (gui *Gui) openLink(g *gocui.Gui, v *gocui.View) error {
 	if hl < 0 || hl >= len(links) {
 		return nil
 	}
-	link := links[hl]
+	return gui.followLink(links[hl])
+}
+
+// followLink navigates to a wiki-link target or opens a URL in the browser.
+func (gui *Gui) followLink(link PreviewLink) error {
 	text := link.Text
 
 	// Wiki-link: strip [[ and ]]
