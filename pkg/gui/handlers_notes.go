@@ -47,39 +47,18 @@ func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
 	return nil
 }
 
-// loadNotesForCurrentTab loads notes based on the current tab
+// loadNotesForCurrentTab loads notes based on the current tab,
+// resets selection, renders the list, and updates the preview.
 func (gui *Gui) loadNotesForCurrentTab() {
-	var notes []models.Note
-	var err error
-
-	opts := gui.buildSearchOptions()
-	opts.Sort = "created:desc"
-	opts.IncludeContent = true
-	opts.StripTitle = true
-	opts.StripGlobalTags = true
-
-	switch gui.state.Notes.CurrentTab {
-	case NotesTabAll:
-		opts.Limit = 50
-		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
-	case NotesTabToday:
-		notes, err = gui.ruinCmd.Search.Search("created:today", opts)
-	case NotesTabRecent:
-		opts.Limit = 20
-		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)
-	}
-
-	if err == nil {
-		gui.state.Notes.Items = notes
-		gui.state.Notes.SelectedIndex = 0
-	}
-	gui.renderNotes()
-	gui.updateNotesTab()
+	gui.fetchNotesForCurrentTab(false)
 	gui.updatePreviewForNotes()
 }
 
-// loadNotesForCurrentTabPreserve reloads notes without resetting selection or touching preview.
-func (gui *Gui) loadNotesForCurrentTabPreserve() {
+// fetchNotesForCurrentTab loads notes for the current tab and renders the list.
+// If preserve is true, the current selection index is kept; otherwise it resets to 0.
+func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
+	savedIdx := gui.state.Notes.SelectedIndex
+
 	var notes []models.Note
 	var err error
 
@@ -102,8 +81,16 @@ func (gui *Gui) loadNotesForCurrentTabPreserve() {
 
 	if err == nil {
 		gui.state.Notes.Items = notes
+		if preserve && savedIdx < len(notes) {
+			gui.state.Notes.SelectedIndex = savedIdx
+		} else {
+			gui.state.Notes.SelectedIndex = 0
+		}
 	}
+	gui.renderNotes()
+	gui.updateNotesTab()
 }
+
 
 func (gui *Gui) notesPanel() *listPanel {
 	return &listPanel{

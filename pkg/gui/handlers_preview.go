@@ -433,12 +433,7 @@ func (gui *Gui) toggleGlobalTags(g *gocui.Gui, v *gocui.View) error {
 // preserving selection indices and preview mode.
 func (gui *Gui) reloadContent() {
 	// Reload notes for the Notes pane, preserving selection
-	savedNoteIdx := gui.state.Notes.SelectedIndex
-	gui.loadNotesForCurrentTabPreserve()
-	if savedNoteIdx < len(gui.state.Notes.Items) {
-		gui.state.Notes.SelectedIndex = savedNoteIdx
-	}
-	gui.renderNotes()
+	gui.fetchNotesForCurrentTab(true)
 
 	// Reload cards in Preview pane
 	if len(gui.state.Preview.Cards) > 0 {
@@ -705,7 +700,10 @@ func (gui *Gui) executeMerge(direction string) error {
 	// Delete source file
 	os.Remove(source.Path)
 
-	// Remove source from cards
+	// Remove source from cards and clear target content so it re-reads from disk
+	gui.state.Preview.Cards[targetIdx].Content = ""
+	gui.state.Preview.Cards[targetIdx].Tags = mergedTags
+	gui.state.Preview.Cards[targetIdx].InlineTags = mergedInlineTags
 	gui.state.Preview.Cards = append(gui.state.Preview.Cards[:sourceIdx], gui.state.Preview.Cards[sourceIdx+1:]...)
 	if gui.state.Preview.SelectedCardIndex >= len(gui.state.Preview.Cards) {
 		gui.state.Preview.SelectedCardIndex = len(gui.state.Preview.Cards) - 1

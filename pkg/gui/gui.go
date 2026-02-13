@@ -125,16 +125,7 @@ func (gui *Gui) refreshAll() {
 }
 
 func (gui *Gui) refreshNotes(preserve bool) {
-	if preserve {
-		idx := gui.state.Notes.SelectedIndex
-		gui.loadNotesForCurrentTabPreserve()
-		if idx < len(gui.state.Notes.Items) {
-			gui.state.Notes.SelectedIndex = idx
-		}
-		gui.renderNotes()
-	} else {
-		gui.loadNotesForCurrentTab()
-	}
+	gui.fetchNotesForCurrentTab(preserve)
 }
 
 func (gui *Gui) refreshTags(preserve bool) {
