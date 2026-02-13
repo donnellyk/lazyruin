@@ -56,38 +56,34 @@ type CaptureParentInfo struct {
 }
 
 type GuiState struct {
-	Notes                 *NotesState
-	Queries               *QueriesState
-	Tags                  *TagsState
-	Parents               *ParentsState
-	Preview               *PreviewState
-	Dialog                *DialogState
-	CurrentContext        ContextKey
-	PreviousContext       ContextKey
-	SearchQuery           string
-	SearchMode            bool
-	CaptureMode           bool
-	CaptureParent         *CaptureParentInfo
-	SearchCompletion      *CompletionState
-	CaptureCompletion     *CompletionState
-	PickMode              bool
-	PickCompletion        *CompletionState
-	PickQuery             string
-	PickAnyMode           bool
-	PickSeedHash          bool
-	PaletteMode           bool
-	Palette               *PaletteState
-	ParentInputMode       bool
-	ParentInputCompletion *CompletionState
-	ParentInputTargetUUID string
-	ParentInputSeedGt     bool
-	TagInputMode          bool
-	TagInputCompletion    *CompletionState
-	TagInputSeedHash      bool
-	TagInputConfig        *TagInputConfig
-	Initialized           bool
-	lastWidth             int
-	lastHeight            int
+	Notes                *NotesState
+	Queries              *QueriesState
+	Tags                 *TagsState
+	Parents              *ParentsState
+	Preview              *PreviewState
+	Dialog               *DialogState
+	CurrentContext       ContextKey
+	PreviousContext      ContextKey
+	SearchQuery          string
+	SearchMode           bool
+	CaptureMode          bool
+	CaptureParent        *CaptureParentInfo
+	SearchCompletion     *CompletionState
+	CaptureCompletion    *CompletionState
+	PickMode             bool
+	PickCompletion       *CompletionState
+	PickQuery            string
+	PickAnyMode          bool
+	PickSeedHash         bool
+	PaletteMode          bool
+	Palette              *PaletteState
+	InputPopupMode       bool
+	InputPopupCompletion *CompletionState
+	InputPopupSeedDone   bool
+	InputPopupConfig     *InputPopupConfig
+	Initialized          bool
+	lastWidth            int
+	lastHeight           int
 }
 
 type NotesState struct {
@@ -139,11 +135,13 @@ type PreviewState struct {
 	TemporarilyMoved  map[int]bool  // card indices temporarily moved
 }
 
-// TagInputConfig holds the configuration for the tag input popup.
-type TagInputConfig struct {
-	Title      string
-	Candidates func(string) []CompletionItem
-	OnAccept   func(tag string) error
+// InputPopupConfig holds the configuration for the generic input popup with completion.
+type InputPopupConfig struct {
+	Title    string
+	Footer   string
+	Seed     string                                       // pre-filled text (e.g. ">" or "#")
+	Triggers func() []CompletionTrigger                   // provides triggers referencing current completion state
+	OnAccept func(raw string, item *CompletionItem) error // raw text and selected item (nil if none)
 }
 
 // PaletteCommand represents a single command in the command palette.
@@ -172,14 +170,13 @@ func NewGuiState() *GuiState {
 		Queries: &QueriesState{
 			CurrentTab: QueriesTabQueries,
 		},
-		Tags:                  &TagsState{CurrentTab: TagsTabAll},
-		Parents:               &ParentsState{},
-		Preview:               &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
-		SearchCompletion:      NewCompletionState(),
-		CaptureCompletion:     NewCompletionState(),
-		PickCompletion:        NewCompletionState(),
-		ParentInputCompletion: NewCompletionState(),
-		TagInputCompletion:    NewCompletionState(),
-		CurrentContext:        NotesContext,
+		Tags:                 &TagsState{CurrentTab: TagsTabAll},
+		Parents:              &ParentsState{},
+		Preview:              &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
+		SearchCompletion:     NewCompletionState(),
+		CaptureCompletion:    NewCompletionState(),
+		PickCompletion:       NewCompletionState(),
+		InputPopupCompletion: NewCompletionState(),
+		CurrentContext:       NotesContext,
 	}
 }

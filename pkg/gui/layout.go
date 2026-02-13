@@ -98,22 +98,13 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.Pick = nil
 	}
 
-	if gui.state.TagInputMode {
-		if err := gui.createTagInputPopup(g, maxX, maxY); err != nil {
+	if gui.state.InputPopupMode {
+		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
 			return err
 		}
 	} else {
-		g.DeleteView(TagInputView)
-		g.DeleteView(TagInputSuggestView)
-	}
-
-	if gui.state.ParentInputMode {
-		if err := gui.createParentInputPopup(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
-		g.DeleteView(ParentInputView)
-		g.DeleteView(ParentInputSuggestView)
+		g.DeleteView(InputPopupView)
+		g.DeleteView(InputPopupSuggestView)
 	}
 
 	if gui.state.PaletteMode {
@@ -351,59 +342,12 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
-func (gui *Gui) createTagInputPopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-	height := 3
-
-	x0 := (maxX - width) / 2
-	y0 := (maxY-height)/2 - 2
-	x1 := x0 + width
-	y1 := y0 + height
-
-	v, err := g.SetView(TagInputView, x0, y0, x1, y1, 0)
-	if err != nil && err.Error() != "unknown view" {
-		return err
+func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
+	config := gui.state.InputPopupConfig
+	if config == nil {
+		return nil
 	}
 
-	title := " Tag "
-	if gui.state.TagInputConfig != nil {
-		title = " " + gui.state.TagInputConfig.Title + " "
-	}
-	v.Title = title
-	v.Footer = " # for tags | Tab: accept | Esc: cancel "
-	v.Editable = true
-	v.Wrap = false
-	v.Editor = &tagInputEditor{gui: gui}
-	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
-
-	// Seed "#" on first open so tag suggestions appear immediately
-	if gui.state.TagInputSeedHash {
-		gui.state.TagInputSeedHash = false
-		editor := &tagInputEditor{gui: gui}
-		v.TextArea.TypeString("#")
-		gui.updateCompletion(v, editor.triggers(), gui.state.TagInputCompletion)
-	}
-
-	v.RenderTextArea()
-
-	g.Cursor = true
-	g.SetViewOnTop(TagInputView)
-	g.SetCurrentView(TagInputView)
-
-	// Render suggestion dropdown below
-	if err := gui.renderSuggestionView(g, TagInputSuggestView, gui.state.TagInputCompletion, x0, y1, width); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (gui *Gui) createParentInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	width := 60
 	if width > maxX-4 {
 		width = maxX - 4
@@ -415,35 +359,35 @@ func (gui *Gui) createParentInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	x1 := x0 + width
 	y1 := y0 + height
 
-	v, err := g.SetView(ParentInputView, x0, y0, x1, y1, 0)
+	v, err := g.SetView(InputPopupView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
-	v.Title = " Set Parent "
-	v.Footer = " > bookmarks | >> all notes | / drill | Tab: accept | Esc: cancel "
+	v.Title = " " + config.Title + " "
+	v.Footer = config.Footer
 	v.Editable = true
 	v.Wrap = false
-	v.Editor = &parentInputEditor{gui: gui}
+	v.Editor = &inputPopupEditor{gui: gui}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
 
-	// Seed ">" on first open so bookmark completion appears immediately
-	if gui.state.ParentInputSeedGt {
-		gui.state.ParentInputSeedGt = false
-		v.TextArea.TypeString(">")
-		gui.updateCompletion(v, gui.parentInputTriggers(), gui.state.ParentInputCompletion)
+	// Seed text on first open so completion appears immediately
+	if !gui.state.InputPopupSeedDone && config.Seed != "" {
+		gui.state.InputPopupSeedDone = true
+		v.TextArea.TypeString(config.Seed)
+		gui.updateCompletion(v, config.Triggers(), gui.state.InputPopupCompletion)
 	}
 
 	v.RenderTextArea()
 
 	g.Cursor = true
-	g.SetViewOnTop(ParentInputView)
-	g.SetCurrentView(ParentInputView)
+	g.SetViewOnTop(InputPopupView)
+	g.SetCurrentView(InputPopupView)
 
 	// Render suggestion dropdown below
-	if err := gui.renderSuggestionView(g, ParentInputSuggestView, gui.state.ParentInputCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.state.InputPopupCompletion, x0, y1, width); err != nil {
 		return err
 	}
 

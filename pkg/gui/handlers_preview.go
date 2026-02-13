@@ -921,88 +921,101 @@ func (gui *Gui) viewOptionsDialog(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// setParentDialog opens the parent input popup with > / >> completion.
+// openInputPopup opens the generic input popup with the given config.
+func (gui *Gui) openInputPopup(config *InputPopupConfig) {
+	gui.state.InputPopupMode = true
+	gui.state.InputPopupCompletion = NewCompletionState()
+	gui.state.InputPopupSeedDone = false
+	gui.state.InputPopupConfig = config
+}
+
+// inputPopupEnter handles Enter in the input popup.
+func (gui *Gui) inputPopupEnter(g *gocui.Gui, v *gocui.View) error {
+	state := gui.state.InputPopupCompletion
+	config := gui.state.InputPopupConfig
+
+	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+	var item *CompletionItem
+	if state.Active && len(state.Items) > 0 {
+		selected := state.Items[state.SelectedIndex]
+		item = &selected
+	}
+
+	gui.closeInputPopup()
+	if (raw == "" && item == nil) || config == nil || config.OnAccept == nil {
+		return nil
+	}
+	return config.OnAccept(raw, item)
+}
+
+// inputPopupTab accepts the current completion in the input popup.
+func (gui *Gui) inputPopupTab(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.InputPopupCompletion.Active && len(gui.state.InputPopupCompletion.Items) > 0 {
+		return gui.inputPopupEnter(g, v)
+	}
+	return nil
+}
+
+// inputPopupEsc cancels the input popup (first press dismisses suggestions).
+func (gui *Gui) inputPopupEsc(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.InputPopupCompletion.Active {
+		gui.state.InputPopupCompletion.Active = false
+		gui.state.InputPopupCompletion.Items = nil
+		gui.state.InputPopupCompletion.SelectedIndex = 0
+		return nil
+	}
+	gui.closeInputPopup()
+	return nil
+}
+
+// closeInputPopup closes the input popup and restores focus.
+func (gui *Gui) closeInputPopup() {
+	gui.state.InputPopupMode = false
+	gui.state.InputPopupCompletion = NewCompletionState()
+	gui.state.InputPopupConfig = nil
+	gui.g.Cursor = false
+	gui.g.DeleteView(InputPopupView)
+	gui.g.DeleteView(InputPopupSuggestView)
+	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
+}
+
+// setParentDialog opens the input popup with > / >> parent completion.
 func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return nil
 	}
-	gui.state.ParentInputMode = true
-	gui.state.ParentInputCompletion = NewCompletionState()
-	gui.state.ParentInputTargetUUID = card.UUID
-	gui.state.ParentInputSeedGt = true
-	return nil
-}
-
-// parentInputEnter handles Enter in the parent input popup.
-func (gui *Gui) parentInputEnter(g *gocui.Gui, v *gocui.View) error {
-	targetUUID := gui.state.ParentInputTargetUUID
-	state := gui.state.ParentInputCompletion
-
-	if state.Active && len(state.Items) > 0 {
-		// Use the selected completion item
-		item := state.Items[state.SelectedIndex]
-		parentRef := item.Value
-		if parentRef == "" {
-			parentRef = item.Label
-		}
-		gui.closeParentInput()
-		err := gui.ruinCmd.Note.SetParent(targetUUID, parentRef)
-		if err != nil {
-			gui.showError(err)
+	uuid := card.UUID
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Set Parent",
+		Footer: " > bookmarks | >> all notes | / drill | Tab: accept | Esc: cancel ",
+		Seed:   ">",
+		Triggers: func() []CompletionTrigger {
+			return []CompletionTrigger{
+				{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.InputPopupCompletion)},
+			}
+		},
+		OnAccept: func(raw string, item *CompletionItem) error {
+			parentRef := strings.TrimLeft(raw, ">")
+			if item != nil {
+				parentRef = item.Value
+				if parentRef == "" {
+					parentRef = item.Label
+				}
+			}
+			if parentRef == "" {
+				return nil
+			}
+			err := gui.ruinCmd.Note.SetParent(uuid, parentRef)
+			if err != nil {
+				gui.showError(err)
+				return nil
+			}
+			gui.reloadContent()
 			return nil
-		}
-		gui.reloadContent()
-		return nil
-	}
-
-	// No completion active — use raw text
-	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-	raw = strings.TrimLeft(raw, ">")
-	if raw == "" {
-		gui.closeParentInput()
-		return nil
-	}
-	gui.closeParentInput()
-	err := gui.ruinCmd.Note.SetParent(targetUUID, raw)
-	if err != nil {
-		gui.showError(err)
-		return nil
-	}
-	gui.reloadContent()
+		},
+	})
 	return nil
-}
-
-// parentInputTab accepts the current completion in the parent input popup.
-func (gui *Gui) parentInputTab(g *gocui.Gui, v *gocui.View) error {
-	state := gui.state.ParentInputCompletion
-	if state.Active && len(state.Items) > 0 {
-		return gui.parentInputEnter(g, v)
-	}
-	return nil
-}
-
-// parentInputEsc cancels the parent input popup.
-func (gui *Gui) parentInputEsc(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.ParentInputCompletion.Active {
-		gui.state.ParentInputCompletion.Active = false
-		gui.state.ParentInputCompletion.Items = nil
-		gui.state.ParentInputCompletion.SelectedIndex = 0
-		return nil
-	}
-	gui.closeParentInput()
-	return nil
-}
-
-// closeParentInput closes the parent input popup and restores focus.
-func (gui *Gui) closeParentInput() {
-	gui.state.ParentInputMode = false
-	gui.state.ParentInputCompletion = NewCompletionState()
-	gui.state.ParentInputTargetUUID = ""
-	gui.g.Cursor = false
-	gui.g.DeleteView(ParentInputView)
-	gui.g.DeleteView(ParentInputSuggestView)
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
 }
 
 // removeParent removes the parent from the current card.
@@ -1020,25 +1033,28 @@ func (gui *Gui) removeParent(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// openTagInput opens the tag input popup with the given config.
-func (gui *Gui) openTagInput(config *TagInputConfig) {
-	gui.state.TagInputMode = true
-	gui.state.TagInputCompletion = NewCompletionState()
-	gui.state.TagInputSeedHash = true
-	gui.state.TagInputConfig = config
-}
-
-// addGlobalTag opens the tag input popup to add a global tag.
+// addGlobalTag opens the input popup to add a global tag.
 func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return nil
 	}
 	uuid := card.UUID
-	gui.openTagInput(&TagInputConfig{
-		Title:      "Add Tag",
-		Candidates: gui.tagCandidates,
-		OnAccept: func(tag string) error {
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Add Tag",
+		Footer: " # for tags | Tab: accept | Esc: cancel ",
+		Seed:   "#",
+		Triggers: func() []CompletionTrigger {
+			return []CompletionTrigger{{Prefix: "#", Candidates: gui.tagCandidates}}
+		},
+		OnAccept: func(_ string, item *CompletionItem) error {
+			tag := ""
+			if item != nil {
+				tag = item.Label
+			}
+			if tag == "" {
+				return nil
+			}
 			err := gui.ruinCmd.Note.AddTag(uuid, tag)
 			if err != nil {
 				gui.showError(err)
@@ -1052,7 +1068,7 @@ func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// addInlineTag opens the tag input popup to add an inline tag at the current line.
+// addInlineTag opens the input popup to add an inline tag at the current line.
 func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
@@ -1063,10 +1079,21 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 	uuid := card.UUID
-	gui.openTagInput(&TagInputConfig{
-		Title:      "Add Inline Tag",
-		Candidates: gui.tagCandidates,
-		OnAccept: func(tag string) error {
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Add Inline Tag",
+		Footer: " # for tags | Tab: accept | Esc: cancel ",
+		Seed:   "#",
+		Triggers: func() []CompletionTrigger {
+			return []CompletionTrigger{{Prefix: "#", Candidates: gui.tagCandidates}}
+		},
+		OnAccept: func(_ string, item *CompletionItem) error {
+			tag := ""
+			if item != nil {
+				tag = item.Label
+			}
+			if tag == "" {
+				return nil
+			}
 			if !strings.HasPrefix(tag, "#") {
 				tag = "#" + tag
 			}
@@ -1083,7 +1110,7 @@ func (gui *Gui) addInlineTag(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// removeTag opens the tag input popup showing only the current card's tags.
+// removeTag opens the input popup showing only the current card's tags.
 func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 	card := gui.currentPreviewCard()
 	if card == nil {
@@ -1094,10 +1121,21 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 	uuid := card.UUID
-	gui.openTagInput(&TagInputConfig{
-		Title:      "Remove Tag",
-		Candidates: gui.currentCardTagCandidates,
-		OnAccept: func(tag string) error {
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Remove Tag",
+		Footer: " # for tags | Tab: accept | Esc: cancel ",
+		Seed:   "#",
+		Triggers: func() []CompletionTrigger {
+			return []CompletionTrigger{{Prefix: "#", Candidates: gui.currentCardTagCandidates}}
+		},
+		OnAccept: func(_ string, item *CompletionItem) error {
+			tag := ""
+			if item != nil {
+				tag = item.Label
+			}
+			if tag == "" {
+				return nil
+			}
 			err := gui.ruinCmd.Note.RemoveTag(uuid, tag)
 			if err != nil {
 				gui.showError(err)
@@ -1109,61 +1147,6 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 		},
 	})
 	return nil
-}
-
-// tagInputEnter handles Enter in the tag input popup.
-func (gui *Gui) tagInputEnter(g *gocui.Gui, v *gocui.View) error {
-	state := gui.state.TagInputCompletion
-	config := gui.state.TagInputConfig
-
-	var tag string
-	if state.Active && len(state.Items) > 0 {
-		tag = state.Items[state.SelectedIndex].Label
-	} else {
-		tag = strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-	}
-
-	if tag == "" {
-		gui.closeTagInput()
-		return nil
-	}
-
-	gui.closeTagInput()
-	if config != nil && config.OnAccept != nil {
-		return config.OnAccept(tag)
-	}
-	return nil
-}
-
-// tagInputTab accepts the current completion in the tag input popup.
-func (gui *Gui) tagInputTab(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.TagInputCompletion.Active && len(gui.state.TagInputCompletion.Items) > 0 {
-		return gui.tagInputEnter(g, v)
-	}
-	return nil
-}
-
-// tagInputEsc cancels the tag input popup.
-func (gui *Gui) tagInputEsc(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.TagInputCompletion.Active {
-		gui.state.TagInputCompletion.Active = false
-		gui.state.TagInputCompletion.Items = nil
-		gui.state.TagInputCompletion.SelectedIndex = 0
-		return nil
-	}
-	gui.closeTagInput()
-	return nil
-}
-
-// closeTagInput closes the tag input popup and restores focus.
-func (gui *Gui) closeTagInput() {
-	gui.state.TagInputMode = false
-	gui.state.TagInputCompletion = NewCompletionState()
-	gui.state.TagInputConfig = nil
-	gui.g.Cursor = false
-	gui.g.DeleteView(TagInputView)
-	gui.g.DeleteView(TagInputSuggestView)
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
 }
 
 // toggleBookmark toggles a parent bookmark for the current card.

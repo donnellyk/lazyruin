@@ -46,8 +46,7 @@ func (gui *Gui) setupKeybindings() error {
 		gui.searchBindings,
 		gui.captureBindings,
 		gui.pickBindings,
-		gui.tagInputBindings,
-		gui.parentInputBindings,
+		gui.inputPopupBindings,
 		gui.paletteBindings,
 	}
 	for _, fn := range navBindings {
@@ -175,21 +174,12 @@ func (gui *Gui) pickBindings() []binding {
 	}
 }
 
-func (gui *Gui) tagInputBindings() []binding {
-	v := TagInputView
+func (gui *Gui) inputPopupBindings() []binding {
+	v := InputPopupView
 	return []binding{
-		{v, gocui.KeyEnter, gui.tagInputEnter},
-		{v, gocui.KeyEsc, gui.tagInputEsc},
-		{v, gocui.KeyTab, gui.tagInputTab},
-	}
-}
-
-func (gui *Gui) parentInputBindings() []binding {
-	v := ParentInputView
-	return []binding{
-		{v, gocui.KeyEnter, gui.parentInputEnter},
-		{v, gocui.KeyEsc, gui.parentInputEsc},
-		{v, gocui.KeyTab, gui.parentInputTab},
+		{v, gocui.KeyEnter, gui.inputPopupEnter},
+		{v, gocui.KeyEsc, gui.inputPopupEsc},
+		{v, gocui.KeyTab, gui.inputPopupTab},
 	}
 }
 
