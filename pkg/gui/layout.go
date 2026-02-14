@@ -521,13 +521,20 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 		return err
 	}
 	gui.views.Palette = v
-	v.Title = " Command Palette "
 	v.Editable = true
 	v.Wrap = false
 	v.Editor = &paletteEditor{gui: gui}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
+
+	// Start in Command Palette mode; typing ":" switches to Quick Open
+	if !gui.state.PaletteSeedDone {
+		gui.state.PaletteSeedDone = true
+		v.Title = " Command Palette "
+		gui.filterPaletteCommands("")
+	}
+
 	v.RenderTextArea()
 
 	g.Cursor = true

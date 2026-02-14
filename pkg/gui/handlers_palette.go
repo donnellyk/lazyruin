@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -75,6 +76,7 @@ func (gui *Gui) closePalette() {
 	}
 	origin := gui.state.Palette.OriginContext
 	gui.state.PaletteMode = false
+	gui.state.PaletteSeedDone = false
 	gui.state.Palette = nil
 	gui.g.Cursor = false
 	gui.setContext(origin)
@@ -247,5 +249,117 @@ func (gui *Gui) renderPaletteList() {
 		} else {
 			fmt.Fprintf(v, " %s%-*s%s%s\n", AnsiGreen, keyCol, key, AnsiReset, label)
 		}
+	}
+}
+
+// quickOpenItems builds PaletteCommand entries from all navigable items in rank order.
+func (gui *Gui) quickOpenItems() []PaletteCommand {
+	var items []PaletteCommand
+
+	// Saved queries
+	for i, q := range gui.state.Queries.Items {
+		idx := i
+		query := q
+		items = append(items, PaletteCommand{
+			Name:     query.Name,
+			Category: "Query",
+			OnRun: func() error {
+				gui.state.Queries.CurrentTab = QueriesTabQueries
+				gui.state.Queries.SelectedIndex = idx
+				gui.setContext(QueriesContext)
+				gui.renderQueries()
+				return gui.runQuery(nil, nil)
+			},
+		})
+	}
+
+	// Bookmark parents
+	for i := range gui.state.Parents.Items {
+		idx := i
+		items = append(items, PaletteCommand{
+			Name:     gui.state.Parents.Items[idx].Name,
+			Category: "Parent",
+			OnRun: func() error {
+				gui.state.Queries.CurrentTab = QueriesTabParents
+				gui.state.Parents.SelectedIndex = idx
+				gui.setContext(QueriesContext)
+				gui.renderQueries()
+				return gui.viewParent(nil, nil)
+			},
+		})
+	}
+
+	// Tags
+	for _, t := range gui.state.Tags.Items {
+		tag := t
+		name := "#" + tag.Name
+		if slices.Contains(tag.Scope, "inline") {
+			items = append(items, PaletteCommand{
+				Name:     name,
+				Category: "Tag",
+				OnRun: func() error {
+					gui.setContext(TagsContext)
+					return gui.filterByTagPick(&tag)
+				},
+			})
+		} else {
+			items = append(items, PaletteCommand{
+				Name:     name,
+				Category: "Tag",
+				OnRun: func() error {
+					gui.setContext(TagsContext)
+					return gui.filterByTagSearch(&tag)
+				},
+			})
+		}
+	}
+
+	// Notes (deduplicated by title)
+	seen := make(map[string]bool)
+	for i, n := range gui.state.Notes.Items {
+		idx := i
+		if seen[n.Title] {
+			continue
+		}
+		seen[n.Title] = true
+		items = append(items, PaletteCommand{
+			Name:     n.Title,
+			Category: "Note",
+			OnRun: func() error {
+				gui.state.Notes.SelectedIndex = idx
+				gui.setContext(NotesContext)
+				gui.renderNotes()
+				gui.updatePreviewForNotes()
+				return nil
+			},
+		})
+	}
+
+	return items
+}
+
+// filterQuickOpenItems filters Quick Open items by case-insensitive substring match.
+func (gui *Gui) filterQuickOpenItems(filter string) {
+	if gui.state.Palette == nil {
+		return
+	}
+
+	gui.state.Palette.FilterText = filter
+	lower := strings.ToLower(filter)
+
+	var filtered []PaletteCommand
+	for _, item := range gui.quickOpenItems() {
+		if lower == "" ||
+			strings.Contains(strings.ToLower(item.Name), lower) ||
+			strings.Contains(strings.ToLower(item.Category), lower) {
+			filtered = append(filtered, item)
+		}
+	}
+
+	gui.state.Palette.Filtered = filtered
+
+	// Clamp selection
+	if gui.state.Palette.SelectedIndex >= len(gui.state.Palette.Filtered) {
+		gui.state.Palette.SelectedIndex = max(0, len(gui.state.Palette.Filtered)-1)
 	}
 }
