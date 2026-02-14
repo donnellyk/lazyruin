@@ -519,6 +519,10 @@ func (gui *Gui) reloadPreviewCardsFromNotes() {
 	for _, card := range gui.state.Preview.Cards {
 		fresh, err := gui.ruinCmd.Search.Get(card.UUID, opts)
 		if err == nil && fresh != nil {
+			// ruin get doesn't return inline_tags; preserve from original
+			if len(fresh.InlineTags) == 0 && len(card.InlineTags) > 0 {
+				fresh.InlineTags = card.InlineTags
+			}
 			updated = append(updated, *fresh)
 		} else {
 			// Fallback: clear content so buildCardContent reads from disk
