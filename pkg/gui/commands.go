@@ -12,10 +12,10 @@ type Command struct {
 	Name      string                              // palette/hint display name
 	Category  string                              // palette grouping ("Notes", "Global", etc.)
 	Keys      []any                               // gocui keys to bind; nil = palette-only
-	View      string                              // gocui view name; "" = global
+	Views     []string                            // gocui view names to bind; nil = global
 	Handler   func(*gocui.Gui, *gocui.View) error // keybinding handler
 	OnRun     func() error                        // palette-only runner (when Handler is nil)
-	Context   ContextKey                          // palette context filter; "" = always available
+	Contexts  []ContextKey                        // palette context filter; nil = always available
 	KeyHint   string                              // display string ("<c-r>"); auto-derived if empty
 	NoPalette bool                                // true = suppress from command palette
 }
@@ -50,54 +50,50 @@ func (gui *Gui) commands() []Command {
 		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
 
 		// Notes
-		{Name: "View in Preview", Category: "Notes", Keys: []any{gocui.KeyEnter}, View: NotesView, Handler: gui.viewNoteInPreview, Context: NotesContext},
-		{Name: "Open in Editor", Category: "Notes", Keys: []any{'E'}, View: NotesView, Handler: gui.editNote, Context: NotesContext},
-		{Name: "Delete Note", Category: "Notes", Keys: []any{'d'}, View: NotesView, Handler: gui.deleteNote, Context: NotesContext},
-		{Name: "Copy Note Path", Category: "Notes", Keys: []any{'y'}, View: NotesView, Handler: gui.copyNotePath, Context: NotesContext},
-		{Name: "Add Tag", Category: "Notes", Keys: []any{'t'}, View: NotesView, Handler: gui.addGlobalTag, Context: NotesContext},
-		{Name: "Remove Tag", Category: "Notes", Keys: []any{'T'}, View: NotesView, Handler: gui.removeTag, Context: NotesContext},
-		{Name: "Set Parent", Category: "Notes", Keys: []any{'>'}, View: NotesView, Handler: gui.setParentDialog, Context: NotesContext},
-		{Name: "Remove Parent", Category: "Notes", Keys: []any{'P'}, View: NotesView, Handler: gui.removeParent, Context: NotesContext},
-		{Name: "Toggle Bookmark", Category: "Notes", Keys: []any{'b'}, View: NotesView, Handler: gui.toggleBookmark, Context: NotesContext},
-		{Name: "Show Info", Category: "Notes", Keys: []any{'s'}, View: NotesView, Handler: gui.showInfoDialog, Context: NotesContext},
+		{Name: "View in Preview", Category: "Notes", Keys: []any{gocui.KeyEnter}, Views: []string{NotesView}, Handler: gui.viewNoteInPreview, Contexts: []ContextKey{NotesContext}},
+		{Name: "Open in Editor", Category: "Notes", Keys: []any{'E'}, Views: []string{NotesView}, Handler: gui.editNote, Contexts: []ContextKey{NotesContext}},
+		{Name: "Delete Note", Category: "Notes", Keys: []any{'d'}, Views: []string{NotesView}, Handler: gui.deleteNote, Contexts: []ContextKey{NotesContext}},
+		{Name: "Copy Note Path", Category: "Notes", Keys: []any{'y'}, Views: []string{NotesView}, Handler: gui.copyNotePath, Contexts: []ContextKey{NotesContext}},
+
+		// Note Actions (shared Notes + Preview)
+		{Name: "Add Tag", Category: "Note Actions", Keys: []any{'t'}, Views: []string{NotesView, PreviewView}, Handler: gui.addGlobalTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Remove Tag", Category: "Note Actions", Keys: []any{'T'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Set Parent", Category: "Note Actions", Keys: []any{'>'}, Views: []string{NotesView, PreviewView}, Handler: gui.setParentDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Remove Parent", Category: "Note Actions", Keys: []any{'P'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeParent, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{NotesView, PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
 
 		// Tags
-		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, View: TagsView, Handler: gui.filterByTag, Context: TagsContext},
-		{Name: "Rename Tag", Category: "Tags", Keys: []any{'r'}, View: TagsView, Handler: gui.renameTag, Context: TagsContext},
-		{Name: "Delete Tag", Category: "Tags", Keys: []any{'d'}, View: TagsView, Handler: gui.deleteTag, Context: TagsContext},
+		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, Views: []string{TagsView}, Handler: gui.filterByTag, Contexts: []ContextKey{TagsContext}},
+		{Name: "Rename Tag", Category: "Tags", Keys: []any{'r'}, Views: []string{TagsView}, Handler: gui.renameTag, Contexts: []ContextKey{TagsContext}},
+		{Name: "Delete Tag", Category: "Tags", Keys: []any{'d'}, Views: []string{TagsView}, Handler: gui.deleteTag, Contexts: []ContextKey{TagsContext}},
 
 		// Queries
-		{Name: "Run Query", Category: "Queries", Keys: []any{gocui.KeyEnter}, View: QueriesView, Handler: gui.runQuery, Context: QueriesContext},
-		{Name: "Delete Query", Category: "Queries", Keys: []any{'d'}, View: QueriesView, Handler: gui.deleteQuery, Context: QueriesContext},
+		{Name: "Run Query", Category: "Queries", Keys: []any{gocui.KeyEnter}, Views: []string{QueriesView}, Handler: gui.runQuery, Contexts: []ContextKey{QueriesContext}},
+		{Name: "Delete Query", Category: "Queries", Keys: []any{'d'}, Views: []string{QueriesView}, Handler: gui.deleteQuery, Contexts: []ContextKey{QueriesContext}},
 
 		// Preview
-		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, View: PreviewView, Handler: gui.deleteCardFromPreview, Context: PreviewContext},
-		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, View: PreviewView, Handler: gui.openCardInEditor, Context: PreviewContext},
-		{Name: "Append #done", Category: "Preview", Keys: []any{'D'}, View: PreviewView, Handler: gui.appendDone, Context: PreviewContext},
-		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, View: PreviewView, Handler: gui.moveCardHandler, Context: PreviewContext},
-		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, View: PreviewView, Handler: gui.mergeCardHandler, Context: PreviewContext},
-		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, View: PreviewView, Handler: gui.toggleFrontmatter, Context: PreviewContext},
-		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, View: PreviewView, Handler: gui.viewOptionsDialog, Context: PreviewContext},
-		{Name: "Set Parent", Category: "Preview", Keys: []any{'>'}, View: PreviewView, Handler: gui.setParentDialog, Context: PreviewContext},
-		{Name: "Remove Parent", Category: "Preview", Keys: []any{'P'}, View: PreviewView, Handler: gui.removeParent, Context: PreviewContext},
-		{Name: "Add Tag", Category: "Preview", Keys: []any{'t'}, View: PreviewView, Handler: gui.addGlobalTag, Context: PreviewContext},
-		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, View: PreviewView, Handler: gui.toggleInlineTag, Context: PreviewContext, KeyHint: "<c-t>"},
-		{Name: "Remove Tag", Category: "Preview", Keys: []any{'T'}, View: PreviewView, Handler: gui.removeTag, Context: PreviewContext},
-		{Name: "Toggle Bookmark", Category: "Preview", Keys: []any{'b'}, View: PreviewView, Handler: gui.toggleBookmark, Context: PreviewContext},
-		{Name: "Show Info", Category: "Preview", Keys: []any{'s'}, View: PreviewView, Handler: gui.showInfoDialog, Context: PreviewContext},
-		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, View: PreviewView, Handler: gui.openLink, Context: PreviewContext},
-		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, View: PreviewView, Handler: gui.toggleTodo, Context: PreviewContext},
-		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, View: PreviewView, Handler: gui.focusNoteFromPreview, Context: PreviewContext},
-		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, View: PreviewView, Handler: gui.previewBack, NoPalette: true},
+		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, Views: []string{PreviewView}, Handler: gui.deleteCardFromPreview, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, Views: []string{PreviewView}, Handler: gui.openCardInEditor, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Append #done", Category: "Preview", Keys: []any{'D'}, Views: []string{PreviewView}, Handler: gui.appendDone, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, Views: []string{PreviewView}, Handler: gui.moveCardHandler, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, Views: []string{PreviewView}, Handler: gui.mergeCardHandler, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, Views: []string{PreviewView}, Handler: gui.toggleFrontmatter, Contexts: []ContextKey{PreviewContext}},
+		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, Views: []string{PreviewView}, Handler: gui.viewOptionsDialog, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, Views: []string{PreviewView}, Handler: gui.toggleInlineTag, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-t>"},
+		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, Views: []string{PreviewView}, Handler: gui.openLink, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, Views: []string{PreviewView}, Handler: gui.toggleTodo, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, Views: []string{PreviewView}, Handler: gui.focusNoteFromPreview, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, Views: []string{PreviewView}, Handler: gui.previewBack, NoPalette: true},
 
 		// Preview (palette-only)
-		{Name: "Toggle Title", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleTitle)},
-		{Name: "Toggle Global Tags", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleGlobalTags)},
-		{Name: "Toggle Markdown", Category: "Preview", Context: PreviewContext, OnRun: gui.wrap(gui.toggleMarkdown)},
-		{Name: "Order Cards", Category: "Preview", Context: PreviewContext, OnRun: gui.orderCards},
+		{Name: "Toggle Title", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleTitle)},
+		{Name: "Toggle Global Tags", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleGlobalTags)},
+		{Name: "Toggle Markdown", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleMarkdown)},
+		{Name: "Order Cards", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.orderCards},
 
 		// Search Filter
-		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, View: SearchFilterView, Handler: gui.clearSearch, Context: SearchFilterContext},
+		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},
 	}
 }
 

@@ -152,7 +152,7 @@ type PaletteCommand struct {
 	Category string
 	Key      string
 	OnRun    func() error
-	Context  ContextKey // empty = always available
+	Contexts []ContextKey // nil = always available
 }
 
 // PaletteState holds the runtime state of the command palette.

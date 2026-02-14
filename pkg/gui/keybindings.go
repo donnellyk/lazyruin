@@ -26,12 +26,16 @@ func (gui *Gui) setupKeybindings() error {
 			continue
 		}
 		handler := cmd.Handler
-		if cmd.View == "" {
+		views := cmd.Views
+		if views == nil {
+			views = []string{""}
 			handler = gui.suppressDuringDialog(handler)
 		}
-		for _, key := range cmd.Keys {
-			if err := gui.g.SetKeybinding(cmd.View, key, gocui.ModNone, handler); err != nil {
-				return err
+		for _, view := range views {
+			for _, key := range cmd.Keys {
+				if err := gui.g.SetKeybinding(view, key, gocui.ModNone, handler); err != nil {
+					return err
+				}
 			}
 		}
 	}

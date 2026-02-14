@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/jesseduffield/gocui"
@@ -14,7 +16,7 @@ func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
 		Commands: []PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
-			{Name: "Edit Note", Category: "Notes", Context: NotesContext},
+			{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
 		},
 		OriginContext: NotesContext,
 	}
@@ -105,8 +107,8 @@ func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
 	gui := &Gui{state: NewGuiState()}
 	gui.state.Palette = &PaletteState{
 		Commands: []PaletteCommand{
-			{Name: "Delete Tag", Category: "Tags", Context: TagsContext},
-			{Name: "Delete Note", Category: "Notes", Context: NotesContext},
+			{Name: "Delete Tag", Category: "Tags", Contexts: []ContextKey{TagsContext}},
+			{Name: "Delete Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
 			{Name: "Quit", Category: "Global"},
 		},
 		OriginContext: NotesContext,
@@ -157,14 +159,14 @@ func TestIsPaletteCommandAvailable_EmptyContext(t *testing.T) {
 }
 
 func TestIsPaletteCommandAvailable_MatchingContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Context: NotesContext}
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
 	if !isPaletteCommandAvailable(cmd, NotesContext) {
 		t.Error("command should be available when context matches")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MismatchedContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Context: NotesContext}
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
 	if isPaletteCommandAvailable(cmd, TagsContext) {
 		t.Error("command should not be available when context doesn't match")
 	}
@@ -496,43 +498,59 @@ func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
 	cmds := tg.gui.commands()
 	paletteCmds := tg.gui.paletteCommands()
 
-	// Build set of palette command names+contexts
+	// Build set of palette command names+contexts key
 	type key struct {
-		name    string
-		context ContextKey
+		name     string
+		contexts string
+	}
+	contextsKey := func(ctxs []ContextKey) string {
+		sorted := make([]string, len(ctxs))
+		for i, c := range ctxs {
+			sorted[i] = string(c)
+		}
+		sort.Strings(sorted)
+		return strings.Join(sorted, ",")
 	}
 	paletteSet := make(map[key]bool)
 	for _, pc := range paletteCmds {
-		paletteSet[key{pc.Name, pc.Context}] = true
+		paletteSet[key{pc.Name, contextsKey(pc.Contexts)}] = true
 	}
 
 	for _, cmd := range cmds {
 		if cmd.NoPalette || cmd.Name == "" || cmd.Handler == nil || len(cmd.Keys) == 0 {
 			continue
 		}
-		k := key{cmd.Name, cmd.Context}
+		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if !paletteSet[k] {
-			t.Errorf("command %q (context %q) has Keys+Handler but no palette entry", cmd.Name, cmd.Context)
+			t.Errorf("command %q (contexts %q) has Keys+Handler but no palette entry", cmd.Name, cmd.Contexts)
 		}
 	}
 }
 
-func TestCommands_NoDuplicateNameContext(t *testing.T) {
+func TestCommands_NoDuplicateNameContexts(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	type key struct {
-		name    string
-		context ContextKey
+		name     string
+		contexts string
+	}
+	contextsKey := func(ctxs []ContextKey) string {
+		sorted := make([]string, len(ctxs))
+		for i, c := range ctxs {
+			sorted[i] = string(c)
+		}
+		sort.Strings(sorted)
+		return strings.Join(sorted, ",")
 	}
 	seen := make(map[key]bool)
 	for _, cmd := range tg.gui.commands() {
 		if cmd.Name == "" {
 			continue
 		}
-		k := key{cmd.Name, cmd.Context}
+		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if seen[k] {
-			t.Errorf("duplicate command: Name=%q Context=%q", cmd.Name, cmd.Context)
+			t.Errorf("duplicate command: Name=%q Contexts=%q", cmd.Name, cmd.Contexts)
 		}
 		seen[k] = true
 	}

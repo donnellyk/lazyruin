@@ -34,7 +34,7 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 			Category: c.Category,
 			Key:      hint,
 			OnRun:    runner,
-			Context:  c.Context,
+			Contexts: c.Contexts,
 		})
 	}
 	return cmds
@@ -42,10 +42,15 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 
 // isPaletteCommandAvailable checks if a command is available given the origin context.
 func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
-	if cmd.Context == "" {
+	if len(cmd.Contexts) == 0 {
 		return true
 	}
-	return cmd.Context == origin
+	for _, ctx := range cmd.Contexts {
+		if ctx == origin {
+			return true
+		}
+	}
+	return false
 }
 
 // openPalette opens the command palette popup.
