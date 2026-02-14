@@ -66,6 +66,7 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 		} else {
 			gui.acceptCompletion(v, state, gui.captureTriggers())
 		}
+		gui.renderCaptureTextArea(v)
 	}
 	return nil
 }

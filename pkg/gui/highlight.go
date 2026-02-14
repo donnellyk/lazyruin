@@ -2,12 +2,14 @@ package gui
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/jesseduffield/gocui"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -69,6 +71,44 @@ func highlightWikilinks(tokens []chroma.Token) []chroma.Token {
 		result = append(result, splitWikilinks(tok)...)
 	}
 	return result
+}
+
+// renderCaptureTextArea replaces v.RenderTextArea() for the capture view,
+// applying chroma syntax highlighting to the content.
+func (gui *Gui) renderCaptureTextArea(v *gocui.View) {
+	v.Clear()
+	content := v.TextArea.GetContent()
+	fmt.Fprint(v, gui.highlightMarkdown(content))
+
+	cursorX, cursorY := v.TextArea.GetCursorXY()
+	prevOriginX, prevOriginY := v.Origin()
+	width, height := v.InnerWidth(), v.InnerHeight()
+
+	newViewCursorX, newOriginX := captureUpdatedCursorAndOrigin(prevOriginX, width, cursorX)
+	newViewCursorY, newOriginY := captureUpdatedCursorAndOrigin(prevOriginY, height, cursorY)
+
+	v.SetCursor(newViewCursorX, newViewCursorY)
+	v.SetOrigin(newOriginX, newOriginY)
+}
+
+// captureUpdatedCursorAndOrigin computes new view cursor and origin positions.
+// Replicates the unexported gocui updatedCursorAndOrigin function.
+func captureUpdatedCursorAndOrigin(prevOrigin int, size int, cursor int) (int, int) {
+	var newViewCursor int
+	newOrigin := prevOrigin
+	usableSize := size - 1
+
+	if cursor > prevOrigin+usableSize {
+		newOrigin = cursor - usableSize
+		newViewCursor = usableSize
+	} else if cursor < prevOrigin {
+		newOrigin = cursor
+		newViewCursor = 0
+	} else {
+		newViewCursor = cursor - prevOrigin
+	}
+
+	return newViewCursor, newOrigin
 }
 
 // splitWikilinks splits a single token around [[...]] patterns,

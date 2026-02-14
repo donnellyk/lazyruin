@@ -427,7 +427,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
 	gui.updateCaptureFooter()
-	v.RenderTextArea() // ensure view has content so footer renders
+	gui.renderCaptureTextArea(v) // render with syntax highlighting
 
 	g.Cursor = true
 	g.SetViewOnTop(CaptureView)

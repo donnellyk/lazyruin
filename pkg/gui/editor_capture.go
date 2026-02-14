@@ -28,9 +28,11 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 		case gocui.KeyEnter:
 			if isParentCompletion(v, state) {
 				e.gui.acceptParentCompletion(v, state)
+				e.gui.renderCaptureTextArea(v)
 				return true
 			}
 			e.gui.acceptCompletion(v, state, e.gui.captureTriggers())
+			e.gui.renderCaptureTextArea(v)
 			return true
 		case 0: // rune input
 			if (ch == '/' || ch == '#') && isWikiLinkCompletion(v, state) {
@@ -39,6 +41,7 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 			}
 			if ch == '/' && isParentCompletion(v, state) {
 				e.gui.drillParentChild(v, state, e.gui.captureTriggers())
+				e.gui.renderCaptureTextArea(v)
 				return true
 			}
 		}
@@ -60,7 +63,7 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 				// Insert newline + continuation prefix
 				v.TextArea.TypeString("\n" + cont.Prefix)
 			}
-			v.RenderTextArea()
+			e.gui.renderCaptureTextArea(v)
 			e.gui.updateCompletion(v, e.gui.captureTriggers(), state)
 			return true
 		}
@@ -68,6 +71,7 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 
 	// Delegate to SimpleEditor for all other input
 	handled := gocui.SimpleEditor(v, key, ch, mod)
+	e.gui.renderCaptureTextArea(v)
 
 	// After every keystroke, update completion
 	e.gui.updateCompletion(v, e.gui.captureTriggers(), state)
@@ -118,7 +122,7 @@ func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
 	state.Items = nil
 	state.SelectedIndex = 0
 
-	v.RenderTextArea()
+	gui.renderCaptureTextArea(v)
 
 	// Re-run completion — the filter now contains '#', triggering header mode
 	gui.updateCompletion(v, gui.captureTriggers(), state)
