@@ -233,8 +233,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 			currentLine++
 		}
 
-		// Lower separator with tags and date
-		tags := note.TagsString()
+		// Lower separator with global tags and date
+		tags := note.GlobalTagsString()
 		date := note.ShortDate()
 		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected), currentLine, isActive)
 		currentLine++

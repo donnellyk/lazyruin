@@ -36,6 +36,20 @@ func (n *Note) FirstLine() string {
 	return ""
 }
 
+func (n *Note) GlobalTagsString() string {
+	result := ""
+	for i, tag := range n.Tags {
+		if i > 0 {
+			result += ", "
+		}
+		if len(tag) > 0 && tag[0] != '#' {
+			result += "#"
+		}
+		result += tag
+	}
+	return result
+}
+
 func (n *Note) TagsString() string {
 	result := ""
 	for i, tag := range n.Tags {
