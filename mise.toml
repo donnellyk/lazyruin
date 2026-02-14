@@ -19,7 +19,7 @@ run = "go build -o bin/lazyruin . && ./bin/lazyruin --vault {{arg(name='vault')}
 
 [tasks.install]
 description = "Install lazyruin to GOPATH/bin"
-run = "go install ."
+run = "go build -o \"$(go env GOPATH)/bin/lazyruin\" ."
 
 [tasks.test]
 description = "Run unit tests"
