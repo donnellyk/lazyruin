@@ -26,7 +26,16 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 		if c.OnRun != nil {
 			runner = c.OnRun
 		} else if c.Handler != nil {
-			runner = gui.wrap(c.Handler)
+			if len(c.Views) > 0 {
+				h := c.Handler
+				viewName := c.Views[0]
+				runner = func() error {
+					v, _ := gui.g.View(viewName)
+					return h(gui.g, v)
+				}
+			} else {
+				runner = gui.wrap(c.Handler)
+			}
 		}
 
 		cmds = append(cmds, PaletteCommand{

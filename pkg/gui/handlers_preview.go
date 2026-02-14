@@ -815,6 +815,9 @@ func (gui *Gui) currentPreviewCard() *models.Note {
 // for title and global-tag lines that may be stripped from note.Content by
 // search options. Returns -1 if the cursor is not on a matchable content line.
 func (gui *Gui) resolveSourceLine(v *gocui.View) int {
+	if v == nil {
+		return -1
+	}
 	card := gui.currentPreviewCard()
 	if card == nil {
 		return -1
