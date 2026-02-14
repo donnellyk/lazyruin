@@ -19,6 +19,7 @@ func unmarshalJSON[T any](data []byte) (T, error) {
 // RuinCommand wraps the ruin CLI for executing commands.
 type RuinCommand struct {
 	vaultPath string
+	bin       string
 	executor  Executor
 	Search    *SearchCommand
 	Tags      *TagsCommand
@@ -28,10 +29,11 @@ type RuinCommand struct {
 	Note      *NoteCommand
 }
 
-// NewRuinCommand creates a new RuinCommand with the given vault path.
-func NewRuinCommand(vaultPath string) *RuinCommand {
+// NewRuinCommand creates a new RuinCommand with the given vault path and binary.
+func NewRuinCommand(vaultPath, bin string) *RuinCommand {
 	r := &RuinCommand{
 		vaultPath: vaultPath,
+		bin:       bin,
 	}
 	r.Search = NewSearchCommand(r)
 	r.Tags = NewTagsCommand(r)
@@ -68,7 +70,7 @@ func (r *RuinCommand) VaultPath() string {
 // buildCommand creates an exec.Cmd for the ruin CLI with --vault appended.
 func (r *RuinCommand) buildCommand(args ...string) *exec.Cmd {
 	fullArgs := append(args, "--vault", r.vaultPath)
-	return exec.Command("ruin", fullArgs...)
+	return exec.Command(r.bin, fullArgs...)
 }
 
 // CheckVault verifies the vault is accessible, returning an error with details if not.

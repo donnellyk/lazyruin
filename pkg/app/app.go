@@ -21,19 +21,23 @@ type App struct {
 }
 
 // NewApp creates a new application instance.
-// vaultOverride can be empty to use default resolution.
-func NewApp(vaultOverride string) (*App, error) {
+// vaultOverride and ruinBin can be empty to use default resolution.
+func NewApp(vaultOverride, ruinBin string) (*App, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	vaultPath, err := resolveVaultPath(cfg, vaultOverride)
+	if ruinBin == "" {
+		ruinBin = "ruin"
+	}
+
+	vaultPath, err := resolveVaultPath(cfg, vaultOverride, ruinBin)
 	if err != nil {
 		return nil, err
 	}
 
-	ruinCmd := commands.NewRuinCommand(vaultPath)
+	ruinCmd := commands.NewRuinCommand(vaultPath, ruinBin)
 
 	return &App{
 		Config:  cfg,
@@ -67,7 +71,7 @@ func expandPath(path string) string {
 }
 
 // resolveVaultPath determines the vault path from CLI flag, config, env, or ruin CLI.
-func resolveVaultPath(cfg *config.Config, cliOverride string) (string, error) {
+func resolveVaultPath(cfg *config.Config, cliOverride, ruinBin string) (string, error) {
 	// 1. Check CLI flag (highest priority)
 	if cliOverride != "" {
 		return expandPath(cliOverride), nil
@@ -84,7 +88,7 @@ func resolveVaultPath(cfg *config.Config, cliOverride string) (string, error) {
 	}
 
 	// 4. Ask ruin CLI for its configured vault path
-	cmd := exec.Command("ruin", "config", "vault_path")
+	cmd := exec.Command(ruinBin, "config", "vault_path")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", errors.New("could not determine vault path - set LAZYRUIN_VAULT or configure vault_path")
