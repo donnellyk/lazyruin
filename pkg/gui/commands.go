@@ -54,6 +54,12 @@ func (gui *Gui) commands() []Command {
 		{Name: "Open in Editor", Category: "Notes", Keys: []any{'E'}, View: NotesView, Handler: gui.editNote, Context: NotesContext},
 		{Name: "Delete Note", Category: "Notes", Keys: []any{'d'}, View: NotesView, Handler: gui.deleteNote, Context: NotesContext},
 		{Name: "Copy Note Path", Category: "Notes", Keys: []any{'y'}, View: NotesView, Handler: gui.copyNotePath, Context: NotesContext},
+		{Name: "Add Tag", Category: "Notes", Keys: []any{'t'}, View: NotesView, Handler: gui.addGlobalTag, Context: NotesContext},
+		{Name: "Remove Tag", Category: "Notes", Keys: []any{'T'}, View: NotesView, Handler: gui.removeTag, Context: NotesContext},
+		{Name: "Set Parent", Category: "Notes", Keys: []any{'>'}, View: NotesView, Handler: gui.setParentDialog, Context: NotesContext},
+		{Name: "Remove Parent", Category: "Notes", Keys: []any{'P'}, View: NotesView, Handler: gui.removeParent, Context: NotesContext},
+		{Name: "Toggle Bookmark", Category: "Notes", Keys: []any{'b'}, View: NotesView, Handler: gui.toggleBookmark, Context: NotesContext},
+		{Name: "Show Info", Category: "Notes", Keys: []any{'s'}, View: NotesView, Handler: gui.showInfoDialog, Context: NotesContext},
 
 		// Tags
 		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, View: TagsView, Handler: gui.filterByTag, Context: TagsContext},
