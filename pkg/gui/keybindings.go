@@ -51,6 +51,7 @@ func (gui *Gui) setupKeybindings() error {
 		gui.captureBindings,
 		gui.pickBindings,
 		gui.inputPopupBindings,
+		gui.snippetEditorBindings,
 		gui.paletteBindings,
 	}
 	for _, fn := range navBindings {
@@ -184,6 +185,21 @@ func (gui *Gui) inputPopupBindings() []binding {
 		{v, gocui.KeyEnter, gui.inputPopupEnter},
 		{v, gocui.KeyEsc, gui.inputPopupEsc},
 		{v, gocui.KeyTab, gui.inputPopupTab},
+	}
+}
+
+func (gui *Gui) snippetEditorBindings() []binding {
+	nv := SnippetNameView
+	ev := SnippetExpansionView
+	return []binding{
+		{nv, gocui.KeyEsc, gui.snippetEditorEsc},
+		{nv, gocui.KeyTab, gui.snippetEditorTab},
+		{nv, gocui.KeyEnter, gui.snippetEditorTab},
+		{nv, gocui.MouseLeft, gui.snippetEditorClickName},
+		{ev, gocui.KeyEsc, gui.snippetEditorEsc},
+		{ev, gocui.KeyTab, gui.snippetEditorTab},
+		{ev, gocui.KeyEnter, gui.snippetEditorEnter},
+		{ev, gocui.MouseLeft, gui.snippetEditorClickExpansion},
 	}
 }
 

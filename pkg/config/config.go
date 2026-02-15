@@ -9,8 +9,22 @@ import (
 
 // Config holds the application configuration.
 type Config struct {
-	VaultPath   string `yaml:"vault_path"`
-	ChromaTheme string `yaml:"chroma_theme"`
+	VaultPath     string            `yaml:"vault_path"`
+	ChromaTheme   string            `yaml:"chroma_theme"`
+	Abbreviations map[string]string `yaml:"abbreviations,omitempty"`
+}
+
+// Save writes the configuration to the default config file.
+func (cfg *Config) Save() error {
+	configPath := getConfigPath()
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configPath, data, 0o644)
 }
 
 // Load reads the configuration from the default config file.

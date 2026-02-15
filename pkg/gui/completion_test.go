@@ -246,6 +246,39 @@ func TestExtractHeaders(t *testing.T) {
 	}
 }
 
+func TestExtractParentPath(t *testing.T) {
+	tests := []struct {
+		name       string
+		text       string
+		wantRemain string
+		wantPath   string
+	}{
+		{"no parent path", "#ruin, #log", "#ruin, #log", ""},
+		{"parent path only", ">log/daily", "", "log/daily"},
+		{"parent path with text", "#ruin, #log >log/daily", "#ruin, #log", "log/daily"},
+		{"parent path at start", ">projects #work", "#work", "projects"},
+		{"multiple tokens", "#a #b >foo/bar #c", "#a #b #c", "foo/bar"},
+		{"empty text", "", "", ""},
+		{"bare >", ">", ">", ""},
+		{"parent with spaces", ">My Project", "", "My Project"},
+		{"parent with spaces and text", "#ruin >My Project/Daily Log #work", "#ruin #work", "My Project/Daily Log"},
+		{"parent with spaces before hash", "#a >Parent Name #b", "#a #b", "Parent Name"},
+		{"double arrow with spaces", ">>All Notes/My Note", "", "All Notes/My Note"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			remain, path := extractParentPath(tc.text)
+			if remain != tc.wantRemain {
+				t.Errorf("remaining = %q, want %q", remain, tc.wantRemain)
+			}
+			if path != tc.wantPath {
+				t.Errorf("parentPath = %q, want %q", path, tc.wantPath)
+			}
+		})
+	}
+}
+
 func TestNewCompletionState(t *testing.T) {
 	state := NewCompletionState()
 	if state.Active {

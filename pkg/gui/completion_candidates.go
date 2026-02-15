@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
@@ -447,6 +448,37 @@ func (gui *Gui) parentCandidatesFor(completionState *CompletionState) func(strin
 		}
 		return items
 	}
+}
+
+// abbreviationCandidates returns user-defined abbreviation snippets filtered by key.
+func (gui *Gui) abbreviationCandidates(filter string) []CompletionItem {
+	if len(gui.config.Abbreviations) == 0 {
+		return nil
+	}
+	filter = strings.ToLower(filter)
+	keys := make([]string, 0, len(gui.config.Abbreviations))
+	for k := range gui.config.Abbreviations {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var items []CompletionItem
+	for _, k := range keys {
+		if filter != "" && !strings.Contains(strings.ToLower(k), filter) {
+			continue
+		}
+		expansion := gui.config.Abbreviations[k]
+		detail := expansion
+		if len(detail) > 40 {
+			detail = detail[:37] + "..."
+		}
+		items = append(items, CompletionItem{
+			Label:      "!" + k,
+			InsertText: expansion,
+			Detail:     detail,
+		})
+	}
+	return items
 }
 
 // allNoteCandidates returns all notes as parent candidates (for >> mode).

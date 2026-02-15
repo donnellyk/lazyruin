@@ -21,6 +21,9 @@ const (
 	PaletteListView       = "paletteList"
 	InputPopupView        = "inputPopup"
 	InputPopupSuggestView = "inputPopupSuggest"
+	SnippetNameView       = "snippetName"
+	SnippetExpansionView  = "snippetExpansion"
+	SnippetSuggestView    = "snippetSuggest"
 )
 
 // Views holds references to all views.

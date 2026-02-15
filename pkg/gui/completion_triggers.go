@@ -16,6 +16,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 		"path:":    "search path",
 		"parent:":  "parent filter",
 		"sort:":    "sort results",
+		"!":        "abbreviation",
 	}
 	var items []CompletionItem
 	for _, t := range triggers {
@@ -40,6 +41,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 // The "/" trigger shows an overview of all available filter prefixes.
 func (gui *Gui) searchTriggers() []CompletionTrigger {
 	triggers := []CompletionTrigger{
+		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "created:", Candidates: gui.createdCandidates},
 		{Prefix: "updated:", Candidates: gui.updatedCandidates},
@@ -77,6 +79,7 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
+		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.CaptureCompletion)},

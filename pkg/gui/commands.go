@@ -94,6 +94,11 @@ func (gui *Gui) commands() []Command {
 
 		// Search Filter
 		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},
+
+		// Snippets
+		{Name: "List Snippets", Category: "Snippets", OnRun: gui.listSnippets},
+		{Name: "Create Snippet", Category: "Snippets", OnRun: gui.createSnippet},
+		{Name: "Delete Snippet", Category: "Snippets", OnRun: gui.deleteSnippet},
 	}
 }
 

@@ -61,7 +61,9 @@ func (gui *Gui) cancelCapture(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	state := gui.state.CaptureCompletion
 	if state.Active {
-		if isParentCompletion(v, state) {
+		if isAbbreviationCompletion(v, state) {
+			gui.acceptAbbreviationInCapture(v, state)
+		} else if isParentCompletion(v, state) {
 			gui.acceptParentCompletion(v, state)
 		} else {
 			gui.acceptCompletion(v, state, gui.captureTriggers())

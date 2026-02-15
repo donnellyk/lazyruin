@@ -109,6 +109,16 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		g.DeleteView(InputPopupSuggestView)
 	}
 
+	if gui.state.SnippetEditorMode {
+		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(SnippetNameView)
+		g.DeleteView(SnippetExpansionView)
+		g.DeleteView(SnippetSuggestView)
+	}
+
 	if gui.state.PaletteMode {
 		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
 			return err
@@ -131,7 +141,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastHeight = maxY
 		g.SetCurrentView(NotesView)
 		gui.refreshAll()
-		gui.renderPreview()
+		gui.updatePreviewForNotes()
 		if gui.QuickCapture {
 			gui.state.CaptureMode = true
 			gui.state.CaptureCompletion = NewCompletionState()
@@ -623,4 +633,81 @@ func (gui *Gui) updateCaptureFooter() {
 		footer = string(runes[:maxLen-1]) + "…"
 	}
 	gui.views.Capture.Footer = footer
+}
+
+func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+
+	nameHeight := 3
+	expansionHeight := 8
+	totalHeight := nameHeight + expansionHeight
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY-totalHeight)/2 - 2
+	if y0 < 0 {
+		y0 = 0
+	}
+	x1 := x0 + width
+
+	// Name field (top)
+	ny1 := y0 + nameHeight
+	nv, nErr := g.SetView(SnippetNameView, x0, y0, x1, ny1, 0)
+	if nErr != nil && nErr.Error() != "unknown view" {
+		return nErr
+	}
+	nv.Title = " Snippet name "
+	nv.Editable = true
+	nv.Wrap = false
+	nv.Editor = gocui.EditorFunc(gocui.SimpleEditor)
+	setRoundedCorners(nv)
+
+	// Expansion field (bottom, directly below name)
+	ey0 := ny1
+	ey1 := ey0 + expansionHeight
+	ev, eErr := g.SetView(SnippetExpansionView, x0, ey0, x1, ey1, 0)
+	if eErr != nil && eErr.Error() != "unknown view" {
+		return eErr
+	}
+	ev.Title = " Expansion "
+	ev.Footer = " # > [[ / Tab: switch | Enter: save "
+	ev.Editable = true
+	ev.Wrap = false
+	ev.Editor = &snippetExpansionEditor{gui: gui}
+	setRoundedCorners(ev)
+
+	// Green frame on focused view, default on other
+	if gui.state.SnippetEditorFocus == 0 {
+		nv.FrameColor = gocui.ColorGreen
+		nv.TitleColor = gocui.ColorGreen
+		ev.FrameColor = gocui.ColorDefault
+		ev.TitleColor = gocui.ColorDefault
+	} else {
+		nv.FrameColor = gocui.ColorDefault
+		nv.TitleColor = gocui.ColorDefault
+		ev.FrameColor = gocui.ColorGreen
+		ev.TitleColor = gocui.ColorGreen
+	}
+
+	nv.RenderTextArea()
+	ev.RenderTextArea()
+
+	g.Cursor = true
+	g.SetViewOnTop(SnippetNameView)
+	g.SetViewOnTop(SnippetExpansionView)
+
+	if gui.state.SnippetEditorFocus == 0 {
+		g.SetCurrentView(SnippetNameView)
+	} else {
+		g.SetCurrentView(SnippetExpansionView)
+	}
+
+	// Suggestion dropdown below expansion view
+	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.state.SnippetEditorCompletion, x0, ey1, width); err != nil {
+		return err
+	}
+
+	return nil
 }

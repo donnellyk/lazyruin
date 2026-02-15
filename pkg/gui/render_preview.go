@@ -233,10 +233,24 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 			currentLine++
 		}
 
-		// Lower separator with global tags and date
-		tags := note.GlobalTagsString()
-		date := note.ShortDate()
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", " "+date+" · "+tags+" ", width, selected), currentLine, isActive)
+		// Lower separator with date, global tags, and parent (if set)
+		var footerParts []string
+		if d := note.ShortDate(); d != "" {
+			footerParts = append(footerParts, d)
+		}
+		if t := note.GlobalTagsString(); t != "" {
+			footerParts = append(footerParts, t)
+		}
+		if note.Parent != "" {
+			if label := gui.resolveParentLabel(note.Parent); label != "" {
+				footerParts = append(footerParts, label)
+			}
+		}
+		rightText := ""
+		if len(footerParts) > 0 {
+			rightText = " " + strings.Join(footerParts, " · ") + " "
+		}
+		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", rightText, width, selected), currentLine, isActive)
 		currentLine++
 
 		gui.state.Preview.CardLineRanges[i][1] = currentLine
@@ -326,6 +340,26 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	sb.WriteString(reset)
 
 	return sb.String()
+}
+
+// resolveParentLabel returns a display name for a parent UUID by checking
+// loaded parent bookmarks, then loaded notes, then falling back to a truncated UUID.
+func (gui *Gui) resolveParentLabel(uuid string) string {
+	for _, bm := range gui.state.Parents.Items {
+		if bm.UUID == uuid {
+			return bm.Name
+		}
+	}
+	for _, note := range gui.state.Notes.Items {
+		if note.UUID == uuid {
+			return note.Title
+		}
+	}
+	// Fallback: show truncated UUID
+	if len(uuid) > 8 {
+		return uuid[:8] + "..."
+	}
+	return uuid
 }
 
 // renderPickResults renders line-level pick results grouped by note title

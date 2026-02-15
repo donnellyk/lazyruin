@@ -26,6 +26,11 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 			completionUp(state)
 			return true
 		case gocui.KeyEnter:
+			if isAbbreviationCompletion(v, state) {
+				e.gui.acceptAbbreviationInCapture(v, state)
+				e.gui.renderCaptureTextArea(v)
+				return true
+			}
 			if isParentCompletion(v, state) {
 				e.gui.acceptParentCompletion(v, state)
 				e.gui.renderCaptureTextArea(v)
