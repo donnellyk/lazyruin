@@ -73,8 +73,9 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 	handled := gocui.SimpleEditor(v, key, ch, mod)
 	e.gui.renderCaptureTextArea(v)
 
-	// After every keystroke, update completion
+	// After every keystroke, update completion and footer
 	e.gui.updateCompletion(v, e.gui.captureTriggers(), state)
+	e.gui.updateCaptureFooter()
 
 	return handled
 }

@@ -2,6 +2,8 @@ package gui
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -397,11 +399,11 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
+	width := 75
 	if width > maxX-4 {
 		width = maxX - 4
 	}
-	height := 15
+	height := 25
 	if height > maxY-4 {
 		height = maxY - 4
 	}
@@ -579,20 +581,39 @@ func (gui *Gui) pickFooter() string {
 	return " # for tags | --any: " + anyLabel + " | <c-a>: toggle | Tab: complete | Esc: cancel "
 }
 
-// updateCaptureFooter sets the capture popup footer to show the selected parent.
+// updateCaptureFooter sets the capture popup footer to show date, tags, and parent.
 func (gui *Gui) updateCaptureFooter() {
 	if gui.views.Capture == nil {
 		return
 	}
-	if gui.state.CaptureParent != nil {
-		footer := " Parent: " + gui.state.CaptureParent.Title + " "
-		maxLen := gui.views.Capture.InnerWidth()
-		if len([]rune(footer)) > maxLen && maxLen > 4 {
-			runes := []rune(footer)
-			footer = string(runes[:maxLen-1]) + "…"
+
+	date := time.Now().Format("Jan 02")
+
+	// Extract inline tags from current capture content
+	content := gui.views.Capture.TextArea.GetContent()
+	tagMatches := inlineTagRe.FindAllString(content, -1)
+	seen := make(map[string]bool)
+	var tags []string
+	for _, t := range tagMatches {
+		if !seen[t] {
+			seen[t] = true
+			tags = append(tags, t)
 		}
-		gui.views.Capture.Footer = footer
-	} else {
-		gui.views.Capture.Footer = ""
 	}
+
+	parts := []string{date}
+	if len(tags) > 0 {
+		parts = append(parts, strings.Join(tags, ", "))
+	}
+	if gui.state.CaptureParent != nil {
+		parts = append(parts, gui.state.CaptureParent.Title)
+	}
+
+	footer := " " + strings.Join(parts, " · ") + " "
+	maxLen := gui.views.Capture.InnerWidth()
+	if len([]rune(footer)) > maxLen && maxLen > 4 {
+		runes := []rune(footer)
+		footer = string(runes[:maxLen-1]) + "…"
+	}
+	gui.views.Capture.Footer = footer
 }
