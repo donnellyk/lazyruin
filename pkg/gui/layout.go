@@ -399,19 +399,26 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 75
-	if width > maxX-4 {
-		width = maxX - 4
+	var x0, y0, x1, y1 int
+	if gui.QuickCapture {
+		x0 = 0
+		y0 = 0
+		x1 = maxX - 1
+		y1 = maxY - 1
+	} else {
+		width := 75
+		if width > maxX-4 {
+			width = maxX - 4
+		}
+		height := 25
+		if height > maxY-4 {
+			height = maxY - 4
+		}
+		x0 = (maxX - width) / 2
+		y0 = (maxY - height) / 2
+		x1 = x0 + width
+		y1 = y0 + height
 	}
-	height := 25
-	if height > maxY-4 {
-		height = maxY - 4
-	}
-
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
 
 	v, err := g.SetView(CaptureView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -444,7 +451,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 			suggestY = y1 // below the popup if cursor is near bottom
 		}
 	}
-	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.state.CaptureCompletion, x0, suggestY, width); err != nil {
+	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.state.CaptureCompletion, x0, suggestY, x1-x0); err != nil {
 		return err
 	}
 
