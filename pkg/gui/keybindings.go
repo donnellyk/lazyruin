@@ -53,6 +53,8 @@ func (gui *Gui) setupKeybindings() error {
 		gui.inputPopupBindings,
 		gui.snippetEditorBindings,
 		gui.paletteBindings,
+		gui.calendarBindings,
+		gui.contribBindings,
 	}
 	for _, fn := range navBindings {
 		bindings := fn()
@@ -212,5 +214,72 @@ func (gui *Gui) paletteBindings() []binding {
 		{v, gocui.KeyEnter, gui.paletteEnter},
 		{v, gocui.KeyEsc, gui.paletteEsc},
 		{lv, gocui.MouseLeft, gui.paletteListClick},
+	}
+}
+
+func (gui *Gui) calendarBindings() []binding {
+	gv := CalendarGridView
+	iv := CalendarInputView
+	nv := CalendarNotesView
+
+	return []binding{
+		// Grid navigation
+		{gv, 'h', gui.calendarGridLeft},
+		{gv, 'l', gui.calendarGridRight},
+		{gv, 'k', gui.calendarGridUp},
+		{gv, 'j', gui.calendarGridDown},
+		{gv, gocui.KeyArrowLeft, gui.calendarGridLeft},
+		{gv, gocui.KeyArrowRight, gui.calendarGridRight},
+		{gv, gocui.KeyArrowUp, gui.calendarGridUp},
+		{gv, gocui.KeyArrowDown, gui.calendarGridDown},
+		{gv, gocui.KeyEnter, gui.calendarGridEnter},
+		{gv, gocui.KeyEsc, gui.calendarEsc},
+		{gv, gocui.KeyTab, gui.calendarTab},
+		{gv, gocui.KeyBacktab, gui.calendarBacktab},
+		{gv, '/', gui.calendarFocusInput},
+		{gv, gocui.MouseLeft, gui.calendarGridClick},
+		// Input view
+		{iv, gocui.KeyEnter, gui.calendarInputEnter},
+		{iv, gocui.KeyEsc, gui.calendarInputEsc},
+		{iv, gocui.KeyTab, gui.calendarTab},
+		{iv, gocui.KeyBacktab, gui.calendarBacktab},
+		{iv, gocui.MouseLeft, gui.calendarInputClick},
+		// Note list navigation
+		{nv, 'j', gui.calendarNoteDown},
+		{nv, 'k', gui.calendarNoteUp},
+		{nv, gocui.KeyArrowDown, gui.calendarNoteDown},
+		{nv, gocui.KeyArrowUp, gui.calendarNoteUp},
+		{nv, gocui.KeyEnter, gui.calendarNoteEnter},
+		{nv, gocui.KeyEsc, gui.calendarEsc},
+		{nv, gocui.KeyTab, gui.calendarTab},
+		{nv, gocui.KeyBacktab, gui.calendarBacktab},
+		{nv, '/', gui.calendarFocusInput},
+	}
+}
+
+func (gui *Gui) contribBindings() []binding {
+	gv := ContribGridView
+	nv := ContribNotesView
+	return []binding{
+		// Grid navigation (h/l = weeks/columns, j/k = days/rows)
+		{gv, 'h', gui.contribGridLeft},
+		{gv, 'l', gui.contribGridRight},
+		{gv, 'k', gui.contribGridUp},
+		{gv, 'j', gui.contribGridDown},
+		{gv, gocui.KeyArrowLeft, gui.contribGridLeft},
+		{gv, gocui.KeyArrowRight, gui.contribGridRight},
+		{gv, gocui.KeyArrowUp, gui.contribGridUp},
+		{gv, gocui.KeyArrowDown, gui.contribGridDown},
+		{gv, gocui.KeyEnter, gui.contribGridEnter},
+		{gv, gocui.KeyEsc, gui.contribEsc},
+		{gv, gocui.KeyTab, gui.contribTab},
+		// Note list navigation
+		{nv, 'j', gui.contribNoteDown},
+		{nv, 'k', gui.contribNoteUp},
+		{nv, gocui.KeyArrowDown, gui.contribNoteDown},
+		{nv, gocui.KeyArrowUp, gui.contribNoteUp},
+		{nv, gocui.KeyEnter, gui.contribNoteEnter},
+		{nv, gocui.KeyEsc, gui.contribEsc},
+		{nv, gocui.KeyTab, gui.contribTab},
 	}
 }

@@ -216,6 +216,8 @@ func globalHints() []contextHint {
 		{"/", "Search"},
 		{"\\", "Pick"},
 		{":", "Command palette"},
+		{"c", "Calendar"},
+		{"C", "Contributions"},
 		{"p", "Focus preview"},
 		{"Tab", "Next panel"},
 		{"<c-r>", "Refresh"},

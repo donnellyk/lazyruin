@@ -24,6 +24,11 @@ const (
 	SnippetNameView       = "snippetName"
 	SnippetExpansionView  = "snippetExpansion"
 	SnippetSuggestView    = "snippetSuggest"
+	CalendarGridView  = "calendarGrid"
+	CalendarInputView = "calendarInput"
+	CalendarNotesView = "calendarNotes"
+	ContribGridView       = "contribGrid"
+	ContribNotesView      = "contribNotes"
 )
 
 // Views holds references to all views.

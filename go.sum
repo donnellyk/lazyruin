@@ -18,6 +18,10 @@ github.com/go-errors/errors v1.0.2 h1:xMxH9j2fNg/L4hLn/4y3M0IUsn0M6Wbu/Uh9QlOfBh
 github.com/go-errors/errors v1.0.2/go.mod h1:psDX2osz5VnTOnFWbDeWwS7yejl+uV3FEWEp4lssFEs=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
+github.com/ijt/go-anytime v1.9.2 h1:DmYgVwUiFPNR+n6c1T5P070tlGATRZG4aYNJs6XDUfU=
+github.com/ijt/go-anytime v1.9.2/go.mod h1:egBT6FhVjNlXNHUN2wTPi6ILCNKXeeXFy04pWJjw/LI=
+github.com/ijt/goparsify v0.0.0-20221203142333-3a5276334b8d h1:LFOmpWrSbtolg0YqYC9hQjj5WSLtRGb6aZ3JAugLfgg=
+github.com/ijt/goparsify v0.0.0-20221203142333-3a5276334b8d/go.mod h1:112TOyA+aruNSUBlyBWlKBdLVYTdhjiO2CKD0j/URSU=
 github.com/jesseduffield/gocui v0.3.1-0.20260128194906-9d8c3cdfac18 h1:+Q17GqvNaGzuvIR1JCdIS0khVjMzdwrhXBBDxnsdN8Y=
 github.com/jesseduffield/gocui v0.3.1-0.20260128194906-9d8c3cdfac18/go.mod h1:lQCd2TvvNXVKFBowy4A7xxZbUp+1KEiGs4j0Q5Zt9gQ=
 github.com/lucasb-eyer/go-colorful v1.3.0 h1:2/yBRLdWBZKrf7gB40FoiKfAWYQ0lqNcbuQwVHXptag=

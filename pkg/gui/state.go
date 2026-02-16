@@ -85,6 +85,10 @@ type GuiState struct {
 	SnippetEditorMode       bool
 	SnippetEditorFocus      int // 0 = name, 1 = expansion
 	SnippetEditorCompletion *CompletionState
+	CalendarMode            bool
+	Calendar                *CalendarState
+	ContribMode             bool
+	Contrib                 *ContribState
 	Initialized             bool
 	lastWidth               int
 	lastHeight              int
@@ -165,6 +169,26 @@ type PaletteState struct {
 	SelectedIndex int
 	FilterText    string
 	OriginContext ContextKey
+}
+
+// CalendarState holds the runtime state of the calendar dialog.
+type CalendarState struct {
+	Year        int
+	Month       int // 1-12
+	SelectedDay int // 1-31
+	Focus       int // 0 = grid, 1 = notes, 2 = input
+	Notes       []models.Note
+	NoteIndex   int
+}
+
+// ContribState holds the runtime state of the contribution chart dialog.
+type ContribState struct {
+	DayCounts    map[string]int // "YYYY-MM-DD" -> count
+	SelectedDate string         // "YYYY-MM-DD"
+	Focus        int            // 0 = grid, 1 = note list
+	Notes        []models.Note
+	NoteIndex    int
+	WeekCount    int // number of weeks displayed
 }
 
 func NewGuiState() *GuiState {

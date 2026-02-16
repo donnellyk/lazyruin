@@ -31,6 +31,8 @@ func (gui *Gui) commands() []Command {
 		{Name: "Refresh", Category: "Global", Keys: []any{gocui.KeyCtrlR}, Handler: gui.refresh},
 		{Name: "Keybindings", Category: "Global", Keys: []any{'?'}, Handler: gui.showHelpHandler},
 		{Name: "Command Palette", Category: "Global", Keys: []any{':'}, Handler: gui.openPalette, NoPalette: true},
+		{Name: "Calendar", Category: "Global", Keys: []any{'c'}, Handler: gui.openCalendar},
+		{Name: "Contributions", Category: "Global", Keys: []any{'C'}, Handler: gui.openContrib},
 
 		// Focus
 		{Name: "Focus Notes", Category: "Focus", Keys: []any{'1'}, Handler: gui.focusNotes},
@@ -109,9 +111,10 @@ func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
 	}
 }
 
-// dialogActive returns true when a dialog is open.
+// dialogActive returns true when a dialog or overlay is open.
 func (gui *Gui) dialogActive() bool {
-	return gui.state.Dialog != nil && gui.state.Dialog.Active
+	return (gui.state.Dialog != nil && gui.state.Dialog.Active) ||
+		gui.state.CalendarMode || gui.state.ContribMode
 }
 
 // suppressDuringDialog wraps a handler to no-op when a dialog is active.

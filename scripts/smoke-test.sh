@@ -320,9 +320,35 @@ sleep 0.2
 assert_not_contains "capture closed" "New Note"
 
 # =============================================
-# 18. Resize handling
+# 18. Calendar dialog
 # =============================================
-echo "[18] Resize"
+echo "[18] Calendar"
+send 1
+sleep 0.2
+send c
+sleep 0.5
+assert_contains "calendar open" "Su Mo Tu We Th Fr Sa"
+send Escape
+sleep 0.2
+assert_not_contains "calendar closed" "Su Mo Tu We Th Fr Sa"
+
+# =============================================
+# 19. Contributions dialog
+# =============================================
+echo "[19] Contributions"
+send 1
+sleep 0.2
+send C
+sleep 0.5
+assert_contains "contrib open" "Contributions"
+send Escape
+sleep 0.2
+assert_not_contains "contrib closed" "Contributions"
+
+# =============================================
+# 20. Resize handling
+# =============================================
+echo "[20] Resize"
 tmux resize-pane -t "$SESSION" -x 80 -y 24
 sleep 0.5
 TOTAL=$((TOTAL + 1))

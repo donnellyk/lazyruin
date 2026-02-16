@@ -131,6 +131,25 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.views.PaletteList = nil
 	}
 
+	if gui.state.CalendarMode {
+		if err := gui.createCalendarViews(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(CalendarGridView)
+		g.DeleteView(CalendarInputView)
+		g.DeleteView(CalendarNotesView)
+	}
+
+	if gui.state.ContribMode {
+		if err := gui.createContribViews(g, maxX, maxY); err != nil {
+			return err
+		}
+	} else {
+		g.DeleteView(ContribGridView)
+		g.DeleteView(ContribNotesView)
+	}
+
 	// Render any active dialogs
 	if err := gui.renderDialogs(g, maxX, maxY); err != nil {
 		return err
