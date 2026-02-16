@@ -131,6 +131,114 @@ func ambientDateCandidatesAt(token string, now time.Time) []CompletionItem {
 	}
 }
 
+// atDateCandidates returns completion items for the @ trigger, resolving natural
+// language dates to ISO format. Used in both capture and search popups.
+func atDateCandidates(filter string) []CompletionItem {
+	return atDateCandidatesAt(filter, time.Now())
+}
+
+// atDateSuggestions are natural-language date strings that go-anytime can parse.
+// Grouped by prefix for compact filtering.
+var atDateSuggestions = []string{
+	"today", "yesterday", "tomorrow",
+	"monday", "tuesday", "wednesday", "thursday",
+	"friday", "saturday", "sunday",
+	"next monday", "next tuesday", "next wednesday", "next thursday",
+	"next friday", "next saturday", "next sunday",
+	"last monday", "last tuesday", "last wednesday", "last thursday",
+	"last friday", "last saturday", "last sunday",
+	"next week", "last week",
+	"next month", "last month",
+	"january", "february", "march", "april", "may", "june",
+	"july", "august", "september", "october", "november", "december",
+	"next year", "last year",
+}
+
+// daysOfNextWeek returns "next sunday" through "next saturday" for expanding "next week".
+var daysOfNextWeek = []string{
+	"next sunday", "next monday", "next tuesday", "next wednesday",
+	"next thursday", "next friday", "next saturday",
+}
+
+// atDateCandidatesAt is the testable core of atDateCandidates.
+func atDateCandidatesAt(filter string, now time.Time) []CompletionItem {
+	filterLower := strings.ToLower(filter)
+
+	// "next week" / "last week" → expand to individual days
+	if filterLower == "next week" || filterLower == "last week" {
+		prefix := strings.SplitN(filterLower, " ", 2)[0] // "next" or "last"
+		var items []CompletionItem
+		for _, day := range daysOfNextWeek {
+			s := prefix + day[4:] // "next" + " sunday", etc.
+			items = append(items, atSuggestionItem(s, now))
+		}
+		return items
+	}
+
+	// Filter suggestions by prefix match
+	var items []CompletionItem
+	for _, s := range atDateSuggestions {
+		if filterLower != "" && !strings.HasPrefix(s, filterLower) {
+			continue
+		}
+		items = append(items, atSuggestionItem(s, now))
+	}
+
+	// If nothing matched from suggestions, try US date formats then anytime
+	if len(items) == 0 && filter != "" {
+		if parsed, ok := parseUSDate(filter); ok {
+			iso := parsed.Format("2006-01-02")
+			items = append(items, CompletionItem{
+				Label:      "@" + iso,
+				InsertText: "@" + iso,
+				Detail:     parsed.Format("Mon, Jan 02"),
+			})
+		} else if parsed, err := anytime.Parse(filter, now); err == nil {
+			iso := parsed.Format("2006-01-02")
+			items = append(items, CompletionItem{
+				Label:      "@" + iso,
+				InsertText: "@" + iso,
+				Detail:     parsed.Format("Mon, Jan 02"),
+			})
+		}
+	}
+
+	return items
+}
+
+// parseUSDate tries MM/DD/YYYY and MM/DD/YY formats, returning the parsed time.
+func parseUSDate(s string) (time.Time, bool) {
+	for _, layout := range []string{"1/2/2006", "1/2/06"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+// cliNativeDates are the keywords the ruin CLI handles directly; all other
+// suggestions must be resolved to @YYYY-MM-DD before insertion.
+var cliNativeDates = map[string]bool{"today": true, "yesterday": true, "tomorrow": true}
+
+// atSuggestionItem builds a CompletionItem for a natural-language date string,
+// resolving it via go-anytime for the detail preview. CLI-native keywords
+// (today/yesterday/tomorrow) insert as-is; everything else inserts as @ISO date.
+func atSuggestionItem(s string, now time.Time) CompletionItem {
+	parsed, err := anytime.Parse(s, now)
+	if err != nil {
+		return CompletionItem{Label: "@" + s, InsertText: "@" + s}
+	}
+	insert := "@" + s
+	if !cliNativeDates[s] {
+		insert = "@" + parsed.Format("2006-01-02")
+	}
+	return CompletionItem{
+		Label:      "@" + s,
+		InsertText: insert,
+		Detail:     parsed.Format("Mon, Jan 02"),
+	}
+}
+
 // isDateLiteral returns true if s exactly matches a supported literal keyword.
 func isDateLiteral(s string) bool {
 	for _, lit := range dateLiterals {

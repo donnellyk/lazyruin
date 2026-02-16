@@ -44,7 +44,7 @@ func (gui *Gui) highlightMarkdown(content string) string {
 		return content
 	}
 
-	tokens := highlightWikilinks(iter.Tokens())
+	tokens := highlightAtDates(highlightWikilinks(iter.Tokens()))
 
 	var buf bytes.Buffer
 	if err := formatter.Format(&buf, style, chroma.Literator(tokens...)); err != nil {
@@ -109,6 +109,32 @@ func captureUpdatedCursorAndOrigin(prevOrigin int, size int, cursor int) (int, i
 	}
 
 	return newViewCursor, newOrigin
+}
+
+// highlightAtDates merges adjacent tokens that form @date patterns.
+// Chroma tokenizes "@2026-02-16" as NameEntity("@2026") + Text("-02-16"),
+// splitting the date across two colors. This merges them into a single NameTag.
+func highlightAtDates(tokens []chroma.Token) []chroma.Token {
+	var result []chroma.Token
+	for i := 0; i < len(tokens); i++ {
+		tok := tokens[i]
+		// Look for NameEntity starting with @ followed by digits (e.g. "@2026")
+		// and a subsequent text token with the date remainder (e.g. "-02-16")
+		if tok.Type == chroma.NameEntity && strings.HasPrefix(tok.Value, "@") &&
+			i+1 < len(tokens) && strings.HasPrefix(tokens[i+1].Value, "-") {
+			combined := tok.Value + tokens[i+1].Value
+			// Split on newline in case the next token includes trailing text
+			datePart, rest, _ := strings.Cut(combined, "\n")
+			result = append(result, chroma.Token{Type: chroma.NameTag, Value: datePart})
+			if rest != "" {
+				result = append(result, chroma.Token{Type: chroma.Text, Value: "\n" + rest})
+			}
+			i++ // skip the merged token
+			continue
+		}
+		result = append(result, tok)
+	}
+	return result
 }
 
 // splitWikilinks splits a single token around [[...]] patterns,

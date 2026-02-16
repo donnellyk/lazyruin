@@ -16,6 +16,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 		"path:":    "search path",
 		"parent:":  "parent filter",
 		"sort:":    "sort results",
+		"@":        "insert date",
 		"!":        "abbreviation",
 	}
 	var items []CompletionItem
@@ -43,6 +44,7 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 	triggers := []CompletionTrigger{
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "@", Candidates: atDateCandidates},
 		{Prefix: "created:", Candidates: gui.createdCandidates},
 		{Prefix: "updated:", Candidates: gui.updatedCandidates},
 		{Prefix: "before:", Candidates: gui.beforeCandidates},
@@ -82,6 +84,7 @@ func (gui *Gui) captureTriggers() []CompletionTrigger {
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "@", Candidates: atDateCandidates},
 		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.CaptureCompletion)},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}

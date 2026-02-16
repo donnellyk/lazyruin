@@ -73,6 +73,25 @@ func extractTokenAtCursor(content string, cursorPos int) (string, int) {
 	return content[start:cursorPos], start
 }
 
+// lineContainsAt returns true if the current line (determined by cursorPos)
+// contains an '@' character. Used to scope ambient date fallback.
+func lineContainsAt(content string, cursorPos int) bool {
+	cp := cursorPos
+	if cp > len(content) {
+		cp = len(content)
+	}
+	// Find line start
+	lineStart := strings.LastIndex(content[:cp], "\n") + 1
+	// Find line end
+	lineEnd := strings.Index(content[cp:], "\n")
+	if lineEnd == -1 {
+		lineEnd = len(content)
+	} else {
+		lineEnd += cp
+	}
+	return strings.Contains(content[lineStart:lineEnd], "@")
+}
+
 // detectTrigger checks if the token at the cursor matches any trigger prefix.
 // Returns the matching trigger and the filter text (portion after the prefix), or nil.
 // As a fallback, scans backward for unclosed [[ to support bracket-style triggers
@@ -105,7 +124,7 @@ func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) 
 
 	// Fallback: scan backward for date-style prefixes whose filter may contain spaces
 	// (e.g. "created:next week", "before:last monday")
-	datePrefixes := []string{"created:", "updated:", "before:", "after:", "between:"}
+	datePrefixes := []string{"created:", "updated:", "before:", "after:", "between:", "@"}
 	for _, dp := range datePrefixes {
 		for i := cp - 1; i >= 0; i-- {
 			ch := content[i]
@@ -173,10 +192,12 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []CompletionTrigger, st
 		}
 	}
 
-	// Fallback: ambient candidates (e.g. date parsing) when no trigger matched
+	// Fallback: ambient candidates (e.g. date parsing) when no trigger matched.
+	// Only activates when @ appears on the current line, scoping suggestions
+	// to contexts where the user has signaled date intent.
 	if state.FallbackCandidates != nil {
 		token, tStart := extractTokenAtCursor(content, cursorPos)
-		if token != "" {
+		if token != "" && lineContainsAt(content, cursorPos) {
 			if items := state.FallbackCandidates(token); len(items) > 0 {
 				state.Active = true
 				state.TriggerStart = tStart

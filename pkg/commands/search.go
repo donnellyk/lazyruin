@@ -11,6 +11,7 @@ type SearchOptions struct {
 	IncludeContent  bool
 	StripGlobalTags bool
 	StripTitle      bool
+	Everything      bool
 }
 
 type SearchCommand struct {
@@ -22,7 +23,10 @@ func NewSearchCommand(ruin *RuinCommand) *SearchCommand {
 }
 
 func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note, error) {
-	args := []string{"search", query}
+	args := []string{"search"}
+	if query != "" {
+		args = append(args, query)
+	}
 
 	if opts.Sort != "" {
 		args = append(args, "-s", opts.Sort)
@@ -38,6 +42,9 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 	}
 	if opts.StripTitle {
 		args = append(args, "--strip-title")
+	}
+	if opts.Everything {
+		args = append(args, "--everything")
 	}
 
 	output, err := s.ruin.Execute(args...)

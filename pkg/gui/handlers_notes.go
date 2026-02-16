@@ -72,6 +72,7 @@ func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
 	switch gui.state.Notes.CurrentTab {
 	case NotesTabAll:
 		opts.Limit = 50
+		opts.Everything = true
 		notes, err = gui.ruinCmd.Search.Search("", opts)
 	case NotesTabToday:
 		notes, err = gui.ruinCmd.Search.Search("created:today", opts)

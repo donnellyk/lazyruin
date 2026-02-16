@@ -289,6 +289,7 @@ func TestDetectTrigger_SpaceAwareDates(t *testing.T) {
 		{Prefix: "before:", Candidates: func(filter string) []CompletionItem { return nil }},
 		{Prefix: "after:", Candidates: func(filter string) []CompletionItem { return nil }},
 		{Prefix: "between:", Candidates: func(filter string) []CompletionItem { return nil }},
+		{Prefix: "@", Candidates: func(filter string) []CompletionItem { return nil }},
 	}
 
 	tests := []struct {
@@ -305,6 +306,10 @@ func TestDetectTrigger_SpaceAwareDates(t *testing.T) {
 		{"between with spaces", "between:last week", 17, "between:", "last week"},
 		// Single-word still works via extractTokenAtCursor (no fallback needed)
 		{"created single word", "created:today", 13, "created:", "today"},
+		// @ trigger with spaces
+		{"at with spaces", "@next friday", 12, "@", "next friday"},
+		{"at with spaces after text", "meeting @last monday", 20, "@", "last monday"},
+		{"at single word", "@today", 6, "@", "today"},
 	}
 
 	for _, tc := range tests {
@@ -383,6 +388,83 @@ func TestBetweenCandidates(t *testing.T) {
 	}
 	if items[0].InsertText == "" {
 		t.Error("expected non-empty InsertText for anytime parse")
+	}
+}
+
+func TestAtDateCandidates(t *testing.T) {
+	now := time.Date(2026, 2, 16, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		filter     string
+		wantCount  int
+		wantLabels []string
+		wantInsert []string
+	}{
+		{"empty filter shows all suggestions", "", len(atDateSuggestions),
+			[]string{"@today", "@yesterday", "@tomorrow"}, // check first 3
+			[]string{"@today", "@yesterday", "@tomorrow"}},
+		{"to prefix matches today and tomorrow", "to", 2,
+			[]string{"@today", "@tomorrow"},
+			[]string{"@today", "@tomorrow"}},
+		{"today exact", "today", 1, []string{"@today"}, []string{"@today"}},
+		{"next friday from suggestions", "next friday", 1,
+			[]string{"@next friday"}, []string{"@2026-02-20"}},
+		{"next week expands to 7 days", "next week", 7,
+			[]string{"@next sunday", "@next monday"}, nil},
+		{"last week expands to 7 days", "last week", 7,
+			[]string{"@last sunday", "@last monday"}, nil},
+		{"month name", "jan", 1, []string{"@january"}, []string{"@2027-01-01"}},
+		{"freeform fallback", "3 days ago", 1, nil, nil},
+		{"US date MM/DD/YYYY", "02/20/2026", 1, []string{"@2026-02-20"}, []string{"@2026-02-20"}},
+		{"US date MM/DD/YY", "2/20/26", 1, []string{"@2026-02-20"}, []string{"@2026-02-20"}},
+		{"nonsense returns nothing", "xyzzy123", 0, nil, nil},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			items := atDateCandidatesAt(tc.filter, now)
+			if len(items) != tc.wantCount {
+				labels := make([]string, len(items))
+				for i, it := range items {
+					labels[i] = it.Label
+				}
+				t.Fatalf("got %d items %v, want %d", len(items), labels, tc.wantCount)
+			}
+			for i, wantLabel := range tc.wantLabels {
+				if items[i].Label != wantLabel {
+					t.Errorf("item[%d].Label = %q, want %q", i, items[i].Label, wantLabel)
+				}
+			}
+			for i, wantInsert := range tc.wantInsert {
+				if items[i].InsertText != wantInsert {
+					t.Errorf("item[%d].InsertText = %q, want %q", i, items[i].InsertText, wantInsert)
+				}
+			}
+		})
+	}
+}
+
+func TestLineContainsAt(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		cursor  int
+		want    bool
+	}{
+		{"at on same line", "@friday meeting", 15, true},
+		{"at on previous line", "@friday\nmeeting", 15, false},
+		{"no at", "meeting friday", 14, false},
+		{"at after cursor", "meeting @friday", 7, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := lineContainsAt(tc.content, tc.cursor)
+			if got != tc.want {
+				t.Errorf("lineContainsAt(%q, %d) = %v, want %v", tc.content, tc.cursor, got, tc.want)
+			}
+		})
 	}
 }
 
