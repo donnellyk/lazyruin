@@ -247,9 +247,42 @@ sleep 0.2
 send Escape  # back to notes
 
 # =============================================
-# 13. Run query
+# 13. Add Tag (input popup with completion)
 # =============================================
-echo "[13] Queries"
+echo "[13] Add Tag"
+send 1
+sleep 0.2
+send t  # Add Tag
+sleep 0.5
+assert_contains "add tag popup" "Add Tag"
+assert_contains "tag seed" "#"
+assert_contains "tag footer hint" "Tab: accept"
+send Escape  # dismiss completion
+sleep 0.2
+send Escape  # close popup
+sleep 0.2
+assert_not_contains "tag popup closed" "Add Tag"
+
+# =============================================
+# 14. Set Parent (input popup with completion)
+# =============================================
+echo "[14] Set Parent"
+send 1
+sleep 0.2
+send '>'  # Set Parent
+sleep 0.5
+assert_contains "set parent popup" "Set Parent"
+assert_contains "parent completion shown" "alpha"
+send Escape  # dismiss completion
+sleep 0.2
+send Escape  # close popup
+sleep 0.2
+assert_not_contains "parent popup closed" "Set Parent"
+
+# =============================================
+# 15. Run query
+# =============================================
+echo "[15] Queries"
 send 2
 sleep 0.3
 send Enter  # run first query
@@ -258,9 +291,9 @@ assert_status "preview after query" "Back: esc"
 send 1
 
 # =============================================
-# 14. Filter by tag
+# 16. Filter by tag
 # =============================================
-echo "[14] Tags"
+echo "[16] Tags"
 send 3
 sleep 0.3
 send Enter  # filter by tag
@@ -269,9 +302,9 @@ assert_status "preview after tag filter" "Back: esc"
 send 1
 
 # =============================================
-# 15. New note capture
+# 17. New note capture
 # =============================================
-echo "[15] Capture"
+echo "[17] Capture"
 send n
 sleep 0.3
 assert_contains "capture popup" "New Note"
@@ -281,9 +314,9 @@ sleep 0.2
 assert_not_contains "capture closed" "New Note"
 
 # =============================================
-# 16. Resize handling
+# 18. Resize handling
 # =============================================
-echo "[16] Resize"
+echo "[18] Resize"
 tmux resize-pane -t "$SESSION" -x 80 -y 24
 sleep 0.5
 TOTAL=$((TOTAL + 1))
