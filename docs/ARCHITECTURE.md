@@ -117,8 +117,7 @@ lazyruin/
 │   └── testutil/                    # Shared test helpers
 │
 ├── scripts/
-│   ├── smoke-test.sh                # Automated TUI regression via tmux
-│   └── test-vault.sh                # Test vault creation
+│   └── smoke-test.sh                # Automated TUI regression via tmux
 │
 ├── docs/
 │   ├── ARCHITECTURE.md              # This file

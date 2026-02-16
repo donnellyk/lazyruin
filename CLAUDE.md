@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Important
-- Always use `--vault /tmp/ruin-test-vault` (create it first with `./scripts/test-vault.sh create` if needed). Never run against the user's real vault.
+- Always use `--vault /tmp/ruin-test-vault` (create it first with `ruin dev seed /tmp/ruin-test-vault` if needed). Never run against the user's real vault.
 - Never modify `~/.config/ruin`. Use `--vault`. Do not run `config vault_path ~/path`. Stop before changing vault path.
 
 ## Project Overview

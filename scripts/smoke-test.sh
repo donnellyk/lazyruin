@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke test for lazyruin TUI via tmux.
 # Usage: ./scripts/smoke-test.sh [binary] [vault]
-# Requires: tmux, ruin CLI, a populated test vault.
+# Requires: tmux, ruin CLI.
 #
 # Exits 0 on success, 1 on first failure.
 # Prints PASS/FAIL for each check.
@@ -9,7 +9,7 @@
 set -euo pipefail
 
 BIN="${1:-/tmp/lazyruin-test}"
-VAULT="${2:-/private/tmp/ruin-test-vault}"
+VAULT="${2:-/private/tmp/ruin-smoke-$$}"
 SESSION="smoke-$$"
 COLS=120
 ROWS=40
@@ -22,6 +22,9 @@ die()  { echo "FATAL: $1" >&2; cleanup; exit 1; }
 
 cleanup() {
   tmux kill-session -t "$SESSION" 2>/dev/null || true
+  if [ -d "$VAULT" ]; then
+    rm -rf "$VAULT"
+  fi
 }
 trap cleanup EXIT
 
@@ -77,8 +80,11 @@ assert_status() {
 # --- preflight ---
 
 [ -f "$BIN" ]              || die "binary not found: $BIN (run: go build -o $BIN ./main.go)"
-[ -d "$VAULT" ]            || die "vault not found: $VAULT"
 command -v tmux >/dev/null  || die "tmux not found"
+command -v ruin >/dev/null  || die "ruin CLI not found"
+
+# Seed a fresh test vault
+ruin dev seed "$VAULT" >/dev/null 2>&1 || die "failed to seed vault"
 
 echo "=== LazyRuin Smoke Test ==="
 echo "bin=$BIN  vault=$VAULT  session=$SESSION"
