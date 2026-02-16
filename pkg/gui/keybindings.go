@@ -153,10 +153,11 @@ func (gui *Gui) previewNavBindings() []binding {
 
 func (gui *Gui) searchBindings() []binding {
 	v := SearchView
+	searchState := func() *CompletionState { return gui.state.SearchCompletion }
 	return []binding{
-		{v, gocui.KeyEnter, gui.searchEnter},
-		{v, gocui.KeyEsc, gui.searchEsc},
-		{v, gocui.KeyTab, gui.searchTab},
+		{v, gocui.KeyEnter, gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)},
+		{v, gocui.KeyEsc, gui.completionEsc(searchState, gui.cancelSearch)},
+		{v, gocui.KeyTab, gui.completionTab(searchState, gui.searchTriggers)},
 	}
 }
 
@@ -171,10 +172,11 @@ func (gui *Gui) captureBindings() []binding {
 
 func (gui *Gui) pickBindings() []binding {
 	v := PickView
+	pickState := func() *CompletionState { return gui.state.PickCompletion }
 	return []binding{
-		{v, gocui.KeyEnter, gui.pickEnter},
-		{v, gocui.KeyEsc, gui.pickEsc},
-		{v, gocui.KeyTab, gui.pickTab},
+		{v, gocui.KeyEnter, gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)},
+		{v, gocui.KeyEsc, gui.completionEsc(pickState, gui.cancelPick)},
+		{v, gocui.KeyTab, gui.completionTab(pickState, gui.pickTriggers)},
 		{v, gocui.KeyCtrlA, gui.togglePickAny},
 	}
 }

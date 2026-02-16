@@ -42,6 +42,15 @@ func NewCompletionState() *CompletionState {
 	return &CompletionState{}
 }
 
+// Dismiss fully resets the completion state, hiding the suggestion dropdown.
+func (s *CompletionState) Dismiss() {
+	s.Active = false
+	s.Items = nil
+	s.SelectedIndex = 0
+	s.TriggerStart = 0
+	s.ParentDrill = nil
+}
+
 // extractTokenAtCursor scans backward from cursorPos to find the current token
 // (delimited by whitespace or start of string). Returns the token and its start position.
 func extractTokenAtCursor(content string, cursorPos int) (string, int) {
@@ -172,10 +181,7 @@ func (gui *Gui) acceptReplaceCompletion(v *gocui.View, state *CompletionState, i
 		v.TextArea.TypeString(item.InsertText + " ")
 	}
 
-	// Clear completion state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
+	state.Dismiss()
 
 	v.RenderTextArea()
 
@@ -225,12 +231,43 @@ func (gui *Gui) acceptPrependCompletion(v *gocui.View, state *CompletionState, i
 		v.TextArea.TypeString(item.InsertText + " ")
 	}
 
-	// Clear completion state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
+	state.Dismiss()
 
 	v.RenderTextArea()
+}
+
+// completionEsc returns an Esc handler that dismisses completion if active,
+// otherwise calls onClose.
+func (gui *Gui) completionEsc(state func() *CompletionState, onClose func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if s := state(); s.Active {
+			s.Dismiss()
+			return nil
+		}
+		return onClose(g, v)
+	}
+}
+
+// completionTab returns a Tab handler that accepts completion if active.
+func (gui *Gui) completionTab(state func() *CompletionState, triggers func() []CompletionTrigger) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if s := state(); s.Active && len(s.Items) > 0 {
+			gui.acceptCompletion(v, s, triggers())
+		}
+		return nil
+	}
+}
+
+// completionEnter returns an Enter handler that accepts completion if active,
+// otherwise calls onSubmit.
+func (gui *Gui) completionEnter(state func() *CompletionState, triggers func() []CompletionTrigger, onSubmit func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if s := state(); s.Active && len(s.Items) > 0 {
+			gui.acceptCompletion(v, s, triggers())
+			return nil
+		}
+		return onSubmit(g, v)
+	}
 }
 
 // completionDown moves the selection down in the completion list.

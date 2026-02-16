@@ -15,31 +15,6 @@ func (gui *Gui) openPick(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) pickEnter(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.PickCompletion.Active {
-		gui.acceptCompletion(v, gui.state.PickCompletion, gui.pickTriggers())
-		return nil
-	}
-	return gui.executePick(g, v)
-}
-
-func (gui *Gui) pickEsc(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.PickCompletion.Active {
-		gui.state.PickCompletion.Active = false
-		gui.state.PickCompletion.Items = nil
-		gui.state.PickCompletion.SelectedIndex = 0
-		return nil
-	}
-	return gui.cancelPick(g, v)
-}
-
-func (gui *Gui) pickTab(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.PickCompletion.Active {
-		gui.acceptCompletion(v, gui.state.PickCompletion, gui.pickTriggers())
-	}
-	return nil
-}
-
 func (gui *Gui) togglePickAny(g *gocui.Gui, v *gocui.View) error {
 	gui.state.PickAnyMode = !gui.state.PickAnyMode
 	if gui.views.Pick != nil {

@@ -123,10 +123,7 @@ func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
 	// Insert [[Title#
 	v.TextArea.TypeString("[[" + noteTitle + "#")
 
-	// Clear completion state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
+	state.Dismiss()
 
 	gui.renderCaptureTextArea(v)
 
@@ -181,10 +178,7 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState, triggers
 	}
 	v.TextArea.TypeString(path.String())
 
-	// Clear completion state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
+	state.Dismiss()
 
 	v.RenderTextArea()
 
@@ -214,11 +208,7 @@ func (gui *Gui) acceptParentCompletion(v *gocui.View, state *CompletionState) {
 		v.TextArea.BackSpaceChar()
 	}
 
-	// Clear completion and drill state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
-	state.ParentDrill = nil
+	state.Dismiss()
 
 	v.RenderTextArea()
 	gui.updateCaptureFooter()

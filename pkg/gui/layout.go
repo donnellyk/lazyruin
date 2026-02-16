@@ -336,7 +336,12 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Footer = " / for filters | # for tags | Tab: complete | Esc: cancel "
 	v.Editable = true
 	v.Wrap = false
-	v.Editor = &searchEditor{gui: gui}
+	v.Editor = &completionEditor{
+		gui:      gui,
+		state:    func() *CompletionState { return gui.state.SearchCompletion },
+		triggers: gui.searchTriggers,
+		drillFlags:   0,
+	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
@@ -380,7 +385,17 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Footer = config.Footer
 	v.Editable = true
 	v.Wrap = false
-	v.Editor = &inputPopupEditor{gui: gui}
+	v.Editor = &completionEditor{
+		gui:   gui,
+		state: func() *CompletionState { return gui.state.InputPopupCompletion },
+		triggers: func() []CompletionTrigger {
+			if c := gui.state.InputPopupConfig; c != nil && c.Triggers != nil {
+				return c.Triggers()
+			}
+			return nil
+		},
+		drillFlags: DrillParent,
+	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
@@ -490,7 +505,12 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Footer = gui.pickFooter()
 	v.Editable = true
 	v.Wrap = false
-	v.Editor = &pickEditor{gui: gui}
+	v.Editor = &completionEditor{
+		gui:      gui,
+		state:    func() *CompletionState { return gui.state.PickCompletion },
+		triggers: gui.pickTriggers,
+		drillFlags:   0,
+	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
@@ -675,7 +695,12 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	ev.Footer = " # > [[ / Tab: switch | Enter: save "
 	ev.Editable = true
 	ev.Wrap = false
-	ev.Editor = &snippetExpansionEditor{gui: gui}
+	ev.Editor = &completionEditor{
+		gui:      gui,
+		state:    func() *CompletionState { return gui.state.SnippetEditorCompletion },
+		triggers: gui.snippetExpansionTriggers,
+		drillFlags:   DrillParent | DrillWikiLink,
+	}
 	setRoundedCorners(ev)
 
 	// Green frame on focused view, default on other

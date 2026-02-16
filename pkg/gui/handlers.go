@@ -187,33 +187,6 @@ func (gui *Gui) buildSearchOptions() commands.SearchOptions {
 	}
 }
 
-// Search handlers
-
-func (gui *Gui) searchEnter(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.SearchCompletion.Active {
-		gui.acceptCompletion(v, gui.state.SearchCompletion, gui.searchTriggers())
-		return nil
-	}
-	return gui.executeSearch(g, v)
-}
-
-func (gui *Gui) searchEsc(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.SearchCompletion.Active {
-		gui.state.SearchCompletion.Active = false
-		gui.state.SearchCompletion.Items = nil
-		gui.state.SearchCompletion.SelectedIndex = 0
-		return nil
-	}
-	return gui.cancelSearch(g, v)
-}
-
-func (gui *Gui) searchTab(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.SearchCompletion.Active {
-		gui.acceptCompletion(v, gui.state.SearchCompletion, gui.searchTriggers())
-	}
-	return nil
-}
-
 func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 	if raw == "" {

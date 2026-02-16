@@ -169,10 +169,7 @@ func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *CompletionStat
 		}
 	}
 
-	// Clear completion state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
+	state.Dismiss()
 
 	gui.updateCaptureFooter()
 }

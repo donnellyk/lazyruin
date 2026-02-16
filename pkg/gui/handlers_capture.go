@@ -47,9 +47,7 @@ func (gui *Gui) submitCapture(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) cancelCapture(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.CaptureCompletion.Active {
-		gui.state.CaptureCompletion.Active = false
-		gui.state.CaptureCompletion.Items = nil
-		gui.state.CaptureCompletion.SelectedIndex = 0
+		gui.state.CaptureCompletion.Dismiss()
 		return nil
 	}
 	if gui.QuickCapture {

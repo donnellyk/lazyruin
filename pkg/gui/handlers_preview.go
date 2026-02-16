@@ -979,9 +979,7 @@ func (gui *Gui) inputPopupTab(g *gocui.Gui, v *gocui.View) error {
 // inputPopupEsc cancels the input popup (first press dismisses suggestions).
 func (gui *Gui) inputPopupEsc(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.InputPopupCompletion.Active {
-		gui.state.InputPopupCompletion.Active = false
-		gui.state.InputPopupCompletion.Items = nil
-		gui.state.InputPopupCompletion.SelectedIndex = 0
+		gui.state.InputPopupCompletion.Dismiss()
 		return nil
 	}
 	gui.closeInputPopup()

@@ -39,38 +39,36 @@ func (gui *Gui) listSnippets() error {
 	return nil
 }
 
-// snippetExpansionTriggers returns the union of search and capture triggers,
-// excluding the ! abbreviation trigger to avoid recursion.
-// The > trigger is re-bound to use SnippetEditorCompletion for drill tracking.
+// snippetExpansionTriggers returns the completion triggers for the snippet
+// expansion field. It merges search and capture triggers, excluding ! (to
+// avoid recursion) and rebinding > to use SnippetEditorCompletion.
 func (gui *Gui) snippetExpansionTriggers() []CompletionTrigger {
 	seen := make(map[string]bool)
-	var triggers []CompletionTrigger
-	for _, t := range gui.searchTriggers() {
+	var merged []CompletionTrigger
+
+	// Capture triggers first (content-oriented: [[, >, /markdown, etc.)
+	for _, t := range gui.captureTriggers() {
 		if t.Prefix == "!" {
 			continue
 		}
-		if !seen[t.Prefix] {
-			seen[t.Prefix] = true
-			triggers = append(triggers, t)
+		if t.Prefix == ">" {
+			// Rebind to use the snippet editor's own completion state
+			t.Candidates = gui.parentCandidatesFor(gui.state.SnippetEditorCompletion)
 		}
+		seen[t.Prefix] = true
+		merged = append(merged, t)
 	}
-	for _, t := range gui.captureTriggers() {
-		if t.Prefix == "!" || t.Prefix == ">" {
+
+	// Search triggers add date filters, sort, etc.
+	for _, t := range gui.searchTriggers() {
+		if t.Prefix == "!" || seen[t.Prefix] {
 			continue
 		}
-		if !seen[t.Prefix] {
-			seen[t.Prefix] = true
-			triggers = append(triggers, t)
-		}
+		seen[t.Prefix] = true
+		merged = append(merged, t)
 	}
-	// Add > trigger bound to the snippet editor's own completion state
-	if !seen[">"] {
-		triggers = append(triggers, CompletionTrigger{
-			Prefix:     ">",
-			Candidates: gui.parentCandidatesFor(gui.state.SnippetEditorCompletion),
-		})
-	}
-	return triggers
+
+	return merged
 }
 
 // acceptSnippetParentCompletion accepts a parent completion but keeps the >path
@@ -107,11 +105,7 @@ func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *CompletionSt
 
 	v.TextArea.TypeString(path.String() + " ")
 
-	// Clear completion and drill state
-	state.Active = false
-	state.Items = nil
-	state.SelectedIndex = 0
-	state.ParentDrill = nil
+	state.Dismiss()
 
 	v.RenderTextArea()
 }
@@ -222,9 +216,7 @@ func (gui *Gui) snippetEditorClickExpansion(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) snippetEditorEsc(g *gocui.Gui, v *gocui.View) error {
 	state := gui.state.SnippetEditorCompletion
 	if state.Active {
-		state.Active = false
-		state.Items = nil
-		state.SelectedIndex = 0
+		state.Dismiss()
 		return nil
 	}
 	return gui.closeSnippetEditor(g)
