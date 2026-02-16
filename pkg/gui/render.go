@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/models"
 )
 
 // listItem holds the formatted lines for a single list item.
@@ -91,18 +92,16 @@ func (gui *Gui) renderNotes() {
 				snippet = strings.TrimRight(string(snippetRunes[:width-5]), " ") + "..."
 			}
 
-			date := note.ShortDate()
-			tags := note.TagsString()
-			maxTagLen := width - len(date) - 5
-			tagRunes := []rune(tags)
-			if maxTagLen > 0 && len(tagRunes) > maxTagLen {
-				tags = string(tagRunes[:maxTagLen-3]) + "..."
+			meta := models.JoinDot(note.ShortDate(), note.TagsString())
+			metaRunes := []rune(meta)
+			if len(metaRunes) > width-3 {
+				meta = string(metaRunes[:width-6]) + "..."
 			}
 
 			return listItem{Lines: []string{
 				" " + title,
 				"  " + snippet,
-				fmt.Sprintf("  %s · %s", date, tags),
+				"  " + meta,
 			}}
 		})
 }

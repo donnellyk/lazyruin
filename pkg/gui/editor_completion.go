@@ -14,9 +14,9 @@ const (
 // navigation and drill-down for any popup with a CompletionState.
 // It replaces the four near-identical editors (search, pick, inputPopup, snippet).
 type completionEditor struct {
-	gui      *Gui
-	state    func() *CompletionState
-	triggers func() []CompletionTrigger
+	gui        *Gui
+	state      func() *CompletionState
+	triggers   func() []CompletionTrigger
 	drillFlags DrillFlags
 }
 

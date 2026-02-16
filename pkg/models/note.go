@@ -36,6 +36,17 @@ func (n *Note) FirstLine() string {
 	return ""
 }
 
+// JoinDot joins non-empty parts with " · ".
+func JoinDot(parts ...string) string {
+	var nonEmpty []string
+	for _, p := range parts {
+		if p != "" {
+			nonEmpty = append(nonEmpty, p)
+		}
+	}
+	return strings.Join(nonEmpty, " · ")
+}
+
 func (n *Note) GlobalTagsString() string {
 	result := ""
 	for i, tag := range n.Tags {

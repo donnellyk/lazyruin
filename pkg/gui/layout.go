@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/models"
 )
 
 func (gui *Gui) layout(g *gocui.Gui) error {
@@ -337,10 +338,10 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Editable = true
 	v.Wrap = false
 	v.Editor = &completionEditor{
-		gui:      gui,
-		state:    func() *CompletionState { return gui.state.SearchCompletion },
-		triggers: gui.searchTriggers,
-		drillFlags:   0,
+		gui:        gui,
+		state:      func() *CompletionState { return gui.state.SearchCompletion },
+		triggers:   gui.searchTriggers,
+		drillFlags: 0,
 	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
@@ -506,10 +507,10 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Editable = true
 	v.Wrap = false
 	v.Editor = &completionEditor{
-		gui:      gui,
-		state:    func() *CompletionState { return gui.state.PickCompletion },
-		triggers: gui.pickTriggers,
-		drillFlags:   0,
+		gui:        gui,
+		state:      func() *CompletionState { return gui.state.PickCompletion },
+		triggers:   gui.pickTriggers,
+		drillFlags: 0,
 	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
@@ -638,15 +639,16 @@ func (gui *Gui) updateCaptureFooter() {
 		}
 	}
 
-	parts := []string{date}
+	var tagsStr string
 	if len(tags) > 0 {
-		parts = append(parts, strings.Join(tags, ", "))
+		tagsStr = strings.Join(tags, ", ")
 	}
+	var parentTitle string
 	if gui.state.CaptureParent != nil {
-		parts = append(parts, gui.state.CaptureParent.Title)
+		parentTitle = gui.state.CaptureParent.Title
 	}
 
-	footer := " " + strings.Join(parts, " · ") + " "
+	footer := " " + models.JoinDot(date, tagsStr, parentTitle) + " "
 	maxLen := gui.views.Capture.InnerWidth()
 	if len([]rune(footer)) > maxLen && maxLen > 4 {
 		runes := []rune(footer)
@@ -696,10 +698,10 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	ev.Editable = true
 	ev.Wrap = false
 	ev.Editor = &completionEditor{
-		gui:      gui,
-		state:    func() *CompletionState { return gui.state.SnippetEditorCompletion },
-		triggers: gui.snippetExpansionTriggers,
-		drillFlags:   DrillParent | DrillWikiLink,
+		gui:        gui,
+		state:      func() *CompletionState { return gui.state.SnippetEditorCompletion },
+		triggers:   gui.snippetExpansionTriggers,
+		drillFlags: DrillParent | DrillWikiLink,
 	}
 	setRoundedCorners(ev)
 

@@ -234,21 +234,13 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		}
 
 		// Lower separator with date, global tags, and parent (if set)
-		var footerParts []string
-		if d := note.ShortDate(); d != "" {
-			footerParts = append(footerParts, d)
-		}
-		if t := note.GlobalTagsString(); t != "" {
-			footerParts = append(footerParts, t)
-		}
+		var parentLabel string
 		if note.Parent != "" {
-			if label := gui.resolveParentLabel(note.Parent); label != "" {
-				footerParts = append(footerParts, label)
-			}
+			parentLabel = gui.resolveParentLabel(note.Parent)
 		}
 		rightText := ""
-		if len(footerParts) > 0 {
-			rightText = " " + strings.Join(footerParts, " · ") + " "
+		if meta := models.JoinDot(note.ShortDate(), note.GlobalTagsString(), parentLabel); meta != "" {
+			rightText = " " + meta + " "
 		}
 		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", rightText, width, selected), currentLine, isActive)
 		currentLine++
