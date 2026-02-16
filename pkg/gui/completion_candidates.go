@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
+	anytime "github.com/ijt/go-anytime"
 	"kvnd/lazyruin/pkg/commands"
 )
 
@@ -57,35 +59,31 @@ func (gui *Gui) currentCardTagCandidates(filter string) []CompletionItem {
 	return items
 }
 
-// dateShortcuts are the common date values used by created:, updated:, before:, after:.
-var dateShortcuts = []struct {
+// dateLiterals are the date keywords supported natively by ruin.
+var dateLiterals = []struct {
 	value  string
 	detail string
 }{
 	{"today", "today"},
 	{"yesterday", "yesterday"},
-	{"this-week", "current week"},
-	{"last-week", "previous week"},
-	{"this-month", "current month"},
-	{"last-month", "previous month"},
-	{"this-year", "current year"},
-	{"last-year", "previous year"},
-	{"1d", "1 day"},
-	{"7d", "1 week"},
-	{"2w", "2 weeks"},
-	{"30d", "1 month"},
-	{"90d", "3 months"},
-	{"365d", "1 year"},
+	{"tomorrow", "tomorrow"},
 }
 
 // dateCandidates builds completion items for a date-prefix filter (e.g. "created:", "updated:").
+// It offers literal keywords (today/yesterday/tomorrow) plus dynamic natural-language parsing
+// via go-anytime, showing resolved ISO dates with a human-readable detail.
 func dateCandidates(prefix, filter string) []CompletionItem {
-	filter = strings.ToLower(filter)
+	return dateCandidatesAt(prefix, filter, time.Now())
+}
+
+// dateCandidatesAt is the testable core of dateCandidates, accepting an explicit "now" time.
+func dateCandidatesAt(prefix, filter string, now time.Time) []CompletionItem {
+	filterLower := strings.ToLower(filter)
 	var items []CompletionItem
-	for _, s := range dateShortcuts {
-		if filter != "" &&
-			!strings.Contains(s.value, filter) &&
-			!strings.Contains(s.detail, filter) {
+
+	// Always offer literal keywords that match the filter.
+	for _, s := range dateLiterals {
+		if filterLower != "" && !strings.HasPrefix(s.value, filterLower) {
 			continue
 		}
 		items = append(items, CompletionItem{
@@ -94,7 +92,53 @@ func dateCandidates(prefix, filter string) []CompletionItem {
 			Detail:     s.detail,
 		})
 	}
+
+	// If the filter is non-empty and not an exact literal match, try anytime parsing.
+	if filter != "" && !isDateLiteral(filterLower) {
+		if parsed, err := anytime.Parse(filter, now); err == nil {
+			iso := parsed.Format("2006-01-02")
+			detail := parsed.Format("Mon, Jan 02, 2006")
+			items = append(items, CompletionItem{
+				Label:      prefix + iso,
+				InsertText: prefix + iso,
+				Detail:     detail,
+			})
+		}
+	}
+
 	return items
+}
+
+// ambientDateCandidates parses a bare token (no trigger prefix) with go-anytime
+// and returns a created: suggestion if it resolves to a valid date.
+// Used as a FallbackCandidates function for the search popup.
+func ambientDateCandidates(token string) []CompletionItem {
+	return ambientDateCandidatesAt(token, time.Now())
+}
+
+// ambientDateCandidatesAt is the testable core of ambientDateCandidates.
+func ambientDateCandidatesAt(token string, now time.Time) []CompletionItem {
+	parsed, err := anytime.Parse(token, now)
+	if err != nil {
+		return nil
+	}
+	iso := parsed.Format("2006-01-02")
+	detail := parsed.Format("Mon, Jan 02, 2006")
+	return []CompletionItem{
+		{Label: "created:" + iso, InsertText: "created:" + iso, Detail: detail},
+		{Label: "after:" + iso, InsertText: "after:" + iso, Detail: detail},
+		{Label: "before:" + iso, InsertText: "before:" + iso, Detail: detail},
+	}
+}
+
+// isDateLiteral returns true if s exactly matches a supported literal keyword.
+func isDateLiteral(s string) bool {
+	for _, lit := range dateLiterals {
+		if s == lit.value {
+			return true
+		}
+	}
+	return false
 }
 
 func (gui *Gui) createdCandidates(filter string) []CompletionItem {
@@ -113,26 +157,50 @@ func (gui *Gui) afterCandidates(filter string) []CompletionItem {
 	return dateCandidates("after:", filter)
 }
 
-// betweenCandidates returns between: filter suggestions.
+// betweenCandidates returns between: filter suggestions with computed ISO date ranges.
 func (gui *Gui) betweenCandidates(filter string) []CompletionItem {
+	return betweenCandidatesAt(filter, time.Now())
+}
+
+// betweenCandidatesAt is the testable core of betweenCandidates.
+func betweenCandidatesAt(filter string, now time.Time) []CompletionItem {
+	today := now.Format("2006-01-02")
+	weekAgo := now.AddDate(0, 0, -7).Format("2006-01-02")
+	monthAgo := now.AddDate(0, -1, 0).Format("2006-01-02")
+	yearAgo := now.AddDate(-1, 0, 0).Format("2006-01-02")
+
 	shortcuts := []CompletionItem{
-		{Label: "between:last-week,today", InsertText: "between:last-week,today", Detail: "last week to now"},
-		{Label: "between:last-month,today", InsertText: "between:last-month,today", Detail: "last month to now"},
-		{Label: "between:last-year,today", InsertText: "between:last-year,today", Detail: "last year to now"},
+		{Label: "between:" + weekAgo + "," + today, InsertText: "between:" + weekAgo + "," + today, Detail: "last 7 days"},
+		{Label: "between:" + monthAgo + "," + today, InsertText: "between:" + monthAgo + "," + today, Detail: "last 30 days"},
+		{Label: "between:" + yearAgo + "," + today, InsertText: "between:" + yearAgo + "," + today, Detail: "last year"},
 	}
 
 	if filter == "" {
 		return shortcuts
 	}
 
-	filter = strings.ToLower(filter)
+	filterLower := strings.ToLower(filter)
 	var items []CompletionItem
 	for _, s := range shortcuts {
 		suffix := strings.TrimPrefix(s.InsertText, "between:")
-		if strings.Contains(suffix, filter) || strings.Contains(s.Detail, filter) {
+		if strings.Contains(suffix, filterLower) || strings.Contains(s.Detail, filterLower) {
 			items = append(items, s)
 		}
 	}
+
+	// Try anytime parsing: offer between:<parsed>,<today>
+	if len(items) == 0 {
+		if parsed, err := anytime.Parse(filter, now); err == nil {
+			iso := parsed.Format("2006-01-02")
+			detail := parsed.Format("Mon, Jan 02, 2006") + " to today"
+			items = append(items, CompletionItem{
+				Label:      "between:" + iso + "," + today,
+				InsertText: "between:" + iso + "," + today,
+				Detail:     detail,
+			})
+		}
+	}
+
 	return items
 }
 

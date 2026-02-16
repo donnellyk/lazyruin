@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestCursorBytePos(t *testing.T) {
 	tests := []struct {
@@ -44,7 +47,7 @@ func TestExtractTokenAtCursor(t *testing.T) {
 		{"after space", "hello ", 6, "", 6},
 		{"hash tag", "#project", 8, "#project", 0},
 		{"hash tag after space", "search #project", 15, "#project", 7},
-		{"created prefix", "created:7d", 10, "created:7d", 0},
+		{"created prefix", "created:today", 13, "created:today", 0},
 	}
 
 	for _, tc := range tests {
@@ -76,7 +79,7 @@ func TestDetectTrigger(t *testing.T) {
 	}{
 		{"hash trigger", "#pro", 4, "#", "pro", false},
 		{"hash trigger empty filter", "#", 1, "#", "", false},
-		{"created trigger", "created:7d", 10, "created:", "7d", false},
+		{"created trigger", "created:today", 13, "created:", "today", false},
 		{"created trigger empty filter", "created:", 8, "created:", "", false},
 		{"no trigger", "hello", 5, "", "", true},
 		{"hash after space", "search #tag", 11, "#", "tag", false},
@@ -276,6 +279,135 @@ func TestExtractParentPath(t *testing.T) {
 				t.Errorf("parentPath = %q, want %q", path, tc.wantPath)
 			}
 		})
+	}
+}
+
+func TestDetectTrigger_SpaceAwareDates(t *testing.T) {
+	triggers := []CompletionTrigger{
+		{Prefix: "#", Candidates: func(filter string) []CompletionItem { return nil }},
+		{Prefix: "created:", Candidates: func(filter string) []CompletionItem { return nil }},
+		{Prefix: "before:", Candidates: func(filter string) []CompletionItem { return nil }},
+		{Prefix: "after:", Candidates: func(filter string) []CompletionItem { return nil }},
+		{Prefix: "between:", Candidates: func(filter string) []CompletionItem { return nil }},
+	}
+
+	tests := []struct {
+		name       string
+		content    string
+		cursorPos  int
+		wantPrefix string
+		wantFilter string
+	}{
+		{"created with spaces", "created:next week", 17, "created:", "next week"},
+		{"created with spaces after other token", "#tag created:last monday", 24, "created:", "last monday"},
+		{"before with spaces", "before:next friday", 18, "before:", "next friday"},
+		{"after with spaces", "after:last month", 16, "after:", "last month"},
+		{"between with spaces", "between:last week", 17, "between:", "last week"},
+		// Single-word still works via extractTokenAtCursor (no fallback needed)
+		{"created single word", "created:today", 13, "created:", "today"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			trigger, filter, _ := detectTrigger(tc.content, tc.cursorPos, triggers)
+			if trigger == nil {
+				t.Fatal("expected non-nil trigger")
+			}
+			if trigger.Prefix != tc.wantPrefix {
+				t.Errorf("prefix = %q, want %q", trigger.Prefix, tc.wantPrefix)
+			}
+			if filter != tc.wantFilter {
+				t.Errorf("filter = %q, want %q", filter, tc.wantFilter)
+			}
+		})
+	}
+}
+
+func TestDateCandidates(t *testing.T) {
+	// Use a fixed time for deterministic tests
+	now := time.Date(2026, 2, 16, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		filter     string
+		wantCount  int
+		wantLabels []string // subset check
+	}{
+		{"empty filter shows literals", "", 3, []string{"created:today", "created:yesterday", "created:tomorrow"}},
+		{"to prefix matches today and tomorrow", "to", 2, []string{"created:today", "created:tomorrow"}},
+		{"exact literal no anytime", "today", 1, []string{"created:today"}},
+		{"next friday parses", "next friday", 1, []string{"created:2026-02-20"}},
+		{"nonsense returns nothing", "xyzzy123", 0, nil},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			items := dateCandidatesAt("created:", tc.filter, now)
+			if len(items) != tc.wantCount {
+				labels := make([]string, len(items))
+				for i, it := range items {
+					labels[i] = it.Label
+				}
+				t.Fatalf("got %d items %v, want %d", len(items), labels, tc.wantCount)
+			}
+			for i, wantLabel := range tc.wantLabels {
+				if i >= len(items) {
+					break
+				}
+				if items[i].Label != wantLabel {
+					t.Errorf("item[%d].Label = %q, want %q", i, items[i].Label, wantLabel)
+				}
+			}
+		})
+	}
+}
+
+func TestBetweenCandidates(t *testing.T) {
+	now := time.Date(2026, 2, 16, 12, 0, 0, 0, time.UTC)
+
+	// Empty filter returns 3 preset ranges
+	items := betweenCandidatesAt("", now)
+	if len(items) != 3 {
+		t.Fatalf("empty filter: got %d items, want 3", len(items))
+	}
+	// First item should be 7-day range
+	want := "between:2026-02-09,2026-02-16"
+	if items[0].InsertText != want {
+		t.Errorf("item[0].InsertText = %q, want %q", items[0].InsertText, want)
+	}
+
+	// Natural language filter
+	items = betweenCandidatesAt("last monday", now)
+	if len(items) != 1 {
+		t.Fatalf("'last monday' filter: got %d items, want 1", len(items))
+	}
+	if items[0].InsertText == "" {
+		t.Error("expected non-empty InsertText for anytime parse")
+	}
+}
+
+func TestAmbientDateCandidates(t *testing.T) {
+	now := time.Date(2026, 2, 16, 12, 0, 0, 0, time.UTC)
+
+	// Valid natural language date returns 3 suggestions (created, after, before)
+	items := ambientDateCandidatesAt("friday", now)
+	if len(items) != 3 {
+		t.Fatalf("got %d items, want 3", len(items))
+	}
+	if items[0].Label != "created:2026-02-20" {
+		t.Errorf("item[0].Label = %q, want created:2026-02-20", items[0].Label)
+	}
+	if items[1].Label != "after:2026-02-20" {
+		t.Errorf("item[1].Label = %q, want after:2026-02-20", items[1].Label)
+	}
+	if items[2].Label != "before:2026-02-20" {
+		t.Errorf("item[2].Label = %q, want before:2026-02-20", items[2].Label)
+	}
+
+	// Nonsense returns nil
+	items = ambientDateCandidatesAt("xyzzy", now)
+	if items != nil {
+		t.Errorf("expected nil for nonsense, got %d items", len(items))
 	}
 }
 

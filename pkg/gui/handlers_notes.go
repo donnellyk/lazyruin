@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"kvnd/lazyruin/pkg/models"
 
@@ -71,12 +72,13 @@ func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
 	switch gui.state.Notes.CurrentTab {
 	case NotesTabAll:
 		opts.Limit = 50
-		notes, err = gui.ruinCmd.Search.Search("created:10000d", opts)
+		notes, err = gui.ruinCmd.Search.Search("", opts)
 	case NotesTabToday:
 		notes, err = gui.ruinCmd.Search.Search("created:today", opts)
 	case NotesTabRecent:
 		opts.Limit = 20
-		notes, err = gui.ruinCmd.Search.Search("created:7d", opts)
+		recentDate := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+		notes, err = gui.ruinCmd.Search.Search("after:"+recentDate, opts)
 	}
 
 	if err == nil {

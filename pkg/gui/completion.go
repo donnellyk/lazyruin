@@ -35,6 +35,11 @@ type CompletionState struct {
 	Items         []CompletionItem
 	SelectedIndex int
 	ParentDrill   []ParentDrillEntry // stack of drilled-into parents for > completion
+
+	// FallbackCandidates is called when no trigger prefix matches the current token.
+	// It receives the token text and its start position, returning ambient suggestions.
+	// Used by the search popup for real-time date parsing.
+	FallbackCandidates func(token string) []CompletionItem
 }
 
 // NewCompletionState returns an initialized CompletionState.
@@ -98,6 +103,31 @@ func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) 
 		}
 	}
 
+	// Fallback: scan backward for date-style prefixes whose filter may contain spaces
+	// (e.g. "created:next week", "before:last monday")
+	datePrefixes := []string{"created:", "updated:", "before:", "after:", "between:"}
+	for _, dp := range datePrefixes {
+		for i := cp - 1; i >= 0; i-- {
+			ch := content[i]
+			if ch == '\n' {
+				break
+			}
+			// Check if dp starts at position i
+			if i+len(dp) <= cp && content[i:i+len(dp)] == dp {
+				// Verify word boundary: start of string or whitespace before
+				if i == 0 || content[i-1] == ' ' || content[i-1] == '\t' || content[i-1] == '\n' {
+					after := content[i+len(dp) : cp]
+					for j := range triggers {
+						if triggers[j].Prefix == dp {
+							return &triggers[j], after, i
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+
 	// Fallback: scan backward on the current line for > at a word boundary
 	// (parent completion whose filter may contain spaces after drilling)
 	for i := cp - 1; i >= 0; i-- {
@@ -140,6 +170,22 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []CompletionTrigger, st
 				state.SelectedIndex = 0
 			}
 			return
+		}
+	}
+
+	// Fallback: ambient candidates (e.g. date parsing) when no trigger matched
+	if state.FallbackCandidates != nil {
+		token, tStart := extractTokenAtCursor(content, cursorPos)
+		if token != "" {
+			if items := state.FallbackCandidates(token); len(items) > 0 {
+				state.Active = true
+				state.TriggerStart = tStart
+				state.Items = items
+				if state.SelectedIndex >= len(items) {
+					state.SelectedIndex = 0
+				}
+				return
+			}
 		}
 	}
 

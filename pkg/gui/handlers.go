@@ -168,7 +168,9 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) openSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchMode = true
-	gui.state.SearchCompletion = NewCompletionState()
+	cs := NewCompletionState()
+	cs.FallbackCandidates = ambientDateCandidates
+	gui.state.SearchCompletion = cs
 	gui.setContext(SearchContext)
 	return nil
 }
