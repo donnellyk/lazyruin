@@ -135,7 +135,7 @@ func (gui *Gui) filterByTagSearch(tag *models.Tag) error {
 }
 
 func (gui *Gui) filterByTagPick(tag *models.Tag) error {
-	results, err := gui.ruinCmd.Pick.Pick([]string{tag.Name}, false)
+	results, err := gui.ruinCmd.Pick.Pick([]string{tag.Name}, false, "")
 	if err != nil {
 		gui.showError(err)
 		return nil
@@ -210,7 +210,7 @@ func (gui *Gui) updatePreviewForTags() {
 }
 
 func (gui *Gui) updatePreviewPickResults(tag *models.Tag) {
-	results, err := gui.ruinCmd.Pick.Pick([]string{tag.Name}, false)
+	results, err := gui.ruinCmd.Pick.Pick([]string{tag.Name}, false, "")
 	if err != nil {
 		return
 	}

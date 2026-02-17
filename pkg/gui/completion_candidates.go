@@ -59,7 +59,7 @@ func (gui *Gui) currentCardTagCandidates(filter string) []CompletionItem {
 	return items
 }
 
-// dateLiterals are the date keywords supported natively by ruin.
+// dateLiterals are the date keywords supported natively by ruin's date filters.
 var dateLiterals = []struct {
 	value  string
 	detail string
@@ -67,6 +67,12 @@ var dateLiterals = []struct {
 	{"today", "today"},
 	{"yesterday", "yesterday"},
 	{"tomorrow", "tomorrow"},
+	{"this-week", "current week"},
+	{"last-week", "previous week"},
+	{"next-week", "next week"},
+	{"this-month", "current month"},
+	{"last-month", "previous month"},
+	{"next-month", "next month"},
 }
 
 // dateCandidates builds completion items for a date-prefix filter (e.g. "created:", "updated:").
@@ -141,6 +147,8 @@ func atDateCandidates(filter string) []CompletionItem {
 // Grouped by prefix for compact filtering.
 var atDateSuggestions = []string{
 	"today", "yesterday", "tomorrow",
+	"this-week", "last-week", "next-week",
+	"this-month", "last-month", "next-month",
 	"monday", "tuesday", "wednesday", "thursday",
 	"friday", "saturday", "sunday",
 	"next monday", "next tuesday", "next wednesday", "next thursday",
@@ -218,7 +226,11 @@ func parseUSDate(s string) (time.Time, bool) {
 
 // cliNativeDates are the keywords the ruin CLI handles directly; all other
 // suggestions must be resolved to @YYYY-MM-DD before insertion.
-var cliNativeDates = map[string]bool{"today": true, "yesterday": true, "tomorrow": true}
+var cliNativeDates = map[string]bool{
+	"today": true, "yesterday": true, "tomorrow": true,
+	"this-week": true, "last-week": true, "next-week": true,
+	"this-month": true, "last-month": true, "next-month": true,
+}
 
 // atSuggestionItem builds a CompletionItem for a natural-language date string,
 // resolving it via go-anytime for the detail preview. CLI-native keywords

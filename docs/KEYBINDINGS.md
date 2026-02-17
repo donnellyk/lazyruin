@@ -27,7 +27,7 @@ These work in any panel (suppressed when a dialog is open).
 | `1` | Focus Notes (cycle tabs if already focused) |
 | `2` | Focus Queries (cycle tabs if already focused) |
 | `3` | Focus Tags (cycle tabs if already focused) |
-| `p` | Focus Preview |
+| `p` | Pick |
 | `0` | Focus Search Filter (when active) |
 
 ## Navigation (All Lists)

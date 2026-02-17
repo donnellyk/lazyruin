@@ -26,7 +26,7 @@ func (gui *Gui) commands() []Command {
 		// Global
 		{Name: "Quit", Category: "Global", Keys: []any{'q', gocui.KeyCtrlC}, Handler: gui.quit},
 		{Name: "Search", Category: "Global", Keys: []any{'/'}, Handler: gui.openSearch},
-		{Name: "Pick", Category: "Global", Keys: []any{'\\'}, Handler: gui.openPick},
+		{Name: "Pick", Category: "Global", Keys: []any{'p', '\\'}, Handler: gui.openPick},
 		{Name: "New Note", Category: "Global", Keys: []any{'n'}, Handler: gui.newNote},
 		{Name: "Refresh", Category: "Global", Keys: []any{gocui.KeyCtrlR}, Handler: gui.refresh},
 		{Name: "Keybindings", Category: "Global", Keys: []any{'?'}, Handler: gui.showHelpHandler},
@@ -38,7 +38,7 @@ func (gui *Gui) commands() []Command {
 		{Name: "Focus Notes", Category: "Focus", Keys: []any{'1'}, Handler: gui.focusNotes},
 		{Name: "Focus Queries", Category: "Focus", Keys: []any{'2'}, Handler: gui.focusQueries},
 		{Name: "Focus Tags", Category: "Focus", Keys: []any{'3'}, Handler: gui.focusTags},
-		{Name: "Focus Preview", Category: "Focus", Keys: []any{'p'}, Handler: gui.focusPreview},
+		{Name: "Focus Preview", Category: "Focus", Keys: []any{}, Handler: gui.focusPreview},
 		{Name: "Focus Search Filter", Category: "Focus", Keys: []any{'0'}, Handler: gui.focusSearchFilter},
 
 		// Tabs (palette-only, no keybindings)

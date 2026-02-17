@@ -338,7 +338,7 @@ func TestDateCandidates(t *testing.T) {
 		wantCount  int
 		wantLabels []string // subset check
 	}{
-		{"empty filter shows literals", "", 3, []string{"created:today", "created:yesterday", "created:tomorrow"}},
+		{"empty filter shows literals", "", 9, []string{"created:today", "created:yesterday", "created:tomorrow"}},
 		{"to prefix matches today and tomorrow", "to", 2, []string{"created:today", "created:tomorrow"}},
 		{"exact literal no anytime", "today", 1, []string{"created:today"}},
 		{"next friday parses", "next friday", 1, []string{"created:2026-02-20"}},
@@ -414,6 +414,8 @@ func TestAtDateCandidates(t *testing.T) {
 			[]string{"@next sunday", "@next monday"}, nil},
 		{"last week expands to 7 days", "last week", 7,
 			[]string{"@last sunday", "@last monday"}, nil},
+		{"this-week is cli-native", "this-week", 1, []string{"@this-week"}, []string{"@this-week"}},
+		{"last-month is cli-native", "last-month", 1, []string{"@last-month"}, []string{"@last-month"}},
 		{"month name", "jan", 1, []string{"@january"}, []string{"@2027-01-01"}},
 		{"freeform fallback", "3 days ago", 1, nil, nil},
 		{"US date MM/DD/YYYY", "02/20/2026", 1, []string{"@2026-02-20"}, []string{"@2026-02-20"}},

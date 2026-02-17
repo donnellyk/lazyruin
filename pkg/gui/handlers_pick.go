@@ -29,25 +29,31 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 		return gui.cancelPick(g, v)
 	}
 
-	// Parse tags from input
+	// Parse tags and @date filters from input
 	var tags []string
+	var filters []string
 	for _, token := range strings.Fields(raw) {
-		if !strings.HasPrefix(token, "#") {
-			token = "#" + token
+		if strings.HasPrefix(token, "@") {
+			filters = append(filters, token)
+		} else {
+			if !strings.HasPrefix(token, "#") {
+				token = "#" + token
+			}
+			tags = append(tags, token)
 		}
-		tags = append(tags, token)
 	}
 
-	results, err := gui.ruinCmd.Pick.Pick(tags, gui.state.PickAnyMode)
-	if err != nil {
-		gui.showError(err)
-		return nil
-	}
+	results, err := gui.ruinCmd.Pick.Pick(tags, gui.state.PickAnyMode, strings.Join(filters, " "))
 
+	// Always close the pick dialog
 	gui.state.PickQuery = raw
 	gui.state.PickMode = false
 	gui.state.PickCompletion = NewCompletionState()
 	g.Cursor = false
+
+	if err != nil {
+		results = nil
+	}
 
 	gui.state.Preview.Mode = PreviewModePickResults
 	gui.state.Preview.PickResults = results

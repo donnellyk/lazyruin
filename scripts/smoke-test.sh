@@ -127,7 +127,11 @@ assert_status "2 -> queries" "Tab: 2"
 send 3
 assert_status "3 -> tags" "Tab: 3"
 send p
-assert_status "p -> preview" "Back: esc"
+assert_contains "p -> pick" "Pick"
+send Escape
+sleep 0.3
+send Escape
+sleep 0.3
 send 1
 assert_status "1 -> notes" "Tab: 1"
 

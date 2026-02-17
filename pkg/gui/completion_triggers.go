@@ -91,10 +91,10 @@ func (gui *Gui) captureTriggers() []CompletionTrigger {
 }
 
 // pickTriggers returns the completion triggers for the pick popup.
-// Only tag completion is supported since pick only accepts inline tags.
 func (gui *Gui) pickTriggers() []CompletionTrigger {
 	return []CompletionTrigger{
 		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "@", Candidates: atDateCandidates},
 	}
 }
 

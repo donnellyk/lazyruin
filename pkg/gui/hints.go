@@ -214,11 +214,10 @@ func (gui *Gui) navigationHints() []contextHint {
 func globalHints() []contextHint {
 	return []contextHint{
 		{"/", "Search"},
-		{"\\", "Pick"},
+		{"p", "Pick"},
 		{":", "Command palette"},
 		{"c", "Calendar"},
 		{"C", "Contributions"},
-		{"p", "Focus preview"},
 		{"Tab", "Next panel"},
 		{"<c-r>", "Refresh"},
 		{"q", "Quit"},

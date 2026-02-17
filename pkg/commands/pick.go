@@ -10,13 +10,16 @@ func NewPickCommand(ruin *RuinCommand) *PickCommand {
 	return &PickCommand{ruin: ruin}
 }
 
-func (p *PickCommand) Pick(tags []string, any bool) ([]models.PickResult, error) {
+func (p *PickCommand) Pick(tags []string, any bool, filter string) ([]models.PickResult, error) {
 	args := []string{"pick"}
 	for _, tag := range tags {
 		args = append(args, tag)
 	}
 	if any {
 		args = append(args, "--any")
+	}
+	if filter != "" {
+		args = append(args, "--filter", filter)
 	}
 
 	output, err := p.ruin.Execute(args...)
