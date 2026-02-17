@@ -32,8 +32,12 @@ func (gui *Gui) setupKeybindings() error {
 			handler = gui.suppressDuringDialog(handler)
 		}
 		for _, view := range views {
+			h := handler
+			if isMainPanelView(view) {
+				h = gui.suppressDuringDialog(handler)
+			}
 			for _, key := range cmd.Keys {
-				if err := gui.g.SetKeybinding(view, key, gocui.ModNone, handler); err != nil {
+				if err := gui.g.SetKeybinding(view, key, gocui.ModNone, h); err != nil {
 					return err
 				}
 			}
@@ -59,7 +63,7 @@ func (gui *Gui) setupKeybindings() error {
 	for _, fn := range navBindings {
 		bindings := fn()
 		for i, b := range bindings {
-			if b.view == "" {
+			if b.view == "" || isMainPanelView(b.view) {
 				bindings[i].handler = gui.suppressDuringDialog(b.handler)
 			}
 		}
@@ -73,13 +77,13 @@ func (gui *Gui) setupKeybindings() error {
 	}
 
 	// Tab click bindings (different signature, can't be table-driven)
-	if err := gui.g.SetTabClickBinding(NotesView, gui.switchNotesTabByIndex); err != nil {
+	if err := gui.g.SetTabClickBinding(NotesView, gui.suppressTabClickDuringDialog(gui.switchNotesTabByIndex)); err != nil {
 		return err
 	}
-	if err := gui.g.SetTabClickBinding(QueriesView, gui.switchQueriesTabByIndex); err != nil {
+	if err := gui.g.SetTabClickBinding(QueriesView, gui.suppressTabClickDuringDialog(gui.switchQueriesTabByIndex)); err != nil {
 		return err
 	}
-	if err := gui.g.SetTabClickBinding(TagsView, gui.switchTagsTabByIndex); err != nil {
+	if err := gui.g.SetTabClickBinding(TagsView, gui.suppressTabClickDuringDialog(gui.switchTagsTabByIndex)); err != nil {
 		return err
 	}
 

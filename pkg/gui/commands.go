@@ -111,20 +111,48 @@ func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
 	}
 }
 
+// overlayActive returns true when any dialog or overlay is open.
+func (gui *Gui) overlayActive() bool {
+	return (gui.state.Dialog != nil && gui.state.Dialog.Active) ||
+		gui.state.SearchMode || gui.state.CaptureMode ||
+		gui.state.PickMode || gui.state.PaletteMode ||
+		gui.state.InputPopupMode || gui.state.SnippetEditorMode ||
+		gui.state.CalendarMode || gui.state.ContribMode
+}
+
 // dialogActive returns true when a dialog or overlay is open.
 func (gui *Gui) dialogActive() bool {
-	return (gui.state.Dialog != nil && gui.state.Dialog.Active) ||
-		gui.state.CalendarMode || gui.state.ContribMode
+	return gui.overlayActive()
 }
 
 // suppressDuringDialog wraps a handler to no-op when a dialog is active.
 func (gui *Gui) suppressDuringDialog(fn func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		if gui.dialogActive() {
+		if gui.overlayActive() {
 			return nil
 		}
 		return fn(g, v)
 	}
+}
+
+// suppressTabClickDuringDialog wraps a tab-click handler to no-op when a dialog is active.
+func (gui *Gui) suppressTabClickDuringDialog(fn func(int) error) func(int) error {
+	return func(tabIndex int) error {
+		if gui.overlayActive() {
+			return nil
+		}
+		return fn(tabIndex)
+	}
+}
+
+// isMainPanelView returns true for the four main panel views
+// whose interactions should be suppressed when a dialog is open.
+func isMainPanelView(view string) bool {
+	switch view {
+	case NotesView, QueriesView, TagsView, PreviewView:
+		return true
+	}
+	return false
 }
 
 // keyNames maps special gocui keys to display strings.
