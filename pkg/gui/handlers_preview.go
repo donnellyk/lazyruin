@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -1308,37 +1309,31 @@ func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
 	var items []MenuItem
 	items = append(items, MenuItem{Label: "Info: " + card.Title, IsHeader: true})
 
-	if card.Parent != "" {
-		items = append(items, MenuItem{Label: "Parent: " + card.Parent})
-	}
 	if card.Order != nil {
 		items = append(items, MenuItem{Label: fmt.Sprintf("Order: %d", *card.Order)})
 	}
 
-	// Show children
-	children, err := gui.ruinCmd.Parent.Children(card.UUID)
-	if err == nil && len(children) > 0 {
+	// Parent tree (git-log-graph style)
+	// If the note has a parent, show the tree rooted at the parent.
+	// Otherwise, show the tree rooted at the current note (if it has children).
+	treeRef := card.UUID
+	if card.Parent != "" {
+		treeRef = card.Parent
+	}
+	tree, err := gui.ruinCmd.Parent.Tree(treeRef)
+	if err == nil && (card.Parent != "" || len(tree.Children) > 0) {
 		items = append(items, MenuItem{})
-		items = append(items, MenuItem{Label: "Children", IsHeader: true})
-		for _, child := range children {
-			items = append(items, MenuItem{Label: child.Title})
-		}
+		items = append(items, MenuItem{Label: "Parent", IsHeader: true})
+		items = append(items, MenuItem{Label: "* " + tree.Title})
+		items = appendTreeItems(items, tree.Children, "", 5)
 	}
 
-	// TOC from headers
-	if len(gui.state.Preview.HeaderLines) > 0 {
+	// TOC from headers (git-log-graph style with actual header titles)
+	headerItems := gui.buildHeaderTOC()
+	if len(headerItems) > 0 {
 		items = append(items, MenuItem{})
 		items = append(items, MenuItem{Label: "Headers", IsHeader: true})
-		for _, hLine := range gui.state.Preview.HeaderLines {
-			// Find the text at this line
-			idx := gui.state.Preview.SelectedCardIndex
-			if idx < len(gui.state.Preview.CardLineRanges) {
-				ranges := gui.state.Preview.CardLineRanges[idx]
-				if hLine >= ranges[0] && hLine < ranges[1] {
-					items = append(items, MenuItem{Label: fmt.Sprintf("L%d", hLine)})
-				}
-			}
-		}
+		items = append(items, headerItems...)
 	}
 
 	gui.state.Dialog = &DialogState{
@@ -1349,6 +1344,90 @@ func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
 		MenuSelection: 0,
 	}
 	return nil
+}
+
+// appendTreeItems recursively adds children to the menu in git-log-graph style.
+func appendTreeItems(items []MenuItem, children []commands.TreeNode, prefix string, maxDepth int) []MenuItem {
+	if maxDepth <= 0 || len(children) == 0 {
+		return items
+	}
+	for i, child := range children {
+		isLast := i == len(children)-1
+		connector := "|"
+		if isLast {
+			connector = "\\"
+		}
+		items = append(items, MenuItem{Label: prefix + connector + " * " + child.Title})
+		childPrefix := prefix
+		if isLast {
+			childPrefix += "  "
+		} else {
+			childPrefix += "| "
+		}
+		items = appendTreeItems(items, child.Children, childPrefix, maxDepth-1)
+	}
+	return items
+}
+
+// buildHeaderTOC returns menu items for the current card's headers in git-log-graph style.
+func (gui *Gui) buildHeaderTOC() []MenuItem {
+	idx := gui.state.Preview.SelectedCardIndex
+	if idx >= len(gui.state.Preview.CardLineRanges) {
+		return nil
+	}
+	ranges := gui.state.Preview.CardLineRanges[idx]
+
+	var viewLines []string
+	if gui.views.Preview != nil {
+		viewLines = gui.views.Preview.ViewBufferLines()
+	}
+
+	type header struct {
+		level int
+		title string
+	}
+	var headers []header
+
+	for _, hLine := range gui.state.Preview.HeaderLines {
+		if hLine < ranges[0] || hLine >= ranges[1] {
+			continue
+		}
+		// Extract actual header text from the view buffer
+		title := ""
+		if hLine < len(viewLines) {
+			raw := strings.TrimSpace(stripAnsi(viewLines[hLine]))
+			level := 0
+			for _, r := range raw {
+				if r == '#' {
+					level++
+				} else {
+					break
+				}
+			}
+			title = strings.TrimSpace(strings.TrimLeft(raw, "#"))
+			headers = append(headers, header{level: level, title: title})
+		}
+	}
+
+	if len(headers) == 0 {
+		return nil
+	}
+
+	// Find the minimum header level to use as the base
+	minLevel := headers[0].level
+	for _, h := range headers[1:] {
+		if h.level < minLevel {
+			minLevel = h.level
+		}
+	}
+
+	var items []MenuItem
+	for _, h := range headers {
+		depth := h.level - minLevel
+		prefix := strings.Repeat("| ", depth)
+		items = append(items, MenuItem{Label: prefix + "* " + h.title})
+	}
+	return items
 }
 
 // orderCards persists the current card order to frontmatter order fields.
