@@ -24,9 +24,9 @@ const (
 	SnippetNameView       = "snippetName"
 	SnippetExpansionView  = "snippetExpansion"
 	SnippetSuggestView    = "snippetSuggest"
-	CalendarGridView  = "calendarGrid"
-	CalendarInputView = "calendarInput"
-	CalendarNotesView = "calendarNotes"
+	CalendarGridView      = "calendarGrid"
+	CalendarInputView     = "calendarInput"
+	CalendarNotesView     = "calendarNotes"
 	ContribGridView       = "contribGrid"
 	ContribNotesView      = "contribNotes"
 )

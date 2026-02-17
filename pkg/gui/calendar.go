@@ -91,8 +91,8 @@ func (gui *Gui) calendarSetDate(t time.Time) {
 func (gui *Gui) createCalendarViews(g *gocui.Gui, maxX, maxY int) error {
 	s := gui.state.Calendar
 	totalWidth := 34
-	gridHeight := 11  // border + padding + header + separator + 6 rows + padding(implicit) + border
-	inputHeight := 3  // 2 content lines + shared border
+	gridHeight := 11 // border + padding + header + separator + 6 rows + padding(implicit) + border
+	inputHeight := 3 // 2 content lines + shared border
 	notesHeight := 12
 	if totalWidth > maxX-4 {
 		totalWidth = maxX - 4
