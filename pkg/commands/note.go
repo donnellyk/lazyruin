@@ -11,6 +11,19 @@ func NewNoteCommand(ruin *RuinCommand) *NoteCommand {
 	return &NoteCommand{ruin: ruin}
 }
 
+// Delete deletes a note via `ruin note delete`.
+func (n *NoteCommand) Delete(noteRef string) error {
+	_, err := n.ruin.Execute("note", "delete", noteRef, "-f")
+	return err
+}
+
+// ToggleTodo toggles a todo checkbox and sinks completed items via `note set --toggle-todo -sink`.
+func (n *NoteCommand) ToggleTodo(noteRef string, line int) error {
+	_, err := n.ruin.Execute("note", "set", noteRef,
+		"--toggle-todo", "--line", fmt.Sprintf("%d", line), "-sink", "-f")
+	return err
+}
+
 // SetParent sets the parent of a note via `note set --parent`.
 func (n *NoteCommand) SetParent(noteRef, parentRef string) error {
 	_, err := n.ruin.Execute("note", "set", noteRef, "--parent", parentRef, "-f")

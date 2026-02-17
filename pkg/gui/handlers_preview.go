@@ -148,185 +148,25 @@ func (gui *Gui) previewCardUp(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// isTodoLine checks if a line is a markdown todo item.
-func isTodoLine(line string) (isTodo bool, isComplete bool) {
-	trimmed := strings.TrimLeft(line, " \t")
-	if strings.HasPrefix(trimmed, "- [ ] ") {
-		return true, false
-	}
-	if strings.HasPrefix(trimmed, "- [x] ") || strings.HasPrefix(trimmed, "- [X] ") {
-		return true, true
-	}
-	return false, false
-}
-
-// findTodoGroup finds the contiguous block of todo lines containing the line at idx.
-// Returns start (inclusive) and end (exclusive) indices.
-func findTodoGroup(lines []string, idx int) (int, int) {
-	start := idx
-	for start > 0 {
-		if ok, _ := isTodoLine(lines[start-1]); ok {
-			start--
-		} else {
-			break
-		}
-	}
-	end := idx + 1
-	for end < len(lines) {
-		if ok, _ := isTodoLine(lines[end]); ok {
-			end++
-		} else {
-			break
-		}
-	}
-	return start, end
-}
-
-// reorderTodoGroup moves a toggled todo within its group.
-// Completing: move to bottom. Uncompleting: move just before first completed item.
-// Returns the modified lines and the new absolute index of the toggled line.
-func reorderTodoGroup(lines []string, groupStart, groupEnd, toggledIdx int, completing bool) ([]string, int) {
-	// Extract the toggled line
-	toggled := lines[toggledIdx]
-	group := make([]string, 0, groupEnd-groupStart-1)
-	for i := groupStart; i < groupEnd; i++ {
-		if i != toggledIdx {
-			group = append(group, lines[i])
-		}
-	}
-
-	var newGroup []string
-	var newRelIdx int
-	if completing {
-		// Append at end of group
-		newGroup = append(group, toggled)
-		newRelIdx = len(newGroup) - 1
-	} else {
-		// Insert just before first completed item
-		insertAt := len(group)
-		for i, l := range group {
-			if _, complete := isTodoLine(l); complete {
-				insertAt = i
-				break
-			}
-		}
-		newGroup = make([]string, 0, len(group)+1)
-		newGroup = append(newGroup, group[:insertAt]...)
-		newGroup = append(newGroup, toggled)
-		newGroup = append(newGroup, group[insertAt:]...)
-		newRelIdx = insertAt
-	}
-
-	result := make([]string, 0, len(lines))
-	result = append(result, lines[:groupStart]...)
-	result = append(result, newGroup...)
-	result = append(result, lines[groupEnd:]...)
-	return result, groupStart + newRelIdx
-}
-
 func (gui *Gui) toggleTodo(g *gocui.Gui, v *gocui.View) error {
-	idx := gui.state.Preview.SelectedCardIndex
-	ranges := gui.state.Preview.CardLineRanges
-	if idx >= len(ranges) || idx >= len(gui.state.Preview.Cards) {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	lineNum := gui.resolveSourceLine(v)
+	if lineNum < 1 {
 		return nil
 	}
 
-	// Get the rendered line at CursorLine
-	note := gui.state.Preview.Cards[idx]
-	cardStart := ranges[idx][0]
-	lineOffset := gui.state.Preview.CursorLine - cardStart - 1 // -1 for upper separator
-
-	width, _ := v.InnerSize()
-	if width < 10 {
-		width = 40
-	}
-	contentWidth := max(width-2, 10)
-	cardLines := gui.buildCardContent(note, contentWidth)
-	if lineOffset < 0 || lineOffset >= len(cardLines) {
-		return nil
-	}
-
-	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
-	isTodo, wasComplete := isTodoLine(visibleLine)
-	if !isTodo {
-		return nil
-	}
-
-	// Read raw file
-	data, err := os.ReadFile(note.Path)
+	err := gui.ruinCmd.Note.ToggleTodo(card.UUID, lineNum)
 	if err != nil {
-		return nil
-	}
-	fileLines := strings.Split(string(data), "\n")
-
-	// Find content start (after frontmatter)
-	contentStart := 0
-	if strings.HasPrefix(fileLines[0], "---") {
-		for i := 1; i < len(fileLines); i++ {
-			if strings.TrimSpace(fileLines[i]) == "---" {
-				contentStart = i + 1
-				break
-			}
-		}
-	}
-	// Skip leading blank lines after frontmatter (loadNoteContent does TrimLeft \n)
-	for contentStart < len(fileLines) && strings.TrimSpace(fileLines[contentStart]) == "" {
-		contentStart++
-	}
-
-	// Find matching source line by content
-	matchIdx := -1
-	for i := contentStart; i < len(fileLines); i++ {
-		if strings.TrimSpace(fileLines[i]) == visibleLine {
-			matchIdx = i
-			break
-		}
-	}
-	if matchIdx == -1 {
+		gui.showError(err)
 		return nil
 	}
 
-	// Toggle and reorder in the file (for persistence)
-	toggleLine := func(line string, complete bool) string {
-		if complete {
-			line = strings.Replace(line, "- [x] ", "- [ ] ", 1)
-			line = strings.Replace(line, "- [X] ", "- [ ] ", 1)
-		} else {
-			line = strings.Replace(line, "- [ ] ", "- [x] ", 1)
-		}
-		return line
-	}
-
-	fileLines[matchIdx] = toggleLine(fileLines[matchIdx], wasComplete)
-	groupStart, groupEnd := findTodoGroup(fileLines, matchIdx)
-	fileLines, newMatchIdx := reorderTodoGroup(fileLines, groupStart, groupEnd, matchIdx, !wasComplete)
-
-	// Move cursor to follow the toggled line
-	gui.state.Preview.CursorLine += newMatchIdx - matchIdx
-
-	if err := os.WriteFile(note.Path, []byte(strings.Join(fileLines, "\n")), 0644); err != nil {
-		return nil
-	}
-
-	// Apply the same toggle+reorder to the cached (already-stripped) content
-	contentLines := strings.Split(note.Content, "\n")
-	contentMatchIdx := -1
-	for i, l := range contentLines {
-		if strings.TrimSpace(l) == visibleLine {
-			contentMatchIdx = i
-			break
-		}
-	}
-	if contentMatchIdx >= 0 {
-		contentLines[contentMatchIdx] = toggleLine(contentLines[contentMatchIdx], wasComplete)
-		cStart, cEnd := findTodoGroup(contentLines, contentMatchIdx)
-		contentLines, _ = reorderTodoGroup(contentLines, cStart, cEnd, contentMatchIdx, !wasComplete)
-		gui.state.Preview.Cards[idx].Content = strings.Join(contentLines, "\n")
-	} else {
-		gui.state.Preview.Cards[idx].Content = ""
-	}
-
-	gui.renderPreview()
+	// Clear cached content so it re-reads from disk
+	gui.state.Preview.Cards[gui.state.Preview.SelectedCardIndex].Content = ""
+	gui.reloadContent()
 	return nil
 }
 
@@ -570,7 +410,7 @@ func (gui *Gui) deleteCardFromPreview(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
-		err := os.Remove(card.Path)
+		err := gui.ruinCmd.Note.Delete(card.UUID)
 		if err != nil {
 			gui.showError(err)
 			return nil

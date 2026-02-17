@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -156,7 +155,7 @@ func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.showConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
-		err := os.Remove(note.Path)
+		err := gui.ruinCmd.Note.Delete(note.UUID)
 		if err != nil {
 			gui.showError(err)
 			return nil
