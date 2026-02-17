@@ -667,61 +667,19 @@ func (gui *Gui) executeMerge(direction string) error {
 	target := gui.state.Preview.Cards[targetIdx]
 	source := gui.state.Preview.Cards[sourceIdx]
 
-	// Read both files' raw content (after stripping frontmatter)
-	targetContent, err := gui.loadNoteContent(target.Path)
-	if err != nil {
-		gui.showError(err)
-		return nil
-	}
-	sourceContent, err := gui.loadNoteContent(source.Path)
+	result, err := gui.ruinCmd.Note.Merge(target.UUID, source.UUID, true, false)
 	if err != nil {
 		gui.showError(err)
 		return nil
 	}
 
-	// Merge tags (union)
-	tagSet := make(map[string]bool)
-	for _, t := range target.Tags {
-		tagSet[t] = true
-	}
-	for _, t := range source.Tags {
-		tagSet[t] = true
-	}
-	var mergedTags []string
-	for t := range tagSet {
-		mergedTags = append(mergedTags, t)
-	}
-
-	// Merge inline tags (union)
-	inlineTagSet := make(map[string]bool)
-	for _, t := range target.InlineTags {
-		inlineTagSet[t] = true
-	}
-	for _, t := range source.InlineTags {
-		inlineTagSet[t] = true
-	}
-	var mergedInlineTags []string
-	for t := range inlineTagSet {
-		mergedInlineTags = append(mergedInlineTags, t)
-	}
-
-	// Combine content
-	combined := strings.TrimRight(targetContent, "\n") + "\n\n" + strings.TrimRight(sourceContent, "\n") + "\n"
-
-	// Rewrite target file
-	err = gui.writeNoteFile(target.Path, combined, mergedTags, mergedInlineTags)
-	if err != nil {
-		gui.showError(err)
-		return nil
-	}
-
-	// Delete source file
-	os.Remove(source.Path)
-
-	// Remove source from cards and clear target content so it re-reads from disk
+	// Clear target content so it re-reads from disk
 	gui.state.Preview.Cards[targetIdx].Content = ""
-	gui.state.Preview.Cards[targetIdx].Tags = mergedTags
-	gui.state.Preview.Cards[targetIdx].InlineTags = mergedInlineTags
+	if len(result.TagsMerged) > 0 {
+		gui.state.Preview.Cards[targetIdx].Tags = result.TagsMerged
+	}
+
+	// Remove source from cards
 	gui.state.Preview.Cards = append(gui.state.Preview.Cards[:sourceIdx], gui.state.Preview.Cards[sourceIdx+1:]...)
 	if gui.state.Preview.SelectedCardIndex >= len(gui.state.Preview.Cards) {
 		gui.state.Preview.SelectedCardIndex = len(gui.state.Preview.Cards) - 1
@@ -733,73 +691,6 @@ func (gui *Gui) executeMerge(direction string) error {
 	gui.refreshNotes(false)
 	gui.renderPreview()
 	return nil
-}
-
-// writeNoteFile rewrites a note file preserving uuid/created/updated, with merged tags and new content.
-func (gui *Gui) writeNoteFile(path, content string, tags, inlineTags []string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// Extract existing frontmatter fields
-	raw := string(data)
-	uuid := ""
-	created := ""
-	updated := ""
-	title := ""
-
-	if strings.HasPrefix(raw, "---") {
-		rest := raw[3:]
-		if idx := strings.Index(rest, "\n---"); idx != -1 {
-			fmBlock := rest[:idx]
-			for _, line := range strings.Split(fmBlock, "\n") {
-				line = strings.TrimSpace(line)
-				if strings.HasPrefix(line, "uuid:") {
-					uuid = strings.TrimSpace(strings.TrimPrefix(line, "uuid:"))
-				} else if strings.HasPrefix(line, "created:") {
-					created = strings.TrimSpace(strings.TrimPrefix(line, "created:"))
-				} else if strings.HasPrefix(line, "updated:") {
-					updated = strings.TrimSpace(strings.TrimPrefix(line, "updated:"))
-				} else if strings.HasPrefix(line, "title:") {
-					title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
-				}
-			}
-		}
-	}
-
-	// Build new frontmatter
-	var fm strings.Builder
-	fm.WriteString("---\n")
-	if uuid != "" {
-		fm.WriteString("uuid: " + uuid + "\n")
-	}
-	if created != "" {
-		fm.WriteString("created: " + created + "\n")
-	}
-	if updated != "" {
-		fm.WriteString("updated: " + updated + "\n")
-	}
-	if title != "" {
-		fm.WriteString("title: " + title + "\n")
-	}
-	if len(tags) > 0 {
-		fm.WriteString("tags:\n")
-		for _, t := range tags {
-			fm.WriteString("  - " + t + "\n")
-		}
-	} else {
-		fm.WriteString("tags: []\n")
-	}
-	if len(inlineTags) > 0 {
-		fm.WriteString("inline-tags:\n")
-		for _, t := range inlineTags {
-			fm.WriteString("  - " + t + "\n")
-		}
-	}
-	fm.WriteString("---\n")
-
-	return os.WriteFile(path, []byte(fm.String()+content), 0644)
 }
 
 // currentPreviewCard returns the currently selected card, or nil if none.
@@ -1167,14 +1058,14 @@ func (gui *Gui) toggleInlineTag(g *gocui.Gui, v *gocui.View) error {
 			}
 
 			if existingTags[strings.ToLower(tag)] {
-				// Remove: strip the tag from the source line
-				if err := gui.removeInlineTagFromLine(card.Path, lineNum, tag); err != nil {
+				// Remove: strip the tag from the source line via CLI
+				if err := gui.ruinCmd.Note.RemoveTagFromLine(uuid, tag, lineNum); err != nil {
 					gui.showError(err)
 					return nil
 				}
 			} else {
-				// Add: append tag to end of line
-				if err := gui.ruinCmd.Note.Append(uuid, " "+tag, lineNum, true); err != nil {
+				// Add: append tag to end of line via CLI
+				if err := gui.ruinCmd.Note.AddTagToLine(uuid, tag, lineNum); err != nil {
 					gui.showError(err)
 					return nil
 				}
@@ -1185,35 +1076,6 @@ func (gui *Gui) toggleInlineTag(g *gocui.Gui, v *gocui.View) error {
 		},
 	})
 	return nil
-}
-
-// removeInlineTagFromLine removes a specific #tag from a content line in a note file.
-func (gui *Gui) removeInlineTagFromLine(path string, lineNum int, tag string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	fileLines := strings.Split(string(data), "\n")
-	contentStart := 0
-	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
-		for i := 1; i < len(fileLines); i++ {
-			if strings.TrimSpace(fileLines[i]) == "---" {
-				contentStart = i + 1
-				break
-			}
-		}
-	}
-	absIdx := contentStart + lineNum - 1
-	if absIdx < 0 || absIdx >= len(fileLines) {
-		return nil
-	}
-
-	// Remove the tag (with optional leading space) case-insensitively
-	line := fileLines[absIdx]
-	re := regexp.MustCompile(`(?i)\s*` + regexp.QuoteMeta(tag))
-	fileLines[absIdx] = re.ReplaceAllString(line, "")
-
-	return os.WriteFile(path, []byte(strings.Join(fileLines, "\n")), 0644)
 }
 
 // removeTag opens the input popup showing only the current card's tags.

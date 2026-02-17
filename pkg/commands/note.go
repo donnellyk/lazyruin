@@ -35,6 +35,20 @@ func (n *NoteCommand) RemoveTag(noteRef, tag string) error {
 	return err
 }
 
+// AddTagToLine adds an inline tag to a specific content line via `note set --add-tag --line`.
+func (n *NoteCommand) AddTagToLine(noteRef, tag string, line int) error {
+	_, err := n.ruin.Execute("note", "set", noteRef, "--add-tag", tag,
+		"--line", fmt.Sprintf("%d", line), "-f")
+	return err
+}
+
+// RemoveTagFromLine removes an inline tag from a specific content line via `note set --remove-tag --line`.
+func (n *NoteCommand) RemoveTagFromLine(noteRef, tag string, line int) error {
+	_, err := n.ruin.Execute("note", "set", noteRef, "--remove-tag", tag,
+		"--line", fmt.Sprintf("%d", line), "-f")
+	return err
+}
+
 // SetOrder sets the order frontmatter field on a note.
 func (n *NoteCommand) SetOrder(noteRef string, order int) error {
 	_, err := n.ruin.Execute("note", "set", noteRef, "--order", fmt.Sprintf("%d", order), "-f")
