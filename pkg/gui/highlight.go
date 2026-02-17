@@ -124,9 +124,9 @@ func highlightAtDates(tokens []chroma.Token) []chroma.Token {
 			i+1 < len(tokens) && strings.HasPrefix(tokens[i+1].Value, "-") {
 			combined := tok.Value + tokens[i+1].Value
 			// Split on newline in case the next token includes trailing text
-			datePart, rest, _ := strings.Cut(combined, "\n")
+			datePart, rest, found := strings.Cut(combined, "\n")
 			result = append(result, chroma.Token{Type: chroma.NameTag, Value: datePart})
-			if rest != "" {
+			if found {
 				result = append(result, chroma.Token{Type: chroma.Text, Value: "\n" + rest})
 			}
 			i++ // skip the merged token

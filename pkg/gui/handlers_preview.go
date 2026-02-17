@@ -789,13 +789,29 @@ func (gui *Gui) appendDone(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	err := gui.ruinCmd.Note.Append(card.UUID, " #done", lineNum, true)
+	// Check if #done already exists on this line
+	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	hasDone := false
+	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
+		if strings.EqualFold(m, "#done") {
+			hasDone = true
+			break
+		}
+	}
+
+	var err error
+	if hasDone {
+		err = gui.ruinCmd.Note.RemoveTagFromLine(card.UUID, "#done", lineNum)
+	} else {
+		err = gui.ruinCmd.Note.AddTagToLine(card.UUID, "#done", lineNum)
+	}
 	if err != nil {
 		gui.showError(err)
 		return nil
 	}
 
 	gui.reloadContent()
+	gui.refreshTags(false)
 	return nil
 }
 
@@ -1006,6 +1022,9 @@ func readSourceLine(path string, lineNum int) (string, []string, int) {
 	return fileLines[absIdx], fileLines, contentStart
 }
 
+// inlineDateRe matches @YYYY-MM-DD patterns on a content line.
+var inlineDateRe = regexp.MustCompile(`@\d{4}-\d{2}-\d{2}`)
+
 // toggleInlineTag opens the input popup to add or remove an inline tag on the cursor line.
 // If the selected tag already appears on the line, it is removed; otherwise it is appended.
 func (gui *Gui) toggleInlineTag(g *gocui.Gui, v *gocui.View) error {
@@ -1072,6 +1091,72 @@ func (gui *Gui) toggleInlineTag(g *gocui.Gui, v *gocui.View) error {
 			}
 			gui.reloadContent()
 			gui.refreshTags(false)
+			return nil
+		},
+	})
+	return nil
+}
+
+// toggleInlineDate opens the input popup to add or remove an inline date on the cursor line.
+// If the selected date already appears on the line, it is removed; otherwise it is appended.
+func (gui *Gui) toggleInlineDate(g *gocui.Gui, v *gocui.View) error {
+	card := gui.currentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	lineNum := gui.resolveSourceLine(v)
+	if lineNum < 1 {
+		return nil
+	}
+
+	// Read the source line to detect existing inline dates
+	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	existingDates := make(map[string]bool)
+	for _, m := range inlineDateRe.FindAllString(srcLine, -1) {
+		existingDates[m] = true // keep the @YYYY-MM-DD form for matching
+	}
+
+	uuid := card.UUID
+	gui.openInputPopup(&InputPopupConfig{
+		Title:  "Toggle Inline Date",
+		Footer: " @ for dates | Tab: accept | Esc: cancel ",
+		Seed:   "@",
+		Triggers: func() []CompletionTrigger {
+			return []CompletionTrigger{{Prefix: "@", Candidates: func(filter string) []CompletionItem {
+				items := atDateCandidates(filter)
+				var onLine, rest []CompletionItem
+				for _, item := range items {
+					// InsertText is e.g. "@today" or "@2026-02-17"; check resolved form
+					// against existing dates on the line
+					if existingDates[item.InsertText] {
+						item.Detail = "*"
+						onLine = append(onLine, item)
+					} else {
+						rest = append(rest, item)
+					}
+				}
+				return append(onLine, rest...)
+			}}}
+		},
+		OnAccept: func(_ string, item *CompletionItem) error {
+			if item == nil || item.InsertText == "" {
+				return nil
+			}
+			// Strip the @ prefix — CLI expects "today" or "2026-02-17"
+			dateArg := strings.TrimPrefix(item.InsertText, "@")
+
+			if existingDates[item.InsertText] {
+				if err := gui.ruinCmd.Note.RemoveDateFromLine(uuid, dateArg, lineNum); err != nil {
+					gui.showError(err)
+					return nil
+				}
+			} else {
+				if err := gui.ruinCmd.Note.AddDateToLine(uuid, dateArg, lineNum); err != nil {
+					gui.showError(err)
+					return nil
+				}
+			}
+			gui.reloadContent()
 			return nil
 		},
 	})

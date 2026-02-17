@@ -49,6 +49,20 @@ func (n *NoteCommand) RemoveTagFromLine(noteRef, tag string, line int) error {
 	return err
 }
 
+// AddDateToLine adds an inline date to a specific content line via `note set --add-date --line`.
+func (n *NoteCommand) AddDateToLine(noteRef, date string, line int) error {
+	_, err := n.ruin.Execute("note", "set", noteRef, "--add-date", date,
+		"--line", fmt.Sprintf("%d", line), "-f")
+	return err
+}
+
+// RemoveDateFromLine removes an inline date from a specific content line via `note set --remove-date --line`.
+func (n *NoteCommand) RemoveDateFromLine(noteRef, date string, line int) error {
+	_, err := n.ruin.Execute("note", "set", noteRef, "--remove-date", date,
+		"--line", fmt.Sprintf("%d", line), "-f")
+	return err
+}
+
 // SetOrder sets the order frontmatter field on a note.
 func (n *NoteCommand) SetOrder(noteRef string, order int) error {
 	_, err := n.ruin.Execute("note", "set", noteRef, "--order", fmt.Sprintf("%d", order), "-f")
