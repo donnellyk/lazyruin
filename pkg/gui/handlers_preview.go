@@ -1271,8 +1271,11 @@ func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
 	if err == nil && (card.Parent != "" || len(tree.Children) > 0) {
 		items = append(items, MenuItem{})
 		items = append(items, MenuItem{Label: "Parent", IsHeader: true})
-		items = append(items, MenuItem{Label: "* " + tree.Title})
-		items = appendTreeItems(items, tree.Children, "", 5)
+		rootUUID := tree.UUID
+		items = append(items, MenuItem{Label: "* " + tree.Title, OnRun: func() error {
+			return gui.openNoteByUUID(rootUUID)
+		}})
+		items = gui.appendTreeItems(items, tree.Children, "", 5)
 	}
 
 	// TOC from headers (git-log-graph style with actual header titles)
@@ -1293,30 +1296,27 @@ func (gui *Gui) showInfoDialog(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// appendTreeItems recursively adds children to the menu in git-log-graph style.
-func appendTreeItems(items []MenuItem, children []commands.TreeNode, prefix string, maxDepth int) []MenuItem {
+// appendTreeItems recursively adds children to the menu with indented * bullets.
+// Each child item gets an OnRun that opens that note in the preview.
+func (gui *Gui) appendTreeItems(items []MenuItem, children []commands.TreeNode, indent string, maxDepth int) []MenuItem {
 	if maxDepth <= 0 || len(children) == 0 {
 		return items
 	}
-	for i, child := range children {
-		isLast := i == len(children)-1
-		connector := "|"
-		if isLast {
-			connector = "\\"
-		}
-		items = append(items, MenuItem{Label: prefix + connector + " * " + child.Title})
-		childPrefix := prefix
-		if isLast {
-			childPrefix += "  "
-		} else {
-			childPrefix += "| "
-		}
-		items = appendTreeItems(items, child.Children, childPrefix, maxDepth-1)
+	for _, child := range children {
+		childUUID := child.UUID
+		items = append(items, MenuItem{
+			Label: indent + "  * " + child.Title,
+			OnRun: func() error {
+				return gui.openNoteByUUID(childUUID)
+			},
+		})
+		items = gui.appendTreeItems(items, child.Children, indent+"  ", maxDepth-1)
 	}
 	return items
 }
 
-// buildHeaderTOC returns menu items for the current card's headers in git-log-graph style.
+// buildHeaderTOC returns menu items for the current card's headers.
+// Each item gets an OnRun that moves the preview cursor to that header line.
 func (gui *Gui) buildHeaderTOC() []MenuItem {
 	idx := gui.state.Preview.SelectedCardIndex
 	if idx >= len(gui.state.Preview.CardLineRanges) {
@@ -1330,8 +1330,9 @@ func (gui *Gui) buildHeaderTOC() []MenuItem {
 	}
 
 	type header struct {
-		level int
-		title string
+		level    int
+		title    string
+		viewLine int
 	}
 	var headers []header
 
@@ -1339,8 +1340,6 @@ func (gui *Gui) buildHeaderTOC() []MenuItem {
 		if hLine < ranges[0] || hLine >= ranges[1] {
 			continue
 		}
-		// Extract actual header text from the view buffer
-		title := ""
 		if hLine < len(viewLines) {
 			raw := strings.TrimSpace(stripAnsi(viewLines[hLine]))
 			level := 0
@@ -1351,8 +1350,8 @@ func (gui *Gui) buildHeaderTOC() []MenuItem {
 					break
 				}
 			}
-			title = strings.TrimSpace(strings.TrimLeft(raw, "#"))
-			headers = append(headers, header{level: level, title: title})
+			title := strings.TrimSpace(strings.TrimLeft(raw, "#"))
+			headers = append(headers, header{level: level, title: title, viewLine: hLine})
 		}
 	}
 
@@ -1360,7 +1359,6 @@ func (gui *Gui) buildHeaderTOC() []MenuItem {
 		return nil
 	}
 
-	// Find the minimum header level to use as the base
 	minLevel := headers[0].level
 	for _, h := range headers[1:] {
 		if h.level < minLevel {
@@ -1371,8 +1369,16 @@ func (gui *Gui) buildHeaderTOC() []MenuItem {
 	var items []MenuItem
 	for _, h := range headers {
 		depth := h.level - minLevel
-		prefix := strings.Repeat("| ", depth)
-		items = append(items, MenuItem{Label: prefix + "* " + h.title})
+		indent := strings.Repeat("  ", depth)
+		targetLine := h.viewLine
+		items = append(items, MenuItem{
+			Label: indent + "* " + h.title,
+			OnRun: func() error {
+				gui.state.Preview.CursorLine = targetLine
+				gui.renderPreview()
+				return nil
+			},
+		})
 	}
 	return items
 }
@@ -1508,6 +1514,26 @@ func (gui *Gui) followLink(link PreviewLink) error {
 	if strings.HasPrefix(text, "http://") || strings.HasPrefix(text, "https://") {
 		exec.Command("open", text).Start()
 	}
+	return nil
+}
+
+// openNoteByUUID loads a note by UUID and displays it in the preview.
+func (gui *Gui) openNoteByUUID(uuid string) error {
+	opts := gui.buildSearchOptions()
+	note, err := gui.ruinCmd.Search.Get(uuid, opts)
+	if err != nil || note == nil {
+		return nil
+	}
+	gui.state.Preview.Mode = PreviewModeCardList
+	gui.state.Preview.Cards = []models.Note{*note}
+	gui.state.Preview.SelectedCardIndex = 0
+	gui.state.Preview.CursorLine = 1
+	gui.state.Preview.ScrollOffset = 0
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = " " + note.Title + " "
+	}
+	gui.setContext(PreviewContext)
+	gui.renderPreview()
 	return nil
 }
 

@@ -208,7 +208,22 @@ type menuEditor struct {
 }
 
 func (e *menuEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) bool {
-	if ch == 0 || e.gui.state.Dialog == nil {
+	if e.gui.state.Dialog == nil {
+		return false
+	}
+
+	// j/k navigation — the framework blocks view-specific char keybindings
+	// on editable views, so handle them here.
+	if ch == 'j' {
+		e.gui.menuDown(e.gui.g, v)
+		return true
+	}
+	if ch == 'k' {
+		e.gui.menuUp(e.gui.g, v)
+		return true
+	}
+
+	if ch == 0 {
 		return false
 	}
 	pressed := string(ch)
