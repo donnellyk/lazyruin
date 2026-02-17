@@ -104,7 +104,7 @@ func (gui *Gui) previewCardDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// previewNextHeader jumps to the next markdown header (]).
+// previewNextHeader jumps to the next markdown header (}).
 func (gui *Gui) previewNextHeader(g *gocui.Gui, v *gocui.View) error {
 
 	cursor := gui.state.Preview.CursorLine
@@ -119,7 +119,7 @@ func (gui *Gui) previewNextHeader(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// previewPrevHeader jumps to the previous markdown header ([).
+// previewPrevHeader jumps to the previous markdown header ({).
 func (gui *Gui) previewPrevHeader(g *gocui.Gui, v *gocui.View) error {
 
 	cursor := gui.state.Preview.CursorLine
@@ -543,13 +543,14 @@ func (gui *Gui) updatePreviewForNotes() {
 		return
 	}
 	note := gui.state.Notes.Items[idx]
+	gui.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = []models.Note{note}
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.CursorLine = 1
 	gui.state.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Preview "
+		gui.views.Preview.Title = " " + note.Title + " "
 		gui.renderPreview()
 	}
 }
@@ -1498,6 +1499,7 @@ func (gui *Gui) followLink(link PreviewLink) error {
 		if err != nil || note == nil {
 			return nil
 		}
+		gui.pushNavHistory()
 		gui.state.Preview.Mode = PreviewModeCardList
 		gui.state.Preview.Cards = []models.Note{*note}
 		gui.state.Preview.SelectedCardIndex = 0
@@ -1524,6 +1526,7 @@ func (gui *Gui) openNoteByUUID(uuid string) error {
 	if err != nil || note == nil {
 		return nil
 	}
+	gui.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = []models.Note{*note}
 	gui.state.Preview.SelectedCardIndex = 0
@@ -1537,12 +1540,157 @@ func (gui *Gui) openNoteByUUID(uuid string) error {
 	return nil
 }
 
+// pushNavHistory captures the current preview state onto the nav history stack.
+// Call this before changing Preview.Cards for a new navigation.
+func (gui *Gui) pushNavHistory() {
+	if len(gui.state.Preview.Cards) == 0 && len(gui.state.Preview.PickResults) == 0 {
+		return
+	}
+
+	title := ""
+	if gui.views.Preview != nil {
+		title = gui.views.Preview.Title
+	}
+
+	entry := NavEntry{
+		Cards:             append([]models.Note(nil), gui.state.Preview.Cards...),
+		SelectedCardIndex: gui.state.Preview.SelectedCardIndex,
+		CursorLine:        gui.state.Preview.CursorLine,
+		ScrollOffset:      gui.state.Preview.ScrollOffset,
+		Mode:              gui.state.Preview.Mode,
+		Title:             title,
+		PickResults:       append([]models.PickResult(nil), gui.state.Preview.PickResults...),
+	}
+
+	// Truncate any forward entries
+	if gui.state.NavIndex >= 0 && gui.state.NavIndex < len(gui.state.NavHistory)-1 {
+		gui.state.NavHistory = gui.state.NavHistory[:gui.state.NavIndex+1]
+	}
+
+	gui.state.NavHistory = append(gui.state.NavHistory, entry)
+	gui.state.NavIndex = len(gui.state.NavHistory) - 1
+
+	// Cap at 50 entries
+	if len(gui.state.NavHistory) > 50 {
+		gui.state.NavHistory = gui.state.NavHistory[len(gui.state.NavHistory)-50:]
+		gui.state.NavIndex = len(gui.state.NavHistory) - 1
+	}
+}
+
+// captureCurrentNavEntry returns a NavEntry for the current preview state.
+func (gui *Gui) captureCurrentNavEntry() NavEntry {
+	title := ""
+	if gui.views.Preview != nil {
+		title = gui.views.Preview.Title
+	}
+	return NavEntry{
+		Cards:             append([]models.Note(nil), gui.state.Preview.Cards...),
+		SelectedCardIndex: gui.state.Preview.SelectedCardIndex,
+		CursorLine:        gui.state.Preview.CursorLine,
+		ScrollOffset:      gui.state.Preview.ScrollOffset,
+		Mode:              gui.state.Preview.Mode,
+		Title:             title,
+		PickResults:       append([]models.PickResult(nil), gui.state.Preview.PickResults...),
+	}
+}
+
+// restoreNavEntry restores preview state from a NavEntry.
+func (gui *Gui) restoreNavEntry(entry NavEntry) {
+	gui.state.Preview.Mode = entry.Mode
+	gui.state.Preview.Cards = append([]models.Note(nil), entry.Cards...)
+	gui.state.Preview.PickResults = append([]models.PickResult(nil), entry.PickResults...)
+	gui.state.Preview.SelectedCardIndex = entry.SelectedCardIndex
+	gui.state.Preview.CursorLine = entry.CursorLine
+	gui.state.Preview.ScrollOffset = entry.ScrollOffset
+	if gui.views.Preview != nil {
+		gui.views.Preview.Title = entry.Title
+		gui.views.Preview.SetOrigin(0, entry.ScrollOffset)
+	}
+	gui.renderPreview()
+}
+
+func (gui *Gui) navBack(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.NavIndex < 0 || len(gui.state.NavHistory) == 0 {
+		return nil
+	}
+
+	// Save current state at current position
+	gui.state.NavHistory[gui.state.NavIndex] = gui.captureCurrentNavEntry()
+
+	// If we're at the end and haven't pushed current yet, push it first
+	if gui.state.NavIndex == len(gui.state.NavHistory)-1 {
+		// We're at the top — push current state as forward entry
+		gui.state.NavHistory = append(gui.state.NavHistory, gui.captureCurrentNavEntry())
+		// NavIndex stays, we go back
+	}
+
+	if gui.state.NavIndex <= 0 {
+		return nil
+	}
+
+	gui.state.NavIndex--
+	gui.restoreNavEntry(gui.state.NavHistory[gui.state.NavIndex])
+	return nil
+}
+
+func (gui *Gui) navForward(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.NavIndex >= len(gui.state.NavHistory)-1 {
+		return nil
+	}
+
+	// Save current state at current position
+	gui.state.NavHistory[gui.state.NavIndex] = gui.captureCurrentNavEntry()
+
+	gui.state.NavIndex++
+	gui.restoreNavEntry(gui.state.NavHistory[gui.state.NavIndex])
+	return nil
+}
+
+// showNavHistory shows the navigation history stack in a menu dialog.
+func (gui *Gui) showNavHistory() error {
+	if len(gui.state.NavHistory) == 0 {
+		return nil
+	}
+
+	var items []MenuItem
+	for i := len(gui.state.NavHistory) - 1; i >= 0; i-- {
+		entry := gui.state.NavHistory[i]
+		label := strings.TrimSpace(entry.Title)
+		if label == "" {
+			label = "(untitled)"
+		}
+		if i == gui.state.NavIndex {
+			label = "> " + label
+		}
+		idx := i
+		items = append(items, MenuItem{
+			Label: label,
+			OnRun: func() error {
+				gui.state.NavHistory[gui.state.NavIndex] = gui.captureCurrentNavEntry()
+				gui.state.NavIndex = idx
+				gui.restoreNavEntry(gui.state.NavHistory[idx])
+				return nil
+			},
+		})
+	}
+
+	gui.state.Dialog = &DialogState{
+		Active:        true,
+		Type:          "menu",
+		Title:         "Navigation History",
+		MenuItems:     items,
+		MenuSelection: 0,
+	}
+	return nil
+}
+
 // updatePreviewCardList is a shared helper for updating the preview with a card list.
 func (gui *Gui) updatePreviewCardList(title string, loadFn func() ([]models.Note, error)) {
 	notes, err := loadFn()
 	if err != nil {
 		return
 	}
+	gui.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0

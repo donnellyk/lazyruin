@@ -88,12 +88,15 @@ func (gui *Gui) commands() []Command {
 		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, Views: []string{PreviewView}, Handler: gui.toggleTodo, Contexts: []ContextKey{PreviewContext}},
 		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, Views: []string{PreviewView}, Handler: gui.focusNoteFromPreview, Contexts: []ContextKey{PreviewContext}},
 		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, Views: []string{PreviewView}, Handler: gui.previewBack, NoPalette: true},
+		{Name: "Go Back", Category: "Preview", Keys: []any{'['}, Views: []string{PreviewView}, Handler: gui.navBack, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Go Forward", Category: "Preview", Keys: []any{']'}, Views: []string{PreviewView}, Handler: gui.navForward, Contexts: []ContextKey{PreviewContext}},
 
 		// Preview (palette-only)
 		{Name: "Toggle Title", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleTitle)},
 		{Name: "Toggle Global Tags", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleGlobalTags)},
 		{Name: "Toggle Markdown", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleMarkdown)},
 		{Name: "Order Cards", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.orderCards},
+		{Name: "View History", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.showNavHistory},
 
 		// Search Filter
 		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},

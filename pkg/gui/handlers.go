@@ -211,6 +211,7 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	g.Cursor = false
 
 	// Display results in Preview pane (like tags)
+	gui.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0

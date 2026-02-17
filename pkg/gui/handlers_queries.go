@@ -67,10 +67,11 @@ func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
+	gui.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
-	gui.views.Preview.Title = " Preview: " + query.Name + " "
+	gui.views.Preview.Title = " Query: " + query.Name + " "
 	gui.renderPreview()
 	gui.setContext(PreviewContext)
 
@@ -109,7 +110,7 @@ func (gui *Gui) updatePreviewForQueries() {
 	}
 
 	query := gui.state.Queries.Items[gui.state.Queries.SelectedIndex]
-	gui.updatePreviewCardList(" Preview: "+query.Name+" ", func() ([]models.Note, error) {
+	gui.updatePreviewCardList(" Query: "+query.Name+" ", func() ([]models.Note, error) {
 		return gui.ruinCmd.Queries.Run(query.Name, gui.buildSearchOptions())
 	})
 }

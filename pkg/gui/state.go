@@ -55,6 +55,17 @@ type CaptureParentInfo struct {
 	Title string // display title for footer (e.g. "Parent / Child")
 }
 
+// NavEntry captures a snapshot of preview state for back/forward navigation.
+type NavEntry struct {
+	Cards             []models.Note
+	SelectedCardIndex int
+	CursorLine        int
+	ScrollOffset      int
+	Mode              PreviewMode
+	Title             string
+	PickResults       []models.PickResult
+}
+
 type GuiState struct {
 	Notes                   *NotesState
 	Queries                 *QueriesState
@@ -62,6 +73,8 @@ type GuiState struct {
 	Parents                 *ParentsState
 	Preview                 *PreviewState
 	Dialog                  *DialogState
+	NavHistory              []NavEntry
+	NavIndex                int // -1 = no history
 	CurrentContext          ContextKey
 	PreviousContext         ContextKey
 	SearchQuery             string
@@ -196,6 +209,7 @@ func NewGuiState() *GuiState {
 		Notes: &NotesState{
 			CurrentTab: NotesTabAll,
 		},
+		NavIndex: -1,
 		Queries: &QueriesState{
 			CurrentTab: QueriesTabQueries,
 		},

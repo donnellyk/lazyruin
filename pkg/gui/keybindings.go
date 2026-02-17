@@ -150,8 +150,8 @@ func (gui *Gui) previewNavBindings() []binding {
 		{v, gocui.KeyArrowUp, gui.previewUp},
 		{v, 'J', gui.previewCardDown},
 		{v, 'K', gui.previewCardUp},
-		{v, ']', gui.previewNextHeader},
-		{v, '[', gui.previewPrevHeader},
+		{v, '}', gui.previewNextHeader},
+		{v, '{', gui.previewPrevHeader},
 		{v, 'l', gui.highlightNextLink},
 		{v, 'L', gui.highlightPrevLink},
 	}

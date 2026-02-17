@@ -90,7 +90,8 @@ The preview panel displays either a single note or a card list (from search/tag/
 |-----|--------|
 | `j` / `k` | Scroll line-by-line |
 | `J` / `K` | Jump between cards |
-| `]` / `[` | Next/prev header |
+| `}` / `{` | Next/prev header |
+| `]` / `[` | Go forward/back in nav history |
 | `l` / `L` | Highlight next/prev link |
 
 ### Actions
