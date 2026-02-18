@@ -8,21 +8,20 @@ import (
 
 // openInputPopup opens the generic input popup with the given config.
 func (gui *Gui) openInputPopup(config *InputPopupConfig) {
-	gui.openOverlay(OverlayInputPopup)
 	gui.state.InputPopupCompletion = NewCompletionState()
 	gui.state.InputPopupSeedDone = false
 	gui.state.InputPopupConfig = config
+	gui.pushContext(InputPopupCtx)
 }
 
 // closeInputPopup closes the input popup and restores focus.
 func (gui *Gui) closeInputPopup() {
-	gui.closeOverlay()
 	gui.state.InputPopupCompletion = NewCompletionState()
 	gui.state.InputPopupConfig = nil
 	gui.g.Cursor = false
 	gui.g.DeleteView(InputPopupView)
 	gui.g.DeleteView(InputPopupSuggestView)
-	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
+	gui.popContext()
 }
 
 // inputPopupEnter handles Enter in the input popup.

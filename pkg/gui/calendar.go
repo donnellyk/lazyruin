@@ -20,7 +20,7 @@ const (
 
 // openCalendar opens the calendar dialog.
 func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlayCalendar) {
+	if gui.state.popupActive() {
 		return nil
 	}
 
@@ -34,17 +34,17 @@ func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.calendarRefreshNotes()
+	gui.pushContext(CalendarCtx)
 	return nil
 }
 
 // closeCalendar closes the calendar dialog.
 func (gui *Gui) closeCalendar() {
-	gui.closeOverlay()
 	gui.g.DeleteView(CalendarGridView)
 	gui.g.DeleteView(CalendarInputView)
 	gui.g.DeleteView(CalendarNotesView)
 	gui.g.Cursor = false
-	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
+	gui.popContext()
 }
 
 // calendarSelectedDate returns the currently selected date as YYYY-MM-DD.

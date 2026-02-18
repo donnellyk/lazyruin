@@ -19,22 +19,21 @@ const (
 	CaptureContext      ContextKey = "capture"
 	PickContext         ContextKey = "pick"
 	PaletteContext      ContextKey = "palette"
+	InputPopupCtx       ContextKey = "inputPopup"
+	SnippetEditorCtx    ContextKey = "snippetName"
+	CalendarCtx         ContextKey = "calendarGrid"
+	ContribCtx          ContextKey = "contribGrid"
 )
 
-// OverlayType represents the currently active modal overlay.
-type OverlayType int
-
-const (
-	OverlayNone          OverlayType = iota
-	OverlaySearch                    // search popup
-	OverlayCapture                   // new note capture
-	OverlayPick                      // tag/date pick
-	OverlayPalette                   // command palette
-	OverlayInputPopup                // generic input popup
-	OverlaySnippetEditor             // snippet editor
-	OverlayCalendar                  // calendar dialog
-	OverlayContrib                   // contribution chart
-)
+// mainPanelContexts is the set of non-popup panel contexts.
+// A context NOT in this set is treated as a popup by popupActive().
+var mainPanelContexts = map[ContextKey]bool{
+	NotesContext:        true,
+	QueriesContext:      true,
+	TagsContext:         true,
+	PreviewContext:      true,
+	SearchFilterContext: true,
+}
 
 // NotesTab represents the sub-tabs within the Notes panel
 type NotesTab string
@@ -96,7 +95,6 @@ type GuiState struct {
 	NavHistory              []NavEntry
 	NavIndex                int // -1 = no history
 	ContextStack            []ContextKey
-	ActiveOverlay           OverlayType
 	SearchQuery             string
 	CaptureParent           *CaptureParentInfo
 	SearchCompletion        *CompletionState
@@ -234,6 +232,11 @@ func NewGuiState() *GuiState {
 		SnippetEditorCompletion: NewCompletionState(),
 		ContextStack:            []ContextKey{NotesContext},
 	}
+}
+
+// popupActive returns true when the current context is a popup (not a main panel).
+func (s *GuiState) popupActive() bool {
+	return !mainPanelContexts[s.currentContext()]
 }
 
 // currentContext returns the top of the context stack.

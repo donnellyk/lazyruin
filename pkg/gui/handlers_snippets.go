@@ -112,9 +112,9 @@ func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *CompletionSt
 
 // createSnippet opens the two-field stacked snippet editor.
 func (gui *Gui) createSnippet() error {
-	gui.openOverlay(OverlaySnippetEditor)
 	gui.state.SnippetEditorFocus = 0
 	gui.state.SnippetEditorCompletion = NewCompletionState()
+	gui.pushContext(SnippetEditorCtx)
 	return nil
 }
 
@@ -224,13 +224,12 @@ func (gui *Gui) snippetEditorEsc(g *gocui.Gui, v *gocui.View) error {
 
 // closeSnippetEditor tears down the snippet editor views and restores focus.
 func (gui *Gui) closeSnippetEditor(g *gocui.Gui) error {
-	gui.closeOverlay()
 	gui.state.SnippetEditorCompletion = NewCompletionState()
 	g.DeleteView(SnippetNameView)
 	g.DeleteView(SnippetExpansionView)
 	g.DeleteView(SnippetSuggestView)
 	g.Cursor = false
-	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
+	gui.popContext()
 	return nil
 }
 

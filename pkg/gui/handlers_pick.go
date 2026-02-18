@@ -7,7 +7,7 @@ import (
 )
 
 func (gui *Gui) openPick(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlayPick) {
+	if gui.state.popupActive() {
 		return nil
 	}
 	gui.state.PickCompletion = NewCompletionState()
@@ -49,7 +49,6 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 
 	// Always close the pick dialog
 	gui.state.PickQuery = raw
-	gui.closeOverlay()
 	gui.state.PickCompletion = NewCompletionState()
 	g.Cursor = false
 
@@ -72,7 +71,6 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) cancelPick(g *gocui.Gui, v *gocui.View) error {
-	gui.closeOverlay()
 	gui.state.PickCompletion = NewCompletionState()
 	g.Cursor = false
 	gui.popContext()

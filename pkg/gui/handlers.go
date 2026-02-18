@@ -167,7 +167,7 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) openSearch(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlaySearch) {
+	if gui.state.popupActive() {
 		return nil
 	}
 	cs := NewCompletionState()
@@ -208,7 +208,6 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 
 	// Store full input for the search filter pane display
 	gui.state.SearchQuery = raw
-	gui.closeOverlay()
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false
 
@@ -228,7 +227,6 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
-	gui.closeOverlay()
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false
 	gui.popContext()

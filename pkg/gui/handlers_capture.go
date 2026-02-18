@@ -7,7 +7,7 @@ import (
 )
 
 func (gui *Gui) openCapture(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlayCapture) {
+	if gui.state.popupActive() {
 		return nil
 	}
 	gui.state.CaptureParent = nil
@@ -74,7 +74,6 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) closeCapture(g *gocui.Gui) error {
-	gui.closeOverlay()
 	gui.state.CaptureParent = nil
 	gui.state.CaptureCompletion = NewCompletionState()
 	g.Cursor = false

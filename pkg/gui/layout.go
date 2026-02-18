@@ -72,77 +72,78 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
-	// Manage overlay views based on ActiveOverlay
-	switch gui.state.ActiveOverlay {
-	case OverlaySearch:
+	// Manage overlay views based on the current context
+	switch gui.state.currentContext() {
+	case SearchContext:
 		if err := gui.createSearchPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayCapture:
+	case CaptureContext:
 		if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayPick:
+	case PickContext:
 		if err := gui.createPickPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayInputPopup:
+	case InputPopupCtx:
 		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlaySnippetEditor:
+	case SnippetEditorCtx:
 		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayPalette:
+	case PaletteContext:
 		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayCalendar:
+	case CalendarCtx:
 		if err := gui.createCalendarViews(g, maxX, maxY); err != nil {
 			return err
 		}
-	case OverlayContrib:
+	case ContribCtx:
 		if err := gui.createContribViews(g, maxX, maxY); err != nil {
 			return err
 		}
 	}
 	// Delete views for inactive overlays
-	if gui.state.ActiveOverlay != OverlaySearch {
+	ctx := gui.state.currentContext()
+	if ctx != SearchContext {
 		g.DeleteView(SearchView)
 		g.DeleteView(SearchSuggestView)
 	}
-	if gui.state.ActiveOverlay != OverlayCapture {
+	if ctx != CaptureContext {
 		g.DeleteView(CaptureView)
 		g.DeleteView(CaptureSuggestView)
 		gui.views.Capture = nil
 	}
-	if gui.state.ActiveOverlay != OverlayPick {
+	if ctx != PickContext {
 		g.DeleteView(PickView)
 		g.DeleteView(PickSuggestView)
 		gui.views.Pick = nil
 	}
-	if gui.state.ActiveOverlay != OverlayInputPopup {
+	if ctx != InputPopupCtx {
 		g.DeleteView(InputPopupView)
 		g.DeleteView(InputPopupSuggestView)
 	}
-	if gui.state.ActiveOverlay != OverlaySnippetEditor {
+	if ctx != SnippetEditorCtx {
 		g.DeleteView(SnippetNameView)
 		g.DeleteView(SnippetExpansionView)
 		g.DeleteView(SnippetSuggestView)
 	}
-	if gui.state.ActiveOverlay != OverlayPalette {
+	if ctx != PaletteContext {
 		g.DeleteView(PaletteView)
 		g.DeleteView(PaletteListView)
 		gui.views.Palette = nil
 		gui.views.PaletteList = nil
 	}
-	if gui.state.ActiveOverlay != OverlayCalendar {
+	if ctx != CalendarCtx {
 		g.DeleteView(CalendarGridView)
 		g.DeleteView(CalendarInputView)
 		g.DeleteView(CalendarNotesView)
 	}
-	if gui.state.ActiveOverlay != OverlayContrib {
+	if ctx != ContribCtx {
 		g.DeleteView(ContribGridView)
 		g.DeleteView(ContribNotesView)
 	}
@@ -160,7 +161,6 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.refreshAll()
 		gui.preview.updatePreviewForNotes()
 		if gui.QuickCapture {
-			gui.state.ActiveOverlay = OverlayCapture
 			gui.state.CaptureCompletion = NewCompletionState()
 			gui.state.ContextStack = []ContextKey{NotesContext, CaptureContext}
 		}

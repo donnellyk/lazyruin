@@ -149,7 +149,7 @@ func (c *PreviewController) previewPrevHeader(g *gocui.Gui, v *gocui.View) error
 }
 
 func (c *PreviewController) previewScrollDown(g *gocui.Gui, v *gocui.View) error {
-	if c.gui.state.ActiveOverlay == OverlayPalette {
+	if c.gui.state.currentContext() == PaletteContext {
 		if c.gui.views.PaletteList != nil {
 			scrollViewport(c.gui.views.PaletteList, 3)
 		}
@@ -164,7 +164,7 @@ func (c *PreviewController) previewScrollDown(g *gocui.Gui, v *gocui.View) error
 }
 
 func (c *PreviewController) previewScrollUp(g *gocui.Gui, v *gocui.View) error {
-	if c.gui.state.ActiveOverlay == OverlayPalette {
+	if c.gui.state.currentContext() == PaletteContext {
 		if c.gui.views.PaletteList != nil {
 			scrollViewport(c.gui.views.PaletteList, -3)
 		}

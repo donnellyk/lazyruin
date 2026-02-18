@@ -13,7 +13,7 @@ import (
 
 // openContrib opens the contribution chart dialog.
 func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlayContrib) {
+	if gui.state.popupActive() {
 		return nil
 	}
 
@@ -26,15 +26,15 @@ func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
 
 	gui.contribLoadData()
 	gui.contribRefreshNotes()
+	gui.pushContext(ContribCtx)
 	return nil
 }
 
 // closeContrib closes the contribution chart dialog.
 func (gui *Gui) closeContrib() {
-	gui.closeOverlay()
 	gui.g.DeleteView(ContribGridView)
 	gui.g.DeleteView(ContribNotesView)
-	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
+	gui.popContext()
 }
 
 // contribLoadData loads note counts for the past year.

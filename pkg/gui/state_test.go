@@ -13,8 +13,8 @@ func TestNewGuiState_Defaults(t *testing.T) {
 		t.Errorf("currentContext() = %v, want %v", state.currentContext(), NotesContext)
 	}
 
-	if state.ActiveOverlay != OverlayNone {
-		t.Errorf("ActiveOverlay = %v, want OverlayNone", state.ActiveOverlay)
+	if state.popupActive() {
+		t.Error("popupActive() should be false by default")
 	}
 
 	if state.SearchQuery != "" {
@@ -196,30 +196,28 @@ func TestPreviewState_FrontmatterToggle(t *testing.T) {
 	}
 }
 
-func TestSearchOverlay_Toggle(t *testing.T) {
+func TestSearchPopupActive_Toggle(t *testing.T) {
 	state := NewGuiState()
 
-	if state.ActiveOverlay != OverlayNone {
-		t.Error("ActiveOverlay should default to OverlayNone")
+	if state.popupActive() {
+		t.Error("popupActive() should be false by default")
 	}
 
-	// Enter search overlay
-	state.ActiveOverlay = OverlaySearch
+	// Enter search via context stack
 	state.ContextStack = append(state.ContextStack, SearchContext)
 
-	if state.ActiveOverlay != OverlaySearch {
-		t.Error("ActiveOverlay should be OverlaySearch")
+	if !state.popupActive() {
+		t.Error("popupActive() should be true when SearchContext is active")
 	}
 	if state.currentContext() != SearchContext {
 		t.Errorf("currentContext() = %v, want SearchContext", state.currentContext())
 	}
 
-	// Exit search overlay
-	state.ActiveOverlay = OverlayNone
+	// Exit search
 	state.ContextStack = state.ContextStack[:len(state.ContextStack)-1]
 
-	if state.ActiveOverlay != OverlayNone {
-		t.Error("ActiveOverlay should be OverlayNone after exit")
+	if state.popupActive() {
+		t.Error("popupActive() should be false after exiting search")
 	}
 	if state.currentContext() != NotesContext {
 		t.Errorf("currentContext() = %v, want NotesContext", state.currentContext())

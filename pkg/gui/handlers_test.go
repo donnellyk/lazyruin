@@ -342,8 +342,8 @@ func TestOpenSearch_EntersSearchOverlay(t *testing.T) {
 
 	tg.gui.openSearch(tg.g, nil)
 
-	if tg.gui.state.ActiveOverlay != OverlaySearch {
-		t.Error("ActiveOverlay should be OverlaySearch")
+	if !tg.gui.state.popupActive() {
+		t.Error("popupActive() should be true after openSearch")
 	}
 	if tg.gui.state.currentContext() != SearchContext {
 		t.Errorf("currentContext() = %v, want SearchContext", tg.gui.state.currentContext())
@@ -361,8 +361,8 @@ func TestCancelSearch_RestoresContext(t *testing.T) {
 	tg.gui.openSearch(tg.g, nil)
 	tg.gui.cancelSearch(tg.g, tg.gui.views.Search)
 
-	if tg.gui.state.ActiveOverlay != OverlayNone {
-		t.Error("ActiveOverlay should be OverlayNone after cancel")
+	if tg.gui.state.popupActive() {
+		t.Error("popupActive() should be false after cancelSearch")
 	}
 	if tg.gui.state.currentContext() != prev {
 		t.Errorf("CurrentContext = %v, want %v (restored)", tg.gui.state.currentContext(), prev)
@@ -803,8 +803,8 @@ func TestOpenCapture_EntersCaptureOverlay(t *testing.T) {
 
 	tg.gui.openCapture(tg.g, nil)
 
-	if tg.gui.state.ActiveOverlay != OverlayCapture {
-		t.Error("ActiveOverlay should be OverlayCapture")
+	if !tg.gui.state.popupActive() {
+		t.Error("popupActive() should be true after openCapture")
 	}
 	if tg.gui.state.currentContext() != CaptureContext {
 		t.Errorf("currentContext() = %v, want CaptureContext", tg.gui.state.currentContext())
@@ -820,8 +820,8 @@ func TestNewNote_OpensCapture(t *testing.T) {
 
 	tg.gui.newNote(tg.g, nil)
 
-	if tg.gui.state.ActiveOverlay != OverlayCapture {
-		t.Error("newNote should open capture overlay")
+	if tg.gui.state.currentContext() != CaptureContext {
+		t.Error("newNote should push CaptureContext")
 	}
 }
 

@@ -91,7 +91,7 @@ func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
 
 // openPalette opens the command palette popup.
 func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
-	if !gui.openOverlay(OverlayPalette) {
+	if gui.state.popupActive() {
 		return nil
 	}
 
@@ -111,7 +111,6 @@ func (gui *Gui) closePalette() {
 	if gui.state.Palette == nil {
 		return
 	}
-	gui.closeOverlay()
 	gui.state.PaletteSeedDone = false
 	gui.state.Palette = nil
 	gui.g.Cursor = false

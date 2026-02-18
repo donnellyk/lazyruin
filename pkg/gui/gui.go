@@ -573,23 +573,9 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	gui.pushContext(ctx)
 }
 
-// openOverlay opens a modal overlay. Returns false if one is already active.
-func (gui *Gui) openOverlay(overlay OverlayType) bool {
-	if gui.state.ActiveOverlay != OverlayNone {
-		return false
-	}
-	gui.state.ActiveOverlay = overlay
-	return true
-}
-
-// closeOverlay closes the current modal overlay.
-func (gui *Gui) closeOverlay() {
-	gui.state.ActiveOverlay = OverlayNone
-}
-
 // overlayActive returns true when any overlay or dialog is open.
 func (gui *Gui) overlayActive() bool {
-	return gui.state.ActiveOverlay != OverlayNone ||
+	return gui.state.popupActive() ||
 		(gui.state.Dialog != nil && gui.state.Dialog.Active)
 }
 
@@ -613,6 +599,14 @@ func (gui *Gui) contextToView(ctx ContextKey) string {
 		return PickView
 	case PaletteContext:
 		return PaletteView
+	case InputPopupCtx:
+		return InputPopupView
+	case SnippetEditorCtx:
+		return SnippetNameView
+	case CalendarCtx:
+		return CalendarGridView
+	case ContribCtx:
+		return ContribGridView
 	}
 	return NotesView
 }
