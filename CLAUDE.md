@@ -51,13 +51,28 @@ App → Gui → Controllers → Helpers → Commands → Models
 - **Commands** wrap ruin CLI execution with typed responses
 - **Models** are data structures (Note, Tag, Query)
 
+## Package Structure
+
+```
+pkg/gui/
+├── types/        # Pure interfaces: Context, IController, Binding, IList, IListCursor
+├── context/      # Context implementations: own state (items, cursor, tab)
+├── controllers/  # Controller implementations: own keybindings and handlers
+├── helpers/      # Domain helpers: RefreshHelper, NotesHelper, EditorHelper, etc.
+└── (gui package) # Layout, rendering, completion, dialog, state, keybinding registration
+```
+
 ## Key Patterns
 
-1. **Context System**: Each panel has a Context managing state and keybindings
-2. **Null Object Controllers**: Base controller returns nil, children override selectively
-3. **Trait Composition**: ListContextTrait for common list behavior
-4. **Thread-Safe Updates**: Use `gui.Update()` for goroutine GUI updates
-5. **JSON Mode**: All ruin commands use `--json` for reliable parsing
+1. **Context System**: Each panel has a `Context` (owns state + identity) in `pkg/gui/context/`
+2. **Controller System**: Each panel has a `Controller` (owns keybindings) in `pkg/gui/controllers/`
+3. **Null Object Controllers**: `baseController` returns nil; concrete controllers override selectively
+4. **Trait Composition**: `ListContextTrait` for list state; `ListControllerTrait[T]` for list navigation
+5. **Context Stack**: `GuiState.ContextStack` replaces old overlay enum; `pushContext`/`popContext` manage focus
+6. **Binding Registration**: `registerContextBindings()` bridges controller bindings into gocui; `DumpBindings()` for regression diffing
+7. **Thread-Safe Updates**: Use `gui.g.Update()` for goroutine GUI updates
+8. **JSON Mode**: All ruin commands use `--json` for reliable parsing
+9. **Selection by ID**: `RefreshHelper.PreserveSelection` uses stable IDs, not raw indices
 
 ## ruin CLI Integration
 
