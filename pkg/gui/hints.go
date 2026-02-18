@@ -1,5 +1,7 @@
 package gui
 
+import "kvnd/lazyruin/pkg/gui/context"
+
 // contextHint defines a single keybinding hint shared between the status bar and help menu.
 type contextHint struct {
 	key    string
@@ -47,7 +49,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 			},
 		}
 	case QueriesContext:
-		if gui.state.Queries.CurrentTab == QueriesTabParents {
+		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			return contextHintDef{
 				header: "Parents",
 				hints: []contextHint{

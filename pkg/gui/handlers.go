@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/context"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -141,7 +142,7 @@ func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) clearSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchQuery = ""
-	gui.state.Notes.CurrentTab = NotesTabAll
+	gui.contexts.Notes.CurrentTab = context.NotesTabAll
 	gui.loadNotesForCurrentTab()
 	gui.setContext(NotesContext)
 	return nil
@@ -181,10 +182,4 @@ func (gui *Gui) openInEditor(path string) error {
 	gui.preview.reloadContent()
 	gui.renderAll()
 	return nil
-}
-
-// Helper to check if a command is available
-func isCommandAvailable(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
 }

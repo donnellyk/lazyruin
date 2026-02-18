@@ -337,12 +337,12 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 // resolveParentLabel returns a display name for a parent UUID by checking
 // loaded parent bookmarks, then loaded notes, then falling back to a truncated UUID.
 func (gui *Gui) resolveParentLabel(uuid string) string {
-	for _, bm := range gui.state.Parents.Items {
+	for _, bm := range gui.contexts.Queries.Parents {
 		if bm.UUID == uuid {
 			return bm.Name
 		}
 	}
-	for _, note := range gui.state.Notes.Items {
+	for _, note := range gui.contexts.Notes.Items {
 		if note.UUID == uuid {
 			return note.Title
 		}

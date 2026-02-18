@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 )
 
@@ -42,13 +43,8 @@ type PreviewController struct {
 	onNavBack           func() error
 	onNavForward        func() error
 
-	// Note actions (shared with Notes panel)
-	onAddTag         func() error
-	onRemoveTag      func() error
-	onSetParent      func() error
-	onRemoveParent   func() error
-	onToggleBookmark func() error
-	onShowInfo       func() error
+	// Note actions — showInfo still delegates to gui.preview (not yet in helpers)
+	onShowInfo func() error
 
 	// Palette-only (Key: nil = no keybinding, just palette entry)
 	onToggleTitle      func() error
@@ -93,13 +89,8 @@ type PreviewControllerOpts struct {
 	OnNavBack           func() error
 	OnNavForward        func() error
 
-	// Note actions
-	OnAddTag         func() error
-	OnRemoveTag      func() error
-	OnSetParent      func() error
-	OnRemoveParent   func() error
-	OnToggleBookmark func() error
-	OnShowInfo       func() error
+	// Note actions — showInfo still delegates to gui.preview (not yet in helpers)
+	OnShowInfo func() error
 
 	// Palette-only
 	OnToggleTitle      func() error
@@ -138,11 +129,6 @@ func NewPreviewController(opts PreviewControllerOpts) *PreviewController {
 		onBack:              opts.OnBack,
 		onNavBack:           opts.OnNavBack,
 		onNavForward:        opts.OnNavForward,
-		onAddTag:            opts.OnAddTag,
-		onRemoveTag:         opts.OnRemoveTag,
-		onSetParent:         opts.OnSetParent,
-		onRemoveParent:      opts.OnRemoveParent,
-		onToggleBookmark:    opts.OnToggleBookmark,
 		onShowInfo:          opts.OnShowInfo,
 		onToggleTitle:       opts.OnToggleTitle,
 		onToggleGlobalTags:  opts.OnToggleGlobalTags,
@@ -156,6 +142,17 @@ func NewPreviewController(opts PreviewControllerOpts) *PreviewController {
 func (self *PreviewController) Context() types.Context {
 	return self.getContext()
 }
+
+func (self *PreviewController) h() *helpers.Helpers {
+	return self.c.Helpers().(*helpers.Helpers)
+}
+
+// Note action wrappers — call helpers directly.
+func (self *PreviewController) addTag() error         { return self.h().NoteActions().AddGlobalTag() }
+func (self *PreviewController) removeTag() error      { return self.h().NoteActions().RemoveTag() }
+func (self *PreviewController) setParent() error      { return self.h().NoteActions().SetParentDialog() }
+func (self *PreviewController) removeParent() error   { return self.h().NoteActions().RemoveParent() }
+func (self *PreviewController) toggleBookmark() error { return self.h().NoteActions().ToggleBookmark() }
 
 // GetKeybindingsFn returns the keybinding producer for preview.
 // Bindings with Key == nil are palette-only (no keybinding registered).
@@ -282,11 +279,11 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 				Category:    "Preview",
 			},
 
-			// Note actions (shared with Notes panel)
+			// Note actions (shared with Notes panel) — call helpers directly
 			{
 				ID:              "preview.add_tag",
 				Key:             't',
-				Handler:         self.onAddTag,
+				Handler:         self.addTag,
 				Description:     "Add Tag",
 				Category:        "Note Actions",
 				DisplayOnScreen: true,
@@ -294,28 +291,28 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 			{
 				ID:          "preview.remove_tag",
 				Key:         'T',
-				Handler:     self.onRemoveTag,
+				Handler:     self.removeTag,
 				Description: "Remove Tag",
 				Category:    "Note Actions",
 			},
 			{
 				ID:          "preview.set_parent",
 				Key:         '>',
-				Handler:     self.onSetParent,
+				Handler:     self.setParent,
 				Description: "Set Parent",
 				Category:    "Note Actions",
 			},
 			{
 				ID:          "preview.remove_parent",
 				Key:         'P',
-				Handler:     self.onRemoveParent,
+				Handler:     self.removeParent,
 				Description: "Remove Parent",
 				Category:    "Note Actions",
 			},
 			{
 				ID:          "preview.toggle_bookmark",
 				Key:         'b',
-				Handler:     self.onToggleBookmark,
+				Handler:     self.toggleBookmark,
 				Description: "Toggle Bookmark",
 				Category:    "Note Actions",
 			},

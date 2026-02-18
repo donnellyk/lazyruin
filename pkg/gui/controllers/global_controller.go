@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -13,66 +14,54 @@ type GlobalController struct {
 	c          *ControllerCommon
 	getContext func() *context.GlobalContext
 
-	onQuit                func() error
-	onSearch              func() error
-	onPick                func() error
-	onNewNote             func() error
-	onRefresh             func() error
-	onHelp                func() error
-	onPalette             func() error
-	onCalendar            func() error
-	onContrib             func() error
-	onCycleNotesTab       func() error
-	onCycleQueriesTab     func() error
-	onCycleTagsTab        func() error
-	onFocusSearchFilterOp func() error
+	// Callbacks for actions not yet migrated to helpers.
+	onQuit     func() error
+	onPick     func() error
+	onNewNote  func() error
+	onHelp     func() error
+	onPalette  func() error
+	onCalendar func() error
+	onContrib  func() error
 }
 
 var _ types.IController = &GlobalController{}
 
 // GlobalControllerOpts holds callbacks injected during wiring.
 type GlobalControllerOpts struct {
-	Common                *ControllerCommon
-	GetContext            func() *context.GlobalContext
-	OnQuit                func() error
-	OnSearch              func() error
-	OnPick                func() error
-	OnNewNote             func() error
-	OnRefresh             func() error
-	OnHelp                func() error
-	OnPalette             func() error
-	OnCalendar            func() error
-	OnContrib             func() error
-	OnCycleNotesTab       func() error
-	OnCycleQueriesTab     func() error
-	OnCycleTagsTab        func() error
-	OnFocusSearchFilterOp func() error
+	Common     *ControllerCommon
+	GetContext func() *context.GlobalContext
+	// Callbacks for actions not yet migrated to helpers.
+	OnQuit     func() error
+	OnPick     func() error
+	OnNewNote  func() error
+	OnHelp     func() error
+	OnPalette  func() error
+	OnCalendar func() error
+	OnContrib  func() error
 }
 
 // NewGlobalController creates a GlobalController.
 func NewGlobalController(opts GlobalControllerOpts) *GlobalController {
 	return &GlobalController{
-		c:                     opts.Common,
-		getContext:            opts.GetContext,
-		onQuit:                opts.OnQuit,
-		onSearch:              opts.OnSearch,
-		onPick:                opts.OnPick,
-		onNewNote:             opts.OnNewNote,
-		onRefresh:             opts.OnRefresh,
-		onHelp:                opts.OnHelp,
-		onPalette:             opts.OnPalette,
-		onCalendar:            opts.OnCalendar,
-		onContrib:             opts.OnContrib,
-		onCycleNotesTab:       opts.OnCycleNotesTab,
-		onCycleQueriesTab:     opts.OnCycleQueriesTab,
-		onCycleTagsTab:        opts.OnCycleTagsTab,
-		onFocusSearchFilterOp: opts.OnFocusSearchFilterOp,
+		c:          opts.Common,
+		getContext: opts.GetContext,
+		onQuit:     opts.OnQuit,
+		onPick:     opts.OnPick,
+		onNewNote:  opts.OnNewNote,
+		onHelp:     opts.OnHelp,
+		onPalette:  opts.OnPalette,
+		onCalendar: opts.OnCalendar,
+		onContrib:  opts.OnContrib,
 	}
 }
 
 // Context returns the context this controller is attached to.
 func (self *GlobalController) Context() types.Context {
 	return self.getContext()
+}
+
+func (self *GlobalController) h() *helpers.Helpers {
+	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // NextPanel implements Tab panel cycling.
@@ -129,9 +118,7 @@ func (self *GlobalController) PrevPanel() error {
 func (self *GlobalController) FocusNotes() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "notes" {
-		if self.onCycleNotesTab != nil {
-			return self.onCycleNotesTab()
-		}
+		self.h().Notes().CycleNotesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("notes"); ctx != nil {
@@ -144,9 +131,7 @@ func (self *GlobalController) FocusNotes() error {
 func (self *GlobalController) FocusQueries() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "queries" {
-		if self.onCycleQueriesTab != nil {
-			return self.onCycleQueriesTab()
-		}
+		self.h().Queries().CycleQueriesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("queries"); ctx != nil {
@@ -159,9 +144,7 @@ func (self *GlobalController) FocusQueries() error {
 func (self *GlobalController) FocusTags() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "tags" {
-		if self.onCycleTagsTab != nil {
-			return self.onCycleTagsTab()
-		}
+		self.h().Tags().CycleTagsTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("tags"); ctx != nil {
@@ -179,6 +162,19 @@ func (self *GlobalController) FocusPreview() error {
 	return nil
 }
 
+func (self *GlobalController) openSearch() error {
+	return self.h().Search().OpenSearch()
+}
+
+func (self *GlobalController) refresh() error {
+	self.c.GuiCommon().RefreshAll()
+	return nil
+}
+
+func (self *GlobalController) focusSearchFilter() error {
+	return self.h().Search().FocusSearchFilter()
+}
+
 // GetKeybindingsFn returns all global keybinding producers.
 func (self *GlobalController) GetKeybindingsFn() types.KeybindingsFn {
 	return func(opts types.KeybindingsOpts) []*types.Binding {
@@ -188,11 +184,11 @@ func (self *GlobalController) GetKeybindingsFn() types.KeybindingsFn {
 			{Key: gocui.KeyCtrlC, Handler: self.onQuit},
 
 			// Core actions
-			{ID: "global.search", Key: '/', Handler: self.onSearch, Description: "Search", Category: "Global"},
+			{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global"},
 			{ID: "global.pick", Key: 'p', Handler: self.onPick, Description: "Pick", Category: "Global"},
 			{Key: '\\', Handler: self.onPick},
 			{ID: "global.new_note", Key: 'n', Handler: self.onNewNote, Description: "New Note", Category: "Global"},
-			{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.onRefresh, Description: "Refresh", Category: "Global"},
+			{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
 			{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global"},
 			{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
 			{ID: "global.calendar", Key: 'c', Handler: self.onCalendar, Description: "Calendar", Category: "Global"},
@@ -203,7 +199,7 @@ func (self *GlobalController) GetKeybindingsFn() types.KeybindingsFn {
 			{ID: "global.focus_queries", Key: '2', Handler: self.FocusQueries, Description: "Focus Queries", Category: "Focus"},
 			{ID: "global.focus_tags", Key: '3', Handler: self.FocusTags, Description: "Focus Tags", Category: "Focus"},
 			{ID: "global.focus_preview", Handler: self.FocusPreview, Description: "Focus Preview", Category: "Focus"},
-			{ID: "global.focus_search_filter", Key: '0', Handler: self.onFocusSearchFilterOp, Description: "Focus Search Filter", Category: "Focus"},
+			{ID: "global.focus_search_filter", Key: '0', Handler: self.focusSearchFilter, Description: "Focus Search Filter", Category: "Focus"},
 
 			// Panel navigation (no Description = not in palette)
 			{Key: gocui.KeyTab, Handler: self.NextPanel},

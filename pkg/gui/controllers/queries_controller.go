@@ -5,7 +5,6 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 )
 
 // QueriesController handles all Queries panel keybindings and behavior.
@@ -14,45 +13,31 @@ type QueriesController struct {
 	baseController
 	c          *ControllerCommon
 	getContext func() *context.QueriesContext
-
-	// Queries tab callbacks
-	onRunQuery    func(query *models.Query) error
-	onDeleteQuery func(query *models.Query) error
-
-	// Parents tab callbacks
-	onViewParent   func(parent *models.ParentBookmark) error
-	onDeleteParent func(parent *models.ParentBookmark) error
 }
 
 var _ types.IController = &QueriesController{}
 
-// QueriesControllerOpts holds the callbacks injected during wiring.
+// QueriesControllerOpts holds dependencies for construction.
 type QueriesControllerOpts struct {
 	Common     *ControllerCommon
 	GetContext func() *context.QueriesContext
-	// Queries tab callbacks
-	OnRunQuery    func(query *models.Query) error
-	OnDeleteQuery func(query *models.Query) error
-	// Parents tab callbacks
-	OnViewParent   func(parent *models.ParentBookmark) error
-	OnDeleteParent func(parent *models.ParentBookmark) error
 }
 
 // NewQueriesController creates a new QueriesController.
 func NewQueriesController(opts QueriesControllerOpts) *QueriesController {
 	return &QueriesController{
-		c:              opts.Common,
-		getContext:     opts.GetContext,
-		onRunQuery:     opts.OnRunQuery,
-		onDeleteQuery:  opts.OnDeleteQuery,
-		onViewParent:   opts.OnViewParent,
-		onDeleteParent: opts.OnDeleteParent,
+		c:          opts.Common,
+		getContext: opts.GetContext,
 	}
 }
 
 // Context returns the context this controller is attached to.
 func (self *QueriesController) Context() types.Context {
 	return self.getContext()
+}
+
+func (self *QueriesController) h() *helpers.Helpers {
+	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // GetKeybindingsFn returns the keybinding producer for queries.
@@ -162,7 +147,7 @@ func (self *QueriesController) prevItem() error {
 	return nil
 }
 
-// Action handlers — dispatch based on current tab.
+// Action handlers — call helpers directly.
 
 func (self *QueriesController) activeItemSelected() *types.DisabledReason {
 	ctx := self.getContext()
@@ -173,33 +158,9 @@ func (self *QueriesController) activeItemSelected() *types.DisabledReason {
 }
 
 func (self *QueriesController) runActiveItem() error {
-	ctx := self.getContext()
-	if ctx.CurrentTab == context.QueriesTabParents {
-		p := ctx.SelectedParent()
-		if p == nil {
-			return nil
-		}
-		return self.onViewParent(p)
-	}
-	q := ctx.SelectedQuery()
-	if q == nil {
-		return nil
-	}
-	return self.onRunQuery(q)
+	return self.h().Queries().RunQuery()
 }
 
 func (self *QueriesController) deleteActiveItem() error {
-	ctx := self.getContext()
-	if ctx.CurrentTab == context.QueriesTabParents {
-		p := ctx.SelectedParent()
-		if p == nil {
-			return nil
-		}
-		return self.onDeleteParent(p)
-	}
-	q := ctx.SelectedQuery()
-	if q == nil {
-		return nil
-	}
-	return self.onDeleteQuery(q)
+	return self.h().Queries().DeleteQuery()
 }

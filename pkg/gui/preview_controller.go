@@ -234,9 +234,9 @@ func (c *PreviewController) focusNoteFromPreview(g *gocui.Gui, v *gocui.View) er
 
 	card := c.gui.state.Preview.Cards[c.gui.state.Preview.SelectedCardIndex]
 
-	for i, note := range c.gui.state.Notes.Items {
+	for i, note := range c.gui.contexts.Notes.Items {
 		if note.UUID == card.UUID {
-			c.gui.state.Notes.SelectedIndex = i
+			c.gui.contexts.Notes.SetSelectedLineIdx(i)
 			c.gui.setContext(NotesContext)
 			c.gui.renderNotes()
 			return nil

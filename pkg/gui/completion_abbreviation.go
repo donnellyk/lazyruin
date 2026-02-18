@@ -86,7 +86,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 	var currentUUID string
 	var titleParts []string
 	segLower := strings.ToLower(segments[0])
-	for _, p := range gui.state.Parents.Items {
+	for _, p := range gui.contexts.Queries.Parents {
 		if strings.ToLower(p.Name) == segLower {
 			currentUUID = p.UUID
 			titleParts = append(titleParts, p.Title)
@@ -96,7 +96,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 
 	// Fallback: match by note title (for >> all-notes mode)
 	if currentUUID == "" {
-		for _, note := range gui.state.Notes.Items {
+		for _, note := range gui.contexts.Notes.Items {
 			if strings.ToLower(note.Title) == segLower {
 				currentUUID = note.UUID
 				titleParts = append(titleParts, note.Title)

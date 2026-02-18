@@ -7,15 +7,6 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// cycleQueriesTab cycles through Queries -> Parents tabs
-func (gui *Gui) cycleQueriesTab() {
-	queriesCtx := gui.contexts.Queries
-	idx := (queriesCtx.TabIndex() + 1) % len(guictx.QueriesTabs)
-	queriesCtx.CurrentTab = guictx.QueriesTabs[idx]
-	queriesCtx.SetSelectedLineIdx(0)
-	gui.loadDataForQueriesTab()
-}
-
 // switchQueriesTabByIndex switches to a specific tab by index (for tab click)
 func (gui *Gui) switchQueriesTabByIndex(tabIndex int) error {
 	if tabIndex < 0 || tabIndex >= len(guictx.QueriesTabs) {

@@ -11,20 +11,9 @@ func (gui *Gui) selectedFilteredTag() *models.Tag {
 	return gui.contexts.Tags.Selected()
 }
 
-// cycleTagsTab cycles through All -> Global -> Inline tabs.
-func (gui *Gui) cycleTagsTab() {
-	tagsCtx := gui.contexts.Tags
-	idx := (tagsCtx.TabIndex() + 1) % len(tagsTabs)
-	tagsCtx.CurrentTab = tagsTabsNew[idx]
-	tagsCtx.SetSelectedLineIdx(0)
-	gui.updateTagsTab()
-	gui.renderTags()
-	gui.updatePreviewForTags()
-}
-
 // switchTagsTabByIndex handles mouse clicks on tab headers.
 func (gui *Gui) switchTagsTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(tagsTabs) {
+	if tabIndex < 0 || tabIndex >= len(tagsTabsNew) {
 		return nil
 	}
 	tagsCtx := gui.contexts.Tags

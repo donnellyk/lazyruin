@@ -25,28 +25,8 @@ func TestNewGuiState_Defaults(t *testing.T) {
 func TestNewGuiState_SubStatesInitialized(t *testing.T) {
 	state := NewGuiState()
 
-	if state.Notes == nil {
-		t.Error("Notes state should not be nil")
-	}
-	if state.Queries == nil {
-		t.Error("Queries state should not be nil")
-	}
-	if state.Tags == nil {
-		t.Error("Tags state should not be nil")
-	}
 	if state.Preview == nil {
 		t.Error("Preview state should not be nil")
-	}
-}
-
-func TestNewGuiState_NotesStateDefaults(t *testing.T) {
-	state := NewGuiState()
-
-	if state.Notes.SelectedIndex != 0 {
-		t.Errorf("Notes.SelectedIndex = %d, want 0", state.Notes.SelectedIndex)
-	}
-	if len(state.Notes.Items) != 0 {
-		t.Errorf("Notes.Items length = %d, want 0", len(state.Notes.Items))
 	}
 }
 
@@ -116,34 +96,6 @@ func TestGuiState_ContextTracking(t *testing.T) {
 	}
 	if state.currentContext() != PreviewContext {
 		t.Errorf("currentContext() = %v, want PreviewContext", state.currentContext())
-	}
-}
-
-func TestNotesState_Selection(t *testing.T) {
-	state := NewGuiState()
-
-	// Add some notes
-	state.Notes.Items = []models.Note{
-		{UUID: "1", Title: "Note 1"},
-		{UUID: "2", Title: "Note 2"},
-		{UUID: "3", Title: "Note 3"},
-	}
-
-	// Test selection bounds
-	state.Notes.SelectedIndex = 0
-	if state.Notes.SelectedIndex < 0 {
-		t.Error("SelectedIndex should not be negative")
-	}
-
-	state.Notes.SelectedIndex = 2
-	if state.Notes.SelectedIndex >= len(state.Notes.Items) {
-		t.Error("SelectedIndex should be within bounds")
-	}
-
-	// Get selected note
-	selected := state.Notes.Items[state.Notes.SelectedIndex]
-	if selected.UUID != "3" {
-		t.Errorf("Selected note UUID = %q, want %q", selected.UUID, "3")
 	}
 }
 

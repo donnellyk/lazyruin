@@ -28,3 +28,22 @@ func (self *RefreshHelper) PreserveSelection(list types.IListContext) {
 		}
 	}
 }
+
+// RefreshAll refreshes data for all panels.
+func (self *RefreshHelper) RefreshAll() {
+	h := self.c.Helpers()
+	h.Notes().FetchNotesForCurrentTab(false)
+	h.Tags().RefreshTags(false)
+	h.Queries().RefreshQueries(false)
+	h.Queries().RefreshParents(false)
+}
+
+// RenderAll re-renders all panels.
+func (self *RefreshHelper) RenderAll() {
+	gui := self.c.GuiCommon()
+	gui.RenderNotes()
+	gui.RenderQueries()
+	gui.RenderTags()
+	gui.RenderPreview()
+	gui.UpdateStatusBar()
+}

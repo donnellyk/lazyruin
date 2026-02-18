@@ -5,6 +5,9 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
+// Type alias for backward compatibility — canonical definition lives in types/.
+type InputPopupConfig = types.InputPopupConfig
+
 // ContextKey is an alias for types.ContextKey so both old and new code
 // use the same type without conversions during the hybrid migration period.
 type ContextKey = types.ContextKey
@@ -35,32 +38,6 @@ var mainPanelContexts = map[ContextKey]bool{
 	SearchFilterContext: true,
 }
 
-// NotesTab represents the sub-tabs within the Notes panel
-type NotesTab string
-
-const (
-	NotesTabAll    NotesTab = "all"
-	NotesTabToday  NotesTab = "today"
-	NotesTabRecent NotesTab = "recent"
-)
-
-// QueriesTab represents the sub-tabs within the Queries panel
-type QueriesTab string
-
-const (
-	QueriesTabQueries QueriesTab = "queries"
-	QueriesTabParents QueriesTab = "parents"
-)
-
-// TagsTab represents the sub-tabs within the Tags panel
-type TagsTab string
-
-const (
-	TagsTabAll    TagsTab = "all"
-	TagsTabGlobal TagsTab = "global"
-	TagsTabInline TagsTab = "inline"
-)
-
 type PreviewMode int
 
 const (
@@ -86,10 +63,6 @@ type NavEntry struct {
 }
 
 type GuiState struct {
-	Notes                   *NotesState
-	Queries                 *QueriesState
-	Tags                    *TagsState
-	Parents                 *ParentsState
 	Preview                 *PreviewState
 	Dialog                  *DialogState
 	NavHistory              []NavEntry
@@ -117,29 +90,6 @@ type GuiState struct {
 	lastHeight              int
 }
 
-type NotesState struct {
-	Items         []models.Note
-	SelectedIndex int
-	CurrentTab    NotesTab
-}
-
-type QueriesState struct {
-	Items         []models.Query
-	SelectedIndex int
-	CurrentTab    QueriesTab
-}
-
-type ParentsState struct {
-	Items         []models.ParentBookmark
-	SelectedIndex int
-}
-
-type TagsState struct {
-	Items         []models.Tag
-	SelectedIndex int
-	CurrentTab    TagsTab
-}
-
 // PreviewLink represents a detected link in the preview content.
 type PreviewLink struct {
 	Text string // display text (wiki-link target or URL)
@@ -165,15 +115,6 @@ type PreviewState struct {
 	HighlightedLink   int           // index into Links; -1 = none, auto-cleared each render
 	renderedLink      int           // snapshot of HighlightedLink used during current render
 	TemporarilyMoved  map[int]bool  // card indices temporarily moved
-}
-
-// InputPopupConfig holds the configuration for the generic input popup with completion.
-type InputPopupConfig struct {
-	Title    string
-	Footer   string
-	Seed     string                                       // pre-filled text (e.g. ">" or "#")
-	Triggers func() []CompletionTrigger                   // provides triggers referencing current completion state
-	OnAccept func(raw string, item *CompletionItem) error // raw text and selected item (nil if none)
 }
 
 // PaletteCommand represents a single command in the command palette.
@@ -215,15 +156,7 @@ type ContribState struct {
 
 func NewGuiState() *GuiState {
 	return &GuiState{
-		Notes: &NotesState{
-			CurrentTab: NotesTabAll,
-		},
-		NavIndex: -1,
-		Queries: &QueriesState{
-			CurrentTab: QueriesTabQueries,
-		},
-		Tags:                    &TagsState{CurrentTab: TagsTabAll},
-		Parents:                 &ParentsState{},
+		NavIndex:                -1,
 		Preview:                 &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
 		SearchCompletion:        NewCompletionState(),
 		CaptureCompletion:       NewCompletionState(),

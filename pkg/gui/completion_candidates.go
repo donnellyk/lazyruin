@@ -14,7 +14,7 @@ import (
 func (gui *Gui) tagCandidates(filter string) []CompletionItem {
 	filter = strings.ToLower(filter)
 	var items []CompletionItem
-	for _, tag := range gui.state.Tags.Items {
+	for _, tag := range gui.contexts.Tags.Items {
 		name := tag.Name
 		if !strings.HasPrefix(name, "#") {
 			name = "#" + name
@@ -329,7 +329,7 @@ func (gui *Gui) titleCandidates(filter string) []CompletionItem {
 	filter = strings.ToLower(filter)
 	seen := make(map[string]bool)
 	var items []CompletionItem
-	for _, note := range gui.state.Notes.Items {
+	for _, note := range gui.contexts.Notes.Items {
 		title := note.Title
 		if title == "" || seen[title] {
 			continue
@@ -359,7 +359,7 @@ func (gui *Gui) wikiLinkCandidates(filter string) []CompletionItem {
 	filterLower := strings.ToLower(filter)
 	seen := make(map[string]bool)
 	var items []CompletionItem
-	for _, note := range gui.state.Notes.Items {
+	for _, note := range gui.contexts.Notes.Items {
 		title := note.Title
 		if title == "" || seen[title] {
 			continue
@@ -429,14 +429,14 @@ func extractHeaders(content string) []headerInfo {
 func (gui *Gui) headerCandidates(noteTitle, filter string) []CompletionItem {
 	// Find the note by exact title match
 	var content string
-	for i, note := range gui.state.Notes.Items {
+	for i, note := range gui.contexts.Notes.Items {
 		if note.Title == noteTitle {
 			if note.Content == "" {
 				loaded, err := gui.loadNoteContent(note.Path)
 				if err != nil {
 					return nil
 				}
-				gui.state.Notes.Items[i].Content = loaded
+				gui.contexts.Notes.Items[i].Content = loaded
 				content = loaded
 			} else {
 				content = note.Content
@@ -479,7 +479,7 @@ func (gui *Gui) parentCandidates(filter string) []CompletionItem {
 		{Label: "parent:none", InsertText: "parent:none", Detail: "root notes only"},
 	}
 	// Add known parent bookmarks
-	for _, p := range gui.state.Parents.Items {
+	for _, p := range gui.contexts.Queries.Parents {
 		item := CompletionItem{
 			Label:      "parent:" + p.Name,
 			InsertText: "parent:" + p.UUID,
@@ -599,7 +599,7 @@ func (gui *Gui) parentCandidatesFor(completionState *CompletionState) func(strin
 			}
 			// Top level: show bookmarked parents
 			var items []CompletionItem
-			for _, p := range gui.state.Parents.Items {
+			for _, p := range gui.contexts.Queries.Parents {
 				if typingFilter != "" && !strings.Contains(strings.ToLower(p.Name), typingFilter) &&
 					!strings.Contains(strings.ToLower(p.Title), typingFilter) {
 					continue
@@ -673,7 +673,7 @@ func (gui *Gui) abbreviationCandidates(filter string) []CompletionItem {
 func (gui *Gui) allNoteCandidates(filter string) []CompletionItem {
 	seen := make(map[string]bool)
 	var items []CompletionItem
-	for _, note := range gui.state.Notes.Items {
+	for _, note := range gui.contexts.Notes.Items {
 		if note.Title == "" || seen[note.Title] {
 			continue
 		}

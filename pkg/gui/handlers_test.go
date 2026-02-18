@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 	"kvnd/lazyruin/pkg/testutil"
 
@@ -52,11 +53,11 @@ func TestHeadlessGui_LoadsNotes(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	if len(tg.gui.state.Notes.Items) != 5 {
-		t.Errorf("Notes.Items = %d, want 5", len(tg.gui.state.Notes.Items))
+	if len(tg.gui.contexts.Notes.Items) != 5 {
+		t.Errorf("Notes.Items = %d, want 5", len(tg.gui.contexts.Notes.Items))
 	}
-	if tg.gui.state.Notes.SelectedIndex != 0 {
-		t.Errorf("Notes.SelectedIndex = %d, want 0", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 0 {
+		t.Errorf("Notes.SelectedIndex = %d, want 0", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -64,8 +65,8 @@ func TestHeadlessGui_LoadsTags(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	if len(tg.gui.state.Tags.Items) != 3 {
-		t.Errorf("Tags.Items = %d, want 3", len(tg.gui.state.Tags.Items))
+	if len(tg.gui.contexts.Tags.Items) != 3 {
+		t.Errorf("Tags.Items = %d, want 3", len(tg.gui.contexts.Tags.Items))
 	}
 }
 
@@ -73,8 +74,8 @@ func TestHeadlessGui_LoadsQueries(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	if len(tg.gui.state.Queries.Items) != 2 {
-		t.Errorf("Queries.Items = %d, want 2", len(tg.gui.state.Queries.Items))
+	if len(tg.gui.contexts.Queries.Queries) != 2 {
+		t.Errorf("Queries.Items = %d, want 2", len(tg.gui.contexts.Queries.Queries))
 	}
 }
 
@@ -106,7 +107,7 @@ func testNotesDown(tg *testGui) {
 	idx := notesCtx.GetSelectedLineIdx()
 	if idx+1 < len(items) {
 		notesCtx.MoveSelectedLine(1)
-		tg.gui.syncNotesToLegacy()
+
 		tg.gui.renderNotes()
 	}
 }
@@ -116,7 +117,7 @@ func testNotesUp(tg *testGui) {
 	notesCtx := tg.gui.contexts.Notes
 	if notesCtx.GetSelectedLineIdx() > 0 {
 		notesCtx.MoveSelectedLine(-1)
-		tg.gui.syncNotesToLegacy()
+
 		tg.gui.renderNotes()
 	}
 }
@@ -125,7 +126,7 @@ func testNotesUp(tg *testGui) {
 func testNotesTop(tg *testGui) {
 	notesCtx := tg.gui.contexts.Notes
 	notesCtx.SetSelectedLineIdx(0)
-	tg.gui.syncNotesToLegacy()
+
 	tg.gui.renderNotes()
 }
 
@@ -134,7 +135,7 @@ func testNotesBottom(tg *testGui) {
 	notesCtx := tg.gui.contexts.Notes
 	if len(notesCtx.Items) > 0 {
 		notesCtx.SetSelectedLineIdx(len(notesCtx.Items) - 1)
-		tg.gui.syncNotesToLegacy()
+
 		tg.gui.renderNotes()
 	}
 }
@@ -146,7 +147,7 @@ func testQueriesDown(tg *testGui) {
 	count := queriesCtx.ActiveItemCount()
 	if t.GetSelectedLineIdx()+1 < count {
 		t.MoveSelectedLine(1)
-		tg.gui.syncQueriesToLegacy()
+
 		tg.gui.renderQueries()
 	}
 }
@@ -159,8 +160,8 @@ func TestNotesDown_MovesSelection(t *testing.T) {
 
 	testNotesDown(tg)
 
-	if tg.gui.state.Notes.SelectedIndex != 1 {
-		t.Errorf("SelectedIndex = %d, want 1", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 1 {
+		t.Errorf("SelectedIndex = %d, want 1", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -172,8 +173,8 @@ func TestNotesDown_MultipleSteps(t *testing.T) {
 		testNotesDown(tg)
 	}
 
-	if tg.gui.state.Notes.SelectedIndex != 3 {
-		t.Errorf("SelectedIndex = %d, want 3 after 3 down presses", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 3 {
+		t.Errorf("SelectedIndex = %d, want 3 after 3 down presses", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -186,8 +187,8 @@ func TestNotesUp_MovesSelection(t *testing.T) {
 	testNotesDown(tg)
 	testNotesUp(tg)
 
-	if tg.gui.state.Notes.SelectedIndex != 1 {
-		t.Errorf("SelectedIndex = %d, want 1", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 1 {
+		t.Errorf("SelectedIndex = %d, want 1", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -200,8 +201,8 @@ func TestNotesTop_JumpsToFirst(t *testing.T) {
 	testNotesDown(tg)
 	testNotesTop(tg)
 
-	if tg.gui.state.Notes.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 0 {
+		t.Errorf("SelectedIndex = %d, want 0", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -211,9 +212,9 @@ func TestNotesBottom_JumpsToLast(t *testing.T) {
 
 	testNotesBottom(tg)
 
-	want := len(tg.gui.state.Notes.Items) - 1
-	if tg.gui.state.Notes.SelectedIndex != want {
-		t.Errorf("SelectedIndex = %d, want %d", tg.gui.state.Notes.SelectedIndex, want)
+	want := len(tg.gui.contexts.Notes.Items) - 1
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != want {
+		t.Errorf("SelectedIndex = %d, want %d", tg.gui.contexts.Notes.GetSelectedLineIdx(), want)
 	}
 }
 
@@ -221,13 +222,13 @@ func TestNotesDown_StopsAtBoundary(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	count := len(tg.gui.state.Notes.Items)
+	count := len(tg.gui.contexts.Notes.Items)
 	for i := 0; i < count+5; i++ {
 		testNotesDown(tg)
 	}
 
-	if tg.gui.state.Notes.SelectedIndex != count-1 {
-		t.Errorf("SelectedIndex = %d, want %d (should clamp at last)", tg.gui.state.Notes.SelectedIndex, count-1)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != count-1 {
+		t.Errorf("SelectedIndex = %d, want %d (should clamp at last)", tg.gui.contexts.Notes.GetSelectedLineIdx(), count-1)
 	}
 }
 
@@ -381,8 +382,8 @@ func TestClearSearch_ResetsState(t *testing.T) {
 	if tg.gui.state.SearchQuery != "" {
 		t.Errorf("SearchQuery = %q, want empty", tg.gui.state.SearchQuery)
 	}
-	if tg.gui.state.Notes.CurrentTab != NotesTabAll {
-		t.Errorf("CurrentTab = %v, want NotesTabAll", tg.gui.state.Notes.CurrentTab)
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
+		t.Errorf("CurrentTab = %v, want NotesTabAll", tg.gui.contexts.Notes.CurrentTab)
 	}
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.currentContext())
@@ -401,10 +402,9 @@ func TestTagsDown_MovesSelection(t *testing.T) {
 	// Use TagsContext for navigation (migrated from old tagsDown)
 	tagsCtx := tg.gui.contexts.Tags
 	tagsCtx.MoveSelectedLine(1)
-	tg.gui.syncTagsToLegacy()
 
-	if tg.gui.state.Tags.SelectedIndex != 1 {
-		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.state.Tags.SelectedIndex)
+	if tg.gui.contexts.Tags.GetSelectedLineIdx() != 1 {
+		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.contexts.Tags.GetSelectedLineIdx())
 	}
 }
 
@@ -417,10 +417,9 @@ func TestTagsUp_MovesSelection(t *testing.T) {
 	tagsCtx.MoveSelectedLine(1)
 	tagsCtx.MoveSelectedLine(1)
 	tagsCtx.MoveSelectedLine(-1)
-	tg.gui.syncTagsToLegacy()
 
-	if tg.gui.state.Tags.SelectedIndex != 1 {
-		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.state.Tags.SelectedIndex)
+	if tg.gui.contexts.Tags.GetSelectedLineIdx() != 1 {
+		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.contexts.Tags.GetSelectedLineIdx())
 	}
 }
 
@@ -433,8 +432,8 @@ func TestQueriesDown_MovesSelection(t *testing.T) {
 	tg.gui.focusQueries(tg.g, nil)
 	testQueriesDown(tg)
 
-	if tg.gui.state.Queries.SelectedIndex != 1 {
-		t.Errorf("Queries.SelectedIndex = %d, want 1", tg.gui.state.Queries.SelectedIndex)
+	if tg.gui.contexts.Queries.QueriesTrait().GetSelectedLineIdx() != 1 {
+		t.Errorf("Queries.SelectedIndex = %d, want 1", tg.gui.contexts.Queries.QueriesTrait().GetSelectedLineIdx())
 	}
 }
 
@@ -466,8 +465,8 @@ func TestEmptyNotes_NoNavigationPanic(t *testing.T) {
 	testNotesTop(tg)
 	testNotesBottom(tg)
 
-	if tg.gui.state.Notes.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 0 {
+		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 }
 
@@ -480,10 +479,9 @@ func TestEmptyTags_NoNavigationPanic(t *testing.T) {
 	tagsCtx := tg.gui.contexts.Tags
 	tagsCtx.MoveSelectedLine(1)
 	tagsCtx.MoveSelectedLine(-1)
-	tg.gui.syncTagsToLegacy()
 
-	if tg.gui.state.Tags.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.state.Tags.SelectedIndex)
+	if tg.gui.contexts.Tags.GetSelectedLineIdx() != 0 {
+		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.contexts.Tags.GetSelectedLineIdx())
 	}
 }
 
@@ -601,7 +599,7 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 	// Set up card list mode — set CardLineRanges AFTER setContext since
 	// setContext(PreviewContext) calls renderPreview which rebuilds them.
 	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	// Override with known ranges after any render
 	tg.gui.state.Preview.CursorLine = 1
@@ -619,7 +617,7 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.state.Preview.CursorLine = 3
 	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
@@ -636,7 +634,7 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
+	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.state.Preview.CursorLine = 1
 	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}}
@@ -723,23 +721,23 @@ func TestFocusNotes_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	defer tg.Close()
 
 	// Already on NotesContext, pressing 1 again cycles tab
-	if tg.gui.state.Notes.CurrentTab != NotesTabAll {
-		t.Fatalf("initial tab = %v, want All", tg.gui.state.Notes.CurrentTab)
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
+		t.Fatalf("initial tab = %v, want All", tg.gui.contexts.Notes.CurrentTab)
 	}
 
 	tg.gui.focusNotes(tg.g, nil) // cycles All → Today
-	if tg.gui.state.Notes.CurrentTab != NotesTabToday {
-		t.Errorf("tab = %v, want Today", tg.gui.state.Notes.CurrentTab)
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabToday {
+		t.Errorf("tab = %v, want Today", tg.gui.contexts.Notes.CurrentTab)
 	}
 
 	tg.gui.focusNotes(tg.g, nil) // cycles Today → Recent
-	if tg.gui.state.Notes.CurrentTab != NotesTabRecent {
-		t.Errorf("tab = %v, want Recent", tg.gui.state.Notes.CurrentTab)
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabRecent {
+		t.Errorf("tab = %v, want Recent", tg.gui.contexts.Notes.CurrentTab)
 	}
 
 	tg.gui.focusNotes(tg.g, nil) // cycles Recent → All
-	if tg.gui.state.Notes.CurrentTab != NotesTabAll {
-		t.Errorf("tab = %v, want All (wrapped)", tg.gui.state.Notes.CurrentTab)
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
+		t.Errorf("tab = %v, want All (wrapped)", tg.gui.contexts.Notes.CurrentTab)
 	}
 }
 
@@ -750,18 +748,18 @@ func TestFocusQueries_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil) // switch to queries
-	if tg.gui.state.Queries.CurrentTab != QueriesTabQueries {
-		t.Fatalf("initial tab = %v, want Queries", tg.gui.state.Queries.CurrentTab)
+	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
+		t.Fatalf("initial tab = %v, want Queries", tg.gui.contexts.Queries.CurrentTab)
 	}
 
 	tg.gui.focusQueries(tg.g, nil) // already focused → cycle to Parents
-	if tg.gui.state.Queries.CurrentTab != QueriesTabParents {
-		t.Errorf("tab = %v, want Parents", tg.gui.state.Queries.CurrentTab)
+	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabParents {
+		t.Errorf("tab = %v, want Parents", tg.gui.contexts.Queries.CurrentTab)
 	}
 
 	tg.gui.focusQueries(tg.g, nil) // cycle back to Queries
-	if tg.gui.state.Queries.CurrentTab != QueriesTabQueries {
-		t.Errorf("tab = %v, want Queries (wrapped)", tg.gui.state.Queries.CurrentTab)
+	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
+		t.Errorf("tab = %v, want Queries (wrapped)", tg.gui.contexts.Queries.CurrentTab)
 	}
 }
 
@@ -789,7 +787,7 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 	}
 
 	// The selected note in the list should match the card we were on
-	selectedNote := tg.gui.state.Notes.Items[tg.gui.state.Notes.SelectedIndex]
+	selectedNote := tg.gui.contexts.Notes.Items[tg.gui.contexts.Notes.GetSelectedLineIdx()]
 	if selectedNote.UUID != card.UUID {
 		t.Errorf("selected note UUID = %q, want %q", selectedNote.UUID, card.UUID)
 	}
@@ -846,18 +844,18 @@ func TestRefresh_ReloadsData(t *testing.T) {
 	// Move selection, then refresh — selection should reset
 	testNotesDown(tg)
 	testNotesDown(tg)
-	if tg.gui.state.Notes.SelectedIndex != 2 {
-		t.Fatalf("SelectedIndex = %d, want 2 before refresh", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 2 {
+		t.Fatalf("SelectedIndex = %d, want 2 before refresh", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
 
 	tg.gui.refresh(tg.g, nil)
 
 	// After refresh, notes are reloaded and selection resets to 0
-	if tg.gui.state.Notes.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0 after refresh", tg.gui.state.Notes.SelectedIndex)
+	if tg.gui.contexts.Notes.GetSelectedLineIdx() != 0 {
+		t.Errorf("SelectedIndex = %d, want 0 after refresh", tg.gui.contexts.Notes.GetSelectedLineIdx())
 	}
-	if len(tg.gui.state.Notes.Items) != 5 {
-		t.Errorf("Notes.Items = %d, want 5 after refresh", len(tg.gui.state.Notes.Items))
+	if len(tg.gui.contexts.Notes.Items) != 5 {
+		t.Errorf("Notes.Items = %d, want 5 after refresh", len(tg.gui.contexts.Notes.Items))
 	}
 }
 
@@ -874,7 +872,7 @@ func TestFilterByTag_WithError_NoPanic(t *testing.T) {
 	// But filterByTag calls Search which will fail.
 	// We need to set the error after init.
 	// Re-set mock error state by manipulating state directly.
-	tg.gui.state.Tags.Items = []models.Tag{{Name: "broken", Count: 1}}
+	tg.gui.contexts.Tags.Items = []models.Tag{{Name: "broken", Count: 1}}
 
 	// filterByTag should not panic even though Search fails
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
@@ -887,7 +885,7 @@ func TestRunQuery_WithError_NoPanic(t *testing.T) {
 	tg := newTestGui(t, mock)
 	defer tg.Close()
 
-	tg.gui.state.Queries.Items = []models.Query{{Name: "broken", Query: "#fail"}}
+	tg.gui.contexts.Queries.Queries = []models.Query{{Name: "broken", Query: "#fail"}}
 
 	// Should not panic
 	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
@@ -1048,7 +1046,7 @@ func TestDeleteTag_ConfirmYes_DeletesTag(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	initialCount := len(tg.gui.state.Tags.Items)
+	initialCount := len(tg.gui.contexts.Tags.Items)
 
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.deleteTag(tg.g, tg.gui.views.Tags)
@@ -1070,8 +1068,8 @@ func TestDeleteTag_ConfirmYes_DeletesTag(t *testing.T) {
 		t.Error("Dialog should be closed after confirm")
 	}
 	// Tags should still have data (mock still returns same tags on refresh)
-	if len(tg.gui.state.Tags.Items) != initialCount {
-		t.Errorf("Tags.Items = %d, want %d (mock returns same data)", len(tg.gui.state.Tags.Items), initialCount)
+	if len(tg.gui.contexts.Tags.Items) != initialCount {
+		t.Errorf("Tags.Items = %d, want %d (mock returns same data)", len(tg.gui.contexts.Tags.Items), initialCount)
 	}
 }
 

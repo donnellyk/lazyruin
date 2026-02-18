@@ -80,10 +80,6 @@ func (gui *Gui) tagsTabIndex() int {
 	return gui.contexts.Tags.TabIndex()
 }
 
-// tagsTabs maps tab indices to legacy TagsTab values (used by legacy code).
-var tagsTabs = []TagsTab{TagsTabAll, TagsTabGlobal, TagsTabInline}
-
-// tagsTabsNew maps tab indices to context.TagsTab values.
 var tagsTabsNew = []context.TagsTab{context.TagsTabAll, context.TagsTabGlobal, context.TagsTabInline}
 
 // updateTagsTab syncs the gocui view's TabIndex with the current tags tab.

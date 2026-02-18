@@ -14,35 +14,21 @@ type TagsController struct {
 	*ListControllerTrait[models.Tag]
 	c          *ControllerCommon
 	getContext func() *context.TagsContext
-
-	// Callbacks injected by gui wiring — these call back into gui methods
-	// that handle cross-cutting concerns (preview updates, dialogs, etc.)
-	// during the hybrid migration period.
-	onFilterByTag func(tag *models.Tag) error
-	onRenameTag   func(tag *models.Tag) error
-	onDeleteTag   func(tag *models.Tag) error
 }
 
 var _ types.IController = &TagsController{}
 
-// TagsControllerOpts holds the callbacks injected during wiring.
+// TagsControllerOpts holds dependencies for construction.
 type TagsControllerOpts struct {
 	Common     *ControllerCommon
 	GetContext func() *context.TagsContext
-	// Action callbacks — these delegate back to gui methods during hybrid period
-	OnFilterByTag func(tag *models.Tag) error
-	OnRenameTag   func(tag *models.Tag) error
-	OnDeleteTag   func(tag *models.Tag) error
 }
 
 // NewTagsController creates a new TagsController.
 func NewTagsController(opts TagsControllerOpts) *TagsController {
 	ctrl := &TagsController{
-		c:             opts.Common,
-		getContext:    opts.GetContext,
-		onFilterByTag: opts.OnFilterByTag,
-		onRenameTag:   opts.OnRenameTag,
-		onDeleteTag:   opts.OnDeleteTag,
+		c:          opts.Common,
+		getContext: opts.GetContext,
 	}
 
 	ctrl.ListControllerTrait = NewListControllerTrait[models.Tag](
@@ -58,6 +44,10 @@ func NewTagsController(opts TagsControllerOpts) *TagsController {
 // Context returns the context this controller is attached to.
 func (self *TagsController) Context() types.Context {
 	return self.getContext()
+}
+
+func (self *TagsController) h() *helpers.Helpers {
+	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // GetKeybindingsFn returns the keybinding producer for tags.
@@ -147,16 +137,16 @@ func (self *TagsController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
 	}
 }
 
-// Action handlers — delegate to injected callbacks.
+// Action handlers — call helpers directly.
 
 func (self *TagsController) filterByTag(tag models.Tag) error {
-	return self.onFilterByTag(&tag)
+	return self.h().Tags().FilterByTag(&tag)
 }
 
 func (self *TagsController) renameTag(tag models.Tag) error {
-	return self.onRenameTag(&tag)
+	return self.h().Tags().RenameTag(&tag)
 }
 
 func (self *TagsController) deleteTag(tag models.Tag) error {
-	return self.onDeleteTag(&tag)
+	return self.h().Tags().DeleteTag(&tag)
 }

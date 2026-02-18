@@ -15,53 +15,26 @@ type NotesController struct {
 	c          *ControllerCommon
 	getContext func() *context.NotesContext
 
-	// Action callbacks injected by gui wiring during the hybrid migration period.
-	onViewInPreview  func(note *models.Note) error
-	onEditNote       func(note *models.Note) error
-	onDeleteNote     func(note *models.Note) error
-	onCopyPath       func(note *models.Note) error
-	onAddTag         func(note *models.Note) error
-	onRemoveTag      func(note *models.Note) error
-	onSetParent      func(note *models.Note) error
-	onRemoveParent   func(note *models.Note) error
-	onToggleBookmark func(note *models.Note) error
-	onShowInfo       func(note *models.Note) error
+	// Callback for showInfo — delegates to PreviewController (not yet in helpers).
+	onShowInfo func(note *models.Note) error
 }
 
 var _ types.IController = &NotesController{}
 
-// NotesControllerOpts holds the callbacks injected during wiring.
+// NotesControllerOpts holds dependencies for construction.
 type NotesControllerOpts struct {
 	Common     *ControllerCommon
 	GetContext func() *context.NotesContext
-	// Action callbacks — delegate back to gui methods during hybrid period
-	OnViewInPreview  func(note *models.Note) error
-	OnEditNote       func(note *models.Note) error
-	OnDeleteNote     func(note *models.Note) error
-	OnCopyPath       func(note *models.Note) error
-	OnAddTag         func(note *models.Note) error
-	OnRemoveTag      func(note *models.Note) error
-	OnSetParent      func(note *models.Note) error
-	OnRemoveParent   func(note *models.Note) error
-	OnToggleBookmark func(note *models.Note) error
-	OnShowInfo       func(note *models.Note) error
+	// Still uses callback — PreviewController's showInfoDialog is not yet in helpers.
+	OnShowInfo func(note *models.Note) error
 }
 
 // NewNotesController creates a new NotesController.
 func NewNotesController(opts NotesControllerOpts) *NotesController {
 	ctrl := &NotesController{
-		c:                opts.Common,
-		getContext:       opts.GetContext,
-		onViewInPreview:  opts.OnViewInPreview,
-		onEditNote:       opts.OnEditNote,
-		onDeleteNote:     opts.OnDeleteNote,
-		onCopyPath:       opts.OnCopyPath,
-		onAddTag:         opts.OnAddTag,
-		onRemoveTag:      opts.OnRemoveTag,
-		onSetParent:      opts.OnSetParent,
-		onRemoveParent:   opts.OnRemoveParent,
-		onToggleBookmark: opts.OnToggleBookmark,
-		onShowInfo:       opts.OnShowInfo,
+		c:          opts.Common,
+		getContext: opts.GetContext,
+		onShowInfo: opts.OnShowInfo,
 	}
 
 	ctrl.ListControllerTrait = NewListControllerTrait[models.Note](
@@ -77,6 +50,10 @@ func NewNotesController(opts NotesControllerOpts) *NotesController {
 // Context returns the context this controller is attached to.
 func (self *NotesController) Context() types.Context {
 	return self.getContext()
+}
+
+func (self *NotesController) h() *helpers.Helpers {
+	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // GetKeybindingsFn returns the keybinding producer for notes.
@@ -221,42 +198,46 @@ func (self *NotesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
 	}
 }
 
-// Action handlers — delegate to injected callbacks.
+// Action handlers — call helpers directly.
 
 func (self *NotesController) viewInPreview(note models.Note) error {
-	return self.onViewInPreview(&note)
+	if len(self.getContext().Items) == 0 {
+		return nil
+	}
+	self.c.GuiCommon().PushContextByKey("preview")
+	return nil
 }
 
 func (self *NotesController) editNote(note models.Note) error {
-	return self.onEditNote(&note)
+	return self.h().Editor().OpenInEditor(note.Path)
 }
 
 func (self *NotesController) deleteNote(note models.Note) error {
-	return self.onDeleteNote(&note)
+	return self.h().Notes().DeleteNote(&note)
 }
 
 func (self *NotesController) copyPath(note models.Note) error {
-	return self.onCopyPath(&note)
+	return self.h().Clipboard().CopyToClipboard(note.Path)
 }
 
-func (self *NotesController) addTag(note models.Note) error {
-	return self.onAddTag(&note)
+func (self *NotesController) addTag(_ models.Note) error {
+	return self.h().NoteActions().AddGlobalTag()
 }
 
-func (self *NotesController) removeTag(note models.Note) error {
-	return self.onRemoveTag(&note)
+func (self *NotesController) removeTag(_ models.Note) error {
+	return self.h().NoteActions().RemoveTag()
 }
 
-func (self *NotesController) setParent(note models.Note) error {
-	return self.onSetParent(&note)
+func (self *NotesController) setParent(_ models.Note) error {
+	return self.h().NoteActions().SetParentDialog()
 }
 
-func (self *NotesController) removeParent(note models.Note) error {
-	return self.onRemoveParent(&note)
+func (self *NotesController) removeParent(_ models.Note) error {
+	return self.h().NoteActions().RemoveParent()
 }
 
-func (self *NotesController) toggleBookmark(note models.Note) error {
-	return self.onToggleBookmark(&note)
+func (self *NotesController) toggleBookmark(_ models.Note) error {
+	return self.h().NoteActions().ToggleBookmark()
 }
 
 func (self *NotesController) showInfo(note models.Note) error {

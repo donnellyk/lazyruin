@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 )
 
@@ -265,15 +266,15 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 	var items []PaletteCommand
 
 	// Saved queries
-	for i, q := range gui.state.Queries.Items {
+	for i, q := range gui.contexts.Queries.Queries {
 		idx := i
 		query := q
 		items = append(items, PaletteCommand{
 			Name:     query.Name,
 			Category: "Query",
 			OnRun: func() error {
-				gui.state.Queries.CurrentTab = QueriesTabQueries
-				gui.state.Queries.SelectedIndex = idx
+				gui.contexts.Queries.CurrentTab = context.QueriesTabQueries
+				gui.contexts.Queries.QueriesTrait().SetSelectedLineIdx(idx)
 				gui.setContext(QueriesContext)
 				gui.renderQueries()
 				return gui.runQuery(nil, nil)
@@ -282,14 +283,14 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 	}
 
 	// Bookmark parents
-	for i := range gui.state.Parents.Items {
+	for i := range gui.contexts.Queries.Parents {
 		idx := i
 		items = append(items, PaletteCommand{
-			Name:     gui.state.Parents.Items[idx].Name,
+			Name:     gui.contexts.Queries.Parents[idx].Name,
 			Category: "Parent",
 			OnRun: func() error {
-				gui.state.Queries.CurrentTab = QueriesTabParents
-				gui.state.Parents.SelectedIndex = idx
+				gui.contexts.Queries.CurrentTab = context.QueriesTabParents
+				gui.contexts.Queries.ParentsTrait().SetSelectedLineIdx(idx)
 				gui.setContext(QueriesContext)
 				gui.renderQueries()
 				return gui.viewParent(nil, nil)
@@ -298,7 +299,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 	}
 
 	// Tags
-	for _, t := range gui.state.Tags.Items {
+	for _, t := range gui.contexts.Tags.Items {
 		tag := t
 		name := "#" + tag.Name
 		if slices.Contains(tag.Scope, "inline") {
@@ -324,7 +325,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 
 	// Notes (deduplicated by title)
 	seen := make(map[string]bool)
-	for i, n := range gui.state.Notes.Items {
+	for i, n := range gui.contexts.Notes.Items {
 		idx := i
 		if seen[n.Title] {
 			continue
@@ -334,7 +335,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			Name:     n.Title,
 			Category: "Note",
 			OnRun: func() error {
-				gui.state.Notes.SelectedIndex = idx
+				gui.contexts.Notes.SetSelectedLineIdx(idx)
 				gui.setContext(NotesContext)
 				gui.renderNotes()
 				gui.preview.updatePreviewForNotes()

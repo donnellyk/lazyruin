@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -103,24 +104,24 @@ func (c *PreviewController) reloadPreviewCards() {
 		// Find the updated note(s) by UUID.
 		c.reloadPreviewCardsFromNotes()
 	case TagsContext:
-		if len(c.gui.state.Tags.Items) > 0 {
-			tag := c.gui.state.Tags.Items[c.gui.state.Tags.SelectedIndex]
+		if len(c.gui.contexts.Tags.Items) > 0 {
+			tag := c.gui.contexts.Tags.Items[c.gui.contexts.Tags.GetSelectedLineIdx()]
 			notes, err := c.gui.ruinCmd.Search.Search(tag.Name, opts)
 			if err == nil {
 				c.gui.state.Preview.Cards = notes
 			}
 		}
 	case QueriesContext:
-		if c.gui.state.Queries.CurrentTab == QueriesTabParents {
-			if len(c.gui.state.Parents.Items) > 0 {
-				parent := c.gui.state.Parents.Items[c.gui.state.Parents.SelectedIndex]
+		if c.gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
+			if len(c.gui.contexts.Queries.Parents) > 0 {
+				parent := c.gui.contexts.Queries.Parents[c.gui.contexts.Queries.ParentsTrait().GetSelectedLineIdx()]
 				composed, err := c.gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
 				if err == nil {
 					c.gui.state.Preview.Cards = []models.Note{composed}
 				}
 			}
-		} else if len(c.gui.state.Queries.Items) > 0 {
-			query := c.gui.state.Queries.Items[c.gui.state.Queries.SelectedIndex]
+		} else if len(c.gui.contexts.Queries.Queries) > 0 {
+			query := c.gui.contexts.Queries.Queries[c.gui.contexts.Queries.QueriesTrait().GetSelectedLineIdx()]
 			notes, err := c.gui.ruinCmd.Queries.Run(query.Name, opts)
 			if err == nil {
 				c.gui.state.Preview.Cards = notes
@@ -156,14 +157,14 @@ func (c *PreviewController) reloadPreviewCardsFromNotes() {
 }
 
 func (c *PreviewController) updatePreviewForNotes() {
-	if len(c.gui.state.Notes.Items) == 0 {
+	if len(c.gui.contexts.Notes.Items) == 0 {
 		return
 	}
-	idx := c.gui.state.Notes.SelectedIndex
-	if idx >= len(c.gui.state.Notes.Items) {
+	idx := c.gui.contexts.Notes.GetSelectedLineIdx()
+	if idx >= len(c.gui.contexts.Notes.Items) {
 		return
 	}
-	note := c.gui.state.Notes.Items[idx]
+	note := c.gui.contexts.Notes.Items[idx]
 	c.pushNavHistory()
 	c.gui.state.Preview.Mode = PreviewModeCardList
 	c.gui.state.Preview.Cards = []models.Note{note}

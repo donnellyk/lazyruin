@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 )
 
@@ -20,11 +21,21 @@ type IGuiCommon interface {
 	ContextByKey(key types.ContextKey) types.Context
 	GetView(name string) *gocui.View
 	Render()
+	RefreshAll()
 }
 
-// IHelpers provides access to helper instances.
-// This will be expanded as helpers are implemented.
-type IHelpers interface{}
+// IHelpers provides typed access to helper instances.
+type IHelpers interface {
+	Refresh() *helpers.RefreshHelper
+	Notes() *helpers.NotesHelper
+	NoteActions() *helpers.NoteActionsHelper
+	Tags() *helpers.TagsHelper
+	Queries() *helpers.QueriesHelper
+	Editor() *helpers.EditorHelper
+	Confirmation() *helpers.ConfirmationHelper
+	Search() *helpers.SearchHelper
+	Clipboard() *helpers.ClipboardHelper
+}
 
 // ControllerCommon provides shared dependencies for all controllers.
 type ControllerCommon struct {

@@ -61,7 +61,6 @@ func renderList(v *gocui.View, itemCount int, selectedIndex int, isActive bool, 
 }
 
 func (gui *Gui) renderNotes() {
-	gui.syncNotesToLegacy()
 	v := gui.views.Notes
 	if v == nil {
 		return
@@ -109,8 +108,6 @@ func (gui *Gui) renderNotes() {
 }
 
 func (gui *Gui) renderQueries() {
-	gui.syncQueriesToLegacy()
-	gui.syncParentsToLegacy()
 	queriesCtx := gui.contexts.Queries
 	if queriesCtx.CurrentTab == "parents" {
 		gui.renderParents()
@@ -171,7 +168,6 @@ func (gui *Gui) renderParents() {
 }
 
 func (gui *Gui) renderTags() {
-	gui.syncTagsToLegacy()
 	v := gui.views.Tags
 	if v == nil {
 		return

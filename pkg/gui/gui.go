@@ -74,39 +74,11 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 // setupNotesContext initializes the NotesContext and NotesController.
 func (gui *Gui) setupNotesContext() {
 	notesCtx := context.NewNotesContext(gui.renderNotes, gui.preview.updatePreviewForNotes)
-	notesCtx.CurrentTab = context.NotesTab(gui.state.Notes.CurrentTab)
 	gui.contexts.Notes = notesCtx
 
 	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
-		OnViewInPreview: func(_ *models.Note) error {
-			return gui.viewNoteInPreview(nil, nil)
-		},
-		OnEditNote: func(_ *models.Note) error {
-			return gui.editNote(nil, nil)
-		},
-		OnDeleteNote: func(_ *models.Note) error {
-			return gui.deleteNote(nil, nil)
-		},
-		OnCopyPath: func(_ *models.Note) error {
-			return gui.copyNotePath(nil, nil)
-		},
-		OnAddTag: func(_ *models.Note) error {
-			return gui.addGlobalTag(nil, nil)
-		},
-		OnRemoveTag: func(_ *models.Note) error {
-			return gui.removeTag(nil, nil)
-		},
-		OnSetParent: func(_ *models.Note) error {
-			return gui.setParentDialog(nil, nil)
-		},
-		OnRemoveParent: func(_ *models.Note) error {
-			return gui.removeParent(nil, nil)
-		},
-		OnToggleBookmark: func(_ *models.Note) error {
-			return gui.toggleBookmark(nil, nil)
-		},
 		OnShowInfo: func(_ *models.Note) error {
 			return gui.preview.showInfoDialog(nil, nil)
 		},
@@ -119,23 +91,11 @@ func (gui *Gui) setupNotesContext() {
 func (gui *Gui) setupTagsContext() {
 	tagsCtx := context.NewTagsContext(gui.renderTags, gui.updatePreviewForTags)
 
-	// Initialize from existing state defaults
-	tagsCtx.CurrentTab = context.TagsTab(gui.state.Tags.CurrentTab)
-
 	gui.contexts.Tags = tagsCtx
 
 	gui.tagsController = controllers.NewTagsController(controllers.TagsControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.TagsContext { return gui.contexts.Tags },
-		OnFilterByTag: func(tag *models.Tag) error {
-			return gui.filterByTag(nil, nil)
-		},
-		OnRenameTag: func(tag *models.Tag) error {
-			return gui.renameTag(nil, nil)
-		},
-		OnDeleteTag: func(tag *models.Tag) error {
-			return gui.deleteTag(nil, nil)
-		},
 	})
 
 	// Attach controller to context
@@ -148,24 +108,12 @@ func (gui *Gui) setupQueriesContext() {
 		gui.renderQueries, gui.updatePreviewForQueries,
 		gui.renderQueries, gui.updatePreviewForParents,
 	)
-	queriesCtx.CurrentTab = context.QueriesTab(gui.state.Queries.CurrentTab)
+	// CurrentTab defaults to QueriesTabQueries from context constructor
 	gui.contexts.Queries = queriesCtx
 
 	gui.queriesController = controllers.NewQueriesController(controllers.QueriesControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.QueriesContext { return gui.contexts.Queries },
-		OnRunQuery: func(query *models.Query) error {
-			return gui.runQuery(nil, nil)
-		},
-		OnDeleteQuery: func(query *models.Query) error {
-			return gui.deleteQuery(nil, nil)
-		},
-		OnViewParent: func(parent *models.ParentBookmark) error {
-			return gui.viewParent(nil, nil)
-		},
-		OnDeleteParent: func(parent *models.ParentBookmark) error {
-			return gui.deleteParent(nil, nil)
-		},
 	})
 
 	controllers.AttachController(gui.queriesController)
@@ -177,6 +125,7 @@ func (gui *Gui) setupPreviewContext() {
 	gui.contexts.Preview = previewCtx
 
 	gui.previewController = controllers.NewPreviewController(controllers.PreviewControllerOpts{
+		Common:     gui.controllerCommon,
 		GetContext: func() *context.PreviewContext { return gui.contexts.Preview },
 
 		// Navigation — delegates to existing preview_controller.go methods
@@ -210,13 +159,8 @@ func (gui *Gui) setupPreviewContext() {
 		OnNavBack:           func() error { return gui.preview.navBack(nil, nil) },
 		OnNavForward:        func() error { return gui.preview.navForward(nil, nil) },
 
-		// Note actions
-		OnAddTag:         func() error { return gui.addGlobalTag(nil, nil) },
-		OnRemoveTag:      func() error { return gui.removeTag(nil, nil) },
-		OnSetParent:      func() error { return gui.setParentDialog(nil, nil) },
-		OnRemoveParent:   func() error { return gui.removeParent(nil, nil) },
-		OnToggleBookmark: func() error { return gui.toggleBookmark(nil, nil) },
-		OnShowInfo:       func() error { return gui.preview.showInfoDialog(nil, nil) },
+		// Note actions — now handled by helpers via PreviewController.h()
+		OnShowInfo: func() error { return gui.preview.showInfoDialog(nil, nil) },
 
 		// Palette-only
 		OnToggleTitle:      func() error { return gui.preview.toggleTitle(nil, nil) },
@@ -312,21 +256,15 @@ func (gui *Gui) setupGlobalContext() {
 	gui.contexts.Global = globalCtx
 
 	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
-		Common:                gui.controllerCommon,
-		GetContext:            func() *context.GlobalContext { return gui.contexts.Global },
-		OnQuit:                func() error { return gui.quit(gui.g, nil) },
-		OnSearch:              func() error { return gui.openSearch(gui.g, nil) },
-		OnPick:                func() error { return gui.openPick(gui.g, nil) },
-		OnNewNote:             func() error { return gui.newNote(gui.g, nil) },
-		OnRefresh:             func() error { return gui.refresh(gui.g, nil) },
-		OnHelp:                func() error { return gui.showHelpHandler(gui.g, nil) },
-		OnPalette:             func() error { return gui.openPalette(gui.g, nil) },
-		OnCalendar:            func() error { return gui.openCalendar(gui.g, nil) },
-		OnContrib:             func() error { return gui.openContrib(gui.g, nil) },
-		OnCycleNotesTab:       func() error { gui.cycleNotesTab(); return nil },
-		OnCycleQueriesTab:     func() error { gui.cycleQueriesTab(); return nil },
-		OnCycleTagsTab:        func() error { gui.cycleTagsTab(); return nil },
-		OnFocusSearchFilterOp: func() error { return gui.focusSearchFilter(gui.g, nil) },
+		Common:     gui.controllerCommon,
+		GetContext: func() *context.GlobalContext { return gui.contexts.Global },
+		OnQuit:     func() error { return gui.quit(gui.g, nil) },
+		OnPick:     func() error { return gui.openPick(gui.g, nil) },
+		OnNewNote:  func() error { return gui.newNote(gui.g, nil) },
+		OnHelp:     func() error { return gui.showHelpHandler(gui.g, nil) },
+		OnPalette:  func() error { return gui.openPalette(gui.g, nil) },
+		OnCalendar: func() error { return gui.openCalendar(gui.g, nil) },
+		OnContrib:  func() error { return gui.openContrib(gui.g, nil) },
 	})
 	gui.globalController = ctrl
 	controllers.AttachController(ctrl)
@@ -499,123 +437,13 @@ func (gui *Gui) backgroundRefreshData() {
 	gui.updateStatusBar()
 }
 
-// renderAll re-renders all views with current state (e.g. after resize)
-func (gui *Gui) renderAll() {
-	gui.renderNotes()
-	gui.renderQueries()
-	gui.renderTags()
-	gui.renderPreview()
-	gui.updateStatusBar()
-}
-
-func (gui *Gui) refreshAll() {
-	gui.refreshNotes(false)
-	gui.refreshTags(false)
-	gui.refreshQueries(false)
-	gui.refreshParents(false)
-}
-
-func (gui *Gui) refreshNotes(preserve bool) {
-	gui.fetchNotesForCurrentTab(preserve)
-}
-
-// syncNotesToLegacy copies NotesContext state to legacy GuiState.Notes.
-func (gui *Gui) syncNotesToLegacy() {
-	notesCtx := gui.contexts.Notes
-	gui.state.Notes.Items = notesCtx.Items
-	gui.state.Notes.SelectedIndex = notesCtx.GetSelectedLineIdx()
-	gui.state.Notes.CurrentTab = NotesTab(notesCtx.CurrentTab)
-}
-
-func (gui *Gui) refreshTags(preserve bool) {
-	tagsCtx := gui.contexts.Tags
-	prevID := tagsCtx.GetSelectedItemId()
-
-	tags, err := gui.ruinCmd.Tags.List()
-	if err != nil {
-		return
-	}
-	tagsCtx.Items = tags
-
-	if preserve && prevID != "" {
-		if newIdx := tagsCtx.GetList().FindIndexById(prevID); newIdx >= 0 {
-			tagsCtx.SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		tagsCtx.SetSelectedLineIdx(0)
-	}
-	tagsCtx.ClampSelection()
-
-	gui.renderTags()
-}
-
-// syncTagsToLegacy copies TagsContext state to legacy GuiState.Tags
-// so that any un-migrated code reading gui.state.Tags still works.
-func (gui *Gui) syncTagsToLegacy() {
-	tagsCtx := gui.contexts.Tags
-	gui.state.Tags.Items = tagsCtx.Items
-	gui.state.Tags.SelectedIndex = tagsCtx.GetSelectedLineIdx()
-	gui.state.Tags.CurrentTab = TagsTab(tagsCtx.CurrentTab)
-}
-
-func (gui *Gui) refreshQueries(preserve bool) {
-	queriesCtx := gui.contexts.Queries
-	prevID := queriesCtx.GetQueriesList().GetSelectedItemId()
-
-	queries, err := gui.ruinCmd.Queries.List()
-	if err != nil {
-		return
-	}
-	queriesCtx.Queries = queries
-
-	if preserve && prevID != "" {
-		if newIdx := queriesCtx.GetQueriesList().FindIndexById(prevID); newIdx >= 0 {
-			queriesCtx.QueriesTrait().SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		queriesCtx.QueriesTrait().SetSelectedLineIdx(0)
-	}
-	queriesCtx.QueriesTrait().ClampSelection()
-
-	gui.renderQueries()
-}
-
-func (gui *Gui) refreshParents(preserve bool) {
-	queriesCtx := gui.contexts.Queries
-	prevID := queriesCtx.GetParentsList().GetSelectedItemId()
-
-	parents, err := gui.ruinCmd.Parent.List()
-	if err != nil {
-		return
-	}
-	queriesCtx.Parents = parents
-
-	if preserve && prevID != "" {
-		if newIdx := queriesCtx.GetParentsList().FindIndexById(prevID); newIdx >= 0 {
-			queriesCtx.ParentsTrait().SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		queriesCtx.ParentsTrait().SetSelectedLineIdx(0)
-	}
-	queriesCtx.ParentsTrait().ClampSelection()
-
-	gui.renderQueries()
-}
-
-// syncQueriesToLegacy copies QueriesContext queries state to legacy GuiState.Queries.
-func (gui *Gui) syncQueriesToLegacy() {
-	queriesCtx := gui.contexts.Queries
-	gui.state.Queries.Items = queriesCtx.Queries
-	gui.state.Queries.SelectedIndex = queriesCtx.QueriesTrait().GetSelectedLineIdx()
-	gui.state.Queries.CurrentTab = QueriesTab(queriesCtx.CurrentTab)
-}
-
-// syncParentsToLegacy copies QueriesContext parents state to legacy GuiState.Parents.
-func (gui *Gui) syncParentsToLegacy() {
-	queriesCtx := gui.contexts.Queries
-	gui.state.Parents.Items = queriesCtx.Parents
-	gui.state.Parents.SelectedIndex = queriesCtx.ParentsTrait().GetSelectedLineIdx()
-}
+// Thin wrappers — real logic lives in helpers.
+func (gui *Gui) renderAll()                   { gui.helpers.Refresh().RenderAll() }
+func (gui *Gui) refreshAll()                  { gui.helpers.Refresh().RefreshAll() }
+func (gui *Gui) refreshNotes(preserve bool)   { gui.helpers.Notes().FetchNotesForCurrentTab(preserve) }
+func (gui *Gui) refreshTags(preserve bool)    { gui.helpers.Tags().RefreshTags(preserve) }
+func (gui *Gui) refreshQueries(preserve bool) { gui.helpers.Queries().RefreshQueries(preserve) }
+func (gui *Gui) refreshParents(preserve bool) { gui.helpers.Queries().RefreshParents(preserve) }
 
 // activateContext sets focus and refreshes data for the given context.
 func (gui *Gui) activateContext(ctx ContextKey) {
@@ -633,7 +461,7 @@ func (gui *Gui) activateContext(ctx ContextKey) {
 		gui.refreshNotes(true)
 		gui.preview.updatePreviewForNotes()
 	case QueriesContext:
-		if gui.state.Queries.CurrentTab == QueriesTabParents {
+		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			gui.refreshParents(true)
 			gui.updatePreviewForParents()
 		} else {
