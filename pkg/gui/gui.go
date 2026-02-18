@@ -30,6 +30,7 @@ type Gui struct {
 	notesController   *controllers.NotesController
 	tagsController    *controllers.TagsController
 	queriesController *controllers.QueriesController
+	previewController *controllers.PreviewController
 }
 
 // NewGui creates a new Gui instance.
@@ -45,6 +46,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupNotesContext()
 	gui.setupTagsContext()
 	gui.setupQueriesContext()
+	gui.setupPreviewContext()
 	return gui
 }
 
@@ -170,6 +172,64 @@ func (gui *Gui) setupQueriesContext() {
 	})
 
 	controllers.AttachController(gui.queriesController)
+}
+
+// setupPreviewContext initializes the PreviewContext and PreviewController.
+func (gui *Gui) setupPreviewContext() {
+	previewCtx := context.NewPreviewContext()
+	gui.contexts.Preview = previewCtx
+
+	gui.previewController = controllers.NewPreviewController(controllers.PreviewControllerOpts{
+		GetContext: func() *context.PreviewContext { return gui.contexts.Preview },
+
+		// Navigation — delegates to existing preview_controller.go methods
+		OnMoveDown:   func() error { return gui.preview.previewDown(nil, nil) },
+		OnMoveUp:     func() error { return gui.preview.previewUp(nil, nil) },
+		OnCardDown:   func() error { return gui.preview.previewCardDown(nil, nil) },
+		OnCardUp:     func() error { return gui.preview.previewCardUp(nil, nil) },
+		OnNextHeader: func() error { return gui.preview.previewNextHeader(nil, nil) },
+		OnPrevHeader: func() error { return gui.preview.previewPrevHeader(nil, nil) },
+		OnNextLink:   func() error { return gui.preview.highlightNextLink(nil, nil) },
+		OnPrevLink:   func() error { return gui.preview.highlightPrevLink(nil, nil) },
+		OnClick: func() error {
+			v := gui.views.Preview
+			return gui.preview.previewClick(nil, v)
+		},
+
+		// Card actions
+		OnDeleteCard:        func() error { return gui.preview.deleteCardFromPreview(nil, nil) },
+		OnOpenInEditor:      func() error { return gui.preview.openCardInEditor(nil, nil) },
+		OnAppendDone:        func() error { return gui.preview.appendDone(nil, gui.views.Preview) },
+		OnMoveCard:          func() error { return gui.preview.moveCardHandler(nil, nil) },
+		OnMergeCard:         func() error { return gui.preview.mergeCardHandler(nil, nil) },
+		OnToggleFrontmatter: func() error { return gui.preview.toggleFrontmatter(nil, nil) },
+		OnViewOptions:       func() error { return gui.preview.viewOptionsDialog(nil, nil) },
+		OnToggleInlineTag:   func() error { return gui.preview.toggleInlineTag(nil, gui.views.Preview) },
+		OnToggleInlineDate:  func() error { return gui.preview.toggleInlineDate(nil, gui.views.Preview) },
+		OnOpenLink:          func() error { return gui.preview.openLink(nil, nil) },
+		OnToggleTodo:        func() error { return gui.preview.toggleTodo(nil, gui.views.Preview) },
+		OnFocusNote:         func() error { return gui.preview.focusNoteFromPreview(nil, nil) },
+		OnBack:              func() error { return gui.preview.previewBack(nil, nil) },
+		OnNavBack:           func() error { return gui.preview.navBack(nil, nil) },
+		OnNavForward:        func() error { return gui.preview.navForward(nil, nil) },
+
+		// Note actions
+		OnAddTag:         func() error { return gui.addGlobalTag(nil, nil) },
+		OnRemoveTag:      func() error { return gui.removeTag(nil, nil) },
+		OnSetParent:      func() error { return gui.setParentDialog(nil, nil) },
+		OnRemoveParent:   func() error { return gui.removeParent(nil, nil) },
+		OnToggleBookmark: func() error { return gui.toggleBookmark(nil, nil) },
+		OnShowInfo:       func() error { return gui.preview.showInfoDialog(nil, nil) },
+
+		// Palette-only
+		OnToggleTitle:      func() error { return gui.preview.toggleTitle(nil, nil) },
+		OnToggleGlobalTags: func() error { return gui.preview.toggleGlobalTags(nil, nil) },
+		OnToggleMarkdown:   func() error { return gui.preview.toggleMarkdown(nil, nil) },
+		OnOrderCards:       gui.preview.orderCards,
+		OnShowNavHistory:   gui.preview.showNavHistory,
+	})
+
+	controllers.AttachController(gui.previewController)
 }
 
 // Run starts the GUI event loop.

@@ -8,6 +8,7 @@ type ContextTree struct {
 	Notes   *NotesContext
 	Tags    *TagsContext
 	Queries *QueriesContext
+	Preview *PreviewContext
 }
 
 // All returns all contexts in the tree for iteration.
@@ -22,6 +23,9 @@ func (self *ContextTree) All() []types.Context {
 	}
 	if self.Queries != nil {
 		all = append(all, self.Queries)
+	}
+	if self.Preview != nil {
+		all = append(all, self.Preview)
 	}
 	return all
 }

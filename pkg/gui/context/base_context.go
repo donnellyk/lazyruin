@@ -58,10 +58,10 @@ type NewBaseContextOpts struct {
 
 func (self *BaseContext) GetKind() types.ContextKind { return self.kind }
 func (self *BaseContext) GetKey() types.ContextKey   { return self.key }
-func (self *BaseContext) IsFocusable() bool           { return self.focusable }
-func (self *BaseContext) Title() string               { return self.title }
-func (self *BaseContext) GetViewNames() []string      { return self.viewNames }
-func (self *BaseContext) GetPrimaryViewName() string   { return self.primaryViewName }
+func (self *BaseContext) IsFocusable() bool          { return self.focusable }
+func (self *BaseContext) Title() string              { return self.title }
+func (self *BaseContext) GetViewNames() []string     { return self.viewNames }
+func (self *BaseContext) GetPrimaryViewName() string { return self.primaryViewName }
 
 func (self *BaseContext) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	var bindings []*types.Binding

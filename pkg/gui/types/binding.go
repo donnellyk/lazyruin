@@ -4,15 +4,15 @@ import "github.com/jesseduffield/gocui"
 
 // Binding represents a single keybinding with metadata for palette, help, and conflict detection.
 type Binding struct {
-	ID                string             // stable identity for auditing (e.g. "tags.rename")
-	Key               any                // gocui key (rune or gocui.Key)
-	Mod               gocui.Modifier     // default: gocui.ModNone
+	ID                string         // stable identity for auditing (e.g. "tags.rename")
+	Key               any            // gocui key (rune or gocui.Key)
+	Mod               gocui.Modifier // default: gocui.ModNone
 	Handler           func() error
-	Description       string             // shown in palette & help; empty = nav-only
+	Description       string // shown in palette & help; empty = nav-only
 	Tooltip           string
-	Category          string             // palette grouping
+	Category          string // palette grouping
 	GetDisabledReason func() *DisabledReason
-	DisplayOnScreen   bool               // show in status bar hints
+	DisplayOnScreen   bool // show in status bar hints
 }
 
 // DisabledReason explains why a binding is currently disabled.

@@ -109,13 +109,13 @@ type notesListAdapter struct {
 	ctx *NotesContext
 }
 
-func (a *notesListAdapter) Len() int                     { return a.ctx.list.Len() }
-func (a *notesListAdapter) GetSelectedItemId() string    { return a.ctx.list.GetSelectedItemId() }
-func (a *notesListAdapter) FindIndexById(id string) int  { return a.ctx.list.FindIndexById(id) }
-func (a *notesListAdapter) GetSelectedLineIdx() int      { return a.ctx.GetSelectedLineIdx() }
-func (a *notesListAdapter) SetSelectedLineIdx(idx int)   { a.ctx.SetSelectedLineIdx(idx) }
-func (a *notesListAdapter) MoveSelectedLine(delta int)   { a.ctx.MoveSelectedLine(delta) }
-func (a *notesListAdapter) ClampSelection()              { a.ctx.ClampSelection() }
+func (a *notesListAdapter) Len() int                    { return a.ctx.list.Len() }
+func (a *notesListAdapter) GetSelectedItemId() string   { return a.ctx.list.GetSelectedItemId() }
+func (a *notesListAdapter) FindIndexById(id string) int { return a.ctx.list.FindIndexById(id) }
+func (a *notesListAdapter) GetSelectedLineIdx() int     { return a.ctx.GetSelectedLineIdx() }
+func (a *notesListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.SetSelectedLineIdx(idx) }
+func (a *notesListAdapter) MoveSelectedLine(delta int)  { a.ctx.MoveSelectedLine(delta) }
+func (a *notesListAdapter) ClampSelection()             { a.ctx.ClampSelection() }
 
 // Verify interface compliance at compile time.
 var _ types.IListContext = &NotesContext{}

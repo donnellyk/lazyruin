@@ -51,7 +51,7 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 		})
 	}
 
-	// New controller bindings (migrated panels: Tags)
+	// New controller bindings (migrated panels: Notes, Tags, Queries, Preview)
 	opts := types.KeybindingsOpts{}
 	for _, ctx := range gui.contexts.All() {
 		ctxKey := ctx.GetKey()
@@ -59,10 +59,14 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 			if b.Description == "" {
 				continue // nav-only, skip
 			}
+			keyHint := ""
+			if b.Key != nil {
+				keyHint = keyDisplayString(b.Key)
+			}
 			cmds = append(cmds, PaletteCommand{
 				Name:     b.Description,
 				Category: b.Category,
-				Key:      keyDisplayString(b.Key),
+				Key:      keyHint,
 				OnRun:    b.Handler,
 				Contexts: []ContextKey{ctxKey},
 			})

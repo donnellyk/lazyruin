@@ -201,36 +201,36 @@ func (self *QueriesContext) GetSelectedItemId() string {
 
 // IListContext delegation — routes to the active tab's trait.
 
-func (self *QueriesContext) GetSelectedLineIdx() int      { return self.ActiveTrait().GetSelectedLineIdx() }
-func (self *QueriesContext) SetSelectedLineIdx(idx int)   { self.ActiveTrait().SetSelectedLineIdx(idx) }
-func (self *QueriesContext) MoveSelectedLine(delta int)   { self.ActiveTrait().MoveSelectedLine(delta) }
-func (self *QueriesContext) ClampSelection()              { self.ActiveTrait().ClampSelection() }
+func (self *QueriesContext) GetSelectedLineIdx() int    { return self.ActiveTrait().GetSelectedLineIdx() }
+func (self *QueriesContext) SetSelectedLineIdx(idx int) { self.ActiveTrait().SetSelectedLineIdx(idx) }
+func (self *QueriesContext) MoveSelectedLine(delta int) { self.ActiveTrait().MoveSelectedLine(delta) }
+func (self *QueriesContext) ClampSelection()            { self.ActiveTrait().ClampSelection() }
 
 // queriesListAdapter wraps QueriesContext to implement types.IList for queries tab.
 type queriesListAdapter struct {
 	ctx *QueriesContext
 }
 
-func (a *queriesListAdapter) Len() int                     { return a.ctx.queriesList.Len() }
-func (a *queriesListAdapter) GetSelectedItemId() string    { return a.ctx.queriesList.GetSelectedItemId() }
-func (a *queriesListAdapter) FindIndexById(id string) int  { return a.ctx.queriesList.FindIndexById(id) }
-func (a *queriesListAdapter) GetSelectedLineIdx() int      { return a.ctx.queriesTrait.GetSelectedLineIdx() }
-func (a *queriesListAdapter) SetSelectedLineIdx(idx int)   { a.ctx.queriesTrait.SetSelectedLineIdx(idx) }
-func (a *queriesListAdapter) MoveSelectedLine(delta int)   { a.ctx.queriesTrait.MoveSelectedLine(delta) }
-func (a *queriesListAdapter) ClampSelection()              { a.ctx.queriesTrait.ClampSelection() }
+func (a *queriesListAdapter) Len() int                    { return a.ctx.queriesList.Len() }
+func (a *queriesListAdapter) GetSelectedItemId() string   { return a.ctx.queriesList.GetSelectedItemId() }
+func (a *queriesListAdapter) FindIndexById(id string) int { return a.ctx.queriesList.FindIndexById(id) }
+func (a *queriesListAdapter) GetSelectedLineIdx() int     { return a.ctx.queriesTrait.GetSelectedLineIdx() }
+func (a *queriesListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.queriesTrait.SetSelectedLineIdx(idx) }
+func (a *queriesListAdapter) MoveSelectedLine(delta int)  { a.ctx.queriesTrait.MoveSelectedLine(delta) }
+func (a *queriesListAdapter) ClampSelection()             { a.ctx.queriesTrait.ClampSelection() }
 
 // parentsListAdapter wraps QueriesContext to implement types.IList for parents tab.
 type parentsListAdapter struct {
 	ctx *QueriesContext
 }
 
-func (a *parentsListAdapter) Len() int                     { return a.ctx.parentsList.Len() }
-func (a *parentsListAdapter) GetSelectedItemId() string    { return a.ctx.parentsList.GetSelectedItemId() }
-func (a *parentsListAdapter) FindIndexById(id string) int  { return a.ctx.parentsList.FindIndexById(id) }
-func (a *parentsListAdapter) GetSelectedLineIdx() int      { return a.ctx.parentsTrait.GetSelectedLineIdx() }
-func (a *parentsListAdapter) SetSelectedLineIdx(idx int)   { a.ctx.parentsTrait.SetSelectedLineIdx(idx) }
-func (a *parentsListAdapter) MoveSelectedLine(delta int)   { a.ctx.parentsTrait.MoveSelectedLine(delta) }
-func (a *parentsListAdapter) ClampSelection()              { a.ctx.parentsTrait.ClampSelection() }
+func (a *parentsListAdapter) Len() int                    { return a.ctx.parentsList.Len() }
+func (a *parentsListAdapter) GetSelectedItemId() string   { return a.ctx.parentsList.GetSelectedItemId() }
+func (a *parentsListAdapter) FindIndexById(id string) int { return a.ctx.parentsList.FindIndexById(id) }
+func (a *parentsListAdapter) GetSelectedLineIdx() int     { return a.ctx.parentsTrait.GetSelectedLineIdx() }
+func (a *parentsListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.parentsTrait.SetSelectedLineIdx(idx) }
+func (a *parentsListAdapter) MoveSelectedLine(delta int)  { a.ctx.parentsTrait.MoveSelectedLine(delta) }
+func (a *parentsListAdapter) ClampSelection()             { a.ctx.parentsTrait.ClampSelection() }
 
 // Verify interface compliance at compile time.
 var _ types.IListContext = &QueriesContext{}

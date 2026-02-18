@@ -25,7 +25,7 @@ func (self *ListContextTrait) GetCursor() *ListCursor {
 	return self.cursor
 }
 
-func (self *ListContextTrait) GetSelectedLineIdx() int   { return self.cursor.GetSelectedLineIdx() }
+func (self *ListContextTrait) GetSelectedLineIdx() int    { return self.cursor.GetSelectedLineIdx() }
 func (self *ListContextTrait) SetSelectedLineIdx(idx int) { self.cursor.SetSelectedLineIdx(idx) }
 func (self *ListContextTrait) MoveSelectedLine(delta int) { self.cursor.MoveSelectedLine(delta) }
 func (self *ListContextTrait) ClampSelection()            { self.cursor.ClampSelection() }

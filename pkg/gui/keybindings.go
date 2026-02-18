@@ -53,7 +53,7 @@ func (gui *Gui) setupKeybindings() error {
 		// notesNavBindings removed — notes bindings registered via NotesController below
 		// queriesNavBindings removed — queries bindings registered via QueriesController below
 		// tagsNavBindings removed — tags bindings registered via TagsController below
-		gui.previewNavBindings,
+		// previewNavBindings removed — preview bindings registered via PreviewController below
 		gui.searchBindings,
 		gui.captureBindings,
 		gui.pickBindings,
@@ -108,6 +108,10 @@ func (gui *Gui) registerContextBindings() error {
 
 		for _, b := range ctx.GetKeybindings(opts) {
 			binding := b
+			// Skip palette-only bindings (Key == nil = no keybinding, just palette entry)
+			if binding.Key == nil {
+				continue
+			}
 			handler := func(g *gocui.Gui, v *gocui.View) error {
 				if gui.overlayActive() {
 					return nil // suppress during popups
@@ -159,23 +163,7 @@ func (gui *Gui) globalNavBindings() []binding {
 // notesNavBindings removed — notes navigation is now handled by NotesController.
 // queriesNavBindings removed — queries navigation is now handled by QueriesController.
 // tagsNavBindings removed — tags navigation is now handled by TagsController.
-
-func (gui *Gui) previewNavBindings() []binding {
-	v := PreviewView
-	return []binding{
-		{v, gocui.MouseLeft, gui.preview.previewClick},
-		{v, 'j', gui.preview.previewDown},
-		{v, 'k', gui.preview.previewUp},
-		{v, gocui.KeyArrowDown, gui.preview.previewDown},
-		{v, gocui.KeyArrowUp, gui.preview.previewUp},
-		{v, 'J', gui.preview.previewCardDown},
-		{v, 'K', gui.preview.previewCardUp},
-		{v, '}', gui.preview.previewNextHeader},
-		{v, '{', gui.preview.previewPrevHeader},
-		{v, 'l', gui.preview.highlightNextLink},
-		{v, 'L', gui.preview.highlightPrevLink},
-	}
-}
+// previewNavBindings removed — preview navigation is now handled by PreviewController.
 
 func (gui *Gui) searchBindings() []binding {
 	v := SearchView

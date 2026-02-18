@@ -126,13 +126,13 @@ type tagsListAdapter struct {
 	ctx *TagsContext
 }
 
-func (a *tagsListAdapter) Len() int                     { return a.ctx.list.Len() }
-func (a *tagsListAdapter) GetSelectedItemId() string     { return a.ctx.list.GetSelectedItemId() }
-func (a *tagsListAdapter) FindIndexById(id string) int   { return a.ctx.list.FindIndexById(id) }
-func (a *tagsListAdapter) GetSelectedLineIdx() int       { return a.ctx.GetSelectedLineIdx() }
-func (a *tagsListAdapter) SetSelectedLineIdx(idx int)    { a.ctx.SetSelectedLineIdx(idx) }
-func (a *tagsListAdapter) MoveSelectedLine(delta int)    { a.ctx.MoveSelectedLine(delta) }
-func (a *tagsListAdapter) ClampSelection()               { a.ctx.ClampSelection() }
+func (a *tagsListAdapter) Len() int                    { return a.ctx.list.Len() }
+func (a *tagsListAdapter) GetSelectedItemId() string   { return a.ctx.list.GetSelectedItemId() }
+func (a *tagsListAdapter) FindIndexById(id string) int { return a.ctx.list.FindIndexById(id) }
+func (a *tagsListAdapter) GetSelectedLineIdx() int     { return a.ctx.GetSelectedLineIdx() }
+func (a *tagsListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.SetSelectedLineIdx(idx) }
+func (a *tagsListAdapter) MoveSelectedLine(delta int)  { a.ctx.MoveSelectedLine(delta) }
+func (a *tagsListAdapter) ClampSelection()             { a.ctx.ClampSelection() }
 
 func filterTagsByScope(tags []models.Tag, scope string) []models.Tag {
 	var out []models.Tag
