@@ -26,21 +26,78 @@ type Gui struct {
 	darkBackground bool
 
 	// New controller/context architecture (Phase 2+)
-	contexts       *context.ContextTree
-	tagsController *controllers.TagsController
+	contexts          *context.ContextTree
+	notesController   *controllers.NotesController
+	tagsController    *controllers.TagsController
+	queriesController *controllers.QueriesController
 }
 
 // NewGui creates a new Gui instance.
 func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui := &Gui{
-		config:  cfg,
-		ruinCmd: ruinCmd,
-		views:   &Views{},
-		state:   NewGuiState(),
+		config:   cfg,
+		ruinCmd:  ruinCmd,
+		views:    &Views{},
+		state:    NewGuiState(),
+		contexts: &context.ContextTree{},
 	}
 	gui.preview = NewPreviewController(gui)
+	gui.setupNotesContext()
 	gui.setupTagsContext()
+	gui.setupQueriesContext()
 	return gui
+}
+
+// setupNotesContext initializes the NotesContext and NotesController.
+func (gui *Gui) setupNotesContext() {
+	notesCtx := context.NewNotesContext(gui.renderNotes, gui.preview.updatePreviewForNotes)
+	notesCtx.CurrentTab = context.NotesTab(gui.state.Notes.CurrentTab)
+	gui.contexts.Notes = notesCtx
+
+	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
+		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
+		OnViewInPreview: func(_ *models.Note) error {
+			return gui.viewNoteInPreview(nil, nil)
+		},
+		OnEditNote: func(_ *models.Note) error {
+			return gui.editNote(nil, nil)
+		},
+		OnDeleteNote: func(_ *models.Note) error {
+			return gui.deleteNote(nil, nil)
+		},
+		OnCopyPath: func(_ *models.Note) error {
+			return gui.copyNotePath(nil, nil)
+		},
+		OnAddTag: func(_ *models.Note) error {
+			return gui.addGlobalTag(nil, nil)
+		},
+		OnRemoveTag: func(_ *models.Note) error {
+			return gui.removeTag(nil, nil)
+		},
+		OnSetParent: func(_ *models.Note) error {
+			return gui.setParentDialog(nil, nil)
+		},
+		OnRemoveParent: func(_ *models.Note) error {
+			return gui.removeParent(nil, nil)
+		},
+		OnToggleBookmark: func(_ *models.Note) error {
+			return gui.toggleBookmark(nil, nil)
+		},
+		OnShowInfo: func(_ *models.Note) error {
+			return gui.preview.showInfoDialog(nil, nil)
+		},
+		OnClick: gui.notesClick,
+		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Notes, 3)
+			return nil
+		},
+		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Notes, -3)
+			return nil
+		},
+	})
+
+	controllers.AttachController(gui.notesController)
 }
 
 // setupTagsContext initializes the new TagsContext and TagsController.
@@ -50,9 +107,7 @@ func (gui *Gui) setupTagsContext() {
 	// Initialize from existing state defaults
 	tagsCtx.CurrentTab = context.TagsTab(gui.state.Tags.CurrentTab)
 
-	gui.contexts = &context.ContextTree{
-		Tags: tagsCtx,
-	}
+	gui.contexts.Tags = tagsCtx
 
 	gui.tagsController = controllers.NewTagsController(controllers.TagsControllerOpts{
 		GetContext: func() *context.TagsContext { return gui.contexts.Tags },
@@ -78,6 +133,43 @@ func (gui *Gui) setupTagsContext() {
 
 	// Attach controller to context
 	controllers.AttachController(gui.tagsController)
+}
+
+// setupQueriesContext initializes the QueriesContext and QueriesController.
+func (gui *Gui) setupQueriesContext() {
+	queriesCtx := context.NewQueriesContext(
+		gui.renderQueries, gui.updatePreviewForQueries,
+		gui.renderQueries, gui.updatePreviewForParents,
+	)
+	queriesCtx.CurrentTab = context.QueriesTab(gui.state.Queries.CurrentTab)
+	gui.contexts.Queries = queriesCtx
+
+	gui.queriesController = controllers.NewQueriesController(controllers.QueriesControllerOpts{
+		GetContext: func() *context.QueriesContext { return gui.contexts.Queries },
+		OnRunQuery: func(query *models.Query) error {
+			return gui.runQuery(nil, nil)
+		},
+		OnDeleteQuery: func(query *models.Query) error {
+			return gui.deleteQuery(nil, nil)
+		},
+		OnViewParent: func(parent *models.ParentBookmark) error {
+			return gui.viewParent(nil, nil)
+		},
+		OnDeleteParent: func(parent *models.ParentBookmark) error {
+			return gui.deleteParent(nil, nil)
+		},
+		OnClick: gui.queriesClick,
+		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Queries, 3)
+			return nil
+		},
+		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Queries, -3)
+			return nil
+		},
+	})
+
+	controllers.AttachController(gui.queriesController)
 }
 
 // Run starts the GUI event loop.
@@ -176,6 +268,14 @@ func (gui *Gui) refreshNotes(preserve bool) {
 	gui.fetchNotesForCurrentTab(preserve)
 }
 
+// syncNotesToLegacy copies NotesContext state to legacy GuiState.Notes.
+func (gui *Gui) syncNotesToLegacy() {
+	notesCtx := gui.contexts.Notes
+	gui.state.Notes.Items = notesCtx.Items
+	gui.state.Notes.SelectedIndex = notesCtx.GetSelectedLineIdx()
+	gui.state.Notes.CurrentTab = NotesTab(notesCtx.CurrentTab)
+}
+
 func (gui *Gui) refreshTags(preserve bool) {
 	tagsCtx := gui.contexts.Tags
 	prevID := tagsCtx.GetSelectedItemId()
@@ -210,18 +310,64 @@ func (gui *Gui) syncTagsToLegacy() {
 }
 
 func (gui *Gui) refreshQueries(preserve bool) {
-	idx := gui.state.Queries.SelectedIndex
+	queriesCtx := gui.contexts.Queries
+	prevID := queriesCtx.GetQueriesList().GetSelectedItemId()
+
 	queries, err := gui.ruinCmd.Queries.List()
 	if err != nil {
 		return
 	}
-	gui.state.Queries.Items = queries
-	if preserve && idx < len(queries) {
-		gui.state.Queries.SelectedIndex = idx
+	queriesCtx.Queries = queries
+
+	if preserve && prevID != "" {
+		if newIdx := queriesCtx.GetQueriesList().FindIndexById(prevID); newIdx >= 0 {
+			queriesCtx.QueriesTrait().SetSelectedLineIdx(newIdx)
+		}
 	} else {
-		gui.state.Queries.SelectedIndex = 0
+		queriesCtx.QueriesTrait().SetSelectedLineIdx(0)
 	}
+	queriesCtx.QueriesTrait().ClampSelection()
+
+	gui.syncQueriesToLegacy()
 	gui.renderQueries()
+}
+
+func (gui *Gui) refreshParents(preserve bool) {
+	queriesCtx := gui.contexts.Queries
+	prevID := queriesCtx.GetParentsList().GetSelectedItemId()
+
+	parents, err := gui.ruinCmd.Parent.List()
+	if err != nil {
+		return
+	}
+	queriesCtx.Parents = parents
+
+	if preserve && prevID != "" {
+		if newIdx := queriesCtx.GetParentsList().FindIndexById(prevID); newIdx >= 0 {
+			queriesCtx.ParentsTrait().SetSelectedLineIdx(newIdx)
+		}
+	} else {
+		queriesCtx.ParentsTrait().SetSelectedLineIdx(0)
+	}
+	queriesCtx.ParentsTrait().ClampSelection()
+
+	gui.syncParentsToLegacy()
+	gui.renderQueries()
+}
+
+// syncQueriesToLegacy copies QueriesContext queries state to legacy GuiState.Queries.
+func (gui *Gui) syncQueriesToLegacy() {
+	queriesCtx := gui.contexts.Queries
+	gui.state.Queries.Items = queriesCtx.Queries
+	gui.state.Queries.SelectedIndex = queriesCtx.QueriesTrait().GetSelectedLineIdx()
+	gui.state.Queries.CurrentTab = QueriesTab(queriesCtx.CurrentTab)
+}
+
+// syncParentsToLegacy copies QueriesContext parents state to legacy GuiState.Parents.
+func (gui *Gui) syncParentsToLegacy() {
+	queriesCtx := gui.contexts.Queries
+	gui.state.Parents.Items = queriesCtx.Parents
+	gui.state.Parents.SelectedIndex = queriesCtx.ParentsTrait().GetSelectedLineIdx()
 }
 
 // activateContext sets focus and refreshes data for the given context.

@@ -51,25 +51,19 @@ func (gui *Gui) commands() []Command {
 		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
 		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
 
-		// Notes
-		{Name: "View in Preview", Category: "Notes", Keys: []any{gocui.KeyEnter}, Views: []string{NotesView}, Handler: gui.viewNoteInPreview, Contexts: []ContextKey{NotesContext}},
-		{Name: "Open in Editor", Category: "Notes", Keys: []any{'E'}, Views: []string{NotesView}, Handler: gui.editNote, Contexts: []ContextKey{NotesContext}},
-		{Name: "Delete Note", Category: "Notes", Keys: []any{'d'}, Views: []string{NotesView}, Handler: gui.deleteNote, Contexts: []ContextKey{NotesContext}},
-		{Name: "Copy Note Path", Category: "Notes", Keys: []any{'y'}, Views: []string{NotesView}, Handler: gui.copyNotePath, Contexts: []ContextKey{NotesContext}},
+		// Notes — keybindings migrated to NotesController; palette entries generated from controller bindings
 
-		// Note Actions (shared Notes + Preview)
-		{Name: "Add Tag", Category: "Note Actions", Keys: []any{'t'}, Views: []string{NotesView, PreviewView}, Handler: gui.addGlobalTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Remove Tag", Category: "Note Actions", Keys: []any{'T'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Set Parent", Category: "Note Actions", Keys: []any{'>'}, Views: []string{NotesView, PreviewView}, Handler: gui.setParentDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Remove Parent", Category: "Note Actions", Keys: []any{'P'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeParent, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{NotesView, PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.preview.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		// Note Actions (PreviewView only — Notes bindings now in NotesController)
+		{Name: "Add Tag", Category: "Note Actions", Keys: []any{'t'}, Views: []string{PreviewView}, Handler: gui.addGlobalTag, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Remove Tag", Category: "Note Actions", Keys: []any{'T'}, Views: []string{PreviewView}, Handler: gui.removeTag, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Set Parent", Category: "Note Actions", Keys: []any{'>'}, Views: []string{PreviewView}, Handler: gui.setParentDialog, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Remove Parent", Category: "Note Actions", Keys: []any{'P'}, Views: []string{PreviewView}, Handler: gui.removeParent, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{PreviewView}, Handler: gui.preview.showInfoDialog, Contexts: []ContextKey{PreviewContext}},
 
 		// Tags — keybindings migrated to TagsController; palette entries generated from controller bindings
 
-		// Queries
-		{Name: "Run Query", Category: "Queries", Keys: []any{gocui.KeyEnter}, Views: []string{QueriesView}, Handler: gui.runQuery, Contexts: []ContextKey{QueriesContext}},
-		{Name: "Delete Query", Category: "Queries", Keys: []any{'d'}, Views: []string{QueriesView}, Handler: gui.deleteQuery, Contexts: []ContextKey{QueriesContext}},
+		// Queries — keybindings migrated to QueriesController; palette entries generated from controller bindings
 
 		// Preview
 		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, Views: []string{PreviewView}, Handler: gui.preview.deleteCardFromPreview, Contexts: []ContextKey{PreviewContext}},

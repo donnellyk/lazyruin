@@ -1,6 +1,7 @@
 package gui
 
 import (
+	guictx "kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -8,17 +9,25 @@ import (
 
 // cycleQueriesTab cycles through Queries -> Parents tabs
 func (gui *Gui) cycleQueriesTab() {
-	idx := (gui.queriesTabIndex() + 1) % len(queriesTabs)
-	gui.state.Queries.CurrentTab = queriesTabs[idx]
+	queriesCtx := gui.contexts.Queries
+	idx := (queriesCtx.TabIndex() + 1) % len(guictx.QueriesTabs)
+	queriesCtx.CurrentTab = guictx.QueriesTabs[idx]
+	queriesCtx.SetSelectedLineIdx(0)
+	gui.syncQueriesToLegacy()
+	gui.syncParentsToLegacy()
 	gui.loadDataForQueriesTab()
 }
 
 // switchQueriesTabByIndex switches to a specific tab by index (for tab click)
 func (gui *Gui) switchQueriesTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(queriesTabs) {
+	if tabIndex < 0 || tabIndex >= len(guictx.QueriesTabs) {
 		return nil
 	}
-	gui.state.Queries.CurrentTab = queriesTabs[tabIndex]
+	queriesCtx := gui.contexts.Queries
+	queriesCtx.CurrentTab = guictx.QueriesTabs[tabIndex]
+	queriesCtx.SetSelectedLineIdx(0)
+	gui.syncQueriesToLegacy()
+	gui.syncParentsToLegacy()
 	gui.loadDataForQueriesTab()
 	gui.setContext(QueriesContext)
 	return nil
@@ -27,8 +36,8 @@ func (gui *Gui) switchQueriesTabByIndex(tabIndex int) error {
 // loadDataForQueriesTab refreshes data for the active queries tab
 func (gui *Gui) loadDataForQueriesTab() {
 	gui.updateQueriesTab()
-	switch gui.state.Queries.CurrentTab {
-	case QueriesTabParents:
+	switch gui.contexts.Queries.CurrentTab {
+	case guictx.QueriesTabParents:
 		gui.refreshParents(false)
 		gui.updatePreviewForParents()
 	default:
@@ -37,54 +46,97 @@ func (gui *Gui) loadDataForQueriesTab() {
 	}
 }
 
-func (gui *Gui) refreshParents(preserve bool) {
-	idx := gui.state.Parents.SelectedIndex
-	parents, err := gui.ruinCmd.Parent.List()
-	if err != nil {
-		return
-	}
-	gui.state.Parents.Items = parents
-	if preserve && idx < len(parents) {
-		gui.state.Parents.SelectedIndex = idx
+func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
+	queriesCtx := gui.contexts.Queries
+	if queriesCtx.CurrentTab == guictx.QueriesTabParents {
+		idx := listClickIndex(gui.views.Queries, 2)
+		if idx >= 0 && idx < len(queriesCtx.Parents) {
+			queriesCtx.ParentsTrait().SetSelectedLineIdx(idx)
+			gui.syncParentsToLegacy()
+		}
 	} else {
-		gui.state.Parents.SelectedIndex = 0
-	}
-	gui.renderQueries()
-}
-
-func (gui *Gui) parentsPanel() *listPanel {
-	return &listPanel{
-		selectedIndex: &gui.state.Parents.SelectedIndex,
-		itemCount:     func() int { return len(gui.state.Parents.Items) },
-		render:        gui.renderQueries,
-		updatePreview: gui.updatePreviewForParents,
-		context:       QueriesContext,
-	}
-}
-
-func (gui *Gui) parentsDown(g *gocui.Gui, v *gocui.View) error {
-	return gui.parentsPanel().listDown(g, v)
-}
-
-func (gui *Gui) parentsUp(g *gocui.Gui, v *gocui.View) error {
-	return gui.parentsPanel().listUp(g, v)
-}
-
-func (gui *Gui) parentsClick(g *gocui.Gui, v *gocui.View) error {
-	idx := listClickIndex(v, 2)
-	if idx >= 0 && idx < len(gui.state.Parents.Items) {
-		gui.state.Parents.SelectedIndex = idx
+		idx := listClickIndex(gui.views.Queries, 2)
+		if idx >= 0 && idx < len(queriesCtx.Queries) {
+			queriesCtx.QueriesTrait().SetSelectedLineIdx(idx)
+			gui.syncQueriesToLegacy()
+		}
 	}
 	gui.setContext(QueriesContext)
 	return nil
 }
 
-func (gui *Gui) viewParent(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Parents.Items) == 0 {
+func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
+	queriesCtx := gui.contexts.Queries
+	if queriesCtx.CurrentTab == guictx.QueriesTabParents {
+		return gui.viewParent(g, v)
+	}
+	query := queriesCtx.SelectedQuery()
+	if query == nil {
 		return nil
 	}
 
-	parent := gui.state.Parents.Items[gui.state.Parents.SelectedIndex]
+	notes, err := gui.ruinCmd.Queries.Run(query.Name, gui.buildSearchOptions())
+	if err != nil {
+		gui.showError(err)
+		return nil
+	}
+
+	gui.preview.pushNavHistory()
+	gui.state.Preview.Mode = PreviewModeCardList
+	gui.state.Preview.Cards = notes
+	gui.state.Preview.SelectedCardIndex = 0
+	gui.views.Preview.Title = " Query: " + query.Name + " "
+	gui.renderPreview()
+	gui.setContext(PreviewContext)
+
+	return nil
+}
+
+func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
+	queriesCtx := gui.contexts.Queries
+	if queriesCtx.CurrentTab == guictx.QueriesTabParents {
+		return gui.deleteParent(g, v)
+	}
+	query := queriesCtx.SelectedQuery()
+	if query == nil {
+		return nil
+	}
+
+	gui.showConfirm("Delete Query", "Delete query \""+query.Name+"\"?", func() error {
+		err := gui.ruinCmd.Queries.Delete(query.Name)
+		if err != nil {
+			gui.showError(err)
+			return nil
+		}
+		gui.refreshQueries(false)
+		return nil
+	})
+	return nil
+}
+
+func (gui *Gui) updatePreviewForQueries() {
+	queriesCtx := gui.contexts.Queries
+	if queriesCtx.CurrentTab == guictx.QueriesTabParents {
+		gui.updatePreviewForParents()
+		return
+	}
+	query := queriesCtx.SelectedQuery()
+	if query == nil {
+		return
+	}
+
+	gui.preview.updatePreviewCardList(" Query: "+query.Name+" ", func() ([]models.Note, error) {
+		return gui.ruinCmd.Queries.Run(query.Name, gui.buildSearchOptions())
+	})
+}
+
+func (gui *Gui) viewParent(g *gocui.Gui, v *gocui.View) error {
+	queriesCtx := gui.contexts.Queries
+	parent := queriesCtx.SelectedParent()
+	if parent == nil {
+		return nil
+	}
+
 	composed, err := gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
 	if err != nil {
 		gui.showError(err)
@@ -98,11 +150,11 @@ func (gui *Gui) viewParent(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) deleteParent(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Parents.Items) == 0 {
+	queriesCtx := gui.contexts.Queries
+	parent := queriesCtx.SelectedParent()
+	if parent == nil {
 		return nil
 	}
-
-	parent := gui.state.Parents.Items[gui.state.Parents.SelectedIndex]
 
 	gui.showConfirm("Delete Parent", "Delete parent bookmark \""+parent.Name+"\"?", func() error {
 		err := gui.ruinCmd.Parent.Delete(parent.Name)
@@ -117,11 +169,12 @@ func (gui *Gui) deleteParent(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) updatePreviewForParents() {
-	if len(gui.state.Parents.Items) == 0 {
+	queriesCtx := gui.contexts.Queries
+	parent := queriesCtx.SelectedParent()
+	if parent == nil {
 		return
 	}
 
-	parent := gui.state.Parents.Items[gui.state.Parents.SelectedIndex]
 	composed, err := gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
 	if err != nil {
 		return

@@ -5,43 +5,42 @@ import (
 	"strings"
 	"time"
 
+	guictx "kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
 
 func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
-	idx := listClickIndex(v, 3)
-	if idx >= 0 && idx < len(gui.state.Notes.Items) {
-		gui.state.Notes.SelectedIndex = idx
+	notesCtx := gui.contexts.Notes
+	idx := listClickIndex(gui.views.Notes, 3)
+	if idx >= 0 && idx < len(notesCtx.Items) {
+		notesCtx.SetSelectedLineIdx(idx)
+		gui.syncNotesToLegacy()
 	}
 	gui.setContext(NotesContext)
 	return nil
 }
 
-func (gui *Gui) notesWheelDown(g *gocui.Gui, v *gocui.View) error {
-	scrollViewport(v, 3)
-	return nil
-}
-
-func (gui *Gui) notesWheelUp(g *gocui.Gui, v *gocui.View) error {
-	scrollViewport(v, -3)
-	return nil
-}
-
 // cycleNotesTab cycles through All -> Today -> Recent tabs
 func (gui *Gui) cycleNotesTab() {
-	idx := (gui.notesTabIndex() + 1) % len(notesTabs)
-	gui.state.Notes.CurrentTab = notesTabs[idx]
+	notesCtx := gui.contexts.Notes
+	idx := (notesCtx.TabIndex() + 1) % len(guictx.NotesTabs)
+	notesCtx.CurrentTab = guictx.NotesTabs[idx]
+	notesCtx.SetSelectedLineIdx(0)
+	gui.syncNotesToLegacy()
 	gui.loadNotesForCurrentTab()
 }
 
 // switchNotesTabByIndex switches to a specific tab by index (for tab click)
 func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(notesTabs) {
+	if tabIndex < 0 || tabIndex >= len(guictx.NotesTabs) {
 		return nil
 	}
-	gui.state.Notes.CurrentTab = notesTabs[tabIndex]
+	notesCtx := gui.contexts.Notes
+	notesCtx.CurrentTab = guictx.NotesTabs[tabIndex]
+	notesCtx.SetSelectedLineIdx(0)
+	gui.syncNotesToLegacy()
 	gui.loadNotesForCurrentTab()
 	gui.setContext(NotesContext)
 	return nil
@@ -55,9 +54,13 @@ func (gui *Gui) loadNotesForCurrentTab() {
 }
 
 // fetchNotesForCurrentTab loads notes for the current tab and renders the list.
-// If preserve is true, the current selection index is kept; otherwise it resets to 0.
+// If preserve is true, the current selection is preserved by UUID; otherwise it resets to 0.
 func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
-	savedIdx := gui.state.Notes.SelectedIndex
+	notesCtx := gui.contexts.Notes
+	prevID := ""
+	if preserve {
+		prevID = notesCtx.GetSelectedItemId()
+	}
 
 	var notes []models.Note
 	var err error
@@ -68,59 +71,39 @@ func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
 	opts.StripTitle = true
 	opts.StripGlobalTags = true
 
-	switch gui.state.Notes.CurrentTab {
-	case NotesTabAll:
+	switch notesCtx.CurrentTab {
+	case guictx.NotesTabAll:
 		opts.Limit = 50
 		opts.Everything = true
 		notes, err = gui.ruinCmd.Search.Search("", opts)
-	case NotesTabToday:
+	case guictx.NotesTabToday:
 		notes, err = gui.ruinCmd.Search.Search("created:today", opts)
-	case NotesTabRecent:
+	case guictx.NotesTabRecent:
 		opts.Limit = 20
 		recentDate := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
 		notes, err = gui.ruinCmd.Search.Search("after:"+recentDate, opts)
 	}
 
 	if err == nil {
-		gui.state.Notes.Items = notes
-		if preserve && savedIdx < len(notes) {
-			gui.state.Notes.SelectedIndex = savedIdx
+		notesCtx.Items = notes
+		if preserve && prevID != "" {
+			if newIdx := notesCtx.GetList().FindIndexById(prevID); newIdx >= 0 {
+				notesCtx.SetSelectedLineIdx(newIdx)
+			} else {
+				notesCtx.SetSelectedLineIdx(0)
+			}
 		} else {
-			gui.state.Notes.SelectedIndex = 0
+			notesCtx.SetSelectedLineIdx(0)
 		}
+		notesCtx.ClampSelection()
+		gui.syncNotesToLegacy()
 	}
 	gui.renderNotes()
 	gui.updateNotesTab()
 }
 
-func (gui *Gui) notesPanel() *listPanel {
-	return &listPanel{
-		selectedIndex: &gui.state.Notes.SelectedIndex,
-		itemCount:     func() int { return len(gui.state.Notes.Items) },
-		render:        gui.renderNotes,
-		updatePreview: gui.preview.updatePreviewForNotes,
-		context:       NotesContext,
-	}
-}
-
-func (gui *Gui) notesDown(g *gocui.Gui, v *gocui.View) error {
-	return gui.notesPanel().listDown(g, v)
-}
-
-func (gui *Gui) notesUp(g *gocui.Gui, v *gocui.View) error {
-	return gui.notesPanel().listUp(g, v)
-}
-
-func (gui *Gui) notesTop(g *gocui.Gui, v *gocui.View) error {
-	return gui.notesPanel().listTop(g, v)
-}
-
-func (gui *Gui) notesBottom(g *gocui.Gui, v *gocui.View) error {
-	return gui.notesPanel().listBottom(g, v)
-}
-
 func (gui *Gui) viewNoteInPreview(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) == 0 {
+	if len(gui.contexts.Notes.Items) == 0 {
 		return nil
 	}
 	gui.setContext(PreviewContext)
@@ -128,11 +111,11 @@ func (gui *Gui) viewNoteInPreview(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) editNote(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) == 0 {
+	notesCtx := gui.contexts.Notes
+	note := notesCtx.Selected()
+	if note == nil {
 		return nil
 	}
-
-	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
 	return gui.openInEditor(note.Path)
 }
 
@@ -141,11 +124,12 @@ func (gui *Gui) newNote(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) == 0 {
+	notesCtx := gui.contexts.Notes
+	note := notesCtx.Selected()
+	if note == nil {
 		return nil
 	}
 
-	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
 	title := note.Title
 	if title == "" {
 		title = note.Path
@@ -167,11 +151,11 @@ func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) copyNotePath(g *gocui.Gui, v *gocui.View) error {
-	if len(gui.state.Notes.Items) == 0 {
+	notesCtx := gui.contexts.Notes
+	note := notesCtx.Selected()
+	if note == nil {
 		return nil
 	}
-
-	note := gui.state.Notes.Items[gui.state.Notes.SelectedIndex]
 
 	// Use pbcopy on macOS, xclip on Linux
 	var cmd *exec.Cmd

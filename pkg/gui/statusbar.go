@@ -48,20 +48,11 @@ func (gui *Gui) updateStatusBar() {
 	}
 }
 
-// notesTabIndex returns the index for the current tab
+// notesTabIndex returns the index for the current notes tab.
+// Delegates to NotesContext.
 func (gui *Gui) notesTabIndex() int {
-	switch gui.state.Notes.CurrentTab {
-	case NotesTabToday:
-		return 1
-	case NotesTabRecent:
-		return 2
-	default:
-		return 0
-	}
+	return gui.contexts.Notes.TabIndex()
 }
-
-// notesTabs maps tab indices to NotesTab values
-var notesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
 
 // updateNotesTab syncs the gocui view's TabIndex with the current tab
 func (gui *Gui) updateNotesTab() {
@@ -70,18 +61,11 @@ func (gui *Gui) updateNotesTab() {
 	}
 }
 
-// queriesTabIndex returns the index for the current queries tab
+// queriesTabIndex returns the index for the current queries tab.
+// Delegates to QueriesContext.
 func (gui *Gui) queriesTabIndex() int {
-	switch gui.state.Queries.CurrentTab {
-	case QueriesTabParents:
-		return 1
-	default:
-		return 0
-	}
+	return gui.contexts.Queries.TabIndex()
 }
-
-// queriesTabs maps tab indices to QueriesTab values
-var queriesTabs = []QueriesTab{QueriesTabQueries, QueriesTabParents}
 
 // updateQueriesTab syncs the gocui view's TabIndex with the current queries tab
 func (gui *Gui) updateQueriesTab() {

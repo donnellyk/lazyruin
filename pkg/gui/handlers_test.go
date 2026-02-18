@@ -99,13 +99,65 @@ func TestHeadlessGui_ViewsCreated(t *testing.T) {
 	}
 }
 
+// testNotesDown moves the notes selection down by one (using the NotesContext).
+func testNotesDown(tg *testGui) {
+	notesCtx := tg.gui.contexts.Notes
+	items := notesCtx.Items
+	idx := notesCtx.GetSelectedLineIdx()
+	if idx+1 < len(items) {
+		notesCtx.MoveSelectedLine(1)
+		tg.gui.syncNotesToLegacy()
+		tg.gui.renderNotes()
+	}
+}
+
+// testNotesUp moves the notes selection up by one (using the NotesContext).
+func testNotesUp(tg *testGui) {
+	notesCtx := tg.gui.contexts.Notes
+	if notesCtx.GetSelectedLineIdx() > 0 {
+		notesCtx.MoveSelectedLine(-1)
+		tg.gui.syncNotesToLegacy()
+		tg.gui.renderNotes()
+	}
+}
+
+// testNotesTop jumps to the first note.
+func testNotesTop(tg *testGui) {
+	notesCtx := tg.gui.contexts.Notes
+	notesCtx.SetSelectedLineIdx(0)
+	tg.gui.syncNotesToLegacy()
+	tg.gui.renderNotes()
+}
+
+// testNotesBottom jumps to the last note.
+func testNotesBottom(tg *testGui) {
+	notesCtx := tg.gui.contexts.Notes
+	if len(notesCtx.Items) > 0 {
+		notesCtx.SetSelectedLineIdx(len(notesCtx.Items) - 1)
+		tg.gui.syncNotesToLegacy()
+		tg.gui.renderNotes()
+	}
+}
+
+// testQueriesDown moves the queries selection down by one (using the QueriesContext).
+func testQueriesDown(tg *testGui) {
+	queriesCtx := tg.gui.contexts.Queries
+	t := queriesCtx.ActiveTrait()
+	count := queriesCtx.ActiveItemCount()
+	if t.GetSelectedLineIdx()+1 < count {
+		t.MoveSelectedLine(1)
+		tg.gui.syncQueriesToLegacy()
+		tg.gui.renderQueries()
+	}
+}
+
 // --- Notes navigation tests ---
 
 func TestNotesDown_MovesSelection(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
 
 	if tg.gui.state.Notes.SelectedIndex != 1 {
 		t.Errorf("SelectedIndex = %d, want 1", tg.gui.state.Notes.SelectedIndex)
@@ -117,7 +169,7 @@ func TestNotesDown_MultipleSteps(t *testing.T) {
 	defer tg.Close()
 
 	for i := 0; i < 3; i++ {
-		tg.gui.notesDown(tg.g, tg.gui.views.Notes)
+		testNotesDown(tg)
 	}
 
 	if tg.gui.state.Notes.SelectedIndex != 3 {
@@ -130,9 +182,9 @@ func TestNotesUp_MovesSelection(t *testing.T) {
 	defer tg.Close()
 
 	// Move down first, then up
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesUp(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
+	testNotesDown(tg)
+	testNotesUp(tg)
 
 	if tg.gui.state.Notes.SelectedIndex != 1 {
 		t.Errorf("SelectedIndex = %d, want 1", tg.gui.state.Notes.SelectedIndex)
@@ -143,10 +195,10 @@ func TestNotesTop_JumpsToFirst(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesTop(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
+	testNotesDown(tg)
+	testNotesDown(tg)
+	testNotesTop(tg)
 
 	if tg.gui.state.Notes.SelectedIndex != 0 {
 		t.Errorf("SelectedIndex = %d, want 0", tg.gui.state.Notes.SelectedIndex)
@@ -157,7 +209,7 @@ func TestNotesBottom_JumpsToLast(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.notesBottom(tg.g, tg.gui.views.Notes)
+	testNotesBottom(tg)
 
 	want := len(tg.gui.state.Notes.Items) - 1
 	if tg.gui.state.Notes.SelectedIndex != want {
@@ -171,7 +223,7 @@ func TestNotesDown_StopsAtBoundary(t *testing.T) {
 
 	count := len(tg.gui.state.Notes.Items)
 	for i := 0; i < count+5; i++ {
-		tg.gui.notesDown(tg.g, tg.gui.views.Notes)
+		testNotesDown(tg)
 	}
 
 	if tg.gui.state.Notes.SelectedIndex != count-1 {
@@ -379,7 +431,7 @@ func TestQueriesDown_MovesSelection(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil)
-	tg.gui.queriesDown(tg.g, tg.gui.views.Queries)
+	testQueriesDown(tg)
 
 	if tg.gui.state.Queries.SelectedIndex != 1 {
 		t.Errorf("Queries.SelectedIndex = %d, want 1", tg.gui.state.Queries.SelectedIndex)
@@ -393,7 +445,7 @@ func TestNotesDown_UpdatesPreview(t *testing.T) {
 	defer tg.Close()
 
 	// Move down to select Note Two
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
 
 	// Preview should be in card list mode showing the selected note as a single card
 	if tg.gui.state.Preview.Mode != PreviewModeCardList {
@@ -409,10 +461,10 @@ func TestEmptyNotes_NoNavigationPanic(t *testing.T) {
 	defer tg.Close()
 
 	// These should not panic with empty lists
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesUp(tg.g, tg.gui.views.Notes)
-	tg.gui.notesTop(tg.g, tg.gui.views.Notes)
-	tg.gui.notesBottom(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
+	testNotesUp(tg)
+	testNotesTop(tg)
+	testNotesBottom(tg)
 
 	if tg.gui.state.Notes.SelectedIndex != 0 {
 		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.state.Notes.SelectedIndex)
@@ -792,8 +844,8 @@ func TestRefresh_ReloadsData(t *testing.T) {
 	defer tg.Close()
 
 	// Move selection, then refresh — selection should reset
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
-	tg.gui.notesDown(tg.g, tg.gui.views.Notes)
+	testNotesDown(tg)
+	testNotesDown(tg)
 	if tg.gui.state.Notes.SelectedIndex != 2 {
 		t.Fatalf("SelectedIndex = %d, want 2 before refresh", tg.gui.state.Notes.SelectedIndex)
 	}

@@ -50,8 +50,8 @@ func (gui *Gui) setupKeybindings() error {
 	// Navigation and infrastructure bindings (not user-facing commands)
 	navBindings := []func() []binding{
 		gui.globalNavBindings,
-		gui.notesNavBindings,
-		gui.queriesNavBindings,
+		// notesNavBindings removed — notes bindings registered via NotesController below
+		// queriesNavBindings removed — queries bindings registered via QueriesController below
 		// tagsNavBindings removed — tags bindings registered via TagsController below
 		gui.previewNavBindings,
 		gui.searchBindings,
@@ -156,34 +156,8 @@ func (gui *Gui) globalNavBindings() []binding {
 	}
 }
 
-func (gui *Gui) notesNavBindings() []binding {
-	v := NotesView
-	return []binding{
-		{v, gocui.MouseLeft, gui.notesClick},
-		{v, 'j', gui.notesDown},
-		{v, 'k', gui.notesUp},
-		{v, gocui.KeyArrowDown, gui.notesDown},
-		{v, gocui.KeyArrowUp, gui.notesUp},
-		{v, 'g', gui.notesTop},
-		{v, 'G', gui.notesBottom},
-		{v, gocui.MouseWheelDown, gui.notesWheelDown},
-		{v, gocui.MouseWheelUp, gui.notesWheelUp},
-	}
-}
-
-func (gui *Gui) queriesNavBindings() []binding {
-	v := QueriesView
-	return []binding{
-		{v, gocui.MouseLeft, gui.queriesClick},
-		{v, 'j', gui.queriesDown},
-		{v, 'k', gui.queriesUp},
-		{v, gocui.KeyArrowDown, gui.queriesDown},
-		{v, gocui.KeyArrowUp, gui.queriesUp},
-		{v, gocui.MouseWheelDown, gui.queriesWheelDown},
-		{v, gocui.MouseWheelUp, gui.queriesWheelUp},
-	}
-}
-
+// notesNavBindings removed — notes navigation is now handled by NotesController.
+// queriesNavBindings removed — queries navigation is now handled by QueriesController.
 // tagsNavBindings removed — tags navigation is now handled by TagsController.
 
 func (gui *Gui) previewNavBindings() []binding {
