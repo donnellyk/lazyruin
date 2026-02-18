@@ -106,15 +106,6 @@ func (gui *Gui) setupNotesContext() {
 		OnShowInfo: func(_ *models.Note) error {
 			return gui.preview.showInfoDialog(nil, nil)
 		},
-		OnClick: gui.notesClick,
-		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Notes, 3)
-			return nil
-		},
-		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Notes, -3)
-			return nil
-		},
 	})
 
 	controllers.AttachController(gui.notesController)
@@ -140,15 +131,6 @@ func (gui *Gui) setupTagsContext() {
 		},
 		OnDeleteTag: func(tag *models.Tag) error {
 			return gui.deleteTag(nil, nil)
-		},
-		OnClick: gui.tagsClick,
-		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Tags, 3)
-			return nil
-		},
-		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Tags, -3)
-			return nil
 		},
 	})
 
@@ -179,15 +161,6 @@ func (gui *Gui) setupQueriesContext() {
 		},
 		OnDeleteParent: func(parent *models.ParentBookmark) error {
 			return gui.deleteParent(nil, nil)
-		},
-		OnClick: gui.queriesClick,
-		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Queries, 3)
-			return nil
-		},
-		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
-			scrollViewport(gui.views.Queries, -3)
-			return nil
 		},
 	})
 

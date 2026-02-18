@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
+	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -25,9 +26,6 @@ type NotesController struct {
 	onRemoveParent   func(note *models.Note) error
 	onToggleBookmark func(note *models.Note) error
 	onShowInfo       func(note *models.Note) error
-	onClickFn        func(g *gocui.Gui, v *gocui.View) error
-	onWheelDown      func(g *gocui.Gui, v *gocui.View) error
-	onWheelUp        func(g *gocui.Gui, v *gocui.View) error
 }
 
 var _ types.IController = &NotesController{}
@@ -47,9 +45,6 @@ type NotesControllerOpts struct {
 	OnRemoveParent   func(note *models.Note) error
 	OnToggleBookmark func(note *models.Note) error
 	OnShowInfo       func(note *models.Note) error
-	OnClick          func(g *gocui.Gui, v *gocui.View) error
-	OnWheelDown      func(g *gocui.Gui, v *gocui.View) error
-	OnWheelUp        func(g *gocui.Gui, v *gocui.View) error
 }
 
 // NewNotesController creates a new NotesController.
@@ -67,9 +62,6 @@ func NewNotesController(opts NotesControllerOpts) *NotesController {
 		onRemoveParent:   opts.OnRemoveParent,
 		onToggleBookmark: opts.OnToggleBookmark,
 		onShowInfo:       opts.OnShowInfo,
-		onClickFn:        opts.OnClick,
-		onWheelDown:      opts.OnWheelDown,
-		onWheelUp:        opts.OnWheelUp,
 	}
 
 	ctrl.ListControllerTrait = NewListControllerTrait[models.Note](
@@ -190,21 +182,39 @@ func (self *NotesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
 				ViewName: "notes",
 				Key:      gocui.MouseLeft,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onClickFn(nil, nil)
+					v := self.c.GuiCommon().GetView("notes")
+					if v == nil {
+						return nil
+					}
+					ctx := self.getContext()
+					idx := helpers.ListClickIndex(v, 3)
+					if idx >= 0 && idx < len(ctx.Items) {
+						ctx.SetSelectedLineIdx(idx)
+					}
+					self.c.GuiCommon().PushContext(ctx, types.OnFocusOpts{})
+					return nil
 				},
 			},
 			{
 				ViewName: "notes",
 				Key:      gocui.MouseWheelDown,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelDown(nil, nil)
+					v := self.c.GuiCommon().GetView("notes")
+					if v != nil {
+						helpers.ScrollViewport(v, 3)
+					}
+					return nil
 				},
 			},
 			{
 				ViewName: "notes",
 				Key:      gocui.MouseWheelUp,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelUp(nil, nil)
+					v := self.c.GuiCommon().GetView("notes")
+					if v != nil {
+						helpers.ScrollViewport(v, -3)
+					}
+					return nil
 				},
 			},
 		}

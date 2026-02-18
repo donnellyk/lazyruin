@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
+	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -20,9 +21,6 @@ type TagsController struct {
 	onFilterByTag func(tag *models.Tag) error
 	onRenameTag   func(tag *models.Tag) error
 	onDeleteTag   func(tag *models.Tag) error
-	onClickFn     func(g *gocui.Gui, v *gocui.View) error
-	onWheelDown   func(g *gocui.Gui, v *gocui.View) error
-	onWheelUp     func(g *gocui.Gui, v *gocui.View) error
 }
 
 var _ types.IController = &TagsController{}
@@ -35,9 +33,6 @@ type TagsControllerOpts struct {
 	OnFilterByTag func(tag *models.Tag) error
 	OnRenameTag   func(tag *models.Tag) error
 	OnDeleteTag   func(tag *models.Tag) error
-	OnClick       func(g *gocui.Gui, v *gocui.View) error
-	OnWheelDown   func(g *gocui.Gui, v *gocui.View) error
-	OnWheelUp     func(g *gocui.Gui, v *gocui.View) error
 }
 
 // NewTagsController creates a new TagsController.
@@ -48,9 +43,6 @@ func NewTagsController(opts TagsControllerOpts) *TagsController {
 		onFilterByTag: opts.OnFilterByTag,
 		onRenameTag:   opts.OnRenameTag,
 		onDeleteTag:   opts.OnDeleteTag,
-		onClickFn:     opts.OnClick,
-		onWheelDown:   opts.OnWheelDown,
-		onWheelUp:     opts.OnWheelUp,
 	}
 
 	ctrl.ListControllerTrait = NewListControllerTrait[models.Tag](
@@ -115,21 +107,40 @@ func (self *TagsController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
 				ViewName: "tags",
 				Key:      gocui.MouseLeft,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onClickFn(nil, nil)
+					v := self.c.GuiCommon().GetView("tags")
+					if v == nil {
+						return nil
+					}
+					ctx := self.getContext()
+					items := ctx.FilteredItems()
+					idx := helpers.ListClickIndex(v, 1)
+					if idx >= 0 && idx < len(items) {
+						ctx.SetSelectedLineIdx(idx)
+					}
+					self.c.GuiCommon().PushContext(ctx, types.OnFocusOpts{})
+					return nil
 				},
 			},
 			{
 				ViewName: "tags",
 				Key:      gocui.MouseWheelDown,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelDown(nil, nil)
+					v := self.c.GuiCommon().GetView("tags")
+					if v != nil {
+						helpers.ScrollViewport(v, 3)
+					}
+					return nil
 				},
 			},
 			{
 				ViewName: "tags",
 				Key:      gocui.MouseWheelUp,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelUp(nil, nil)
+					v := self.c.GuiCommon().GetView("tags")
+					if v != nil {
+						helpers.ScrollViewport(v, -3)
+					}
+					return nil
 				},
 			},
 		}

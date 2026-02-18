@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
+	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -21,11 +22,6 @@ type QueriesController struct {
 	// Parents tab callbacks
 	onViewParent   func(parent *models.ParentBookmark) error
 	onDeleteParent func(parent *models.ParentBookmark) error
-
-	// Mouse callbacks
-	onClickFn   func(g *gocui.Gui, v *gocui.View) error
-	onWheelDown func(g *gocui.Gui, v *gocui.View) error
-	onWheelUp   func(g *gocui.Gui, v *gocui.View) error
 }
 
 var _ types.IController = &QueriesController{}
@@ -40,10 +36,6 @@ type QueriesControllerOpts struct {
 	// Parents tab callbacks
 	OnViewParent   func(parent *models.ParentBookmark) error
 	OnDeleteParent func(parent *models.ParentBookmark) error
-	// Mouse callbacks
-	OnClick     func(g *gocui.Gui, v *gocui.View) error
-	OnWheelDown func(g *gocui.Gui, v *gocui.View) error
-	OnWheelUp   func(g *gocui.Gui, v *gocui.View) error
 }
 
 // NewQueriesController creates a new QueriesController.
@@ -55,9 +47,6 @@ func NewQueriesController(opts QueriesControllerOpts) *QueriesController {
 		onDeleteQuery:  opts.OnDeleteQuery,
 		onViewParent:   opts.OnViewParent,
 		onDeleteParent: opts.OnDeleteParent,
-		onClickFn:      opts.OnClick,
-		onWheelDown:    opts.OnWheelDown,
-		onWheelUp:      opts.OnWheelUp,
 	}
 }
 
@@ -105,21 +94,45 @@ func (self *QueriesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn 
 				ViewName: "queries",
 				Key:      gocui.MouseLeft,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onClickFn(nil, nil)
+					v := self.c.GuiCommon().GetView("queries")
+					if v == nil {
+						return nil
+					}
+					ctx := self.getContext()
+					idx := helpers.ListClickIndex(v, 2)
+					if ctx.CurrentTab == context.QueriesTabParents {
+						if idx >= 0 && idx < len(ctx.Parents) {
+							ctx.ParentsTrait().SetSelectedLineIdx(idx)
+						}
+					} else {
+						if idx >= 0 && idx < len(ctx.Queries) {
+							ctx.QueriesTrait().SetSelectedLineIdx(idx)
+						}
+					}
+					self.c.GuiCommon().PushContext(ctx, types.OnFocusOpts{})
+					return nil
 				},
 			},
 			{
 				ViewName: "queries",
 				Key:      gocui.MouseWheelDown,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelDown(nil, nil)
+					v := self.c.GuiCommon().GetView("queries")
+					if v != nil {
+						helpers.ScrollViewport(v, 3)
+					}
+					return nil
 				},
 			},
 			{
 				ViewName: "queries",
 				Key:      gocui.MouseWheelUp,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onWheelUp(nil, nil)
+					v := self.c.GuiCommon().GetView("queries")
+					if v != nil {
+						helpers.ScrollViewport(v, -3)
+					}
+					return nil
 				},
 			},
 		}

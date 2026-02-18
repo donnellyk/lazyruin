@@ -46,25 +46,6 @@ func (gui *Gui) loadDataForQueriesTab() {
 	}
 }
 
-func (gui *Gui) queriesClick(g *gocui.Gui, v *gocui.View) error {
-	queriesCtx := gui.contexts.Queries
-	if queriesCtx.CurrentTab == guictx.QueriesTabParents {
-		idx := listClickIndex(gui.views.Queries, 2)
-		if idx >= 0 && idx < len(queriesCtx.Parents) {
-			queriesCtx.ParentsTrait().SetSelectedLineIdx(idx)
-			gui.syncParentsToLegacy()
-		}
-	} else {
-		idx := listClickIndex(gui.views.Queries, 2)
-		if idx >= 0 && idx < len(queriesCtx.Queries) {
-			queriesCtx.QueriesTrait().SetSelectedLineIdx(idx)
-			gui.syncQueriesToLegacy()
-		}
-	}
-	gui.setContext(QueriesContext)
-	return nil
-}
-
 func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 	queriesCtx := gui.contexts.Queries
 	if queriesCtx.CurrentTab == guictx.QueriesTabParents {

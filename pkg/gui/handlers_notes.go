@@ -11,17 +11,6 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-func (gui *Gui) notesClick(g *gocui.Gui, v *gocui.View) error {
-	notesCtx := gui.contexts.Notes
-	idx := listClickIndex(gui.views.Notes, 3)
-	if idx >= 0 && idx < len(notesCtx.Items) {
-		notesCtx.SetSelectedLineIdx(idx)
-		gui.syncNotesToLegacy()
-	}
-	gui.setContext(NotesContext)
-	return nil
-}
-
 // cycleNotesTab cycles through All -> Today -> Recent tabs
 func (gui *Gui) cycleNotesTab() {
 	notesCtx := gui.contexts.Notes

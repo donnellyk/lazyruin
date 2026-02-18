@@ -39,18 +39,6 @@ func (gui *Gui) switchTagsTabByIndex(tabIndex int) error {
 	return nil
 }
 
-func (gui *Gui) tagsClick(g *gocui.Gui, v *gocui.View) error {
-	tagsCtx := gui.contexts.Tags
-	idx := listClickIndex(gui.views.Tags, 1)
-	items := tagsCtx.FilteredItems()
-	if idx >= 0 && idx < len(items) {
-		tagsCtx.SetSelectedLineIdx(idx)
-		gui.syncTagsToLegacy()
-	}
-	gui.setContext(TagsContext)
-	return nil
-}
-
 func (gui *Gui) filterByTag(g *gocui.Gui, v *gocui.View) error {
 	tag := gui.selectedFilteredTag()
 	if tag == nil {
