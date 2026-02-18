@@ -10,48 +10,15 @@ import (
 	"kvnd/lazyruin/pkg/gui/types"
 )
 
-// paletteCommands derives the palette command list from both the legacy command
-// table and new controller bindings (transitional aggregator during migration).
+// paletteCommands builds the full palette command list from controller bindings
+// and palette-only commands (tabs, snippets, etc. without a controller home).
 func (gui *Gui) paletteCommands() []PaletteCommand {
 	var cmds []PaletteCommand
 
-	// Legacy commands (non-migrated panels)
-	for _, c := range gui.commands() {
-		if c.NoPalette || c.Name == "" {
-			continue
-		}
+	// Palette-only commands (no controller home)
+	cmds = append(cmds, gui.paletteOnlyCommands()...)
 
-		hint := c.KeyHint
-		if hint == "" && len(c.Keys) > 0 {
-			hint = keyDisplayString(c.Keys[0])
-		}
-
-		var runner func() error
-		if c.OnRun != nil {
-			runner = c.OnRun
-		} else if c.Handler != nil {
-			if len(c.Views) > 0 {
-				h := c.Handler
-				viewName := c.Views[0]
-				runner = func() error {
-					v, _ := gui.g.View(viewName)
-					return h(gui.g, v)
-				}
-			} else {
-				runner = gui.wrap(c.Handler)
-			}
-		}
-
-		cmds = append(cmds, PaletteCommand{
-			Name:     c.Name,
-			Category: c.Category,
-			Key:      hint,
-			OnRun:    runner,
-			Contexts: c.Contexts,
-		})
-	}
-
-	// New controller bindings (migrated panels: Notes, Tags, Queries, Preview, Global)
+	// Controller bindings
 	opts := types.KeybindingsOpts{}
 	for _, ctx := range gui.contexts.All() {
 		ctxKey := ctx.GetKey()

@@ -485,14 +485,13 @@ func TestContextToView_Palette(t *testing.T) {
 	}
 }
 
-func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
+func TestPaletteOnlyCommands_AllAppearInPaletteCommands(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	cmds := tg.gui.commands()
+	onlyCmds := tg.gui.paletteOnlyCommands()
 	paletteCmds := tg.gui.paletteCommands()
 
-	// Build set of palette command names+contexts key
 	type key struct {
 		name     string
 		contexts string
@@ -510,18 +509,15 @@ func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
 		paletteSet[key{pc.Name, contextsKey(pc.Contexts)}] = true
 	}
 
-	for _, cmd := range cmds {
-		if cmd.NoPalette || cmd.Name == "" || cmd.Handler == nil || len(cmd.Keys) == 0 {
-			continue
-		}
+	for _, cmd := range onlyCmds {
 		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if !paletteSet[k] {
-			t.Errorf("command %q (contexts %q) has Keys+Handler but no palette entry", cmd.Name, cmd.Contexts)
+			t.Errorf("paletteOnlyCommands entry %q (contexts %q) not found in paletteCommands()", cmd.Name, cmd.Contexts)
 		}
 	}
 }
 
-func TestCommands_NoDuplicateNameContexts(t *testing.T) {
+func TestPaletteCommands_NoDuplicateNameContexts(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
@@ -538,13 +534,10 @@ func TestCommands_NoDuplicateNameContexts(t *testing.T) {
 		return strings.Join(sorted, ",")
 	}
 	seen := make(map[key]bool)
-	for _, cmd := range tg.gui.commands() {
-		if cmd.Name == "" {
-			continue
-		}
+	for _, cmd := range tg.gui.paletteCommands() {
 		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if seen[k] {
-			t.Errorf("duplicate command: Name=%q Contexts=%q", cmd.Name, cmd.Contexts)
+			t.Errorf("duplicate palette command: Name=%q Contexts=%q", cmd.Name, cmd.Contexts)
 		}
 		seen[k] = true
 	}

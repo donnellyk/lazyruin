@@ -1,6 +1,9 @@
 package gui
 
 import (
+	"fmt"
+	"sort"
+
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/types"
 )
@@ -23,41 +26,18 @@ func (gui *Gui) registerBindings(bindings []binding) error {
 
 // setupKeybindings configures all keyboard shortcuts.
 func (gui *Gui) setupKeybindings() error {
-	// Register command-table bindings (actions driven by commands())
-	for _, cmd := range gui.commands() {
-		if cmd.Handler == nil || len(cmd.Keys) == 0 {
-			continue
-		}
-		handler := cmd.Handler
-		views := cmd.Views
-		if views == nil {
-			views = []string{""}
-			handler = gui.suppressDuringDialog(handler)
-		}
-		for _, view := range views {
-			h := handler
-			if isMainPanelView(view) {
-				h = gui.suppressDuringDialog(handler)
-			}
-			for _, key := range cmd.Keys {
-				if err := gui.g.SetKeybinding(view, key, gocui.ModNone, h); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	// Navigation and infrastructure bindings (not user-facing commands)
+	// Infrastructure bindings not owned by any controller.
 	navBindings := []func() []binding{
 		gui.globalNavBindings,
-		// notesNavBindings removed — notes bindings registered via NotesController below
-		// queriesNavBindings removed — queries bindings registered via QueriesController below
-		// tagsNavBindings removed — tags bindings registered via TagsController below
-		// previewNavBindings removed — preview bindings registered via PreviewController below
-		// searchBindings removed — bindings registered via SearchController below
-		// captureBindings removed — bindings registered via CaptureController below
-		// pickBindings removed — bindings registered via PickController below
-		// inputPopupBindings removed — bindings registered via InputPopupController below
+		// notesNavBindings removed — notes bindings registered via NotesController
+		// queriesNavBindings removed — queries bindings registered via QueriesController
+		// tagsNavBindings removed — tags bindings registered via TagsController
+		// previewNavBindings removed — preview bindings registered via PreviewController
+		// searchBindings removed — bindings registered via SearchController
+		// captureBindings removed — bindings registered via CaptureController
+		// pickBindings removed — bindings registered via PickController
+		// inputPopupBindings removed — bindings registered via InputPopupController
+		// Tab/Backtab removed — bindings registered via GlobalController
 		gui.snippetEditorBindings,
 		gui.paletteBindings,
 		gui.calendarBindings,
@@ -75,16 +55,21 @@ func (gui *Gui) setupKeybindings() error {
 		}
 	}
 
+	// Clear Search binding (SearchFilterView-specific, no controller home yet)
+	if err := gui.g.SetKeybinding(SearchFilterView, 'x', gocui.ModNone, gui.clearSearch); err != nil {
+		return err
+	}
+
 	if err := gui.setupDialogKeybindings(); err != nil {
 		return err
 	}
 
-	// Register new-style context controller bindings (Phase 2+: Tags)
+	// Register context/controller bindings (all migrated panels)
 	if err := gui.registerContextBindings(); err != nil {
 		return err
 	}
 
-	// Tab click bindings (different signature, can't be table-driven)
+	// Tab click bindings (different signature, can't be registered via controllers)
 	if err := gui.g.SetTabClickBinding(NotesView, gui.suppressTabClickDuringDialog(gui.switchNotesTabByIndex)); err != nil {
 		return err
 	}
@@ -170,6 +155,27 @@ func (gui *Gui) globalNavBindings() []binding {
 // captureBindings removed — capture bindings are now handled by CaptureController.
 // pickBindings removed — pick bindings are now handled by PickController.
 // inputPopupBindings removed — input popup bindings are now handled by InputPopupController.
+
+// DumpBindings returns a stable sorted list of all registered controller bindings
+// for debugging and regression diffing. Use with --debug-bindings flag.
+func (gui *Gui) DumpBindings() []string {
+	opts := types.KeybindingsOpts{}
+	var entries []string
+	for _, ctx := range gui.contexts.All() {
+		for _, b := range ctx.GetKeybindings(opts) {
+			keyStr := ""
+			if b.Key != nil {
+				keyStr = keyDisplayString(b.Key)
+			}
+			for _, viewName := range ctx.GetViewNames() {
+				entry := fmt.Sprintf("%-12s %-16s %-8s %s", string(ctx.GetKey()), viewName, keyStr, b.ID)
+				entries = append(entries, entry)
+			}
+		}
+	}
+	sort.Strings(entries)
+	return entries
+}
 
 func (gui *Gui) snippetEditorBindings() []binding {
 	nv := SnippetNameView

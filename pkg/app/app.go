@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,10 +15,11 @@ import (
 
 // App is the main application struct that bootstraps and runs lazyruin.
 type App struct {
-	Config       *config.Config
-	RuinCmd      *commands.RuinCommand
-	Gui          *gui.Gui
-	QuickCapture bool // when true, open directly into new note and exit on save
+	Config        *config.Config
+	RuinCmd       *commands.RuinCommand
+	Gui           *gui.Gui
+	QuickCapture  bool // when true, open directly into new note and exit on save
+	DebugBindings bool // when true, print all registered bindings and exit
 }
 
 // NewApp creates a new application instance.
@@ -51,9 +53,18 @@ func (a *App) Run() error {
 		return err
 	}
 
-	// Initialize and run GUI
+	// Initialize GUI
 	a.Gui = gui.NewGui(a.Config, a.RuinCmd)
 	a.Gui.QuickCapture = a.QuickCapture
+
+	// Debug mode: print all registered bindings and exit without running the TUI.
+	if a.DebugBindings {
+		for _, b := range a.Gui.DumpBindings() {
+			fmt.Println(b)
+		}
+		return nil
+	}
+
 	return a.Gui.Run()
 }
 

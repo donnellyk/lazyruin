@@ -6,26 +6,11 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// Command is the single source of truth for user-facing actions.
-// It drives both keybinding registration and palette command generation.
-type Command struct {
-	Name      string                              // palette/hint display name
-	Category  string                              // palette grouping ("Notes", "Global", etc.)
-	Keys      []any                               // gocui keys to bind; nil = palette-only
-	Views     []string                            // gocui view names to bind; nil = global
-	Handler   func(*gocui.Gui, *gocui.View) error // keybinding handler
-	OnRun     func() error                        // palette-only runner (when Handler is nil)
-	Contexts  []ContextKey                        // palette context filter; nil = always available
-	KeyHint   string                              // display string ("<c-r>"); auto-derived if empty
-	NoPalette bool                                // true = suppress from command palette
-}
-
-// commands returns the unified command table.
-// Global, Focus, Notes, Tags, Queries, and Preview entries have been migrated
-// to their respective controllers; palette entries are generated from controller bindings.
-func (gui *Gui) commands() []Command {
-	return []Command{
-		// Tabs (palette-only, no keybindings)
+// paletteOnlyCommands returns commands that have no controller home.
+// These are accessible only via the command palette (no keybinding).
+func (gui *Gui) paletteOnlyCommands() []PaletteCommand {
+	return []PaletteCommand{
+		// Tab switching (palette-only, no keybinding)
 		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(0) }},
 		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(1) }},
 		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(2) }},
@@ -35,26 +20,16 @@ func (gui *Gui) commands() []Command {
 		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
 		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
 
-		// Search Filter
-		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},
+		// Search filter (palette-only; keybinding registered in setupKeybindings)
+		{Name: "Clear Search", Category: "Search", Key: "x", Contexts: []ContextKey{SearchFilterContext}, OnRun: func() error {
+			return gui.clearSearch(gui.g, nil)
+		}},
 
-		// Snippets
+		// Snippets (palette-only, no keybinding)
 		{Name: "List Snippets", Category: "Snippets", OnRun: gui.listSnippets},
 		{Name: "Create Snippet", Category: "Snippets", OnRun: gui.createSnippet},
 		{Name: "Delete Snippet", Category: "Snippets", OnRun: gui.deleteSnippet},
 	}
-}
-
-// wrap converts a standard gocui handler into a closure for palette commands.
-func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
-	return func() error {
-		return fn(gui.g, nil)
-	}
-}
-
-// dialogActive returns true when a dialog or overlay is open.
-func (gui *Gui) dialogActive() bool {
-	return gui.overlayActive()
 }
 
 // suppressDuringDialog wraps a handler to no-op when a dialog is active.
