@@ -2,7 +2,6 @@ package gui
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -281,26 +280,6 @@ func contribChar(count int) string {
 	}
 }
 
-// contribSelectedWeekDay returns the week index and day-of-week for the selected date.
-func (gui *Gui) contribSelectedWeekDay() (week, dow int) {
-	s := gui.state.Contrib
-	now := time.Now()
-	endDate := now
-	for endDate.Weekday() != time.Saturday {
-		endDate = endDate.AddDate(0, 0, 1)
-	}
-	startDate := endDate.AddDate(0, 0, -(s.WeekCount-1)*7)
-	for startDate.Weekday() != time.Sunday {
-		startDate = startDate.AddDate(0, 0, -1)
-	}
-
-	t, _ := time.ParseInLocation("2006-01-02", s.SelectedDate, time.Local)
-	days := int(t.Sub(startDate).Hours() / 24)
-	week = days / 7
-	dow = days % 7
-	return
-}
-
 // Contribution chart keybinding handlers
 
 func (gui *Gui) contribGridLeft(g *gocui.Gui, v *gocui.View) error {
@@ -429,15 +408,4 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 	}
 	gui.setContext(PreviewContext)
 	gui.renderPreview()
-}
-
-// contribDates returns all dates with counts, sorted.
-func (gui *Gui) contribDates() []string {
-	s := gui.state.Contrib
-	dates := make([]string, 0, len(s.DayCounts))
-	for d := range s.DayCounts {
-		dates = append(dates, d)
-	}
-	sort.Strings(dates)
-	return dates
 }

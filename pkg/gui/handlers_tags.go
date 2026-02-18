@@ -6,11 +6,6 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// filteredTagItems delegates to TagsContext.
-func (gui *Gui) filteredTagItems() []models.Tag {
-	return gui.contexts.Tags.FilteredItems()
-}
-
 // selectedFilteredTag delegates to TagsContext.
 func (gui *Gui) selectedFilteredTag() *models.Tag {
 	return gui.contexts.Tags.Selected()

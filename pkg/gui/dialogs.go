@@ -115,20 +115,6 @@ func (gui *Gui) showHelp() {
 	}
 }
 
-// showMergeOverlay displays the merge direction chooser as a menu
-func (gui *Gui) showMergeOverlay() {
-	gui.state.Dialog = &DialogState{
-		Active: true,
-		Type:   "menu",
-		Title:  "Merge",
-		MenuItems: []MenuItem{
-			{Label: "Merge with note above", Key: "u", OnRun: func() error { return gui.preview.executeMerge("up") }},
-			{Label: "Merge with note below", Key: "d", OnRun: func() error { return gui.preview.executeMerge("down") }},
-		},
-		MenuSelection: 0,
-	}
-}
-
 // closeDialog closes any open dialog
 func (gui *Gui) closeDialog() {
 	if gui.state.Dialog != nil && gui.state.Dialog.OnCancel != nil {
