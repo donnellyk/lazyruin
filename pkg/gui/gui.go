@@ -47,6 +47,10 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupTagsContext()
 	gui.setupQueriesContext()
 	gui.setupPreviewContext()
+	gui.setupSearchContext()
+	gui.setupCaptureContext()
+	gui.setupPickContext()
+	gui.setupInputPopupContext()
 	return gui
 }
 
@@ -230,6 +234,83 @@ func (gui *Gui) setupPreviewContext() {
 	})
 
 	controllers.AttachController(gui.previewController)
+}
+
+// setupSearchContext initializes the SearchContext and SearchController.
+func (gui *Gui) setupSearchContext() {
+	searchCtx := context.NewSearchContext()
+	gui.contexts.Search = searchCtx
+
+	searchState := func() *CompletionState { return gui.state.SearchCompletion }
+	ctrl := controllers.NewSearchController(controllers.SearchControllerOpts{
+		GetContext: func() *context.SearchContext { return gui.contexts.Search },
+		OnEnter: func() error {
+			return gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)(gui.g, gui.views.Search)
+		},
+		OnEsc: func() error {
+			return gui.completionEsc(searchState, gui.cancelSearch)(gui.g, gui.views.Search)
+		},
+		OnTab: func() error {
+			return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
+		},
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupCaptureContext initializes the CaptureContext and CaptureController.
+func (gui *Gui) setupCaptureContext() {
+	captureCtx := context.NewCaptureContext()
+	gui.contexts.Capture = captureCtx
+
+	ctrl := controllers.NewCaptureController(controllers.CaptureControllerOpts{
+		GetContext: func() *context.CaptureContext { return gui.contexts.Capture },
+		OnSubmit:   func() error { return gui.submitCapture(gui.g, gui.views.Capture) },
+		OnEsc:      func() error { return gui.cancelCapture(gui.g, gui.views.Capture) },
+		OnTab:      func() error { return gui.captureTab(gui.g, gui.views.Capture) },
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupPickContext initializes the PickContext and PickController.
+func (gui *Gui) setupPickContext() {
+	pickCtx := context.NewPickContext()
+	gui.contexts.Pick = pickCtx
+
+	pickState := func() *CompletionState { return gui.state.PickCompletion }
+	ctrl := controllers.NewPickController(controllers.PickControllerOpts{
+		GetContext: func() *context.PickContext { return gui.contexts.Pick },
+		OnEnter: func() error {
+			return gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)(gui.g, gui.views.Pick)
+		},
+		OnEsc: func() error {
+			return gui.completionEsc(pickState, gui.cancelPick)(gui.g, gui.views.Pick)
+		},
+		OnTab: func() error {
+			return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
+		},
+		OnToggleAny: func() error { return gui.togglePickAny(gui.g, gui.views.Pick) },
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupInputPopupContext initializes the InputPopupContext and InputPopupController.
+func (gui *Gui) setupInputPopupContext() {
+	inputPopupCtx := context.NewInputPopupContext()
+	gui.contexts.InputPopup = inputPopupCtx
+
+	ctrl := controllers.NewInputPopupController(controllers.InputPopupControllerOpts{
+		GetContext: func() *context.InputPopupContext { return gui.contexts.InputPopup },
+		OnEnter: func() error {
+			v, _ := gui.g.View(InputPopupView)
+			return gui.inputPopupEnter(gui.g, v)
+		},
+		OnEsc: func() error { return gui.inputPopupEsc(gui.g, nil) },
+		OnTab: func() error {
+			v, _ := gui.g.View(InputPopupView)
+			return gui.inputPopupTab(gui.g, v)
+		},
+	})
+	controllers.AttachController(ctrl)
 }
 
 // Run starts the GUI event loop.

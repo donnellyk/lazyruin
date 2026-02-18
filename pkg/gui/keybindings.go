@@ -54,10 +54,10 @@ func (gui *Gui) setupKeybindings() error {
 		// queriesNavBindings removed — queries bindings registered via QueriesController below
 		// tagsNavBindings removed — tags bindings registered via TagsController below
 		// previewNavBindings removed — preview bindings registered via PreviewController below
-		gui.searchBindings,
-		gui.captureBindings,
-		gui.pickBindings,
-		gui.inputPopupBindings,
+		// searchBindings removed — bindings registered via SearchController below
+		// captureBindings removed — bindings registered via CaptureController below
+		// pickBindings removed — bindings registered via PickController below
+		// inputPopupBindings removed — bindings registered via InputPopupController below
 		gui.snippetEditorBindings,
 		gui.paletteBindings,
 		gui.calendarBindings,
@@ -105,6 +105,7 @@ func (gui *Gui) registerContextBindings() error {
 
 	for _, ctx := range gui.contexts.All() {
 		viewNames := ctx.GetViewNames()
+		kind := ctx.GetKind()
 
 		for _, b := range ctx.GetKeybindings(opts) {
 			binding := b
@@ -113,8 +114,10 @@ func (gui *Gui) registerContextBindings() error {
 				continue
 			}
 			handler := func(g *gocui.Gui, v *gocui.View) error {
-				if gui.overlayActive() {
-					return nil // suppress during popups
+				// Suppress main/side panel bindings during popups, but allow
+				// popup contexts to handle their own keybindings.
+				if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
+					return nil
 				}
 				if binding.GetDisabledReason != nil {
 					if reason := binding.GetDisabledReason(); reason != nil {
@@ -164,45 +167,10 @@ func (gui *Gui) globalNavBindings() []binding {
 // queriesNavBindings removed — queries navigation is now handled by QueriesController.
 // tagsNavBindings removed — tags navigation is now handled by TagsController.
 // previewNavBindings removed — preview navigation is now handled by PreviewController.
-
-func (gui *Gui) searchBindings() []binding {
-	v := SearchView
-	searchState := func() *CompletionState { return gui.state.SearchCompletion }
-	return []binding{
-		{v, gocui.KeyEnter, gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)},
-		{v, gocui.KeyEsc, gui.completionEsc(searchState, gui.cancelSearch)},
-		{v, gocui.KeyTab, gui.completionTab(searchState, gui.searchTriggers)},
-	}
-}
-
-func (gui *Gui) captureBindings() []binding {
-	v := CaptureView
-	return []binding{
-		{v, gocui.KeyCtrlS, gui.submitCapture},
-		{v, gocui.KeyEsc, gui.cancelCapture},
-		{v, gocui.KeyTab, gui.captureTab},
-	}
-}
-
-func (gui *Gui) pickBindings() []binding {
-	v := PickView
-	pickState := func() *CompletionState { return gui.state.PickCompletion }
-	return []binding{
-		{v, gocui.KeyEnter, gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)},
-		{v, gocui.KeyEsc, gui.completionEsc(pickState, gui.cancelPick)},
-		{v, gocui.KeyTab, gui.completionTab(pickState, gui.pickTriggers)},
-		{v, gocui.KeyCtrlA, gui.togglePickAny},
-	}
-}
-
-func (gui *Gui) inputPopupBindings() []binding {
-	v := InputPopupView
-	return []binding{
-		{v, gocui.KeyEnter, gui.inputPopupEnter},
-		{v, gocui.KeyEsc, gui.inputPopupEsc},
-		{v, gocui.KeyTab, gui.inputPopupTab},
-	}
-}
+// searchBindings removed — search bindings are now handled by SearchController.
+// captureBindings removed — capture bindings are now handled by CaptureController.
+// pickBindings removed — pick bindings are now handled by PickController.
+// inputPopupBindings removed — input popup bindings are now handled by InputPopupController.
 
 func (gui *Gui) snippetEditorBindings() []binding {
 	nv := SnippetNameView
