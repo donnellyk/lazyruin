@@ -10,75 +10,173 @@ import (
 // GlobalController handles application-wide keybindings that fire in any view.
 type GlobalController struct {
 	baseController
+	c          *ControllerCommon
 	getContext func() *context.GlobalContext
 
-	onQuit              func() error
-	onSearch            func() error
-	onPick              func() error
-	onNewNote           func() error
-	onRefresh           func() error
-	onHelp              func() error
-	onPalette           func() error
-	onCalendar          func() error
-	onContrib           func() error
-	onFocusNotes        func() error
-	onFocusQueries      func() error
-	onFocusTags         func() error
-	onFocusPreview      func() error
-	onFocusSearchFilter func() error
-	onNextPanel         func() error
-	onPrevPanel         func() error
+	onQuit                func() error
+	onSearch              func() error
+	onPick                func() error
+	onNewNote             func() error
+	onRefresh             func() error
+	onHelp                func() error
+	onPalette             func() error
+	onCalendar            func() error
+	onContrib             func() error
+	onCycleNotesTab       func() error
+	onCycleQueriesTab     func() error
+	onCycleTagsTab        func() error
+	onFocusSearchFilterOp func() error
 }
 
 var _ types.IController = &GlobalController{}
 
 // GlobalControllerOpts holds callbacks injected during wiring.
 type GlobalControllerOpts struct {
-	GetContext          func() *context.GlobalContext
-	OnQuit              func() error
-	OnSearch            func() error
-	OnPick              func() error
-	OnNewNote           func() error
-	OnRefresh           func() error
-	OnHelp              func() error
-	OnPalette           func() error
-	OnCalendar          func() error
-	OnContrib           func() error
-	OnFocusNotes        func() error
-	OnFocusQueries      func() error
-	OnFocusTags         func() error
-	OnFocusPreview      func() error
-	OnFocusSearchFilter func() error
-	OnNextPanel         func() error
-	OnPrevPanel         func() error
+	Common                *ControllerCommon
+	GetContext            func() *context.GlobalContext
+	OnQuit                func() error
+	OnSearch              func() error
+	OnPick                func() error
+	OnNewNote             func() error
+	OnRefresh             func() error
+	OnHelp                func() error
+	OnPalette             func() error
+	OnCalendar            func() error
+	OnContrib             func() error
+	OnCycleNotesTab       func() error
+	OnCycleQueriesTab     func() error
+	OnCycleTagsTab        func() error
+	OnFocusSearchFilterOp func() error
 }
 
 // NewGlobalController creates a GlobalController.
 func NewGlobalController(opts GlobalControllerOpts) *GlobalController {
 	return &GlobalController{
-		getContext:          opts.GetContext,
-		onQuit:              opts.OnQuit,
-		onSearch:            opts.OnSearch,
-		onPick:              opts.OnPick,
-		onNewNote:           opts.OnNewNote,
-		onRefresh:           opts.OnRefresh,
-		onHelp:              opts.OnHelp,
-		onPalette:           opts.OnPalette,
-		onCalendar:          opts.OnCalendar,
-		onContrib:           opts.OnContrib,
-		onFocusNotes:        opts.OnFocusNotes,
-		onFocusQueries:      opts.OnFocusQueries,
-		onFocusTags:         opts.OnFocusTags,
-		onFocusPreview:      opts.OnFocusPreview,
-		onFocusSearchFilter: opts.OnFocusSearchFilter,
-		onNextPanel:         opts.OnNextPanel,
-		onPrevPanel:         opts.OnPrevPanel,
+		c:                     opts.Common,
+		getContext:            opts.GetContext,
+		onQuit:                opts.OnQuit,
+		onSearch:              opts.OnSearch,
+		onPick:                opts.OnPick,
+		onNewNote:             opts.OnNewNote,
+		onRefresh:             opts.OnRefresh,
+		onHelp:                opts.OnHelp,
+		onPalette:             opts.OnPalette,
+		onCalendar:            opts.OnCalendar,
+		onContrib:             opts.OnContrib,
+		onCycleNotesTab:       opts.OnCycleNotesTab,
+		onCycleQueriesTab:     opts.OnCycleQueriesTab,
+		onCycleTagsTab:        opts.OnCycleTagsTab,
+		onFocusSearchFilterOp: opts.OnFocusSearchFilterOp,
 	}
 }
 
 // Context returns the context this controller is attached to.
 func (self *GlobalController) Context() types.Context {
 	return self.getContext()
+}
+
+// NextPanel implements Tab panel cycling.
+func (self *GlobalController) NextPanel() error {
+	gc := self.c.GuiCommon()
+	order := []types.ContextKey{"notes", "queries", "tags"}
+	if gc.SearchQueryActive() {
+		order = []types.ContextKey{"searchFilter", "notes", "queries", "tags"}
+	}
+	currentKey := gc.CurrentContextKey()
+	for i, key := range order {
+		if key == currentKey {
+			nextKey := order[(i+1)%len(order)]
+			if ctx := gc.ContextByKey(nextKey); ctx != nil {
+				gc.PushContext(ctx, types.OnFocusOpts{})
+			} else {
+				gc.PushContextByKey(nextKey)
+			}
+			return nil
+		}
+	}
+	if ctx := gc.ContextByKey("notes"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
+}
+
+// PrevPanel implements Shift+Tab panel cycling.
+func (self *GlobalController) PrevPanel() error {
+	gc := self.c.GuiCommon()
+	order := []types.ContextKey{"notes", "queries", "tags"}
+	if gc.SearchQueryActive() {
+		order = []types.ContextKey{"searchFilter", "notes", "queries", "tags"}
+	}
+	currentKey := gc.CurrentContextKey()
+	for i, key := range order {
+		if key == currentKey {
+			prev := order[(i-1+len(order))%len(order)]
+			if ctx := gc.ContextByKey(prev); ctx != nil {
+				gc.PushContext(ctx, types.OnFocusOpts{})
+			} else {
+				gc.PushContextByKey(prev)
+			}
+			return nil
+		}
+	}
+	if ctx := gc.ContextByKey("notes"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
+}
+
+// FocusNotes focuses the Notes panel, cycling tabs if already focused.
+func (self *GlobalController) FocusNotes() error {
+	gc := self.c.GuiCommon()
+	if gc.CurrentContextKey() == "notes" {
+		if self.onCycleNotesTab != nil {
+			return self.onCycleNotesTab()
+		}
+		return nil
+	}
+	if ctx := gc.ContextByKey("notes"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
+}
+
+// FocusQueries focuses the Queries panel, cycling tabs if already focused.
+func (self *GlobalController) FocusQueries() error {
+	gc := self.c.GuiCommon()
+	if gc.CurrentContextKey() == "queries" {
+		if self.onCycleQueriesTab != nil {
+			return self.onCycleQueriesTab()
+		}
+		return nil
+	}
+	if ctx := gc.ContextByKey("queries"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
+}
+
+// FocusTags focuses the Tags panel, cycling tabs if already focused.
+func (self *GlobalController) FocusTags() error {
+	gc := self.c.GuiCommon()
+	if gc.CurrentContextKey() == "tags" {
+		if self.onCycleTagsTab != nil {
+			return self.onCycleTagsTab()
+		}
+		return nil
+	}
+	if ctx := gc.ContextByKey("tags"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
+}
+
+// FocusPreview focuses the Preview panel.
+func (self *GlobalController) FocusPreview() error {
+	gc := self.c.GuiCommon()
+	if ctx := gc.ContextByKey("preview"); ctx != nil {
+		gc.PushContext(ctx, types.OnFocusOpts{})
+	}
+	return nil
 }
 
 // GetKeybindingsFn returns all global keybinding producers.
@@ -101,15 +199,15 @@ func (self *GlobalController) GetKeybindingsFn() types.KeybindingsFn {
 			{ID: "global.contrib", Key: 'C', Handler: self.onContrib, Description: "Contributions", Category: "Global"},
 
 			// Focus shortcuts
-			{ID: "global.focus_notes", Key: '1', Handler: self.onFocusNotes, Description: "Focus Notes", Category: "Focus"},
-			{ID: "global.focus_queries", Key: '2', Handler: self.onFocusQueries, Description: "Focus Queries", Category: "Focus"},
-			{ID: "global.focus_tags", Key: '3', Handler: self.onFocusTags, Description: "Focus Tags", Category: "Focus"},
-			{ID: "global.focus_preview", Handler: self.onFocusPreview, Description: "Focus Preview", Category: "Focus"},
-			{ID: "global.focus_search_filter", Key: '0', Handler: self.onFocusSearchFilter, Description: "Focus Search Filter", Category: "Focus"},
+			{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},
+			{ID: "global.focus_queries", Key: '2', Handler: self.FocusQueries, Description: "Focus Queries", Category: "Focus"},
+			{ID: "global.focus_tags", Key: '3', Handler: self.FocusTags, Description: "Focus Tags", Category: "Focus"},
+			{ID: "global.focus_preview", Handler: self.FocusPreview, Description: "Focus Preview", Category: "Focus"},
+			{ID: "global.focus_search_filter", Key: '0', Handler: self.onFocusSearchFilterOp, Description: "Focus Search Filter", Category: "Focus"},
 
 			// Panel navigation (no Description = not in palette)
-			{Key: gocui.KeyTab, Handler: self.onNextPanel},
-			{Key: gocui.KeyBacktab, Handler: self.onPrevPanel},
+			{Key: gocui.KeyTab, Handler: self.NextPanel},
+			{Key: gocui.KeyBacktab, Handler: self.PrevPanel},
 		}
 	}
 }

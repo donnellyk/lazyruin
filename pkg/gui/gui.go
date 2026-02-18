@@ -7,6 +7,7 @@ import (
 	"kvnd/lazyruin/pkg/config"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/controllers"
+	helperspkg "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -31,6 +32,11 @@ type Gui struct {
 	tagsController    *controllers.TagsController
 	queriesController *controllers.QueriesController
 	previewController *controllers.PreviewController
+	globalController  *controllers.GlobalController
+
+	// Shared helper/controller dependencies
+	helpers          *helperspkg.Helpers
+	controllerCommon *controllers.ControllerCommon
 }
 
 // NewGui creates a new Gui instance.
@@ -43,6 +49,12 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 		contexts: &context.ContextTree{},
 	}
 	gui.preview = NewPreviewController(gui)
+
+	// Wire shared helper/controller dependencies.
+	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui)
+	gui.helpers = helperspkg.NewHelpers(helperCommon)
+	gui.controllerCommon = controllers.NewControllerCommon(gui, ruinCmd, gui.helpers)
+
 	gui.setupNotesContext()
 	gui.setupTagsContext()
 	gui.setupQueriesContext()
@@ -62,6 +74,7 @@ func (gui *Gui) setupNotesContext() {
 	gui.contexts.Notes = notesCtx
 
 	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
+		Common:     gui.controllerCommon,
 		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
 		OnViewInPreview: func(_ *models.Note) error {
 			return gui.viewNoteInPreview(nil, nil)
@@ -117,6 +130,7 @@ func (gui *Gui) setupTagsContext() {
 	gui.contexts.Tags = tagsCtx
 
 	gui.tagsController = controllers.NewTagsController(controllers.TagsControllerOpts{
+		Common:     gui.controllerCommon,
 		GetContext: func() *context.TagsContext { return gui.contexts.Tags },
 		OnFilterByTag: func(tag *models.Tag) error {
 			return gui.filterByTag(nil, nil)
@@ -152,6 +166,7 @@ func (gui *Gui) setupQueriesContext() {
 	gui.contexts.Queries = queriesCtx
 
 	gui.queriesController = controllers.NewQueriesController(controllers.QueriesControllerOpts{
+		Common:     gui.controllerCommon,
 		GetContext: func() *context.QueriesContext { return gui.contexts.Queries },
 		OnRunQuery: func(query *models.Query) error {
 			return gui.runQuery(nil, nil)
@@ -320,24 +335,23 @@ func (gui *Gui) setupGlobalContext() {
 	gui.contexts.Global = globalCtx
 
 	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
-		GetContext:          func() *context.GlobalContext { return gui.contexts.Global },
-		OnQuit:              func() error { return gui.quit(gui.g, nil) },
-		OnSearch:            func() error { return gui.openSearch(gui.g, nil) },
-		OnPick:              func() error { return gui.openPick(gui.g, nil) },
-		OnNewNote:           func() error { return gui.newNote(gui.g, nil) },
-		OnRefresh:           func() error { return gui.refresh(gui.g, nil) },
-		OnHelp:              func() error { return gui.showHelpHandler(gui.g, nil) },
-		OnPalette:           func() error { return gui.openPalette(gui.g, nil) },
-		OnCalendar:          func() error { return gui.openCalendar(gui.g, nil) },
-		OnContrib:           func() error { return gui.openContrib(gui.g, nil) },
-		OnFocusNotes:        func() error { return gui.focusNotes(gui.g, nil) },
-		OnFocusQueries:      func() error { return gui.focusQueries(gui.g, nil) },
-		OnFocusTags:         func() error { return gui.focusTags(gui.g, nil) },
-		OnFocusPreview:      func() error { return gui.focusPreview(gui.g, nil) },
-		OnFocusSearchFilter: func() error { return gui.focusSearchFilter(gui.g, nil) },
-		OnNextPanel:         func() error { return gui.nextPanel(gui.g, nil) },
-		OnPrevPanel:         func() error { return gui.prevPanel(gui.g, nil) },
+		Common:                 gui.controllerCommon,
+		GetContext:             func() *context.GlobalContext { return gui.contexts.Global },
+		OnQuit:                 func() error { return gui.quit(gui.g, nil) },
+		OnSearch:               func() error { return gui.openSearch(gui.g, nil) },
+		OnPick:                 func() error { return gui.openPick(gui.g, nil) },
+		OnNewNote:              func() error { return gui.newNote(gui.g, nil) },
+		OnRefresh:              func() error { return gui.refresh(gui.g, nil) },
+		OnHelp:                 func() error { return gui.showHelpHandler(gui.g, nil) },
+		OnPalette:              func() error { return gui.openPalette(gui.g, nil) },
+		OnCalendar:             func() error { return gui.openCalendar(gui.g, nil) },
+		OnContrib:              func() error { return gui.openContrib(gui.g, nil) },
+		OnCycleNotesTab:        func() error { gui.cycleNotesTab(); return nil },
+		OnCycleQueriesTab:      func() error { gui.cycleQueriesTab(); return nil },
+		OnCycleTagsTab:         func() error { gui.cycleTagsTab(); return nil },
+		OnFocusSearchFilterOp:  func() error { return gui.focusSearchFilter(gui.g, nil) },
 	})
+	gui.globalController = ctrl
 	controllers.AttachController(ctrl)
 }
 

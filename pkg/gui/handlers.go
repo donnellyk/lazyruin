@@ -73,76 +73,27 @@ func (gui *Gui) quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
-	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
-
-	// Include search filter in cycle if active
-	if gui.state.SearchQuery != "" {
-		order = []ContextKey{SearchFilterContext, NotesContext, QueriesContext, TagsContext}
-	}
-
-	for i, ctx := range order {
-		if ctx == gui.state.currentContext() {
-			next := order[(i+1)%len(order)]
-			gui.setContext(next)
-			return nil
-		}
-	}
-
-	gui.setContext(NotesContext)
-	return nil
+	return gui.globalController.NextPanel()
 }
 
 func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
-	order := []ContextKey{NotesContext, QueriesContext, TagsContext}
-
-	// Include search filter in cycle if active
-	if gui.state.SearchQuery != "" {
-		order = []ContextKey{SearchFilterContext, NotesContext, QueriesContext, TagsContext}
-	}
-
-	for i, ctx := range order {
-		if ctx == gui.state.currentContext() {
-			prev := order[(i-1+len(order))%len(order)]
-			gui.setContext(prev)
-			return nil
-		}
-	}
-
-	gui.setContext(NotesContext)
-	return nil
+	return gui.globalController.PrevPanel()
 }
 
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.currentContext() == NotesContext {
-		// Already focused - cycle through tabs
-		gui.cycleNotesTab()
-		return nil
-	}
-	gui.setContext(NotesContext)
-	return nil
+	return gui.globalController.FocusNotes()
 }
 
 func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.currentContext() == QueriesContext {
-		gui.cycleQueriesTab()
-		return nil
-	}
-	gui.setContext(QueriesContext)
-	return nil
+	return gui.globalController.FocusQueries()
 }
 
 func (gui *Gui) focusTags(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.currentContext() == TagsContext {
-		gui.cycleTagsTab()
-		return nil
-	}
-	gui.setContext(TagsContext)
-	return nil
+	return gui.globalController.FocusTags()
 }
 
 func (gui *Gui) focusPreview(g *gocui.Gui, v *gocui.View) error {
-	gui.setContext(PreviewContext)
-	return nil
+	return gui.globalController.FocusPreview()
 }
 
 func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
