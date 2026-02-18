@@ -1,48 +1,45 @@
 package context
 
-// ListContextTrait provides common list state and behavior for list contexts.
-// It manages selection state and delegates rendering/preview updates.
+import "kvnd/lazyruin/pkg/gui/types"
+
+// ListContextTrait provides shared list behavior for list contexts.
+// It composes a ListCursor with render/preview callbacks.
+// Ported from the existing listPanel logic.
 type ListContextTrait struct {
-	selectedLineIdx int
-	onLineChange    func()
+	cursor    *ListCursor
+	renderFn  func()
+	previewFn func()
 }
 
-// NewListContextTrait creates a new ListContextTrait.
-func NewListContextTrait(onLineChange func()) *ListContextTrait {
+// NewListContextTrait creates a new trait bound to a cursor.
+func NewListContextTrait(cursor *ListCursor, renderFn func(), previewFn func()) *ListContextTrait {
 	return &ListContextTrait{
-		onLineChange: onLineChange,
+		cursor:    cursor,
+		renderFn:  renderFn,
+		previewFn: previewFn,
 	}
 }
 
-// GetSelectedLineIdx returns the current selection index.
-func (self *ListContextTrait) GetSelectedLineIdx() int {
-	return self.selectedLineIdx
+// GetCursor returns the underlying list cursor.
+func (self *ListContextTrait) GetCursor() *ListCursor {
+	return self.cursor
 }
 
-// SetSelectedLineIdx sets the current selection index.
-func (self *ListContextTrait) SetSelectedLineIdx(idx int) {
-	self.selectedLineIdx = idx
-}
+func (self *ListContextTrait) GetSelectedLineIdx() int   { return self.cursor.GetSelectedLineIdx() }
+func (self *ListContextTrait) SetSelectedLineIdx(idx int) { self.cursor.SetSelectedLineIdx(idx) }
+func (self *ListContextTrait) MoveSelectedLine(delta int) { self.cursor.MoveSelectedLine(delta) }
+func (self *ListContextTrait) ClampSelection()            { self.cursor.ClampSelection() }
 
-// MoveSelectedLine moves the selection by delta.
-func (self *ListContextTrait) MoveSelectedLine(delta int) {
-	self.selectedLineIdx += delta
-}
-
-// ClampSelection clamps the selection to valid bounds.
-// Requires the caller to pass the item count.
-func (self *ListContextTrait) ClampSelection(itemCount int) {
-	if self.selectedLineIdx < 0 {
-		self.selectedLineIdx = 0
-	}
-	if itemCount > 0 && self.selectedLineIdx >= itemCount {
-		self.selectedLineIdx = itemCount - 1
-	}
-}
-
-// HandleLineChange triggers rendering and preview updates after selection changes.
+// HandleLineChange re-renders the list and updates the preview.
+// This is the equivalent of the old listPanel's render+updatePreview pattern.
 func (self *ListContextTrait) HandleLineChange() {
-	if self.onLineChange != nil {
-		self.onLineChange()
+	if self.renderFn != nil {
+		self.renderFn()
+	}
+	if self.previewFn != nil {
+		self.previewFn()
 	}
 }
+
+// Verify ListContextTrait satisfies IListCursor at compile time.
+var _ types.IListCursor = &ListContextTrait{}

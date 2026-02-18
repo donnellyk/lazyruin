@@ -7,11 +7,15 @@ import (
 	"strings"
 
 	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/types"
 )
 
-// paletteCommands derives the palette command list from the unified command table.
+// paletteCommands derives the palette command list from both the legacy command
+// table and new controller bindings (transitional aggregator during migration).
 func (gui *Gui) paletteCommands() []PaletteCommand {
 	var cmds []PaletteCommand
+
+	// Legacy commands (non-migrated panels)
 	for _, c := range gui.commands() {
 		if c.NoPalette || c.Name == "" {
 			continue
@@ -46,6 +50,25 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 			Contexts: c.Contexts,
 		})
 	}
+
+	// New controller bindings (migrated panels: Tags)
+	opts := types.KeybindingsOpts{}
+	for _, ctx := range gui.contexts.All() {
+		ctxKey := ctx.GetKey()
+		for _, b := range ctx.GetKeybindings(opts) {
+			if b.Description == "" {
+				continue // nav-only, skip
+			}
+			cmds = append(cmds, PaletteCommand{
+				Name:     b.Description,
+				Category: b.Category,
+				Key:      keyDisplayString(b.Key),
+				OnRun:    b.Handler,
+				Contexts: []ContextKey{ctxKey},
+			})
+		}
+	}
+
 	return cmds
 }
 

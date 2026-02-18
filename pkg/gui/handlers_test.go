@@ -346,7 +346,10 @@ func TestTagsDown_MovesSelection(t *testing.T) {
 	// Focus tags panel first
 	tg.gui.focusTags(tg.g, nil)
 
-	tg.gui.tagsDown(tg.g, tg.gui.views.Tags)
+	// Use TagsContext for navigation (migrated from old tagsDown)
+	tagsCtx := tg.gui.contexts.Tags
+	tagsCtx.MoveSelectedLine(1)
+	tg.gui.syncTagsToLegacy()
 
 	if tg.gui.state.Tags.SelectedIndex != 1 {
 		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.state.Tags.SelectedIndex)
@@ -358,9 +361,11 @@ func TestTagsUp_MovesSelection(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.tagsDown(tg.g, tg.gui.views.Tags)
-	tg.gui.tagsDown(tg.g, tg.gui.views.Tags)
-	tg.gui.tagsUp(tg.g, tg.gui.views.Tags)
+	tagsCtx := tg.gui.contexts.Tags
+	tagsCtx.MoveSelectedLine(1)
+	tagsCtx.MoveSelectedLine(1)
+	tagsCtx.MoveSelectedLine(-1)
+	tg.gui.syncTagsToLegacy()
 
 	if tg.gui.state.Tags.SelectedIndex != 1 {
 		t.Errorf("Tags.SelectedIndex = %d, want 1", tg.gui.state.Tags.SelectedIndex)
@@ -420,8 +425,10 @@ func TestEmptyTags_NoNavigationPanic(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.tagsDown(tg.g, tg.gui.views.Tags)
-	tg.gui.tagsUp(tg.g, tg.gui.views.Tags)
+	tagsCtx := tg.gui.contexts.Tags
+	tagsCtx.MoveSelectedLine(1)
+	tagsCtx.MoveSelectedLine(-1)
+	tg.gui.syncTagsToLegacy()
 
 	if tg.gui.state.Tags.SelectedIndex != 0 {
 		t.Errorf("SelectedIndex = %d, want 0 for empty list", tg.gui.state.Tags.SelectedIndex)

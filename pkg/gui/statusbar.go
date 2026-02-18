@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/context"
 )
 
 // showError displays an error message in the status bar for 3 seconds, then restores it.
@@ -89,22 +90,19 @@ func (gui *Gui) updateQueriesTab() {
 	}
 }
 
-// tagsTabIndex returns the index for the current tags tab
+// tagsTabIndex returns the index for the current tags tab.
+// Delegates to TagsContext.
 func (gui *Gui) tagsTabIndex() int {
-	switch gui.state.Tags.CurrentTab {
-	case TagsTabGlobal:
-		return 1
-	case TagsTabInline:
-		return 2
-	default:
-		return 0
-	}
+	return gui.contexts.Tags.TabIndex()
 }
 
-// tagsTabs maps tab indices to TagsTab values
+// tagsTabs maps tab indices to legacy TagsTab values (used by legacy code).
 var tagsTabs = []TagsTab{TagsTabAll, TagsTabGlobal, TagsTabInline}
 
-// updateTagsTab syncs the gocui view's TabIndex with the current tags tab
+// tagsTabsNew maps tab indices to context.TagsTab values.
+var tagsTabsNew = []context.TagsTab{context.TagsTabAll, context.TagsTabGlobal, context.TagsTabInline}
+
+// updateTagsTab syncs the gocui view's TabIndex with the current tags tab.
 func (gui *Gui) updateTagsTab() {
 	if gui.views.Tags != nil {
 		gui.views.Tags.TabIndex = gui.tagsTabIndex()

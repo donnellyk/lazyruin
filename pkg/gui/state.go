@@ -1,8 +1,13 @@
 package gui
 
-import "kvnd/lazyruin/pkg/models"
+import (
+	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
+)
 
-type ContextKey string
+// ContextKey is an alias for types.ContextKey so both old and new code
+// use the same type without conversions during the hybrid migration period.
+type ContextKey = types.ContextKey
 
 const (
 	NotesContext        ContextKey = "notes"

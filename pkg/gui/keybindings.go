@@ -1,6 +1,9 @@
 package gui
 
-import "github.com/jesseduffield/gocui"
+import (
+	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/types"
+)
 
 type binding struct {
 	view    string
@@ -49,7 +52,7 @@ func (gui *Gui) setupKeybindings() error {
 		gui.globalNavBindings,
 		gui.notesNavBindings,
 		gui.queriesNavBindings,
-		gui.tagsNavBindings,
+		// tagsNavBindings removed — tags bindings registered via TagsController below
 		gui.previewNavBindings,
 		gui.searchBindings,
 		gui.captureBindings,
@@ -76,6 +79,11 @@ func (gui *Gui) setupKeybindings() error {
 		return err
 	}
 
+	// Register new-style context controller bindings (Phase 2+: Tags)
+	if err := gui.registerContextBindings(); err != nil {
+		return err
+	}
+
 	// Tab click bindings (different signature, can't be table-driven)
 	if err := gui.g.SetTabClickBinding(NotesView, gui.suppressTabClickDuringDialog(gui.switchNotesTabByIndex)); err != nil {
 		return err
@@ -87,6 +95,55 @@ func (gui *Gui) setupKeybindings() error {
 		return err
 	}
 
+	return nil
+}
+
+// registerContextBindings registers keybindings from all migrated contexts.
+// This bridges the new controller/context system into gocui's keybinding API.
+func (gui *Gui) registerContextBindings() error {
+	opts := types.KeybindingsOpts{}
+
+	for _, ctx := range gui.contexts.All() {
+		viewNames := ctx.GetViewNames()
+
+		for _, b := range ctx.GetKeybindings(opts) {
+			binding := b
+			handler := func(g *gocui.Gui, v *gocui.View) error {
+				if gui.overlayActive() {
+					return nil // suppress during popups
+				}
+				if binding.GetDisabledReason != nil {
+					if reason := binding.GetDisabledReason(); reason != nil {
+						return nil
+					}
+				}
+				return binding.Handler()
+			}
+
+			for _, viewName := range viewNames {
+				if err := gui.g.SetKeybinding(viewName, binding.Key, binding.Mod, handler); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Register mouse bindings as regular gocui keybindings (same mechanism
+		// used by all other panels — gocui treats mouse events as keys).
+		for _, mb := range ctx.GetMouseKeybindings(opts) {
+			mouseBind := mb
+			for _, viewName := range viewNames {
+				handler := func(g *gocui.Gui, v *gocui.View) error {
+					if gui.overlayActive() {
+						return nil
+					}
+					return mouseBind.Handler(gocui.ViewMouseBindingOpts{})
+				}
+				if err := gui.g.SetKeybinding(viewName, mouseBind.Key, gocui.ModNone, handler); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -127,18 +184,7 @@ func (gui *Gui) queriesNavBindings() []binding {
 	}
 }
 
-func (gui *Gui) tagsNavBindings() []binding {
-	v := TagsView
-	return []binding{
-		{v, gocui.MouseLeft, gui.tagsClick},
-		{v, 'j', gui.tagsDown},
-		{v, 'k', gui.tagsUp},
-		{v, gocui.KeyArrowDown, gui.tagsDown},
-		{v, gocui.KeyArrowUp, gui.tagsUp},
-		{v, gocui.MouseWheelDown, gui.tagsWheelDown},
-		{v, gocui.MouseWheelUp, gui.tagsWheelUp},
-	}
-}
+// tagsNavBindings removed — tags navigation is now handled by TagsController.
 
 func (gui *Gui) previewNavBindings() []binding {
 	v := PreviewView

@@ -1,63 +1,28 @@
 package gui
 
 import (
-	"slices"
-
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
 
-// filteredTagItems returns tags visible under the current tab.
+// filteredTagItems delegates to TagsContext.
 func (gui *Gui) filteredTagItems() []models.Tag {
-	switch gui.state.Tags.CurrentTab {
-	case TagsTabGlobal:
-		return filterTagsByScope(gui.state.Tags.Items, "global")
-	case TagsTabInline:
-		return filterTagsByScope(gui.state.Tags.Items, "inline")
-	default:
-		return gui.state.Tags.Items
-	}
+	return gui.contexts.Tags.FilteredItems()
 }
 
-func filterTagsByScope(tags []models.Tag, scope string) []models.Tag {
-	var out []models.Tag
-	for _, t := range tags {
-		if slices.Contains(t.Scope, scope) {
-			out = append(out, t)
-		}
-	}
-	return out
-}
-
-// selectedFilteredTag returns the currently selected tag from the filtered list, or nil.
+// selectedFilteredTag delegates to TagsContext.
 func (gui *Gui) selectedFilteredTag() *models.Tag {
-	items := gui.filteredTagItems()
-	if len(items) == 0 {
-		return nil
-	}
-	idx := gui.state.Tags.SelectedIndex
-	if idx >= len(items) {
-		idx = 0
-	}
-	return &items[idx]
-}
-
-func (gui *Gui) tagsPanel() *listPanel {
-	return &listPanel{
-		selectedIndex: &gui.state.Tags.SelectedIndex,
-		itemCount:     func() int { return len(gui.filteredTagItems()) },
-		render:        gui.renderTags,
-		updatePreview: gui.updatePreviewForTags,
-		context:       TagsContext,
-	}
+	return gui.contexts.Tags.Selected()
 }
 
 // cycleTagsTab cycles through All -> Global -> Inline tabs.
 func (gui *Gui) cycleTagsTab() {
-	idx := (gui.tagsTabIndex() + 1) % len(tagsTabs)
-	gui.state.Tags.CurrentTab = tagsTabs[idx]
-	gui.state.Tags.SelectedIndex = 0
+	tagsCtx := gui.contexts.Tags
+	idx := (tagsCtx.TabIndex() + 1) % len(tagsTabs)
+	tagsCtx.CurrentTab = tagsTabsNew[idx]
+	tagsCtx.SetSelectedLineIdx(0)
+	gui.syncTagsToLegacy()
 	gui.updateTagsTab()
 	gui.renderTags()
 	gui.updatePreviewForTags()
@@ -68,8 +33,10 @@ func (gui *Gui) switchTagsTabByIndex(tabIndex int) error {
 	if tabIndex < 0 || tabIndex >= len(tagsTabs) {
 		return nil
 	}
-	gui.state.Tags.CurrentTab = tagsTabs[tabIndex]
-	gui.state.Tags.SelectedIndex = 0
+	tagsCtx := gui.contexts.Tags
+	tagsCtx.CurrentTab = tagsTabsNew[tabIndex]
+	tagsCtx.SetSelectedLineIdx(0)
+	gui.syncTagsToLegacy()
 	gui.updateTagsTab()
 	gui.renderTags()
 	gui.updatePreviewForTags()
@@ -77,31 +44,15 @@ func (gui *Gui) switchTagsTabByIndex(tabIndex int) error {
 	return nil
 }
 
-func (gui *Gui) tagsDown(g *gocui.Gui, v *gocui.View) error {
-	return gui.tagsPanel().listDown(g, v)
-}
-
-func (gui *Gui) tagsUp(g *gocui.Gui, v *gocui.View) error {
-	return gui.tagsPanel().listUp(g, v)
-}
-
 func (gui *Gui) tagsClick(g *gocui.Gui, v *gocui.View) error {
-	idx := listClickIndex(v, 1)
-	items := gui.filteredTagItems()
+	tagsCtx := gui.contexts.Tags
+	idx := listClickIndex(gui.views.Tags, 1)
+	items := tagsCtx.FilteredItems()
 	if idx >= 0 && idx < len(items) {
-		gui.state.Tags.SelectedIndex = idx
+		tagsCtx.SetSelectedLineIdx(idx)
+		gui.syncTagsToLegacy()
 	}
 	gui.setContext(TagsContext)
-	return nil
-}
-
-func (gui *Gui) tagsWheelDown(g *gocui.Gui, v *gocui.View) error {
-	scrollViewport(v, 3)
-	return nil
-}
-
-func (gui *Gui) tagsWheelUp(g *gocui.Gui, v *gocui.View) error {
-	scrollViewport(v, -3)
 	return nil
 }
 
@@ -111,7 +62,8 @@ func (gui *Gui) filterByTag(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	if gui.state.Tags.CurrentTab == TagsTabInline {
+	tagsCtx := gui.contexts.Tags
+	if tagsCtx.CurrentTab == "inline" {
 		return gui.filterByTagPick(tag)
 	}
 	return gui.filterByTagSearch(tag)
@@ -200,7 +152,8 @@ func (gui *Gui) updatePreviewForTags() {
 		return
 	}
 
-	if gui.state.Tags.CurrentTab == TagsTabInline {
+	tagsCtx := gui.contexts.Tags
+	if tagsCtx.CurrentTab == "inline" {
 		gui.updatePreviewPickResults(tag)
 		return
 	}

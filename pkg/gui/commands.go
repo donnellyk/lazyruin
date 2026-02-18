@@ -65,10 +65,7 @@ func (gui *Gui) commands() []Command {
 		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{NotesView, PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{NotesContext, PreviewContext}},
 		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.preview.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
 
-		// Tags
-		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, Views: []string{TagsView}, Handler: gui.filterByTag, Contexts: []ContextKey{TagsContext}},
-		{Name: "Rename Tag", Category: "Tags", Keys: []any{'r'}, Views: []string{TagsView}, Handler: gui.renameTag, Contexts: []ContextKey{TagsContext}},
-		{Name: "Delete Tag", Category: "Tags", Keys: []any{'d'}, Views: []string{TagsView}, Handler: gui.deleteTag, Contexts: []ContextKey{TagsContext}},
+		// Tags — keybindings migrated to TagsController; palette entries generated from controller bindings
 
 		// Queries
 		{Name: "Run Query", Category: "Queries", Keys: []any{gocui.KeyEnter}, Views: []string{QueriesView}, Handler: gui.runQuery, Contexts: []ContextKey{QueriesContext}},

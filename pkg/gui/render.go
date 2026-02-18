@@ -169,8 +169,9 @@ func (gui *Gui) renderTags() {
 		return
 	}
 
-	items := gui.filteredTagItems()
-	renderList(v, len(items), gui.state.Tags.SelectedIndex,
+	tagsCtx := gui.contexts.Tags
+	items := tagsCtx.FilteredItems()
+	renderList(v, len(items), tagsCtx.GetSelectedLineIdx(),
 		gui.state.currentContext() == TagsContext, 1,
 		" No tags found.",
 		func(i int, selected bool) listItem {

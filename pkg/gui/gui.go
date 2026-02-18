@@ -5,6 +5,9 @@ import (
 
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/config"
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/controllers"
+	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/termenv"
@@ -21,6 +24,10 @@ type Gui struct {
 	stopBg         chan struct{}
 	QuickCapture   bool // when true, open capture on start and quit on save
 	darkBackground bool
+
+	// New controller/context architecture (Phase 2+)
+	contexts       *context.ContextTree
+	tagsController *controllers.TagsController
 }
 
 // NewGui creates a new Gui instance.
@@ -32,7 +39,45 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 		state:   NewGuiState(),
 	}
 	gui.preview = NewPreviewController(gui)
+	gui.setupTagsContext()
 	return gui
+}
+
+// setupTagsContext initializes the new TagsContext and TagsController.
+func (gui *Gui) setupTagsContext() {
+	tagsCtx := context.NewTagsContext(gui.renderTags, gui.updatePreviewForTags)
+
+	// Initialize from existing state defaults
+	tagsCtx.CurrentTab = context.TagsTab(gui.state.Tags.CurrentTab)
+
+	gui.contexts = &context.ContextTree{
+		Tags: tagsCtx,
+	}
+
+	gui.tagsController = controllers.NewTagsController(controllers.TagsControllerOpts{
+		GetContext: func() *context.TagsContext { return gui.contexts.Tags },
+		OnFilterByTag: func(tag *models.Tag) error {
+			return gui.filterByTag(nil, nil)
+		},
+		OnRenameTag: func(tag *models.Tag) error {
+			return gui.renameTag(nil, nil)
+		},
+		OnDeleteTag: func(tag *models.Tag) error {
+			return gui.deleteTag(nil, nil)
+		},
+		OnClick: gui.tagsClick,
+		OnWheelDown: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Tags, 3)
+			return nil
+		},
+		OnWheelUp: func(g *gocui.Gui, v *gocui.View) error {
+			scrollViewport(gui.views.Tags, -3)
+			return nil
+		},
+	})
+
+	// Attach controller to context
+	controllers.AttachController(gui.tagsController)
 }
 
 // Run starts the GUI event loop.
@@ -132,18 +177,36 @@ func (gui *Gui) refreshNotes(preserve bool) {
 }
 
 func (gui *Gui) refreshTags(preserve bool) {
-	idx := gui.state.Tags.SelectedIndex
+	tagsCtx := gui.contexts.Tags
+	prevID := tagsCtx.GetSelectedItemId()
+
 	tags, err := gui.ruinCmd.Tags.List()
 	if err != nil {
 		return
 	}
-	gui.state.Tags.Items = tags
-	if preserve && idx < len(tags) {
-		gui.state.Tags.SelectedIndex = idx
+	tagsCtx.Items = tags
+
+	if preserve && prevID != "" {
+		if newIdx := tagsCtx.GetList().FindIndexById(prevID); newIdx >= 0 {
+			tagsCtx.SetSelectedLineIdx(newIdx)
+		}
 	} else {
-		gui.state.Tags.SelectedIndex = 0
+		tagsCtx.SetSelectedLineIdx(0)
 	}
+	tagsCtx.ClampSelection()
+
+	// Keep legacy state in sync during hybrid period
+	gui.syncTagsToLegacy()
 	gui.renderTags()
+}
+
+// syncTagsToLegacy copies TagsContext state to legacy GuiState.Tags
+// so that any un-migrated code reading gui.state.Tags still works.
+func (gui *Gui) syncTagsToLegacy() {
+	tagsCtx := gui.contexts.Tags
+	gui.state.Tags.Items = tagsCtx.Items
+	gui.state.Tags.SelectedIndex = tagsCtx.GetSelectedLineIdx()
+	gui.state.Tags.CurrentTab = TagsTab(tagsCtx.CurrentTab)
 }
 
 func (gui *Gui) refreshQueries(preserve bool) {
