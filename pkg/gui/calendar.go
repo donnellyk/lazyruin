@@ -20,8 +20,7 @@ const (
 
 // openCalendar opens the calendar dialog.
 func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.SearchMode || gui.state.CaptureMode || gui.state.PickMode ||
-		gui.state.PaletteMode || gui.state.CalendarMode || gui.state.ContribMode {
+	if !gui.openOverlay(OverlayCalendar) {
 		return nil
 	}
 
@@ -34,19 +33,18 @@ func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
 		}
 	}
 
-	gui.state.CalendarMode = true
 	gui.calendarRefreshNotes()
 	return nil
 }
 
 // closeCalendar closes the calendar dialog.
 func (gui *Gui) closeCalendar() {
-	gui.state.CalendarMode = false
+	gui.closeOverlay()
 	gui.g.DeleteView(CalendarGridView)
 	gui.g.DeleteView(CalendarInputView)
 	gui.g.DeleteView(CalendarNotesView)
 	gui.g.Cursor = false
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
+	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
 }
 
 // calendarSelectedDate returns the currently selected date as YYYY-MM-DD.
@@ -451,7 +449,7 @@ func (gui *Gui) calendarLoadInPreview() {
 	}
 
 	date := gui.calendarSelectedDate()
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.ScrollOffset = 0
@@ -481,7 +479,7 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 	}
 
 	title := full.Title
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Cards = []models.Note{*full}
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.ScrollOffset = 0

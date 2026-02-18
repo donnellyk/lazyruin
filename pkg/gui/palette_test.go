@@ -18,7 +18,6 @@ func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
 			{Name: "Search", Category: "Global"},
 			{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("")
@@ -36,7 +35,6 @@ func TestFilterPaletteCommands_MatchesName(t *testing.T) {
 			{Name: "Search", Category: "Global"},
 			{Name: "Edit Note", Category: "Notes"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("quit")
@@ -57,7 +55,6 @@ func TestFilterPaletteCommands_MatchesCategory(t *testing.T) {
 			{Name: "Search", Category: "Global"},
 			{Name: "Edit Note", Category: "Notes"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("notes")
@@ -76,7 +73,6 @@ func TestFilterPaletteCommands_CaseInsensitive(t *testing.T) {
 		Commands: []PaletteCommand{
 			{Name: "Toggle Frontmatter", Category: "Preview"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("FRONT")
@@ -93,7 +89,6 @@ func TestFilterPaletteCommands_NoMatch(t *testing.T) {
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("zzzzz")
@@ -111,7 +106,6 @@ func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
 			{Name: "Delete Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
 			{Name: "Quit", Category: "Global"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("delete")
@@ -136,7 +130,7 @@ func TestFilterPaletteCommands_ClampsSelection(t *testing.T) {
 			{Name: "Search", Category: "Global"},
 			{Name: "Refresh", Category: "Global"},
 		},
-		OriginContext: NotesContext,
+
 		SelectedIndex: 2,
 	}
 
@@ -234,17 +228,17 @@ func TestPaletteSelectMove_ClampsAtBottom(t *testing.T) {
 
 // --- GUI integration tests ---
 
-func TestOpenPalette_EntersPaletteMode(t *testing.T) {
+func TestOpenPalette_EntersPaletteOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	tg.gui.openPalette(tg.g, nil)
 
-	if !tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be true")
+	if tg.gui.state.ActiveOverlay != OverlayPalette {
+		t.Error("ActiveOverlay should be OverlayPalette")
 	}
-	if tg.gui.state.CurrentContext != PaletteContext {
-		t.Errorf("CurrentContext = %v, want PaletteContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != PaletteContext {
+		t.Errorf("currentContext() = %v, want PaletteContext", tg.gui.state.currentContext())
 	}
 	if tg.gui.state.Palette == nil {
 		t.Fatal("Palette state should not be nil")
@@ -254,15 +248,15 @@ func TestOpenPalette_EntersPaletteMode(t *testing.T) {
 	}
 }
 
-func TestOpenPalette_RecordsOriginContext(t *testing.T) {
+func TestOpenPalette_PreviousContextIsOrigin(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.Palette.OriginContext != TagsContext {
-		t.Errorf("OriginContext = %v, want TagsContext", tg.gui.state.Palette.OriginContext)
+	if tg.gui.state.previousContext() != TagsContext {
+		t.Errorf("previousContext() = %v, want TagsContext", tg.gui.state.previousContext())
 	}
 }
 
@@ -273,8 +267,8 @@ func TestOpenPalette_BlockedDuringSearch(t *testing.T) {
 	tg.gui.openSearch(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during search")
+	if tg.gui.state.ActiveOverlay != OverlaySearch {
+		t.Error("ActiveOverlay should remain OverlaySearch, not switch to palette")
 	}
 }
 
@@ -285,8 +279,8 @@ func TestOpenPalette_BlockedDuringCapture(t *testing.T) {
 	tg.gui.openCapture(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during capture")
+	if tg.gui.state.ActiveOverlay != OverlayCapture {
+		t.Error("ActiveOverlay should remain OverlayCapture, not switch to palette")
 	}
 }
 
@@ -297,8 +291,8 @@ func TestOpenPalette_BlockedDuringPick(t *testing.T) {
 	tg.gui.openPick(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during pick")
+	if tg.gui.state.ActiveOverlay != OverlayPick {
+		t.Error("ActiveOverlay should remain OverlayPick, not switch to palette")
 	}
 }
 
@@ -310,9 +304,9 @@ func TestOpenPalette_BlockedWhenAlreadyOpen(t *testing.T) {
 	// Try opening again
 	tg.gui.openPalette(tg.g, nil)
 
-	// Should still be in palette mode, not double-opened
-	if !tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should still be true")
+	// Should still be in palette overlay, not double-opened
+	if tg.gui.state.ActiveOverlay != OverlayPalette {
+		t.Error("ActiveOverlay should still be OverlayPalette")
 	}
 }
 
@@ -324,14 +318,14 @@ func TestClosePalette_RestoresContext(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.closePalette()
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after close")
+	if tg.gui.state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should be OverlayNone after close")
 	}
 	if tg.gui.state.Palette != nil {
 		t.Error("Palette state should be nil after close")
 	}
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("currentContext() = %v, want TagsContext (restored)", tg.gui.state.currentContext())
 	}
 }
 
@@ -342,8 +336,8 @@ func TestPaletteEsc_ClosesPalette(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.paletteEsc(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after Esc")
+	if tg.gui.state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should be OverlayNone after Esc")
 	}
 }
 
@@ -426,11 +420,11 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 	tg.gui.paletteEnter(tg.g, nil)
 
 	// Palette should be closed and we should be in Preview context
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after execution")
+	if tg.gui.state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should be OverlayNone after execution")
 	}
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != PreviewContext {
+		t.Errorf("currentContext() = %v, want PreviewContext", tg.gui.state.currentContext())
 	}
 }
 

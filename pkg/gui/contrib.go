@@ -13,12 +13,9 @@ import (
 
 // openContrib opens the contribution chart dialog.
 func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.SearchMode || gui.state.CaptureMode || gui.state.PickMode ||
-		gui.state.PaletteMode || gui.state.CalendarMode || gui.state.ContribMode {
+	if !gui.openOverlay(OverlayContrib) {
 		return nil
 	}
-
-	gui.state.ContribMode = true
 
 	now := time.Now()
 	if gui.state.Contrib == nil {
@@ -34,10 +31,10 @@ func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
 
 // closeContrib closes the contribution chart dialog.
 func (gui *Gui) closeContrib() {
-	gui.state.ContribMode = false
+	gui.closeOverlay()
 	gui.g.DeleteView(ContribGridView)
 	gui.g.DeleteView(ContribNotesView)
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
+	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
 }
 
 // contribLoadData loads note counts for the past year.
@@ -391,7 +388,7 @@ func (gui *Gui) contribLoadInPreview() {
 	}
 
 	date := s.SelectedDate
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.ScrollOffset = 0
@@ -421,7 +418,7 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 	}
 
 	title := full.Title
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Cards = []models.Note{*full}
 	gui.state.Preview.SelectedCardIndex = 0
 	gui.state.Preview.ScrollOffset = 0

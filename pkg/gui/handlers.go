@@ -81,7 +81,7 @@ func (gui *Gui) nextPanel(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	for i, ctx := range order {
-		if ctx == gui.state.CurrentContext {
+		if ctx == gui.state.currentContext() {
 			next := order[(i+1)%len(order)]
 			gui.setContext(next)
 			return nil
@@ -101,7 +101,7 @@ func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	for i, ctx := range order {
-		if ctx == gui.state.CurrentContext {
+		if ctx == gui.state.currentContext() {
 			prev := order[(i-1+len(order))%len(order)]
 			gui.setContext(prev)
 			return nil
@@ -113,7 +113,7 @@ func (gui *Gui) prevPanel(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.CurrentContext == NotesContext {
+	if gui.state.currentContext() == NotesContext {
 		// Already focused - cycle through tabs
 		gui.cycleNotesTab()
 		return nil
@@ -123,7 +123,7 @@ func (gui *Gui) focusNotes(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.CurrentContext == QueriesContext {
+	if gui.state.currentContext() == QueriesContext {
 		gui.cycleQueriesTab()
 		return nil
 	}
@@ -132,7 +132,7 @@ func (gui *Gui) focusQueries(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) focusTags(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.CurrentContext == TagsContext {
+	if gui.state.currentContext() == TagsContext {
 		gui.cycleTagsTab()
 		return nil
 	}
@@ -167,11 +167,13 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) openSearch(g *gocui.Gui, v *gocui.View) error {
-	gui.state.SearchMode = true
+	if !gui.openOverlay(OverlaySearch) {
+		return nil
+	}
 	cs := NewCompletionState()
 	cs.FallbackCandidates = ambientDateCandidates
 	gui.state.SearchCompletion = cs
-	gui.setContext(SearchContext)
+	gui.pushContext(SearchContext)
 	return nil
 }
 
@@ -206,12 +208,12 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 
 	// Store full input for the search filter pane display
 	gui.state.SearchQuery = raw
-	gui.state.SearchMode = false
+	gui.closeOverlay()
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false
 
 	// Display results in Preview pane (like tags)
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
@@ -220,16 +222,16 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	}
 	gui.renderPreview()
 
-	gui.setContext(PreviewContext)
+	gui.replaceContext(PreviewContext)
 
 	return nil
 }
 
 func (gui *Gui) cancelSearch(g *gocui.Gui, v *gocui.View) error {
-	gui.state.SearchMode = false
+	gui.closeOverlay()
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false
-	gui.setContext(gui.state.PreviousContext)
+	gui.popContext()
 	return nil
 }
 
@@ -272,7 +274,7 @@ func (gui *Gui) openInEditor(path string) error {
 	gui.refreshTags(false)
 	gui.refreshQueries(false)
 	gui.refreshParents(false)
-	gui.reloadContent()
+	gui.preview.reloadContent()
 	gui.renderAll()
 	return nil
 }

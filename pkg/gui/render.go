@@ -72,7 +72,7 @@ func (gui *Gui) renderNotes() {
 	}
 
 	renderList(v, len(gui.state.Notes.Items), gui.state.Notes.SelectedIndex,
-		gui.state.CurrentContext == NotesContext, 3,
+		gui.state.currentContext() == NotesContext, 3,
 		"\n No notes found.\n\n Press 'n' to create a new note\n or '/' to search",
 		func(i int, _ bool) listItem {
 			note := gui.state.Notes.Items[i]
@@ -121,7 +121,7 @@ func (gui *Gui) renderQueriesList() {
 	}
 
 	renderList(v, len(gui.state.Queries.Items), gui.state.Queries.SelectedIndex,
-		gui.state.CurrentContext == QueriesContext, 2,
+		gui.state.currentContext() == QueriesContext, 2,
 		" No saved queries.",
 		func(i int, _ bool) listItem {
 			query := gui.state.Queries.Items[i]
@@ -148,7 +148,7 @@ func (gui *Gui) renderParents() {
 	}
 
 	renderList(v, len(gui.state.Parents.Items), gui.state.Parents.SelectedIndex,
-		gui.state.CurrentContext == QueriesContext, 2,
+		gui.state.currentContext() == QueriesContext, 2,
 		" No parent bookmarks.",
 		func(i int, _ bool) listItem {
 			parent := gui.state.Parents.Items[i]
@@ -171,7 +171,7 @@ func (gui *Gui) renderTags() {
 
 	items := gui.filteredTagItems()
 	renderList(v, len(items), gui.state.Tags.SelectedIndex,
-		gui.state.CurrentContext == TagsContext, 1,
+		gui.state.currentContext() == TagsContext, 1,
 		" No tags found.",
 		func(i int, selected bool) listItem {
 			tag := items[i]

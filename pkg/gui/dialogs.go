@@ -122,8 +122,8 @@ func (gui *Gui) showMergeOverlay() {
 		Type:   "menu",
 		Title:  "Merge",
 		MenuItems: []MenuItem{
-			{Label: "Merge with note above", Key: "u", OnRun: func() error { return gui.executeMerge("up") }},
-			{Label: "Merge with note below", Key: "d", OnRun: func() error { return gui.executeMerge("down") }},
+			{Label: "Merge with note above", Key: "u", OnRun: func() error { return gui.preview.executeMerge("up") }},
+			{Label: "Merge with note below", Key: "d", OnRun: func() error { return gui.preview.executeMerge("down") }},
 		},
 		MenuSelection: 0,
 	}
@@ -139,7 +139,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(MenuView)
 	// Restore focus to the view for the current context
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
+	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
 }
 
 // createConfirmDialog renders the confirmation dialog

@@ -17,6 +17,7 @@ type Gui struct {
 	state          *GuiState
 	config         *config.Config
 	ruinCmd        *commands.RuinCommand
+	preview        *PreviewController
 	stopBg         chan struct{}
 	QuickCapture   bool // when true, open capture on start and quit on save
 	darkBackground bool
@@ -24,12 +25,14 @@ type Gui struct {
 
 // NewGui creates a new Gui instance.
 func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
-	return &Gui{
+	gui := &Gui{
 		config:  cfg,
 		ruinCmd: ruinCmd,
 		views:   &Views{},
 		state:   NewGuiState(),
 	}
+	gui.preview = NewPreviewController(gui)
+	return gui
 }
 
 // Run starts the GUI event loop.
@@ -158,10 +161,8 @@ func (gui *Gui) refreshQueries(preserve bool) {
 	gui.renderQueries()
 }
 
-func (gui *Gui) setContext(ctx ContextKey) {
-	gui.state.PreviousContext = gui.state.CurrentContext
-	gui.state.CurrentContext = ctx
-
+// activateContext sets focus and refreshes data for the given context.
+func (gui *Gui) activateContext(ctx ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
 
@@ -174,7 +175,7 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	switch ctx {
 	case NotesContext:
 		gui.refreshNotes(true)
-		gui.updatePreviewForNotes()
+		gui.preview.updatePreviewForNotes()
 	case QueriesContext:
 		if gui.state.Queries.CurrentTab == QueriesTabParents {
 			gui.refreshParents(true)
@@ -191,6 +192,55 @@ func (gui *Gui) setContext(ctx ContextKey) {
 	}
 
 	gui.updateStatusBar()
+}
+
+// pushContext pushes a new context onto the stack and activates it.
+func (gui *Gui) pushContext(ctx ContextKey) {
+	gui.state.ContextStack = append(gui.state.ContextStack, ctx)
+	gui.activateContext(ctx)
+}
+
+// popContext pops the top context and activates the one below it.
+func (gui *Gui) popContext() {
+	if len(gui.state.ContextStack) > 1 {
+		gui.state.ContextStack = gui.state.ContextStack[:len(gui.state.ContextStack)-1]
+	}
+	gui.activateContext(gui.state.currentContext())
+}
+
+// replaceContext replaces the top of the stack (e.g., search→preview).
+func (gui *Gui) replaceContext(ctx ContextKey) {
+	if len(gui.state.ContextStack) > 0 {
+		gui.state.ContextStack[len(gui.state.ContextStack)-1] = ctx
+	} else {
+		gui.state.ContextStack = []ContextKey{ctx}
+	}
+	gui.activateContext(ctx)
+}
+
+// setContext is a convenience that pushes a new context (legacy compatibility).
+func (gui *Gui) setContext(ctx ContextKey) {
+	gui.pushContext(ctx)
+}
+
+// openOverlay opens a modal overlay. Returns false if one is already active.
+func (gui *Gui) openOverlay(overlay OverlayType) bool {
+	if gui.state.ActiveOverlay != OverlayNone {
+		return false
+	}
+	gui.state.ActiveOverlay = overlay
+	return true
+}
+
+// closeOverlay closes the current modal overlay.
+func (gui *Gui) closeOverlay() {
+	gui.state.ActiveOverlay = OverlayNone
+}
+
+// overlayActive returns true when any overlay or dialog is open.
+func (gui *Gui) overlayActive() bool {
+	return gui.state.ActiveOverlay != OverlayNone ||
+		(gui.state.Dialog != nil && gui.state.Dialog.Active)
 }
 
 func (gui *Gui) contextToView(ctx ContextKey) string {

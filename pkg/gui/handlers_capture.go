@@ -7,10 +7,12 @@ import (
 )
 
 func (gui *Gui) openCapture(g *gocui.Gui, v *gocui.View) error {
-	gui.state.CaptureMode = true
+	if !gui.openOverlay(OverlayCapture) {
+		return nil
+	}
 	gui.state.CaptureParent = nil
 	gui.state.CaptureCompletion = NewCompletionState()
-	gui.setContext(CaptureContext)
+	gui.pushContext(CaptureContext)
 	return nil
 }
 
@@ -72,10 +74,10 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) closeCapture(g *gocui.Gui) error {
-	gui.state.CaptureMode = false
+	gui.closeOverlay()
 	gui.state.CaptureParent = nil
 	gui.state.CaptureCompletion = NewCompletionState()
 	g.Cursor = false
-	gui.setContext(gui.state.PreviousContext)
+	gui.popContext()
 	return nil
 }

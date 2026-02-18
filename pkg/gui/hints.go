@@ -16,7 +16,7 @@ type contextHintDef struct {
 // contextHintDefs returns the hint definitions for the current context.
 // This is the single source of truth consumed by both updateStatusBar() and showHelp().
 func (gui *Gui) contextHintDefs() contextHintDef {
-	switch gui.state.CurrentContext {
+	switch gui.state.currentContext() {
 	case NotesContext:
 		return contextHintDef{
 			header: "Notes",
@@ -190,7 +190,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 
 // navigationHints returns the navigation section hints for the help menu.
 func (gui *Gui) navigationHints() []contextHint {
-	switch gui.state.CurrentContext {
+	switch gui.state.currentContext() {
 	case NotesContext, QueriesContext, TagsContext:
 		return []contextHint{
 			{"j/k", "Move down/up"},

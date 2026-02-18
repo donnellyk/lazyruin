@@ -64,22 +64,18 @@ func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
 
 // openPalette opens the command palette popup.
 func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
-	// Don't open palette during other popups
-	if gui.state.SearchMode || gui.state.CaptureMode || gui.state.PickMode || gui.state.PaletteMode {
+	if !gui.openOverlay(OverlayPalette) {
 		return nil
 	}
 
 	cmds := gui.paletteCommands()
-	origin := gui.state.CurrentContext
 
-	gui.state.PaletteMode = true
 	gui.state.Palette = &PaletteState{
-		Commands:      cmds,
-		OriginContext: origin,
+		Commands: cmds,
 	}
 
 	gui.filterPaletteCommands("")
-	gui.setContext(PaletteContext)
+	gui.pushContext(PaletteContext)
 	return nil
 }
 
@@ -88,12 +84,11 @@ func (gui *Gui) closePalette() {
 	if gui.state.Palette == nil {
 		return
 	}
-	origin := gui.state.Palette.OriginContext
-	gui.state.PaletteMode = false
+	gui.closeOverlay()
 	gui.state.PaletteSeedDone = false
 	gui.state.Palette = nil
 	gui.g.Cursor = false
-	gui.setContext(origin)
+	gui.popContext()
 }
 
 // executePaletteCommand closes the palette and runs the selected command.
@@ -109,7 +104,7 @@ func (gui *Gui) executePaletteCommand() error {
 	cmd := gui.state.Palette.Filtered[idx]
 
 	// Don't execute unavailable commands
-	if !isPaletteCommandAvailable(cmd, gui.state.Palette.OriginContext) {
+	if !isPaletteCommandAvailable(cmd, gui.state.previousContext()) {
 		return nil
 	}
 
@@ -128,7 +123,7 @@ func (gui *Gui) filterPaletteCommands(filter string) {
 	lower := strings.ToLower(filter)
 
 	var available, unavailable []PaletteCommand
-	origin := gui.state.Palette.OriginContext
+	origin := gui.state.previousContext()
 
 	for _, cmd := range gui.state.Palette.Commands {
 		match := lower == "" ||
@@ -233,7 +228,7 @@ func (gui *Gui) renderPaletteList() {
 		return
 	}
 
-	originCtx := gui.state.Palette.OriginContext
+	originCtx := gui.state.previousContext()
 	width, _ := v.InnerSize()
 	if width < 10 {
 		width = 30
@@ -343,7 +338,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				gui.state.Notes.SelectedIndex = idx
 				gui.setContext(NotesContext)
 				gui.renderNotes()
-				gui.updatePreviewForNotes()
+				gui.preview.updatePreviewForNotes()
 				return nil
 			},
 		})

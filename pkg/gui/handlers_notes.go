@@ -51,7 +51,7 @@ func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
 // resets selection, renders the list, and updates the preview.
 func (gui *Gui) loadNotesForCurrentTab() {
 	gui.fetchNotesForCurrentTab(false)
-	gui.updatePreviewForNotes()
+	gui.preview.updatePreviewForNotes()
 }
 
 // fetchNotesForCurrentTab loads notes for the current tab and renders the list.
@@ -98,7 +98,7 @@ func (gui *Gui) notesPanel() *listPanel {
 		selectedIndex: &gui.state.Notes.SelectedIndex,
 		itemCount:     func() int { return len(gui.state.Notes.Items) },
 		render:        gui.renderNotes,
-		updatePreview: gui.updatePreviewForNotes,
+		updatePreview: gui.preview.updatePreviewForNotes,
 		context:       NotesContext,
 	}
 }

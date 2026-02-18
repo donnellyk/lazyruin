@@ -125,7 +125,7 @@ func (gui *Gui) filterByTagSearch(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = notes
 	gui.state.Preview.SelectedCardIndex = 0
@@ -205,7 +205,7 @@ func (gui *Gui) updatePreviewForTags() {
 		return
 	}
 
-	gui.updatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
+	gui.preview.updatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
 		return gui.ruinCmd.Search.Search(tag.Name, gui.buildSearchOptions())
 	})
 }

@@ -16,6 +16,21 @@ const (
 	PaletteContext      ContextKey = "palette"
 )
 
+// OverlayType represents the currently active modal overlay.
+type OverlayType int
+
+const (
+	OverlayNone          OverlayType = iota
+	OverlaySearch                    // search popup
+	OverlayCapture                   // new note capture
+	OverlayPick                      // tag/date pick
+	OverlayPalette                   // command palette
+	OverlayInputPopup                // generic input popup
+	OverlaySnippetEditor             // snippet editor
+	OverlayCalendar                  // calendar dialog
+	OverlayContrib                   // contribution chart
+)
+
 // NotesTab represents the sub-tabs within the Notes panel
 type NotesTab string
 
@@ -75,32 +90,24 @@ type GuiState struct {
 	Dialog                  *DialogState
 	NavHistory              []NavEntry
 	NavIndex                int // -1 = no history
-	CurrentContext          ContextKey
-	PreviousContext         ContextKey
+	ContextStack            []ContextKey
+	ActiveOverlay           OverlayType
 	SearchQuery             string
-	SearchMode              bool
-	CaptureMode             bool
 	CaptureParent           *CaptureParentInfo
 	SearchCompletion        *CompletionState
 	CaptureCompletion       *CompletionState
-	PickMode                bool
 	PickCompletion          *CompletionState
 	PickQuery               string
 	PickAnyMode             bool
 	PickSeedHash            bool
-	PaletteMode             bool
 	PaletteSeedDone         bool
 	Palette                 *PaletteState
-	InputPopupMode          bool
 	InputPopupCompletion    *CompletionState
 	InputPopupSeedDone      bool
 	InputPopupConfig        *InputPopupConfig
-	SnippetEditorMode       bool
 	SnippetEditorFocus      int // 0 = name, 1 = expansion
 	SnippetEditorCompletion *CompletionState
-	CalendarMode            bool
 	Calendar                *CalendarState
-	ContribMode             bool
 	Contrib                 *ContribState
 	Initialized             bool
 	lastWidth               int
@@ -181,7 +188,6 @@ type PaletteState struct {
 	Filtered      []PaletteCommand
 	SelectedIndex int
 	FilterText    string
-	OriginContext ContextKey
 }
 
 // CalendarState holds the runtime state of the calendar dialog.
@@ -221,6 +227,22 @@ func NewGuiState() *GuiState {
 		PickCompletion:          NewCompletionState(),
 		InputPopupCompletion:    NewCompletionState(),
 		SnippetEditorCompletion: NewCompletionState(),
-		CurrentContext:          NotesContext,
+		ContextStack:            []ContextKey{NotesContext},
 	}
+}
+
+// currentContext returns the top of the context stack.
+func (s *GuiState) currentContext() ContextKey {
+	if len(s.ContextStack) == 0 {
+		return NotesContext
+	}
+	return s.ContextStack[len(s.ContextStack)-1]
+}
+
+// previousContext returns the second-from-top of the context stack.
+func (s *GuiState) previousContext() ContextKey {
+	if len(s.ContextStack) < 2 {
+		return NotesContext
+	}
+	return s.ContextStack[len(s.ContextStack)-2]
 }

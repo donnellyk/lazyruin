@@ -132,7 +132,7 @@ func (gui *Gui) updatePreviewForParents() {
 
 // showComposedNote puts a single composed note into the preview as a one-card card list.
 func (gui *Gui) showComposedNote(note models.Note, label string) {
-	gui.pushNavHistory()
+	gui.preview.pushNavHistory()
 	gui.state.Preview.Mode = PreviewModeCardList
 	gui.state.Preview.Cards = []models.Note{note}
 	gui.state.Preview.SelectedCardIndex = 0

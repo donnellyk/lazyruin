@@ -9,16 +9,12 @@ import (
 func TestNewGuiState_Defaults(t *testing.T) {
 	state := NewGuiState()
 
-	if state.CurrentContext != NotesContext {
-		t.Errorf("CurrentContext = %v, want %v", state.CurrentContext, NotesContext)
+	if state.currentContext() != NotesContext {
+		t.Errorf("currentContext() = %v, want %v", state.currentContext(), NotesContext)
 	}
 
-	if state.PreviousContext != "" {
-		t.Errorf("PreviousContext = %v, want empty", state.PreviousContext)
-	}
-
-	if state.SearchMode != false {
-		t.Error("SearchMode should default to false")
+	if state.ActiveOverlay != OverlayNone {
+		t.Errorf("ActiveOverlay = %v, want OverlayNone", state.ActiveOverlay)
 	}
 
 	if state.SearchQuery != "" {
@@ -102,26 +98,24 @@ func TestPreviewMode_Values(t *testing.T) {
 func TestGuiState_ContextTracking(t *testing.T) {
 	state := NewGuiState()
 
-	// Simulate context switch (as setContext would do)
-	state.PreviousContext = state.CurrentContext
-	state.CurrentContext = TagsContext
+	// Simulate context switch via stack push
+	state.ContextStack = append(state.ContextStack, TagsContext)
 
-	if state.PreviousContext != NotesContext {
-		t.Errorf("PreviousContext = %v, want NotesContext", state.PreviousContext)
+	if state.previousContext() != NotesContext {
+		t.Errorf("previousContext() = %v, want NotesContext", state.previousContext())
 	}
-	if state.CurrentContext != TagsContext {
-		t.Errorf("CurrentContext = %v, want TagsContext", state.CurrentContext)
+	if state.currentContext() != TagsContext {
+		t.Errorf("currentContext() = %v, want TagsContext", state.currentContext())
 	}
 
 	// Switch again
-	state.PreviousContext = state.CurrentContext
-	state.CurrentContext = PreviewContext
+	state.ContextStack = append(state.ContextStack, PreviewContext)
 
-	if state.PreviousContext != TagsContext {
-		t.Errorf("PreviousContext = %v, want TagsContext", state.PreviousContext)
+	if state.previousContext() != TagsContext {
+		t.Errorf("previousContext() = %v, want TagsContext", state.previousContext())
 	}
-	if state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", state.CurrentContext)
+	if state.currentContext() != PreviewContext {
+		t.Errorf("currentContext() = %v, want PreviewContext", state.currentContext())
 	}
 }
 
@@ -202,33 +196,32 @@ func TestPreviewState_FrontmatterToggle(t *testing.T) {
 	}
 }
 
-func TestSearchMode_Toggle(t *testing.T) {
+func TestSearchOverlay_Toggle(t *testing.T) {
 	state := NewGuiState()
 
-	if state.SearchMode {
-		t.Error("SearchMode should default to false")
+	if state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should default to OverlayNone")
 	}
 
-	// Enter search mode
-	state.SearchMode = true
-	state.PreviousContext = state.CurrentContext
-	state.CurrentContext = SearchContext
+	// Enter search overlay
+	state.ActiveOverlay = OverlaySearch
+	state.ContextStack = append(state.ContextStack, SearchContext)
 
-	if !state.SearchMode {
-		t.Error("SearchMode should be true")
+	if state.ActiveOverlay != OverlaySearch {
+		t.Error("ActiveOverlay should be OverlaySearch")
 	}
-	if state.CurrentContext != SearchContext {
-		t.Errorf("CurrentContext = %v, want SearchContext", state.CurrentContext)
+	if state.currentContext() != SearchContext {
+		t.Errorf("currentContext() = %v, want SearchContext", state.currentContext())
 	}
 
-	// Exit search mode
-	state.SearchMode = false
-	state.CurrentContext = state.PreviousContext
+	// Exit search overlay
+	state.ActiveOverlay = OverlayNone
+	state.ContextStack = state.ContextStack[:len(state.ContextStack)-1]
 
-	if state.SearchMode {
-		t.Error("SearchMode should be false after exit")
+	if state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should be OverlayNone after exit")
 	}
-	if state.CurrentContext != NotesContext {
-		t.Errorf("CurrentContext = %v, want NotesContext", state.CurrentContext)
+	if state.currentContext() != NotesContext {
+		t.Errorf("currentContext() = %v, want NotesContext", state.currentContext())
 	}
 }

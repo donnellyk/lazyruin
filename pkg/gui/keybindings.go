@@ -94,8 +94,8 @@ func (gui *Gui) globalNavBindings() []binding {
 	return []binding{
 		{"", gocui.KeyTab, gui.nextPanel},
 		{"", gocui.KeyBacktab, gui.prevPanel},
-		{"", gocui.MouseWheelDown, gui.previewScrollDown},
-		{"", gocui.MouseWheelUp, gui.previewScrollUp},
+		{"", gocui.MouseWheelDown, gui.preview.previewScrollDown},
+		{"", gocui.MouseWheelUp, gui.preview.previewScrollUp},
 	}
 }
 
@@ -143,17 +143,17 @@ func (gui *Gui) tagsNavBindings() []binding {
 func (gui *Gui) previewNavBindings() []binding {
 	v := PreviewView
 	return []binding{
-		{v, gocui.MouseLeft, gui.previewClick},
-		{v, 'j', gui.previewDown},
-		{v, 'k', gui.previewUp},
-		{v, gocui.KeyArrowDown, gui.previewDown},
-		{v, gocui.KeyArrowUp, gui.previewUp},
-		{v, 'J', gui.previewCardDown},
-		{v, 'K', gui.previewCardUp},
-		{v, '}', gui.previewNextHeader},
-		{v, '{', gui.previewPrevHeader},
-		{v, 'l', gui.highlightNextLink},
-		{v, 'L', gui.highlightPrevLink},
+		{v, gocui.MouseLeft, gui.preview.previewClick},
+		{v, 'j', gui.preview.previewDown},
+		{v, 'k', gui.preview.previewUp},
+		{v, gocui.KeyArrowDown, gui.preview.previewDown},
+		{v, gocui.KeyArrowUp, gui.preview.previewUp},
+		{v, 'J', gui.preview.previewCardDown},
+		{v, 'K', gui.preview.previewCardUp},
+		{v, '}', gui.preview.previewNextHeader},
+		{v, '{', gui.preview.previewPrevHeader},
+		{v, 'l', gui.preview.highlightNextLink},
+		{v, 'L', gui.preview.highlightPrevLink},
 	}
 }
 

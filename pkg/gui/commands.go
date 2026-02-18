@@ -63,7 +63,7 @@ func (gui *Gui) commands() []Command {
 		{Name: "Set Parent", Category: "Note Actions", Keys: []any{'>'}, Views: []string{NotesView, PreviewView}, Handler: gui.setParentDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
 		{Name: "Remove Parent", Category: "Note Actions", Keys: []any{'P'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeParent, Contexts: []ContextKey{NotesContext, PreviewContext}},
 		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{NotesView, PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
+		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.preview.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
 
 		// Tags
 		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, Views: []string{TagsView}, Handler: gui.filterByTag, Contexts: []ContextKey{TagsContext}},
@@ -75,28 +75,28 @@ func (gui *Gui) commands() []Command {
 		{Name: "Delete Query", Category: "Queries", Keys: []any{'d'}, Views: []string{QueriesView}, Handler: gui.deleteQuery, Contexts: []ContextKey{QueriesContext}},
 
 		// Preview
-		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, Views: []string{PreviewView}, Handler: gui.deleteCardFromPreview, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, Views: []string{PreviewView}, Handler: gui.openCardInEditor, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle #done", Category: "Preview", Keys: []any{'D'}, Views: []string{PreviewView}, Handler: gui.appendDone, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, Views: []string{PreviewView}, Handler: gui.moveCardHandler, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, Views: []string{PreviewView}, Handler: gui.mergeCardHandler, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, Views: []string{PreviewView}, Handler: gui.toggleFrontmatter, Contexts: []ContextKey{PreviewContext}},
-		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, Views: []string{PreviewView}, Handler: gui.viewOptionsDialog, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, Views: []string{PreviewView}, Handler: gui.toggleInlineTag, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-t>"},
-		{Name: "Toggle Inline Date", Category: "Preview", Keys: []any{gocui.KeyCtrlD}, Views: []string{PreviewView}, Handler: gui.toggleInlineDate, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-d>"},
-		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, Views: []string{PreviewView}, Handler: gui.openLink, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, Views: []string{PreviewView}, Handler: gui.toggleTodo, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, Views: []string{PreviewView}, Handler: gui.focusNoteFromPreview, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, Views: []string{PreviewView}, Handler: gui.previewBack, NoPalette: true},
-		{Name: "Go Back", Category: "Preview", Keys: []any{'['}, Views: []string{PreviewView}, Handler: gui.navBack, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Go Forward", Category: "Preview", Keys: []any{']'}, Views: []string{PreviewView}, Handler: gui.navForward, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, Views: []string{PreviewView}, Handler: gui.preview.deleteCardFromPreview, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, Views: []string{PreviewView}, Handler: gui.preview.openCardInEditor, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle #done", Category: "Preview", Keys: []any{'D'}, Views: []string{PreviewView}, Handler: gui.preview.appendDone, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, Views: []string{PreviewView}, Handler: gui.preview.moveCardHandler, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, Views: []string{PreviewView}, Handler: gui.preview.mergeCardHandler, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, Views: []string{PreviewView}, Handler: gui.preview.toggleFrontmatter, Contexts: []ContextKey{PreviewContext}},
+		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, Views: []string{PreviewView}, Handler: gui.preview.viewOptionsDialog, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, Views: []string{PreviewView}, Handler: gui.preview.toggleInlineTag, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-t>"},
+		{Name: "Toggle Inline Date", Category: "Preview", Keys: []any{gocui.KeyCtrlD}, Views: []string{PreviewView}, Handler: gui.preview.toggleInlineDate, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-d>"},
+		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, Views: []string{PreviewView}, Handler: gui.preview.openLink, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, Views: []string{PreviewView}, Handler: gui.preview.toggleTodo, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, Views: []string{PreviewView}, Handler: gui.preview.focusNoteFromPreview, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, Views: []string{PreviewView}, Handler: gui.preview.previewBack, NoPalette: true},
+		{Name: "Go Back", Category: "Preview", Keys: []any{'['}, Views: []string{PreviewView}, Handler: gui.preview.navBack, Contexts: []ContextKey{PreviewContext}},
+		{Name: "Go Forward", Category: "Preview", Keys: []any{']'}, Views: []string{PreviewView}, Handler: gui.preview.navForward, Contexts: []ContextKey{PreviewContext}},
 
 		// Preview (palette-only)
-		{Name: "Toggle Title", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleTitle)},
-		{Name: "Toggle Global Tags", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleGlobalTags)},
-		{Name: "Toggle Markdown", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleMarkdown)},
-		{Name: "Order Cards", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.orderCards},
-		{Name: "View History", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.showNavHistory},
+		{Name: "Toggle Title", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.preview.toggleTitle)},
+		{Name: "Toggle Global Tags", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.preview.toggleGlobalTags)},
+		{Name: "Toggle Markdown", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.preview.toggleMarkdown)},
+		{Name: "Order Cards", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.preview.orderCards},
+		{Name: "View History", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.preview.showNavHistory},
 
 		// Search Filter
 		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},
@@ -113,15 +113,6 @@ func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
 	return func() error {
 		return fn(gui.g, nil)
 	}
-}
-
-// overlayActive returns true when any dialog or overlay is open.
-func (gui *Gui) overlayActive() bool {
-	return (gui.state.Dialog != nil && gui.state.Dialog.Active) ||
-		gui.state.SearchMode || gui.state.CaptureMode ||
-		gui.state.PickMode || gui.state.PaletteMode ||
-		gui.state.InputPopupMode || gui.state.SnippetEditorMode ||
-		gui.state.CalendarMode || gui.state.ContribMode
 }
 
 // dialogActive returns true when a dialog or overlay is open.

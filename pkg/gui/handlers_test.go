@@ -43,8 +43,8 @@ func TestHeadlessGui_Initializes(t *testing.T) {
 	if !tg.gui.state.Initialized {
 		t.Error("GUI should be initialized after layout")
 	}
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -186,26 +186,26 @@ func TestNextPanel_CyclesThroughContexts(t *testing.T) {
 	defer tg.Close()
 
 	// Start at NotesContext
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Fatalf("initial context = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Fatalf("initial context = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 
 	// Tab → QueriesContext
 	tg.gui.nextPanel(tg.g, nil)
-	if tg.gui.state.CurrentContext != QueriesContext {
-		t.Errorf("after first Tab: context = %v, want QueriesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != QueriesContext {
+		t.Errorf("after first Tab: context = %v, want QueriesContext", tg.gui.state.currentContext())
 	}
 
 	// Tab → TagsContext
 	tg.gui.nextPanel(tg.g, nil)
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("after second Tab: context = %v, want TagsContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("after second Tab: context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 
 	// Tab → wraps to NotesContext
 	tg.gui.nextPanel(tg.g, nil)
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("after third Tab: context = %v, want NotesContext (wrap)", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("after third Tab: context = %v, want NotesContext (wrap)", tg.gui.state.currentContext())
 	}
 }
 
@@ -215,8 +215,8 @@ func TestPrevPanel_CyclesBackward(t *testing.T) {
 
 	// BackTab from NotesContext → TagsContext (wraps backward)
 	tg.gui.prevPanel(tg.g, nil)
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("after BackTab from Notes: context = %v, want TagsContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("after BackTab from Notes: context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -226,14 +226,14 @@ func TestFocusNotes_SwitchesContext(t *testing.T) {
 
 	// Switch to tags first
 	tg.gui.focusTags(tg.g, nil)
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Fatalf("context = %v, want TagsContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Fatalf("context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 
 	// Press 1 → NotesContext
 	tg.gui.focusNotes(tg.g, nil)
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("context = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("context = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -242,8 +242,8 @@ func TestFocusQueries_SwitchesContext(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil)
-	if tg.gui.state.CurrentContext != QueriesContext {
-		t.Errorf("context = %v, want QueriesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != QueriesContext {
+		t.Errorf("context = %v, want QueriesContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -252,8 +252,8 @@ func TestFocusTags_SwitchesContext(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("context = %v, want TagsContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -262,8 +262,8 @@ func TestFocusPreview_SwitchesContext(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusPreview(tg.g, nil)
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("context = %v, want PreviewContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != PreviewContext {
+		t.Errorf("context = %v, want PreviewContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -272,29 +272,29 @@ func TestContextSwitch_TracksPrevious(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	if tg.gui.state.PreviousContext != NotesContext {
-		t.Errorf("PreviousContext = %v, want NotesContext", tg.gui.state.PreviousContext)
+	if tg.gui.state.previousContext() != NotesContext {
+		t.Errorf("previousContext() = %v, want NotesContext", tg.gui.state.previousContext())
 	}
 
 	tg.gui.focusPreview(tg.g, nil)
-	if tg.gui.state.PreviousContext != TagsContext {
-		t.Errorf("PreviousContext = %v, want TagsContext", tg.gui.state.PreviousContext)
+	if tg.gui.state.previousContext() != TagsContext {
+		t.Errorf("previousContext() = %v, want TagsContext", tg.gui.state.previousContext())
 	}
 }
 
 // --- Search workflow tests ---
 
-func TestOpenSearch_EntersSearchMode(t *testing.T) {
+func TestOpenSearch_EntersSearchOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	tg.gui.openSearch(tg.g, nil)
 
-	if !tg.gui.state.SearchMode {
-		t.Error("SearchMode should be true")
+	if tg.gui.state.ActiveOverlay != OverlaySearch {
+		t.Error("ActiveOverlay should be OverlaySearch")
 	}
-	if tg.gui.state.CurrentContext != SearchContext {
-		t.Errorf("CurrentContext = %v, want SearchContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != SearchContext {
+		t.Errorf("currentContext() = %v, want SearchContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -304,16 +304,16 @@ func TestCancelSearch_RestoresContext(t *testing.T) {
 
 	// Start from tags context
 	tg.gui.focusTags(tg.g, nil)
-	prev := tg.gui.state.CurrentContext
+	prev := tg.gui.state.currentContext()
 
 	tg.gui.openSearch(tg.g, nil)
 	tg.gui.cancelSearch(tg.g, tg.gui.views.Search)
 
-	if tg.gui.state.SearchMode {
-		t.Error("SearchMode should be false after cancel")
+	if tg.gui.state.ActiveOverlay != OverlayNone {
+		t.Error("ActiveOverlay should be OverlayNone after cancel")
 	}
-	if tg.gui.state.CurrentContext != prev {
-		t.Errorf("CurrentContext = %v, want %v (restored)", tg.gui.state.CurrentContext, prev)
+	if tg.gui.state.currentContext() != prev {
+		t.Errorf("CurrentContext = %v, want %v (restored)", tg.gui.state.currentContext(), prev)
 	}
 }
 
@@ -332,8 +332,8 @@ func TestClearSearch_ResetsState(t *testing.T) {
 	if tg.gui.state.Notes.CurrentTab != NotesTabAll {
 		t.Errorf("CurrentTab = %v, want NotesTabAll", tg.gui.state.Notes.CurrentTab)
 	}
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -443,8 +443,8 @@ func TestFilterByTag_SetsPreviewCardList(t *testing.T) {
 	if tg.gui.state.Preview.SelectedCardIndex != 0 {
 		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.state.Preview.SelectedCardIndex)
 	}
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != PreviewContext {
+		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -457,8 +457,8 @@ func TestFilterByTag_EmptyTags_Noop(t *testing.T) {
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
 
 	// Should remain in tags context, no switch to preview
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("CurrentContext = %v, want TagsContext (noop for empty)", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("CurrentContext = %v, want TagsContext (noop for empty)", tg.gui.state.currentContext())
 	}
 }
 
@@ -477,8 +477,8 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	if len(tg.gui.state.Preview.Cards) == 0 {
 		t.Error("Preview.Cards should not be empty after running query")
 	}
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != PreviewContext {
+		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.currentContext())
 	}
 }
 
@@ -490,8 +490,8 @@ func TestRunQuery_EmptyQueries_Noop(t *testing.T) {
 	tg.gui.focusQueries(tg.g, nil)
 	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
 
-	if tg.gui.state.CurrentContext != QueriesContext {
-		t.Errorf("CurrentContext = %v, want QueriesContext (noop for empty)", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != QueriesContext {
+		t.Errorf("CurrentContext = %v, want QueriesContext (noop for empty)", tg.gui.state.currentContext())
 	}
 }
 
@@ -509,7 +509,7 @@ func TestPreviewCardDown_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
 	}
 
-	tg.gui.previewCardDown(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewCardDown(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.SelectedCardIndex != 1 {
 		t.Errorf("SelectedCardIndex = %d, want 1", tg.gui.state.Preview.SelectedCardIndex)
@@ -527,8 +527,8 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
 	}
 
-	tg.gui.previewCardDown(tg.g, tg.gui.views.Preview)
-	tg.gui.previewCardUp(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewCardDown(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewCardUp(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.SelectedCardIndex != 0 {
 		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.state.Preview.SelectedCardIndex)
@@ -543,12 +543,12 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 	// setContext(PreviewContext) calls renderPreview which rebuilds them.
 	tg.gui.state.Preview.Mode = PreviewModeCardList
 	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
-	tg.gui.state.CurrentContext = PreviewContext
+	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	// Override with known ranges after any render
 	tg.gui.state.Preview.CursorLine = 1
 	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewDown(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.CursorLine != 2 {
 		t.Errorf("CursorLine = %d, want 2 after previewDown", tg.gui.state.Preview.CursorLine)
@@ -561,11 +561,11 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 
 	tg.gui.state.Preview.Mode = PreviewModeCardList
 	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
-	tg.gui.state.CurrentContext = PreviewContext
+	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.state.Preview.CursorLine = 3
 	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.previewUp(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewUp(tg.g, tg.gui.views.Preview)
 
 	if tg.gui.state.Preview.CursorLine != 2 {
 		t.Errorf("CursorLine = %d, want 2 after previewUp", tg.gui.state.Preview.CursorLine)
@@ -578,11 +578,11 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 
 	tg.gui.state.Preview.Mode = PreviewModeCardList
 	tg.gui.state.Preview.Cards = tg.gui.state.Notes.Items
-	tg.gui.state.CurrentContext = PreviewContext
+	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.state.Preview.CursorLine = 1
 	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}}
 
-	tg.gui.previewUp(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewUp(tg.g, tg.gui.views.Preview)
 
 	// Cursor should stay at 1 (line 0 is a separator, not content)
 	if tg.gui.state.Preview.CursorLine != 1 {
@@ -596,10 +596,10 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.focusPreview(tg.g, nil)
-	tg.gui.previewBack(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewBack(tg.g, tg.gui.views.Preview)
 
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != TagsContext {
+		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.currentContext())
 	}
 }
 
@@ -613,12 +613,12 @@ func TestToggleFrontmatter(t *testing.T) {
 		t.Fatal("ShowFrontmatter should default to false")
 	}
 
-	tg.gui.toggleFrontmatter(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.toggleFrontmatter(tg.g, tg.gui.views.Preview)
 	if !tg.gui.state.Preview.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be true after toggle")
 	}
 
-	tg.gui.toggleFrontmatter(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.toggleFrontmatter(tg.g, tg.gui.views.Preview)
 	if tg.gui.state.Preview.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be false after second toggle")
 	}
@@ -629,7 +629,7 @@ func TestToggleMarkdown(t *testing.T) {
 	defer tg.Close()
 
 	initial := tg.gui.state.Preview.RenderMarkdown
-	tg.gui.toggleMarkdown(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.toggleMarkdown(tg.g, tg.gui.views.Preview)
 	if tg.gui.state.Preview.RenderMarkdown == initial {
 		t.Error("RenderMarkdown should have toggled")
 	}
@@ -640,7 +640,7 @@ func TestToggleTitle(t *testing.T) {
 	defer tg.Close()
 
 	initial := tg.gui.state.Preview.ShowTitle
-	tg.gui.toggleTitle(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.toggleTitle(tg.g, tg.gui.views.Preview)
 	if tg.gui.state.Preview.ShowTitle == initial {
 		t.Error("ShowTitle should have toggled")
 	}
@@ -651,7 +651,7 @@ func TestToggleGlobalTags(t *testing.T) {
 	defer tg.Close()
 
 	initial := tg.gui.state.Preview.ShowGlobalTags
-	tg.gui.toggleGlobalTags(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.toggleGlobalTags(tg.g, tg.gui.views.Preview)
 	if tg.gui.state.Preview.ShowGlobalTags == initial {
 		t.Error("ShowGlobalTags should have toggled")
 	}
@@ -720,13 +720,13 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
 	}
 
-	tg.gui.previewDown(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.previewDown(tg.g, tg.gui.views.Preview)
 	card := tg.gui.state.Preview.Cards[tg.gui.state.Preview.SelectedCardIndex]
 
-	tg.gui.focusNoteFromPreview(tg.g, tg.gui.views.Preview)
+	tg.gui.preview.focusNoteFromPreview(tg.g, tg.gui.views.Preview)
 
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 
 	// The selected note in the list should match the card we were on
@@ -738,17 +738,17 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 
 // --- Capture workflow tests ---
 
-func TestOpenCapture_EntersCaptureMode(t *testing.T) {
+func TestOpenCapture_EntersCaptureOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	tg.gui.openCapture(tg.g, nil)
 
-	if !tg.gui.state.CaptureMode {
-		t.Error("CaptureMode should be true")
+	if tg.gui.state.ActiveOverlay != OverlayCapture {
+		t.Error("ActiveOverlay should be OverlayCapture")
 	}
-	if tg.gui.state.CurrentContext != CaptureContext {
-		t.Errorf("CurrentContext = %v, want CaptureContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != CaptureContext {
+		t.Errorf("currentContext() = %v, want CaptureContext", tg.gui.state.currentContext())
 	}
 	if tg.gui.state.CaptureParent != nil {
 		t.Error("CaptureParent should be nil initially")
@@ -761,8 +761,8 @@ func TestNewNote_OpensCapture(t *testing.T) {
 
 	tg.gui.newNote(tg.g, nil)
 
-	if !tg.gui.state.CaptureMode {
-		t.Error("newNote should open capture mode")
+	if tg.gui.state.ActiveOverlay != OverlayCapture {
+		t.Error("newNote should open capture overlay")
 	}
 }
 
@@ -849,8 +849,8 @@ func TestNextPanel_IncludesSearchFilter_WhenActive(t *testing.T) {
 	// Cycle should now include SearchFilter at the start
 	tg.gui.setContext(SearchFilterContext)
 	tg.gui.nextPanel(tg.g, nil)
-	if tg.gui.state.CurrentContext != NotesContext {
-		t.Errorf("after Tab from SearchFilter: context = %v, want NotesContext", tg.gui.state.CurrentContext)
+	if tg.gui.state.currentContext() != NotesContext {
+		t.Errorf("after Tab from SearchFilter: context = %v, want NotesContext", tg.gui.state.currentContext())
 	}
 }
 
