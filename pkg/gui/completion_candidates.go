@@ -35,7 +35,7 @@ func (gui *Gui) tagCandidates(filter string) []CompletionItem {
 
 // currentCardTagCandidates returns tag completion items limited to tags on the current preview card.
 func (gui *Gui) currentCardTagCandidates(filter string) []CompletionItem {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}

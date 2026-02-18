@@ -3,6 +3,7 @@ package gui
 import (
 	"testing"
 
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 )
 
@@ -22,27 +23,30 @@ func TestNewGuiState_Defaults(t *testing.T) {
 	}
 }
 
-func TestNewGuiState_SubStatesInitialized(t *testing.T) {
-	state := NewGuiState()
+func TestNewPreviewContext_Initialized(t *testing.T) {
+	pc := context.NewPreviewContext()
 
-	if state.Preview == nil {
-		t.Error("Preview state should not be nil")
+	if pc.PreviewState == nil {
+		t.Error("PreviewState should not be nil")
+	}
+	if pc.NavIndex != -1 {
+		t.Errorf("NavIndex = %d, want -1", pc.NavIndex)
 	}
 }
 
-func TestNewGuiState_PreviewStateDefaults(t *testing.T) {
-	state := NewGuiState()
+func TestPreviewContext_StateDefaults(t *testing.T) {
+	pc := context.NewPreviewContext()
 
-	if state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", state.Preview.Mode)
+	if pc.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", pc.Mode)
 	}
-	if state.Preview.SelectedCardIndex != 0 {
-		t.Errorf("Preview.SelectedCardIndex = %d, want 0", state.Preview.SelectedCardIndex)
+	if pc.SelectedCardIndex != 0 {
+		t.Errorf("Preview.SelectedCardIndex = %d, want 0", pc.SelectedCardIndex)
 	}
-	if state.Preview.ScrollOffset != 0 {
-		t.Errorf("Preview.ScrollOffset = %d, want 0", state.Preview.ScrollOffset)
+	if pc.ScrollOffset != 0 {
+		t.Errorf("Preview.ScrollOffset = %d, want 0", pc.ScrollOffset)
 	}
-	if state.Preview.ShowFrontmatter != false {
+	if pc.ShowFrontmatter != false {
 		t.Error("Preview.ShowFrontmatter should default to false")
 	}
 }
@@ -100,50 +104,50 @@ func TestGuiState_ContextTracking(t *testing.T) {
 }
 
 func TestPreviewState_ModeSwitch(t *testing.T) {
-	state := NewGuiState()
+	pc := context.NewPreviewContext()
 
 	// Default is card list mode
-	if state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Initial mode = %v, want PreviewModeCardList", state.Preview.Mode)
+	if pc.Mode != PreviewModeCardList {
+		t.Errorf("Initial mode = %v, want PreviewModeCardList", pc.Mode)
 	}
 
 	// Set up card list
-	state.Preview.Cards = []models.Note{
+	pc.Cards = []models.Note{
 		{UUID: "1", Title: "Card 1"},
 		{UUID: "2", Title: "Card 2"},
 	}
-	state.Preview.SelectedCardIndex = 0
+	pc.SelectedCardIndex = 0
 
-	if len(state.Preview.Cards) != 2 {
-		t.Errorf("Cards length = %d, want 2", len(state.Preview.Cards))
+	if len(pc.Cards) != 2 {
+		t.Errorf("Cards length = %d, want 2", len(pc.Cards))
 	}
 
 	// Switch to pick results mode
-	state.Preview.Mode = PreviewModePickResults
-	state.Preview.ScrollOffset = 5
+	pc.Mode = PreviewModePickResults
+	pc.ScrollOffset = 5
 
-	if state.Preview.Mode != PreviewModePickResults {
-		t.Errorf("Mode = %v, want PreviewModePickResults", state.Preview.Mode)
+	if pc.Mode != PreviewModePickResults {
+		t.Errorf("Mode = %v, want PreviewModePickResults", pc.Mode)
 	}
-	if state.Preview.ScrollOffset != 5 {
-		t.Errorf("ScrollOffset = %d, want 5", state.Preview.ScrollOffset)
+	if pc.ScrollOffset != 5 {
+		t.Errorf("ScrollOffset = %d, want 5", pc.ScrollOffset)
 	}
 }
 
 func TestPreviewState_FrontmatterToggle(t *testing.T) {
-	state := NewGuiState()
+	pc := context.NewPreviewContext()
 
-	if state.Preview.ShowFrontmatter {
+	if pc.ShowFrontmatter {
 		t.Error("ShowFrontmatter should default to false")
 	}
 
-	state.Preview.ShowFrontmatter = true
-	if !state.Preview.ShowFrontmatter {
+	pc.ShowFrontmatter = true
+	if !pc.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be true after toggle")
 	}
 
-	state.Preview.ShowFrontmatter = false
-	if state.Preview.ShowFrontmatter {
+	pc.ShowFrontmatter = false
+	if pc.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be false after toggle")
 	}
 }

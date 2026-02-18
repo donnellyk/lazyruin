@@ -152,32 +152,32 @@ func (gui *Gui) AmbientDateCandidates() func(string) []types.CompletionItem {
 	return ambientDateCandidates
 }
 
-// Preview
-func (gui *Gui) PreviewPushNavHistory()        { gui.preview.pushNavHistory() }
-func (gui *Gui) PreviewReloadContent()         { gui.preview.reloadContent() }
-func (gui *Gui) PreviewUpdatePreviewForNotes() { gui.preview.updatePreviewForNotes() }
+// Preview — delegates to PreviewHelper.
+func (gui *Gui) PreviewPushNavHistory()        { gui.helpers.Preview().PushNavHistory() }
+func (gui *Gui) PreviewReloadContent()         { gui.helpers.Preview().ReloadContent() }
+func (gui *Gui) PreviewUpdatePreviewForNotes() { gui.helpers.Preview().UpdatePreviewForNotes() }
 func (gui *Gui) PreviewUpdatePreviewCardList(title string, fetch func() ([]models.Note, error)) {
-	gui.preview.updatePreviewCardList(title, fetch)
+	gui.helpers.Preview().UpdatePreviewCardList(title, fetch)
 }
 func (gui *Gui) PreviewCurrentCard() *models.Note {
-	return gui.preview.currentPreviewCard()
+	return gui.helpers.Preview().CurrentPreviewCard()
 }
 func (gui *Gui) SetPreviewCards(cards []models.Note, selectedIdx int, title string) {
-	gui.state.Preview.Mode = PreviewModeCardList
-	gui.state.Preview.Cards = cards
-	gui.state.Preview.SelectedCardIndex = selectedIdx
-	gui.state.Preview.ScrollOffset = 0
+	gui.contexts.Preview.Mode = PreviewModeCardList
+	gui.contexts.Preview.Cards = cards
+	gui.contexts.Preview.SelectedCardIndex = selectedIdx
+	gui.contexts.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = title
 	}
 	gui.renderPreview()
 }
 func (gui *Gui) SetPreviewPickResults(results []models.PickResult, selectedIdx int, cursorLine int, scrollOffset int, title string) {
-	gui.state.Preview.Mode = PreviewModePickResults
-	gui.state.Preview.PickResults = results
-	gui.state.Preview.SelectedCardIndex = selectedIdx
-	gui.state.Preview.CursorLine = cursorLine
-	gui.state.Preview.ScrollOffset = scrollOffset
+	gui.contexts.Preview.Mode = PreviewModePickResults
+	gui.contexts.Preview.PickResults = results
+	gui.contexts.Preview.SelectedCardIndex = selectedIdx
+	gui.contexts.Preview.CursorLine = cursorLine
+	gui.contexts.Preview.ScrollOffset = scrollOffset
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = title
 	}
@@ -193,6 +193,36 @@ func (gui *Gui) CurrentCardTagCandidates(filter string) []types.CompletionItem {
 }
 func (gui *Gui) ParentCandidatesFor(state *types.CompletionState) func(string) []types.CompletionItem {
 	return gui.parentCandidatesFor(state)
+}
+
+// View access (already satisfies controllers.IGuiCommon; now also helpers.IGuiCommon)
+// GetView is defined above.
+
+// Dialogs (menu)
+func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
+	gui.state.Dialog = &DialogState{
+		Active:        true,
+		Type:          "menu",
+		Title:         title,
+		MenuItems:     items,
+		MenuSelection: 0,
+	}
+}
+
+// Preview rendering
+func (gui *Gui) BuildCardContent(note models.Note, width int) []string {
+	return gui.buildCardContent(note, width)
+}
+
+// Context state
+// CurrentContextKey is defined above (line 59).
+func (gui *Gui) PreviousContextKey() types.ContextKey {
+	return gui.state.previousContext()
+}
+
+// Date candidates
+func (gui *Gui) AtDateCandidates(filter string) []types.CompletionItem {
+	return atDateCandidates(filter)
 }
 
 // Compile-time assertion that Gui satisfies IGuiCommon.

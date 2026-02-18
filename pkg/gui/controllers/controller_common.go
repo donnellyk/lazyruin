@@ -35,6 +35,7 @@ type IHelpers interface {
 	Confirmation() *helpers.ConfirmationHelper
 	Search() *helpers.SearchHelper
 	Clipboard() *helpers.ClipboardHelper
+	Preview() *helpers.PreviewHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.

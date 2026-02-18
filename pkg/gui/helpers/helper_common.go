@@ -5,6 +5,8 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // IGuiCommon is the interface helpers use to interact with the GUI.
@@ -73,6 +75,22 @@ type IGuiCommon interface {
 	// Editor
 	Suspend() error
 	Resume() error
+
+	// View access
+	GetView(name string) *gocui.View
+
+	// Dialogs (menu)
+	ShowMenuDialog(title string, items []types.MenuItem)
+
+	// Preview rendering
+	BuildCardContent(note models.Note, width int) []string
+
+	// Context state
+	CurrentContextKey() types.ContextKey
+	PreviousContextKey() types.ContextKey
+
+	// Date candidates
+	AtDateCandidates(filter string) []types.CompletionItem
 }
 
 // HelperCommon provides shared dependencies for all helpers.

@@ -11,6 +11,7 @@ type Helpers struct {
 	confirmation *ConfirmationHelper
 	search       *SearchHelper
 	clipboard    *ClipboardHelper
+	preview      *PreviewHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -25,6 +26,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		confirmation: NewConfirmationHelper(common),
 		search:       NewSearchHelper(common),
 		clipboard:    NewClipboardHelper(common),
+		preview:      NewPreviewHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -41,3 +43,4 @@ func (h *Helpers) Editor() *EditorHelper             { return h.editor }
 func (h *Helpers) Confirmation() *ConfirmationHelper { return h.confirmation }
 func (h *Helpers) Search() *SearchHelper             { return h.search }
 func (h *Helpers) Clipboard() *ClipboardHelper       { return h.clipboard }
+func (h *Helpers) Preview() *PreviewHelper           { return h.preview }

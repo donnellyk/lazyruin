@@ -5,9 +5,11 @@ import "kvnd/lazyruin/pkg/gui/types"
 // PreviewContext owns the preview panel in the context/controller architecture.
 // Unlike Notes/Tags/Queries, preview uses content-line navigation rather than
 // item-list navigation, so it does NOT embed ListContextTrait.
-// During the hybrid migration period, state remains in GuiState.Preview.
 type PreviewContext struct {
 	BaseContext
+	*PreviewState
+	NavHistory []NavEntry
+	NavIndex   int // -1 = no history
 }
 
 // NewPreviewContext creates a PreviewContext.
@@ -20,6 +22,8 @@ func NewPreviewContext() *PreviewContext {
 			Focusable: true,
 			Title:     "Preview",
 		}),
+		PreviewState: &PreviewState{RenderMarkdown: true, HighlightedLink: -1},
+		NavIndex:     -1,
 	}
 }
 

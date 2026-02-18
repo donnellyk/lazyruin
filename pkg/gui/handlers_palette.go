@@ -338,7 +338,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				gui.contexts.Notes.SetSelectedLineIdx(idx)
 				gui.setContext(NotesContext)
 				gui.renderNotes()
-				gui.preview.updatePreviewForNotes()
+				gui.helpers.Preview().UpdatePreviewForNotes()
 				return nil
 			},
 		})

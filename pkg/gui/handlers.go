@@ -60,9 +60,9 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 		opts.Sort = sort
 		notes, err := gui.ruinCmd.Search.Search(query, opts)
 		if err == nil {
-			gui.state.Preview.Mode = PreviewModeCardList
-			gui.state.Preview.Cards = notes
-			gui.state.Preview.SelectedCardIndex = 0
+			gui.contexts.Preview.Mode = PreviewModeCardList
+			gui.contexts.Preview.Cards = notes
+			gui.contexts.Preview.SelectedCardIndex = 0
 			if gui.views.Preview != nil {
 				gui.views.Preview.Title = " Search: " + gui.state.SearchQuery + " "
 			}
@@ -93,8 +93,8 @@ func (gui *Gui) refresh(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) buildSearchOptions() commands.SearchOptions {
 	return commands.SearchOptions{
 		IncludeContent:  true,
-		StripGlobalTags: !gui.state.Preview.ShowGlobalTags,
-		StripTitle:      !gui.state.Preview.ShowTitle,
+		StripGlobalTags: !gui.contexts.Preview.ShowGlobalTags,
+		StripTitle:      !gui.contexts.Preview.ShowTitle,
 	}
 }
 
@@ -119,10 +119,10 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	g.Cursor = false
 
 	// Display results in Preview pane (like tags)
-	gui.preview.pushNavHistory()
-	gui.state.Preview.Mode = PreviewModeCardList
-	gui.state.Preview.Cards = notes
-	gui.state.Preview.SelectedCardIndex = 0
+	gui.helpers.Preview().PushNavHistory()
+	gui.contexts.Preview.Mode = PreviewModeCardList
+	gui.contexts.Preview.Cards = notes
+	gui.contexts.Preview.SelectedCardIndex = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Search: " + query + " "
 	}
@@ -179,7 +179,7 @@ func (gui *Gui) openInEditor(path string) error {
 	gui.refreshTags(false)
 	gui.refreshQueries(false)
 	gui.refreshParents(false)
-	gui.preview.reloadContent()
+	gui.helpers.Preview().ReloadContent()
 	gui.renderAll()
 	return nil
 }

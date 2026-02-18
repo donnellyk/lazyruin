@@ -449,11 +449,11 @@ func (gui *Gui) calendarLoadInPreview() {
 	}
 
 	date := gui.calendarSelectedDate()
-	gui.preview.pushNavHistory()
-	gui.state.Preview.Cards = notes
-	gui.state.Preview.SelectedCardIndex = 0
-	gui.state.Preview.ScrollOffset = 0
-	gui.state.Preview.Mode = PreviewModeCardList
+	gui.helpers.Preview().PushNavHistory()
+	gui.contexts.Preview.Cards = notes
+	gui.contexts.Preview.SelectedCardIndex = 0
+	gui.contexts.Preview.ScrollOffset = 0
+	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeCalendar()
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Calendar: " + date + " "
@@ -479,11 +479,11 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 	}
 
 	title := full.Title
-	gui.preview.pushNavHistory()
-	gui.state.Preview.Cards = []models.Note{*full}
-	gui.state.Preview.SelectedCardIndex = 0
-	gui.state.Preview.ScrollOffset = 0
-	gui.state.Preview.Mode = PreviewModeCardList
+	gui.helpers.Preview().PushNavHistory()
+	gui.contexts.Preview.Cards = []models.Note{*full}
+	gui.contexts.Preview.SelectedCardIndex = 0
+	gui.contexts.Preview.ScrollOffset = 0
+	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeCalendar()
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " " + title + " "

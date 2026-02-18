@@ -159,7 +159,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastHeight = maxY
 		g.SetCurrentView(NotesView)
 		gui.refreshAll()
-		gui.preview.updatePreviewForNotes()
+		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
 			gui.state.CaptureCompletion = NewCompletionState()
 			gui.state.ContextStack = []ContextKey{NotesContext, CaptureContext}
@@ -167,7 +167,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		gui.state.Preview.ScrollOffset = 0
+		gui.contexts.Preview.ScrollOffset = 0
 		gocui.Screen.Clear()
 		gui.renderAll()
 	}
@@ -188,7 +188,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.SearchFilter = v
 	v.Title = "[0]-Search"
-	v.Footer = fmt.Sprintf("%d results", len(gui.state.Preview.Cards))
+	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.Preview.Cards))
 	setRoundedCorners(v)
 
 	if gui.state.currentContext() == SearchFilterContext {
@@ -295,12 +295,12 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	// Set title with card count for multi-card/pick mode
 	switch {
-	case gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0:
+	case gui.contexts.Preview.Mode == PreviewModeCardList && len(gui.contexts.Preview.Cards) > 0:
 		v.Title = "Preview"
-		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
-	case gui.state.Preview.Mode == PreviewModePickResults && len(gui.state.Preview.PickResults) > 0:
+		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.Cards))
+	case gui.contexts.Preview.Mode == PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
 		v.Title = " Pick: " + gui.state.PickQuery + " "
-		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.PickResults))
+		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.PickResults))
 	default:
 		v.Footer = ""
 		v.Title = " Preview "

@@ -153,8 +153,8 @@ func (gui *Gui) registerContextBindings() error {
 func (gui *Gui) globalNavBindings() []binding {
 	// Tab/Backtab migrated to GlobalController.
 	return []binding{
-		{"", gocui.MouseWheelDown, gui.preview.previewScrollDown},
-		{"", gocui.MouseWheelUp, gui.preview.previewScrollUp},
+		{"", gocui.MouseWheelDown, func(g *gocui.Gui, v *gocui.View) error { return gui.helpers.Preview().ScrollDown() }},
+		{"", gocui.MouseWheelUp, func(g *gocui.Gui, v *gocui.View) error { return gui.helpers.Preview().ScrollUp() }},
 	}
 }
 

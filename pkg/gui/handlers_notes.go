@@ -26,7 +26,7 @@ func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
 // resets selection, renders the list, and updates the preview.
 func (gui *Gui) loadNotesForCurrentTab() {
 	gui.fetchNotesForCurrentTab(false)
-	gui.preview.updatePreviewForNotes()
+	gui.helpers.Preview().UpdatePreviewForNotes()
 }
 
 // fetchNotesForCurrentTab loads notes for the current tab and renders the list.

@@ -47,10 +47,10 @@ func (gui *Gui) filterByTagSearch(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.preview.pushNavHistory()
-	gui.state.Preview.Mode = PreviewModeCardList
-	gui.state.Preview.Cards = notes
-	gui.state.Preview.SelectedCardIndex = 0
+	gui.helpers.Preview().PushNavHistory()
+	gui.contexts.Preview.Mode = PreviewModeCardList
+	gui.contexts.Preview.Cards = notes
+	gui.contexts.Preview.SelectedCardIndex = 0
 	gui.views.Preview.Title = " Tag: #" + tag.Name + " "
 	gui.renderPreview()
 	gui.setContext(PreviewContext)
@@ -64,11 +64,11 @@ func (gui *Gui) filterByTagPick(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.state.Preview.Mode = PreviewModePickResults
-	gui.state.Preview.PickResults = results
-	gui.state.Preview.SelectedCardIndex = 0
-	gui.state.Preview.CursorLine = 1
-	gui.state.Preview.ScrollOffset = 0
+	gui.contexts.Preview.Mode = PreviewModePickResults
+	gui.contexts.Preview.PickResults = results
+	gui.contexts.Preview.SelectedCardIndex = 0
+	gui.contexts.Preview.CursorLine = 1
+	gui.contexts.Preview.ScrollOffset = 0
 	gui.views.Preview.Title = " Pick: #" + tag.Name + " "
 	gui.renderPreview()
 	gui.setContext(PreviewContext)
@@ -128,7 +128,7 @@ func (gui *Gui) updatePreviewForTags() {
 		return
 	}
 
-	gui.preview.updatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
+	gui.helpers.Preview().UpdatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
 		return gui.ruinCmd.Search.Search(tag.Name, gui.buildSearchOptions())
 	})
 }
@@ -139,11 +139,11 @@ func (gui *Gui) updatePreviewPickResults(tag *models.Tag) {
 		return
 	}
 
-	gui.state.Preview.Mode = PreviewModePickResults
-	gui.state.Preview.PickResults = results
-	gui.state.Preview.SelectedCardIndex = 0
-	gui.state.Preview.CursorLine = 1
-	gui.state.Preview.ScrollOffset = 0
+	gui.contexts.Preview.Mode = PreviewModePickResults
+	gui.contexts.Preview.PickResults = results
+	gui.contexts.Preview.SelectedCardIndex = 0
+	gui.contexts.Preview.CursorLine = 1
+	gui.contexts.Preview.ScrollOffset = 0
 	if gui.views.Preview != nil {
 		gui.views.Preview.Title = " Pick: #" + tag.Name + " "
 	}

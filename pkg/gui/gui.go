@@ -21,7 +21,6 @@ type Gui struct {
 	state          *GuiState
 	config         *config.Config
 	ruinCmd        *commands.RuinCommand
-	preview        *PreviewController
 	stopBg         chan struct{}
 	QuickCapture   bool // when true, open capture on start and quit on save
 	darkBackground bool
@@ -48,8 +47,6 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 		state:    NewGuiState(),
 		contexts: &context.ContextTree{},
 	}
-	gui.preview = NewPreviewController(gui)
-
 	// Wire shared helper/controller dependencies.
 	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui)
 	gui.helpers = helperspkg.NewHelpers(helperCommon)
@@ -73,14 +70,14 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 
 // setupNotesContext initializes the NotesContext and NotesController.
 func (gui *Gui) setupNotesContext() {
-	notesCtx := context.NewNotesContext(gui.renderNotes, gui.preview.updatePreviewForNotes)
+	notesCtx := context.NewNotesContext(gui.renderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
 	gui.contexts.Notes = notesCtx
 
 	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
 		OnShowInfo: func(_ *models.Note) error {
-			return gui.preview.showInfoDialog(nil, nil)
+			return gui.helpers.Preview().ShowInfoDialog()
 		},
 	})
 
@@ -124,51 +121,10 @@ func (gui *Gui) setupPreviewContext() {
 	previewCtx := context.NewPreviewContext()
 	gui.contexts.Preview = previewCtx
 
-	gui.previewController = controllers.NewPreviewController(controllers.PreviewControllerOpts{
-		Common:     gui.controllerCommon,
-		GetContext: func() *context.PreviewContext { return gui.contexts.Preview },
-
-		// Navigation — delegates to existing preview_controller.go methods
-		OnMoveDown:   func() error { return gui.preview.previewDown(nil, nil) },
-		OnMoveUp:     func() error { return gui.preview.previewUp(nil, nil) },
-		OnCardDown:   func() error { return gui.preview.previewCardDown(nil, nil) },
-		OnCardUp:     func() error { return gui.preview.previewCardUp(nil, nil) },
-		OnNextHeader: func() error { return gui.preview.previewNextHeader(nil, nil) },
-		OnPrevHeader: func() error { return gui.preview.previewPrevHeader(nil, nil) },
-		OnNextLink:   func() error { return gui.preview.highlightNextLink(nil, nil) },
-		OnPrevLink:   func() error { return gui.preview.highlightPrevLink(nil, nil) },
-		OnClick: func() error {
-			v := gui.views.Preview
-			return gui.preview.previewClick(nil, v)
-		},
-
-		// Card actions
-		OnDeleteCard:        func() error { return gui.preview.deleteCardFromPreview(nil, nil) },
-		OnOpenInEditor:      func() error { return gui.preview.openCardInEditor(nil, nil) },
-		OnAppendDone:        func() error { return gui.preview.appendDone(nil, gui.views.Preview) },
-		OnMoveCard:          func() error { return gui.preview.moveCardHandler(nil, nil) },
-		OnMergeCard:         func() error { return gui.preview.mergeCardHandler(nil, nil) },
-		OnToggleFrontmatter: func() error { return gui.preview.toggleFrontmatter(nil, nil) },
-		OnViewOptions:       func() error { return gui.preview.viewOptionsDialog(nil, nil) },
-		OnToggleInlineTag:   func() error { return gui.preview.toggleInlineTag(nil, gui.views.Preview) },
-		OnToggleInlineDate:  func() error { return gui.preview.toggleInlineDate(nil, gui.views.Preview) },
-		OnOpenLink:          func() error { return gui.preview.openLink(nil, nil) },
-		OnToggleTodo:        func() error { return gui.preview.toggleTodo(nil, gui.views.Preview) },
-		OnFocusNote:         func() error { return gui.preview.focusNoteFromPreview(nil, nil) },
-		OnBack:              func() error { return gui.preview.previewBack(nil, nil) },
-		OnNavBack:           func() error { return gui.preview.navBack(nil, nil) },
-		OnNavForward:        func() error { return gui.preview.navForward(nil, nil) },
-
-		// Note actions — now handled by helpers via PreviewController.h()
-		OnShowInfo: func() error { return gui.preview.showInfoDialog(nil, nil) },
-
-		// Palette-only
-		OnToggleTitle:      func() error { return gui.preview.toggleTitle(nil, nil) },
-		OnToggleGlobalTags: func() error { return gui.preview.toggleGlobalTags(nil, nil) },
-		OnToggleMarkdown:   func() error { return gui.preview.toggleMarkdown(nil, nil) },
-		OnOrderCards:       gui.preview.orderCards,
-		OnShowNavHistory:   gui.preview.showNavHistory,
-	})
+	gui.previewController = controllers.NewPreviewController(
+		gui.controllerCommon,
+		func() *context.PreviewContext { return gui.contexts.Preview },
+	)
 
 	controllers.AttachController(gui.previewController)
 }
@@ -422,15 +378,15 @@ func (gui *Gui) backgroundRefresh() {
 // backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
 func (gui *Gui) backgroundRefreshData() {
 	// Preserve selections
-	cardIdx := gui.state.Preview.SelectedCardIndex
+	cardIdx := gui.contexts.Preview.SelectedCardIndex
 
 	gui.refreshNotes(true)
 	gui.refreshTags(true)
 	gui.refreshQueries(true)
 	gui.refreshParents(true)
 
-	if gui.state.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.state.Preview.Cards) {
-		gui.state.Preview.SelectedCardIndex = cardIdx
+	if gui.contexts.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.contexts.Preview.Cards) {
+		gui.contexts.Preview.SelectedCardIndex = cardIdx
 	}
 
 	gui.renderPreview()
@@ -459,7 +415,7 @@ func (gui *Gui) activateContext(ctx ContextKey) {
 	switch ctx {
 	case NotesContext:
 		gui.refreshNotes(true)
-		gui.preview.updatePreviewForNotes()
+		gui.helpers.Preview().UpdatePreviewForNotes()
 	case QueriesContext:
 		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			gui.refreshParents(true)

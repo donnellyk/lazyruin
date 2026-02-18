@@ -447,8 +447,8 @@ func TestNotesDown_UpdatesPreview(t *testing.T) {
 	testNotesDown(tg)
 
 	// Preview should be in card list mode showing the selected note as a single card
-	if tg.gui.state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.state.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
 }
 
@@ -494,11 +494,11 @@ func TestFilterByTag_SetsPreviewCardList(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
 
-	if tg.gui.state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.state.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
-	if tg.gui.state.Preview.SelectedCardIndex != 0 {
-		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.state.Preview.SelectedCardIndex)
+	if tg.gui.contexts.Preview.SelectedCardIndex != 0 {
+		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.contexts.Preview.SelectedCardIndex)
 	}
 	if tg.gui.state.currentContext() != PreviewContext {
 		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.currentContext())
@@ -528,10 +528,10 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	tg.gui.focusQueries(tg.g, nil)
 	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
 
-	if tg.gui.state.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.state.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
-	if len(tg.gui.state.Preview.Cards) == 0 {
+	if len(tg.gui.contexts.Preview.Cards) == 0 {
 		t.Error("Preview.Cards should not be empty after running query")
 	}
 	if tg.gui.state.currentContext() != PreviewContext {
@@ -562,14 +562,14 @@ func TestPreviewCardDown_CardListMode(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
 
-	if len(tg.gui.state.Preview.Cards) < 2 {
-		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
+	if len(tg.gui.contexts.Preview.Cards) < 2 {
+		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.preview.previewCardDown(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().CardDown()
 
-	if tg.gui.state.Preview.SelectedCardIndex != 1 {
-		t.Errorf("SelectedCardIndex = %d, want 1", tg.gui.state.Preview.SelectedCardIndex)
+	if tg.gui.contexts.Preview.SelectedCardIndex != 1 {
+		t.Errorf("SelectedCardIndex = %d, want 1", tg.gui.contexts.Preview.SelectedCardIndex)
 	}
 }
 
@@ -580,15 +580,15 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
 
-	if len(tg.gui.state.Preview.Cards) < 2 {
-		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
+	if len(tg.gui.contexts.Preview.Cards) < 2 {
+		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.preview.previewCardDown(tg.g, tg.gui.views.Preview)
-	tg.gui.preview.previewCardUp(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().CardDown()
+	tg.gui.helpers.Preview().CardUp()
 
-	if tg.gui.state.Preview.SelectedCardIndex != 0 {
-		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.state.Preview.SelectedCardIndex)
+	if tg.gui.contexts.Preview.SelectedCardIndex != 0 {
+		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.contexts.Preview.SelectedCardIndex)
 	}
 }
 
@@ -598,17 +598,17 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 
 	// Set up card list mode — set CardLineRanges AFTER setContext since
 	// setContext(PreviewContext) calls renderPreview which rebuilds them.
-	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	// Override with known ranges after any render
-	tg.gui.state.Preview.CursorLine = 1
-	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
+	tg.gui.contexts.Preview.CursorLine = 1
+	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.preview.previewDown(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().MoveDown()
 
-	if tg.gui.state.Preview.CursorLine != 2 {
-		t.Errorf("CursorLine = %d, want 2 after previewDown", tg.gui.state.Preview.CursorLine)
+	if tg.gui.contexts.Preview.CursorLine != 2 {
+		t.Errorf("CursorLine = %d, want 2 after previewDown", tg.gui.contexts.Preview.CursorLine)
 	}
 }
 
@@ -616,16 +616,16 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
-	tg.gui.state.Preview.CursorLine = 3
-	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
+	tg.gui.contexts.Preview.CursorLine = 3
+	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.preview.previewUp(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().MoveUp()
 
-	if tg.gui.state.Preview.CursorLine != 2 {
-		t.Errorf("CursorLine = %d, want 2 after previewUp", tg.gui.state.Preview.CursorLine)
+	if tg.gui.contexts.Preview.CursorLine != 2 {
+		t.Errorf("CursorLine = %d, want 2 after previewUp", tg.gui.contexts.Preview.CursorLine)
 	}
 }
 
@@ -633,17 +633,17 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.state.Preview.Mode = PreviewModeCardList
-	tg.gui.state.Preview.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
-	tg.gui.state.Preview.CursorLine = 1
-	tg.gui.state.Preview.CardLineRanges = [][2]int{{0, 5}}
+	tg.gui.contexts.Preview.CursorLine = 1
+	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}}
 
-	tg.gui.preview.previewUp(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().MoveUp()
 
 	// Cursor should stay at 1 (line 0 is a separator, not content)
-	if tg.gui.state.Preview.CursorLine != 1 {
-		t.Errorf("CursorLine = %d, want 1 (clamped at first content line)", tg.gui.state.Preview.CursorLine)
+	if tg.gui.contexts.Preview.CursorLine != 1 {
+		t.Errorf("CursorLine = %d, want 1 (clamped at first content line)", tg.gui.contexts.Preview.CursorLine)
 	}
 }
 
@@ -653,7 +653,7 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.focusPreview(tg.g, nil)
-	tg.gui.preview.previewBack(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().Back()
 
 	if tg.gui.state.currentContext() != TagsContext {
 		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.currentContext())
@@ -666,17 +666,17 @@ func TestToggleFrontmatter(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	if tg.gui.state.Preview.ShowFrontmatter {
+	if tg.gui.contexts.Preview.ShowFrontmatter {
 		t.Fatal("ShowFrontmatter should default to false")
 	}
 
-	tg.gui.preview.toggleFrontmatter(tg.g, tg.gui.views.Preview)
-	if !tg.gui.state.Preview.ShowFrontmatter {
+	tg.gui.helpers.Preview().ToggleFrontmatter()
+	if !tg.gui.contexts.Preview.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be true after toggle")
 	}
 
-	tg.gui.preview.toggleFrontmatter(tg.g, tg.gui.views.Preview)
-	if tg.gui.state.Preview.ShowFrontmatter {
+	tg.gui.helpers.Preview().ToggleFrontmatter()
+	if tg.gui.contexts.Preview.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be false after second toggle")
 	}
 }
@@ -685,9 +685,9 @@ func TestToggleMarkdown(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	initial := tg.gui.state.Preview.RenderMarkdown
-	tg.gui.preview.toggleMarkdown(tg.g, tg.gui.views.Preview)
-	if tg.gui.state.Preview.RenderMarkdown == initial {
+	initial := tg.gui.contexts.Preview.RenderMarkdown
+	tg.gui.helpers.Preview().ToggleMarkdown()
+	if tg.gui.contexts.Preview.RenderMarkdown == initial {
 		t.Error("RenderMarkdown should have toggled")
 	}
 }
@@ -696,9 +696,9 @@ func TestToggleTitle(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	initial := tg.gui.state.Preview.ShowTitle
-	tg.gui.preview.toggleTitle(tg.g, tg.gui.views.Preview)
-	if tg.gui.state.Preview.ShowTitle == initial {
+	initial := tg.gui.contexts.Preview.ShowTitle
+	tg.gui.helpers.Preview().ToggleTitle()
+	if tg.gui.contexts.Preview.ShowTitle == initial {
 		t.Error("ShowTitle should have toggled")
 	}
 }
@@ -707,9 +707,9 @@ func TestToggleGlobalTags(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	initial := tg.gui.state.Preview.ShowGlobalTags
-	tg.gui.preview.toggleGlobalTags(tg.g, tg.gui.views.Preview)
-	if tg.gui.state.Preview.ShowGlobalTags == initial {
+	initial := tg.gui.contexts.Preview.ShowGlobalTags
+	tg.gui.helpers.Preview().ToggleGlobalTags()
+	if tg.gui.contexts.Preview.ShowGlobalTags == initial {
 		t.Error("ShowGlobalTags should have toggled")
 	}
 }
@@ -773,14 +773,14 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
 
-	if len(tg.gui.state.Preview.Cards) < 2 {
-		t.Skipf("need at least 2 cards, got %d", len(tg.gui.state.Preview.Cards))
+	if len(tg.gui.contexts.Preview.Cards) < 2 {
+		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.preview.previewDown(tg.g, tg.gui.views.Preview)
-	card := tg.gui.state.Preview.Cards[tg.gui.state.Preview.SelectedCardIndex]
+	tg.gui.helpers.Preview().MoveDown()
+	card := tg.gui.contexts.Preview.Cards[tg.gui.contexts.Preview.SelectedCardIndex]
 
-	tg.gui.preview.focusNoteFromPreview(tg.g, tg.gui.views.Preview)
+	tg.gui.helpers.Preview().FocusNote()
 
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("CurrentContext = %v, want NotesContext", tg.gui.state.currentContext())

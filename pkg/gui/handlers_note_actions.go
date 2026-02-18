@@ -8,7 +8,7 @@ import (
 
 // addGlobalTag opens the input popup to add a global tag.
 func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -33,7 +33,7 @@ func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 				gui.showError(err)
 				return nil
 			}
-			gui.preview.reloadContent()
+			gui.helpers.Preview().ReloadContent()
 			gui.refreshTags(false)
 			return nil
 		},
@@ -43,7 +43,7 @@ func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 
 // removeTag opens the input popup showing only the current card's tags.
 func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -72,7 +72,7 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 				gui.showError(err)
 				return nil
 			}
-			gui.preview.reloadContent()
+			gui.helpers.Preview().ReloadContent()
 			gui.refreshTags(false)
 			return nil
 		},
@@ -82,7 +82,7 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 
 // setParentDialog opens the input popup with > / >> parent completion.
 func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -112,7 +112,7 @@ func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
 				gui.showError(err)
 				return nil
 			}
-			gui.preview.reloadContent()
+			gui.helpers.Preview().ReloadContent()
 			return nil
 		},
 	})
@@ -121,7 +121,7 @@ func (gui *Gui) setParentDialog(g *gocui.Gui, v *gocui.View) error {
 
 // removeParent removes the parent from the current card.
 func (gui *Gui) removeParent(g *gocui.Gui, v *gocui.View) error {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -130,13 +130,13 @@ func (gui *Gui) removeParent(g *gocui.Gui, v *gocui.View) error {
 		gui.showError(err)
 		return nil
 	}
-	gui.preview.reloadContent()
+	gui.helpers.Preview().ReloadContent()
 	return nil
 }
 
 // toggleBookmark toggles a parent bookmark for the current card.
 func (gui *Gui) toggleBookmark(g *gocui.Gui, v *gocui.View) error {
-	card := gui.preview.currentPreviewCard()
+	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
