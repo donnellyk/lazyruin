@@ -155,9 +155,8 @@ func (gui *Gui) registerContextBindings() error {
 }
 
 func (gui *Gui) globalNavBindings() []binding {
+	// Tab/Backtab migrated to GlobalController.
 	return []binding{
-		{"", gocui.KeyTab, gui.nextPanel},
-		{"", gocui.KeyBacktab, gui.prevPanel},
 		{"", gocui.MouseWheelDown, gui.preview.previewScrollDown},
 		{"", gocui.MouseWheelUp, gui.preview.previewScrollUp},
 	}

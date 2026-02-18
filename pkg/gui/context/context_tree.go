@@ -5,6 +5,7 @@ import "kvnd/lazyruin/pkg/gui/types"
 // ContextTree provides typed access to all context instances.
 // During the hybrid migration, only migrated contexts are present here.
 type ContextTree struct {
+	Global     *GlobalContext
 	Notes      *NotesContext
 	Tags       *TagsContext
 	Queries    *QueriesContext
@@ -19,6 +20,9 @@ type ContextTree struct {
 // During the hybrid migration, this only includes migrated contexts.
 func (self *ContextTree) All() []types.Context {
 	var all []types.Context
+	if self.Global != nil {
+		all = append(all, self.Global)
+	}
 	if self.Notes != nil {
 		all = append(all, self.Notes)
 	}

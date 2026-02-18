@@ -51,10 +51,11 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 		})
 	}
 
-	// New controller bindings (migrated panels: Notes, Tags, Queries, Preview)
+	// New controller bindings (migrated panels: Notes, Tags, Queries, Preview, Global)
 	opts := types.KeybindingsOpts{}
 	for _, ctx := range gui.contexts.All() {
 		ctxKey := ctx.GetKey()
+		isGlobal := ctx.GetKind() == types.GLOBAL_CONTEXT
 		for _, b := range ctx.GetKeybindings(opts) {
 			if b.Description == "" {
 				continue // nav-only, skip
@@ -63,12 +64,17 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 			if b.Key != nil {
 				keyHint = keyDisplayString(b.Key)
 			}
+			// Global context bindings are available regardless of active context.
+			var contexts []ContextKey
+			if !isGlobal {
+				contexts = []ContextKey{ctxKey}
+			}
 			cmds = append(cmds, PaletteCommand{
 				Name:     b.Description,
 				Category: b.Category,
 				Key:      keyHint,
 				OnRun:    b.Handler,
-				Contexts: []ContextKey{ctxKey},
+				Contexts: contexts,
 			})
 		}
 	}

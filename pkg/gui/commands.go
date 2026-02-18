@@ -21,26 +21,10 @@ type Command struct {
 }
 
 // commands returns the unified command table.
+// Global, Focus, Notes, Tags, Queries, and Preview entries have been migrated
+// to their respective controllers; palette entries are generated from controller bindings.
 func (gui *Gui) commands() []Command {
 	return []Command{
-		// Global
-		{Name: "Quit", Category: "Global", Keys: []any{'q', gocui.KeyCtrlC}, Handler: gui.quit},
-		{Name: "Search", Category: "Global", Keys: []any{'/'}, Handler: gui.openSearch},
-		{Name: "Pick", Category: "Global", Keys: []any{'p', '\\'}, Handler: gui.openPick},
-		{Name: "New Note", Category: "Global", Keys: []any{'n'}, Handler: gui.newNote},
-		{Name: "Refresh", Category: "Global", Keys: []any{gocui.KeyCtrlR}, Handler: gui.refresh},
-		{Name: "Keybindings", Category: "Global", Keys: []any{'?'}, Handler: gui.showHelpHandler},
-		{Name: "Command Palette", Category: "Global", Keys: []any{':'}, Handler: gui.openPalette, NoPalette: true},
-		{Name: "Calendar", Category: "Global", Keys: []any{'c'}, Handler: gui.openCalendar},
-		{Name: "Contributions", Category: "Global", Keys: []any{'C'}, Handler: gui.openContrib},
-
-		// Focus
-		{Name: "Focus Notes", Category: "Focus", Keys: []any{'1'}, Handler: gui.focusNotes},
-		{Name: "Focus Queries", Category: "Focus", Keys: []any{'2'}, Handler: gui.focusQueries},
-		{Name: "Focus Tags", Category: "Focus", Keys: []any{'3'}, Handler: gui.focusTags},
-		{Name: "Focus Preview", Category: "Focus", Keys: []any{}, Handler: gui.focusPreview},
-		{Name: "Focus Search Filter", Category: "Focus", Keys: []any{'0'}, Handler: gui.focusSearchFilter},
-
 		// Tabs (palette-only, no keybindings)
 		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(0) }},
 		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(1) }},
@@ -50,14 +34,6 @@ func (gui *Gui) commands() []Command {
 		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(0) }},
 		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
 		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
-
-		// Notes — keybindings migrated to NotesController; palette entries generated from controller bindings
-
-		// Tags — keybindings migrated to TagsController; palette entries generated from controller bindings
-
-		// Queries — keybindings migrated to QueriesController; palette entries generated from controller bindings
-
-		// Preview — keybindings migrated to PreviewController; palette entries generated from controller bindings
 
 		// Search Filter
 		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},

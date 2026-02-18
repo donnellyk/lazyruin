@@ -51,6 +51,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupCaptureContext()
 	gui.setupPickContext()
 	gui.setupInputPopupContext()
+	gui.setupGlobalContext()
 	return gui
 }
 
@@ -309,6 +310,33 @@ func (gui *Gui) setupInputPopupContext() {
 			v, _ := gui.g.View(InputPopupView)
 			return gui.inputPopupTab(gui.g, v)
 		},
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupGlobalContext initializes the GlobalContext and GlobalController.
+func (gui *Gui) setupGlobalContext() {
+	globalCtx := context.NewGlobalContext()
+	gui.contexts.Global = globalCtx
+
+	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
+		GetContext:          func() *context.GlobalContext { return gui.contexts.Global },
+		OnQuit:              func() error { return gui.quit(gui.g, nil) },
+		OnSearch:            func() error { return gui.openSearch(gui.g, nil) },
+		OnPick:              func() error { return gui.openPick(gui.g, nil) },
+		OnNewNote:           func() error { return gui.newNote(gui.g, nil) },
+		OnRefresh:           func() error { return gui.refresh(gui.g, nil) },
+		OnHelp:              func() error { return gui.showHelpHandler(gui.g, nil) },
+		OnPalette:           func() error { return gui.openPalette(gui.g, nil) },
+		OnCalendar:          func() error { return gui.openCalendar(gui.g, nil) },
+		OnContrib:           func() error { return gui.openContrib(gui.g, nil) },
+		OnFocusNotes:        func() error { return gui.focusNotes(gui.g, nil) },
+		OnFocusQueries:      func() error { return gui.focusQueries(gui.g, nil) },
+		OnFocusTags:         func() error { return gui.focusTags(gui.g, nil) },
+		OnFocusPreview:      func() error { return gui.focusPreview(gui.g, nil) },
+		OnFocusSearchFilter: func() error { return gui.focusSearchFilter(gui.g, nil) },
+		OnNextPanel:         func() error { return gui.nextPanel(gui.g, nil) },
+		OnPrevPanel:         func() error { return gui.prevPanel(gui.g, nil) },
 	})
 	controllers.AttachController(ctrl)
 }
