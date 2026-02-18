@@ -17,7 +17,6 @@ func (gui *Gui) cycleTagsTab() {
 	idx := (tagsCtx.TabIndex() + 1) % len(tagsTabs)
 	tagsCtx.CurrentTab = tagsTabsNew[idx]
 	tagsCtx.SetSelectedLineIdx(0)
-	gui.syncTagsToLegacy()
 	gui.updateTagsTab()
 	gui.renderTags()
 	gui.updatePreviewForTags()
@@ -31,7 +30,6 @@ func (gui *Gui) switchTagsTabByIndex(tabIndex int) error {
 	tagsCtx := gui.contexts.Tags
 	tagsCtx.CurrentTab = tagsTabsNew[tabIndex]
 	tagsCtx.SetSelectedLineIdx(0)
-	gui.syncTagsToLegacy()
 	gui.updateTagsTab()
 	gui.renderTags()
 	gui.updatePreviewForTags()

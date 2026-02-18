@@ -13,8 +13,6 @@ func (gui *Gui) cycleQueriesTab() {
 	idx := (queriesCtx.TabIndex() + 1) % len(guictx.QueriesTabs)
 	queriesCtx.CurrentTab = guictx.QueriesTabs[idx]
 	queriesCtx.SetSelectedLineIdx(0)
-	gui.syncQueriesToLegacy()
-	gui.syncParentsToLegacy()
 	gui.loadDataForQueriesTab()
 }
 
@@ -26,8 +24,6 @@ func (gui *Gui) switchQueriesTabByIndex(tabIndex int) error {
 	queriesCtx := gui.contexts.Queries
 	queriesCtx.CurrentTab = guictx.QueriesTabs[tabIndex]
 	queriesCtx.SetSelectedLineIdx(0)
-	gui.syncQueriesToLegacy()
-	gui.syncParentsToLegacy()
 	gui.loadDataForQueriesTab()
 	gui.setContext(QueriesContext)
 	return nil

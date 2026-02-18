@@ -17,7 +17,6 @@ func (gui *Gui) cycleNotesTab() {
 	idx := (notesCtx.TabIndex() + 1) % len(guictx.NotesTabs)
 	notesCtx.CurrentTab = guictx.NotesTabs[idx]
 	notesCtx.SetSelectedLineIdx(0)
-	gui.syncNotesToLegacy()
 	gui.loadNotesForCurrentTab()
 }
 
@@ -29,7 +28,6 @@ func (gui *Gui) switchNotesTabByIndex(tabIndex int) error {
 	notesCtx := gui.contexts.Notes
 	notesCtx.CurrentTab = guictx.NotesTabs[tabIndex]
 	notesCtx.SetSelectedLineIdx(0)
-	gui.syncNotesToLegacy()
 	gui.loadNotesForCurrentTab()
 	gui.setContext(NotesContext)
 	return nil
@@ -85,7 +83,6 @@ func (gui *Gui) fetchNotesForCurrentTab(preserve bool) {
 			notesCtx.SetSelectedLineIdx(0)
 		}
 		notesCtx.ClampSelection()
-		gui.syncNotesToLegacy()
 	}
 	gui.renderNotes()
 	gui.updateNotesTab()

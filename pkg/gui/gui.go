@@ -451,8 +451,6 @@ func (gui *Gui) refreshTags(preserve bool) {
 	}
 	tagsCtx.ClampSelection()
 
-	// Keep legacy state in sync during hybrid period
-	gui.syncTagsToLegacy()
 	gui.renderTags()
 }
 
@@ -484,7 +482,6 @@ func (gui *Gui) refreshQueries(preserve bool) {
 	}
 	queriesCtx.QueriesTrait().ClampSelection()
 
-	gui.syncQueriesToLegacy()
 	gui.renderQueries()
 }
 
@@ -507,7 +504,6 @@ func (gui *Gui) refreshParents(preserve bool) {
 	}
 	queriesCtx.ParentsTrait().ClampSelection()
 
-	gui.syncParentsToLegacy()
 	gui.renderQueries()
 }
 
