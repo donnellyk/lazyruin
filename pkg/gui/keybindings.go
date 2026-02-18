@@ -38,10 +38,10 @@ func (gui *Gui) setupKeybindings() error {
 		// pickBindings removed — bindings registered via PickController
 		// inputPopupBindings removed — bindings registered via InputPopupController
 		// Tab/Backtab removed — bindings registered via GlobalController
-		gui.snippetEditorBindings,
-		gui.paletteBindings,
-		gui.calendarBindings,
-		gui.contribBindings,
+		// snippetEditorBindings removed — bindings registered via SnippetEditorController
+		// paletteBindings removed — bindings registered via PaletteController
+		// calendarBindings removed — bindings registered via CalendarController
+		// contribBindings removed — bindings registered via ContribController
 	}
 	for _, fn := range navBindings {
 		bindings := fn()
@@ -112,20 +112,31 @@ func (gui *Gui) registerContextBindings() error {
 				return binding.Handler()
 			}
 
-			for _, viewName := range viewNames {
+			// If ViewName is set on the binding, register only for that view.
+			// Otherwise register for all context views.
+			views := viewNames
+			if binding.ViewName != "" {
+				views = []string{binding.ViewName}
+			}
+			for _, viewName := range views {
 				if err := gui.g.SetKeybinding(viewName, binding.Key, binding.Mod, handler); err != nil {
 					return err
 				}
 			}
 		}
 
-		// Register mouse bindings as regular gocui keybindings (same mechanism
-		// used by all other panels — gocui treats mouse events as keys).
+		// Register mouse bindings. If ViewMouseBinding.ViewName is set, register
+		// only for that view; otherwise register for all context views.
+		// Popup context mouse bindings are not suppressed (same rule as keyboard).
 		for _, mb := range ctx.GetMouseKeybindings(opts) {
 			mouseBind := mb
-			for _, viewName := range viewNames {
+			mouseViews := viewNames
+			if mouseBind.ViewName != "" {
+				mouseViews = []string{mouseBind.ViewName}
+			}
+			for _, viewName := range mouseViews {
 				handler := func(g *gocui.Gui, v *gocui.View) error {
-					if gui.overlayActive() {
+					if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
 						return nil
 					}
 					return mouseBind.Handler(gocui.ViewMouseBindingOpts{})
@@ -177,94 +188,7 @@ func (gui *Gui) DumpBindings() []string {
 	return entries
 }
 
-func (gui *Gui) snippetEditorBindings() []binding {
-	nv := SnippetNameView
-	ev := SnippetExpansionView
-	return []binding{
-		{nv, gocui.KeyEsc, gui.snippetEditorEsc},
-		{nv, gocui.KeyTab, gui.snippetEditorTab},
-		{nv, gocui.KeyEnter, gui.snippetEditorTab},
-		{nv, gocui.MouseLeft, gui.snippetEditorClickName},
-		{ev, gocui.KeyEsc, gui.snippetEditorEsc},
-		{ev, gocui.KeyTab, gui.snippetEditorTab},
-		{ev, gocui.KeyEnter, gui.snippetEditorEnter},
-		{ev, gocui.MouseLeft, gui.snippetEditorClickExpansion},
-	}
-}
-
-func (gui *Gui) paletteBindings() []binding {
-	v := PaletteView
-	lv := PaletteListView
-	return []binding{
-		{v, gocui.KeyEnter, gui.paletteEnter},
-		{v, gocui.KeyEsc, gui.paletteEsc},
-		{lv, gocui.MouseLeft, gui.paletteListClick},
-	}
-}
-
-func (gui *Gui) calendarBindings() []binding {
-	gv := CalendarGridView
-	iv := CalendarInputView
-	nv := CalendarNotesView
-
-	return []binding{
-		// Grid navigation
-		{gv, 'h', gui.calendarGridLeft},
-		{gv, 'l', gui.calendarGridRight},
-		{gv, 'k', gui.calendarGridUp},
-		{gv, 'j', gui.calendarGridDown},
-		{gv, gocui.KeyArrowLeft, gui.calendarGridLeft},
-		{gv, gocui.KeyArrowRight, gui.calendarGridRight},
-		{gv, gocui.KeyArrowUp, gui.calendarGridUp},
-		{gv, gocui.KeyArrowDown, gui.calendarGridDown},
-		{gv, gocui.KeyEnter, gui.calendarGridEnter},
-		{gv, gocui.KeyEsc, gui.calendarEsc},
-		{gv, gocui.KeyTab, gui.calendarTab},
-		{gv, gocui.KeyBacktab, gui.calendarBacktab},
-		{gv, '/', gui.calendarFocusInput},
-		{gv, gocui.MouseLeft, gui.calendarGridClick},
-		// Input view
-		{iv, gocui.KeyEnter, gui.calendarInputEnter},
-		{iv, gocui.KeyEsc, gui.calendarInputEsc},
-		{iv, gocui.KeyTab, gui.calendarTab},
-		{iv, gocui.KeyBacktab, gui.calendarBacktab},
-		{iv, gocui.MouseLeft, gui.calendarInputClick},
-		// Note list navigation
-		{nv, 'j', gui.calendarNoteDown},
-		{nv, 'k', gui.calendarNoteUp},
-		{nv, gocui.KeyArrowDown, gui.calendarNoteDown},
-		{nv, gocui.KeyArrowUp, gui.calendarNoteUp},
-		{nv, gocui.KeyEnter, gui.calendarNoteEnter},
-		{nv, gocui.KeyEsc, gui.calendarEsc},
-		{nv, gocui.KeyTab, gui.calendarTab},
-		{nv, gocui.KeyBacktab, gui.calendarBacktab},
-		{nv, '/', gui.calendarFocusInput},
-	}
-}
-
-func (gui *Gui) contribBindings() []binding {
-	gv := ContribGridView
-	nv := ContribNotesView
-	return []binding{
-		// Grid navigation (h/l = weeks/columns, j/k = days/rows)
-		{gv, 'h', gui.contribGridLeft},
-		{gv, 'l', gui.contribGridRight},
-		{gv, 'k', gui.contribGridUp},
-		{gv, 'j', gui.contribGridDown},
-		{gv, gocui.KeyArrowLeft, gui.contribGridLeft},
-		{gv, gocui.KeyArrowRight, gui.contribGridRight},
-		{gv, gocui.KeyArrowUp, gui.contribGridUp},
-		{gv, gocui.KeyArrowDown, gui.contribGridDown},
-		{gv, gocui.KeyEnter, gui.contribGridEnter},
-		{gv, gocui.KeyEsc, gui.contribEsc},
-		{gv, gocui.KeyTab, gui.contribTab},
-		// Note list navigation
-		{nv, 'j', gui.contribNoteDown},
-		{nv, 'k', gui.contribNoteUp},
-		{nv, gocui.KeyArrowDown, gui.contribNoteDown},
-		{nv, gocui.KeyArrowUp, gui.contribNoteUp},
-		{nv, gocui.KeyEnter, gui.contribNoteEnter},
-		{nv, gocui.KeyEsc, gui.contribEsc},
-		{nv, gocui.KeyTab, gui.contribTab},
-	}
-}
+// snippetEditorBindings removed — bindings registered via SnippetEditorController.
+// paletteBindings removed — bindings registered via PaletteController.
+// calendarBindings removed — bindings registered via CalendarController.
+// contribBindings removed — bindings registered via ContribController.

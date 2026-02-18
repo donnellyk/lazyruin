@@ -64,6 +64,10 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupPickContext()
 	gui.setupInputPopupContext()
 	gui.setupGlobalContext()
+	gui.setupPaletteContext()
+	gui.setupSnippetEditorContext()
+	gui.setupCalendarContext()
+	gui.setupContribContext()
 	return gui
 }
 
@@ -308,23 +312,114 @@ func (gui *Gui) setupGlobalContext() {
 	gui.contexts.Global = globalCtx
 
 	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
-		Common:                 gui.controllerCommon,
-		GetContext:             func() *context.GlobalContext { return gui.contexts.Global },
-		OnQuit:                 func() error { return gui.quit(gui.g, nil) },
-		OnSearch:               func() error { return gui.openSearch(gui.g, nil) },
-		OnPick:                 func() error { return gui.openPick(gui.g, nil) },
-		OnNewNote:              func() error { return gui.newNote(gui.g, nil) },
-		OnRefresh:              func() error { return gui.refresh(gui.g, nil) },
-		OnHelp:                 func() error { return gui.showHelpHandler(gui.g, nil) },
-		OnPalette:              func() error { return gui.openPalette(gui.g, nil) },
-		OnCalendar:             func() error { return gui.openCalendar(gui.g, nil) },
-		OnContrib:              func() error { return gui.openContrib(gui.g, nil) },
-		OnCycleNotesTab:        func() error { gui.cycleNotesTab(); return nil },
-		OnCycleQueriesTab:      func() error { gui.cycleQueriesTab(); return nil },
-		OnCycleTagsTab:         func() error { gui.cycleTagsTab(); return nil },
-		OnFocusSearchFilterOp:  func() error { return gui.focusSearchFilter(gui.g, nil) },
+		Common:                gui.controllerCommon,
+		GetContext:            func() *context.GlobalContext { return gui.contexts.Global },
+		OnQuit:                func() error { return gui.quit(gui.g, nil) },
+		OnSearch:              func() error { return gui.openSearch(gui.g, nil) },
+		OnPick:                func() error { return gui.openPick(gui.g, nil) },
+		OnNewNote:             func() error { return gui.newNote(gui.g, nil) },
+		OnRefresh:             func() error { return gui.refresh(gui.g, nil) },
+		OnHelp:                func() error { return gui.showHelpHandler(gui.g, nil) },
+		OnPalette:             func() error { return gui.openPalette(gui.g, nil) },
+		OnCalendar:            func() error { return gui.openCalendar(gui.g, nil) },
+		OnContrib:             func() error { return gui.openContrib(gui.g, nil) },
+		OnCycleNotesTab:       func() error { gui.cycleNotesTab(); return nil },
+		OnCycleQueriesTab:     func() error { gui.cycleQueriesTab(); return nil },
+		OnCycleTagsTab:        func() error { gui.cycleTagsTab(); return nil },
+		OnFocusSearchFilterOp: func() error { return gui.focusSearchFilter(gui.g, nil) },
 	})
 	gui.globalController = ctrl
+	controllers.AttachController(ctrl)
+}
+
+// setupPaletteContext initializes the PaletteContext and PaletteController.
+func (gui *Gui) setupPaletteContext() {
+	paletteCtx := context.NewPaletteContext()
+	gui.contexts.Palette = paletteCtx
+
+	ctrl := controllers.NewPaletteController(controllers.PaletteControllerOpts{
+		GetContext:  func() *context.PaletteContext { return gui.contexts.Palette },
+		OnEnter:     func() error { return gui.paletteEnter(gui.g, nil) },
+		OnEsc:       func() error { return gui.paletteEsc(gui.g, nil) },
+		OnListClick: func() error { return gui.paletteListClick(gui.g, nil) },
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupSnippetEditorContext initializes the SnippetEditorContext and SnippetEditorController.
+func (gui *Gui) setupSnippetEditorContext() {
+	snippetCtx := context.NewSnippetEditorContext()
+	gui.contexts.SnippetEditor = snippetCtx
+
+	ctrl := controllers.NewSnippetEditorController(controllers.SnippetEditorControllerOpts{
+		GetContext:       func() *context.SnippetEditorContext { return gui.contexts.SnippetEditor },
+		OnEsc:            func() error { return gui.snippetEditorEsc(gui.g, nil) },
+		OnTab:            func() error { return gui.snippetEditorTab(gui.g, nil) },
+		OnEnterName:      func() error { return gui.snippetEditorTab(gui.g, nil) },
+		OnEnterExpansion: func() error { return gui.snippetEditorEnter(gui.g, nil) },
+		OnClickName:      func() error { return gui.snippetEditorClickName(nil, nil) },
+		OnClickExpansion: func() error { return gui.snippetEditorClickExpansion(nil, nil) },
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupCalendarContext initializes the CalendarContext and CalendarController.
+func (gui *Gui) setupCalendarContext() {
+	calendarCtx := context.NewCalendarContext()
+	gui.contexts.Calendar = calendarCtx
+
+	ctrl := controllers.NewCalendarController(controllers.CalendarControllerOpts{
+		GetContext:   func() *context.CalendarContext { return gui.contexts.Calendar },
+		OnGridLeft:   func() error { return gui.calendarGridLeft(nil, nil) },
+		OnGridRight:  func() error { return gui.calendarGridRight(nil, nil) },
+		OnGridUp:     func() error { return gui.calendarGridUp(nil, nil) },
+		OnGridDown:   func() error { return gui.calendarGridDown(nil, nil) },
+		OnGridEnter:  func() error { return gui.calendarGridEnter(nil, nil) },
+		OnEsc:        func() error { return gui.calendarEsc(nil, nil) },
+		OnTab:        func() error { return gui.calendarTab(nil, nil) },
+		OnBacktab:    func() error { return gui.calendarBacktab(nil, nil) },
+		OnFocusInput: func() error { return gui.calendarFocusInput(nil, nil) },
+		OnGridClick: func() error {
+			v, _ := gui.g.View(CalendarGridView)
+			return gui.calendarGridClick(nil, v)
+		},
+		OnInputEnter: func() error {
+			v, _ := gui.g.View(CalendarInputView)
+			return gui.calendarInputEnter(nil, v)
+		},
+		OnInputEsc: func() error {
+			v, _ := gui.g.View(CalendarInputView)
+			return gui.calendarInputEsc(nil, v)
+		},
+		OnInputClick: func() error {
+			v, _ := gui.g.View(CalendarInputView)
+			return gui.calendarInputClick(nil, v)
+		},
+		OnNoteDown:  func() error { return gui.calendarNoteDown(nil, nil) },
+		OnNoteUp:    func() error { return gui.calendarNoteUp(nil, nil) },
+		OnNoteEnter: func() error { return gui.calendarNoteEnter(nil, nil) },
+	})
+	controllers.AttachController(ctrl)
+}
+
+// setupContribContext initializes the ContribContext and ContribController.
+func (gui *Gui) setupContribContext() {
+	contribCtx := context.NewContribContext()
+	gui.contexts.Contrib = contribCtx
+
+	ctrl := controllers.NewContribController(controllers.ContribControllerOpts{
+		GetContext:  func() *context.ContribContext { return gui.contexts.Contrib },
+		OnGridLeft:  func() error { return gui.contribGridLeft(nil, nil) },
+		OnGridRight: func() error { return gui.contribGridRight(nil, nil) },
+		OnGridUp:    func() error { return gui.contribGridUp(nil, nil) },
+		OnGridDown:  func() error { return gui.contribGridDown(nil, nil) },
+		OnGridEnter: func() error { return gui.contribGridEnter(nil, nil) },
+		OnEsc:       func() error { return gui.contribEsc(nil, nil) },
+		OnTab:       func() error { return gui.contribTab(nil, nil) },
+		OnNoteDown:  func() error { return gui.contribNoteDown(nil, nil) },
+		OnNoteUp:    func() error { return gui.contribNoteUp(nil, nil) },
+		OnNoteEnter: func() error { return gui.contribNoteEnter(nil, nil) },
+	})
 	controllers.AttachController(ctrl)
 }
 

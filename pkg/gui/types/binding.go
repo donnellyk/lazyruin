@@ -5,6 +5,7 @@ import "github.com/jesseduffield/gocui"
 // Binding represents a single keybinding with metadata for palette, help, and conflict detection.
 type Binding struct {
 	ID                string         // stable identity for auditing (e.g. "tags.rename")
+	ViewName          string         // if non-empty, register only for this view (default: all context views)
 	Key               any            // gocui key (rune or gocui.Key)
 	Mod               gocui.Modifier // default: gocui.ModNone
 	Handler           func() error
