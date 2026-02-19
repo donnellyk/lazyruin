@@ -76,7 +76,7 @@ func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.filterPaletteCommands("")
-	gui.pushContext(PaletteContext)
+	gui.pushContextByKey(PaletteContext)
 	return nil
 }
 
@@ -275,7 +275,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			OnRun: func() error {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabQueries
 				gui.contexts.Queries.QueriesTrait().SetSelectedLineIdx(idx)
-				gui.setContext(QueriesContext)
+				gui.pushContextByKey(QueriesContext)
 				gui.RenderQueries()
 				return gui.helpers.Queries().RunQuery()
 			},
@@ -291,7 +291,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			OnRun: func() error {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabParents
 				gui.contexts.Queries.ParentsTrait().SetSelectedLineIdx(idx)
-				gui.setContext(QueriesContext)
+				gui.pushContextByKey(QueriesContext)
 				gui.RenderQueries()
 				return gui.helpers.Queries().ViewParent()
 			},
@@ -307,7 +307,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.setContext(TagsContext)
+					gui.pushContextByKey(TagsContext)
 					return gui.helpers.Tags().FilterByTagPick(&tag)
 				},
 			})
@@ -316,7 +316,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.setContext(TagsContext)
+					gui.pushContextByKey(TagsContext)
 					return gui.helpers.Tags().FilterByTagSearch(&tag)
 				},
 			})
@@ -336,7 +336,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			Category: "Note",
 			OnRun: func() error {
 				gui.contexts.Notes.SetSelectedLineIdx(idx)
-				gui.setContext(NotesContext)
+				gui.pushContextByKey(NotesContext)
 				gui.RenderNotes()
 				gui.helpers.Preview().UpdatePreviewForNotes()
 				return nil

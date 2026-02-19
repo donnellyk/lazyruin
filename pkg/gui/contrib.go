@@ -25,7 +25,7 @@ func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
 
 	gui.contribLoadData()
 	gui.contribRefreshNotes()
-	gui.pushContext(ContribCtx)
+	gui.pushContextByKey(ContribCtx)
 	return nil
 }
 
@@ -370,7 +370,7 @@ func (gui *Gui) contribLoadInPreview() {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" Contrib: "+date+" ", notes)
-	gui.setContext(PreviewContext)
+	gui.pushContextByKey(PreviewContext)
 }
 
 // contribLoadNoteInPreview loads a single note into preview.
@@ -393,5 +393,5 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.setContext(PreviewContext)
+	gui.pushContextByKey(PreviewContext)
 }

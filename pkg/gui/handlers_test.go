@@ -904,7 +904,7 @@ func TestNextPanel_IncludesSearchFilter_WhenActive(t *testing.T) {
 	tg.g.ForceLayoutAndRedraw()
 
 	// Cycle should now include SearchFilter at the start
-	tg.gui.setContext(SearchFilterContext)
+	tg.gui.pushContextByKey(SearchFilterContext)
 	tg.gui.globalController.NextPanel()
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("after Tab from SearchFilter: context = %v, want NotesContext", tg.gui.state.currentContext())

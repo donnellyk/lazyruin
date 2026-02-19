@@ -34,7 +34,7 @@ func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.calendarRefreshNotes()
-	gui.pushContext(CalendarCtx)
+	gui.pushContextByKey(CalendarCtx)
 	return nil
 }
 
@@ -452,7 +452,7 @@ func (gui *Gui) calendarLoadInPreview() {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" Calendar: "+date+" ", notes)
-	gui.setContext(PreviewContext)
+	gui.pushContextByKey(PreviewContext)
 }
 
 // calendarLoadNoteInPreview loads a single note into the preview.
@@ -475,5 +475,5 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.setContext(PreviewContext)
+	gui.pushContextByKey(PreviewContext)
 }

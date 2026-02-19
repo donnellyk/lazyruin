@@ -447,32 +447,76 @@ func (gui *Gui) activateContext(ctx ContextKey) {
 }
 
 // pushContext pushes a new context onto the stack and activates it.
-func (gui *Gui) pushContext(ctx ContextKey) {
-	gui.state.ContextStack = append(gui.state.ContextStack, ctx)
-	gui.activateContext(ctx)
+func (gui *Gui) pushContext(ctx types.Context) {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
+	}
+	gui.state.ContextStack = append(gui.state.ContextStack, ctx.GetKey())
+	gui.activateContext(ctx.GetKey())
+	ctx.HandleFocus(types.OnFocusOpts{})
 }
 
 // popContext pops the top context and activates the one below it.
 func (gui *Gui) popContext() {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
+	}
 	if len(gui.state.ContextStack) > 1 {
 		gui.state.ContextStack = gui.state.ContextStack[:len(gui.state.ContextStack)-1]
 	}
 	gui.activateContext(gui.state.currentContext())
+	if next := gui.currentContextObject(); next != nil {
+		next.HandleFocus(types.OnFocusOpts{})
+	}
 }
 
 // replaceContext replaces the top of the stack (e.g., search→preview).
-func (gui *Gui) replaceContext(ctx ContextKey) {
-	if len(gui.state.ContextStack) > 0 {
-		gui.state.ContextStack[len(gui.state.ContextStack)-1] = ctx
-	} else {
-		gui.state.ContextStack = []ContextKey{ctx}
+func (gui *Gui) replaceContext(ctx types.Context) {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
 	}
-	gui.activateContext(ctx)
+	if len(gui.state.ContextStack) > 0 {
+		gui.state.ContextStack[len(gui.state.ContextStack)-1] = ctx.GetKey()
+	} else {
+		gui.state.ContextStack = []ContextKey{ctx.GetKey()}
+	}
+	gui.activateContext(ctx.GetKey())
+	ctx.HandleFocus(types.OnFocusOpts{})
 }
 
-// setContext is a convenience that pushes a new context (legacy compatibility).
-func (gui *Gui) setContext(ctx ContextKey) {
-	gui.pushContext(ctx)
+// pushContextByKey looks up the context by key and pushes it.
+// Falls back to a direct stack push for lightweight contexts not in the tree.
+func (gui *Gui) pushContextByKey(key ContextKey) {
+	ctx := gui.contextByKey(key)
+	if ctx != nil {
+		gui.pushContext(ctx)
+		return
+	}
+	// Lightweight context (e.g., SearchFilterContext): push key directly.
+	gui.state.ContextStack = append(gui.state.ContextStack, key)
+	gui.activateContext(key)
+}
+
+// replaceContextByKey looks up the context by key and replaces the top of the stack.
+// Falls back to a direct stack replace for lightweight contexts not in the tree.
+func (gui *Gui) replaceContextByKey(key ContextKey) {
+	ctx := gui.contextByKey(key)
+	if ctx != nil {
+		gui.replaceContext(ctx)
+		return
+	}
+	// Lightweight context: replace key directly.
+	if len(gui.state.ContextStack) > 0 {
+		gui.state.ContextStack[len(gui.state.ContextStack)-1] = key
+	} else {
+		gui.state.ContextStack = []ContextKey{key}
+	}
+	gui.activateContext(key)
+}
+
+// currentContextObject looks up the types.Context for the top of stack.
+func (gui *Gui) currentContextObject() types.Context {
+	return gui.contextByKey(gui.state.currentContext())
 }
 
 // overlayActive returns true when any overlay or dialog is open.

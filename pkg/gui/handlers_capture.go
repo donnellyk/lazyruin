@@ -12,7 +12,7 @@ func (gui *Gui) openCapture(g *gocui.Gui, v *gocui.View) error {
 	}
 	gui.state.CaptureParent = nil
 	gui.state.CaptureCompletion = NewCompletionState()
-	gui.pushContext(CaptureContext)
+	gui.pushContextByKey(CaptureContext)
 	return nil
 }
 

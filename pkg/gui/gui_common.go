@@ -42,7 +42,7 @@ func (gui *Gui) CurrentContextKey() types.ContextKey {
 
 func (gui *Gui) PushContext(ctx types.Context, opts types.OnFocusOpts) {
 	if ctx != nil {
-		gui.setContext(ctx.GetKey())
+		gui.pushContext(ctx)
 	}
 }
 
@@ -50,7 +50,7 @@ func (gui *Gui) PopContext() { gui.popContext() }
 
 func (gui *Gui) ReplaceContext(ctx types.Context) {
 	if ctx != nil {
-		gui.replaceContext(ctx.GetKey())
+		gui.replaceContext(ctx)
 	}
 }
 
@@ -62,8 +62,8 @@ func (gui *Gui) ContextByKey(key types.ContextKey) types.Context {
 	return gui.contextByKey(key)
 }
 
-func (gui *Gui) PushContextByKey(key types.ContextKey)    { gui.setContext(key) }
-func (gui *Gui) ReplaceContextByKey(key types.ContextKey) { gui.replaceContext(key) }
+func (gui *Gui) PushContextByKey(key types.ContextKey)    { gui.pushContextByKey(key) }
+func (gui *Gui) ReplaceContextByKey(key types.ContextKey) { gui.replaceContextByKey(key) }
 
 // contextByKey looks up a types.Context by its ContextKey.
 func (gui *Gui) contextByKey(key types.ContextKey) types.Context {
