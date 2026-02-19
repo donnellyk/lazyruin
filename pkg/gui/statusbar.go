@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"kvnd/lazyruin/pkg/gui/context"
+
 	"github.com/jesseduffield/gocui"
 )
 
 // showError displays an error message in the status bar for 3 seconds, then restores it.
-func (gui *Gui) showError(err error) {
+func (gui *Gui) ShowError(err error) {
 	if gui.views.Status == nil || err == nil {
 		return
 	}
@@ -18,13 +20,13 @@ func (gui *Gui) showError(err error) {
 	go func() {
 		time.Sleep(3 * time.Second)
 		gui.g.Update(func(g *gocui.Gui) error {
-			gui.updateStatusBar()
+			gui.UpdateStatusBar()
 			return nil
 		})
 	}()
 }
 
-func (gui *Gui) updateStatusBar() {
+func (gui *Gui) UpdateStatusBar() {
 	if gui.views.Status == nil {
 		return
 	}
@@ -47,65 +49,42 @@ func (gui *Gui) updateStatusBar() {
 	}
 }
 
-// notesTabIndex returns the index for the current tab
+// notesTabIndex returns the index for the current notes tab.
+// Delegates to "notes".
 func (gui *Gui) notesTabIndex() int {
-	switch gui.state.Notes.CurrentTab {
-	case NotesTabToday:
-		return 1
-	case NotesTabRecent:
-		return 2
-	default:
-		return 0
-	}
+	return gui.contexts.Notes.TabIndex()
 }
 
-// notesTabs maps tab indices to NotesTab values
-var notesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
-
 // updateNotesTab syncs the gocui view's TabIndex with the current tab
-func (gui *Gui) updateNotesTab() {
+func (gui *Gui) UpdateNotesTab() {
 	if gui.views.Notes != nil {
 		gui.views.Notes.TabIndex = gui.notesTabIndex()
 	}
 }
 
-// queriesTabIndex returns the index for the current queries tab
+// queriesTabIndex returns the index for the current queries tab.
+// Delegates to "queries".
 func (gui *Gui) queriesTabIndex() int {
-	switch gui.state.Queries.CurrentTab {
-	case QueriesTabParents:
-		return 1
-	default:
-		return 0
-	}
+	return gui.contexts.Queries.TabIndex()
 }
 
-// queriesTabs maps tab indices to QueriesTab values
-var queriesTabs = []QueriesTab{QueriesTabQueries, QueriesTabParents}
-
 // updateQueriesTab syncs the gocui view's TabIndex with the current queries tab
-func (gui *Gui) updateQueriesTab() {
+func (gui *Gui) UpdateQueriesTab() {
 	if gui.views.Queries != nil {
 		gui.views.Queries.TabIndex = gui.queriesTabIndex()
 	}
 }
 
-// tagsTabIndex returns the index for the current tags tab
+// tagsTabIndex returns the index for the current tags tab.
+// Delegates to "tags".
 func (gui *Gui) tagsTabIndex() int {
-	switch gui.state.Tags.CurrentTab {
-	case TagsTabGlobal:
-		return 1
-	case TagsTabInline:
-		return 2
-	default:
-		return 0
-	}
+	return gui.contexts.Tags.TabIndex()
 }
 
-// tagsTabs maps tab indices to TagsTab values
-var tagsTabs = []TagsTab{TagsTabAll, TagsTabGlobal, TagsTabInline}
+var tagsTabsNew = []context.TagsTab{context.TagsTabAll, context.TagsTabGlobal, context.TagsTabInline}
 
-// updateTagsTab syncs the gocui view's TabIndex with the current tags tab
-func (gui *Gui) updateTagsTab() {
+// updateTagsTab syncs the gocui view's TabIndex with the current tags tab.
+func (gui *Gui) UpdateTagsTab() {
 	if gui.views.Tags != nil {
 		gui.views.Tags.TabIndex = gui.tagsTabIndex()
 	}

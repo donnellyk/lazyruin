@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // listItem holds the formatted lines for a single list item.
@@ -60,22 +61,23 @@ func renderList(v *gocui.View, itemCount int, selectedIndex int, isActive bool, 
 	scrollListView(v, selLine, linesPerItem, viewHeight)
 }
 
-func (gui *Gui) renderNotes() {
+func (gui *Gui) RenderNotes() {
 	v := gui.views.Notes
 	if v == nil {
 		return
 	}
 
+	notesCtx := gui.contexts.Notes
 	width := v.InnerWidth()
 	if width < 10 {
 		width = 30
 	}
 
-	renderList(v, len(gui.state.Notes.Items), gui.state.Notes.SelectedIndex,
-		gui.state.CurrentContext == NotesContext, 3,
+	renderList(v, len(notesCtx.Items), notesCtx.GetSelectedLineIdx(),
+		gui.contextMgr.Current() == "notes", 3,
 		"\n No notes found.\n\n Press 'n' to create a new note\n or '/' to search",
 		func(i int, _ bool) listItem {
-			note := gui.state.Notes.Items[i]
+			note := notesCtx.Items[i]
 
 			title := note.Title
 			if title == "" {
@@ -106,8 +108,9 @@ func (gui *Gui) renderNotes() {
 		})
 }
 
-func (gui *Gui) renderQueries() {
-	if gui.state.Queries.CurrentTab == QueriesTabParents {
+func (gui *Gui) RenderQueries() {
+	queriesCtx := gui.contexts.Queries
+	if queriesCtx.CurrentTab == "parents" {
 		gui.renderParents()
 		return
 	}
@@ -120,11 +123,12 @@ func (gui *Gui) renderQueriesList() {
 		return
 	}
 
-	renderList(v, len(gui.state.Queries.Items), gui.state.Queries.SelectedIndex,
-		gui.state.CurrentContext == QueriesContext, 2,
+	queriesCtx := gui.contexts.Queries
+	renderList(v, len(queriesCtx.Queries), queriesCtx.QueriesTrait().GetSelectedLineIdx(),
+		gui.contextMgr.Current() == "queries", 2,
 		" No saved queries.",
 		func(i int, _ bool) listItem {
-			query := gui.state.Queries.Items[i]
+			query := queriesCtx.Queries[i]
 			queryStr := query.Query
 			if len(queryStr) > 25 {
 				queryStr = queryStr[:22] + "..."
@@ -142,16 +146,17 @@ func (gui *Gui) renderParents() {
 		return
 	}
 
+	queriesCtx := gui.contexts.Queries
 	width, _ := v.Size()
 	if width < 10 {
 		width = 30
 	}
 
-	renderList(v, len(gui.state.Parents.Items), gui.state.Parents.SelectedIndex,
-		gui.state.CurrentContext == QueriesContext, 2,
+	renderList(v, len(queriesCtx.Parents), queriesCtx.ParentsTrait().GetSelectedLineIdx(),
+		gui.contextMgr.Current() == "queries", 2,
 		" No parent bookmarks.",
 		func(i int, _ bool) listItem {
-			parent := gui.state.Parents.Items[i]
+			parent := queriesCtx.Parents[i]
 			title := parent.Title
 			if len(title) > width-6 {
 				title = title[:width-9] + "..."
@@ -163,15 +168,16 @@ func (gui *Gui) renderParents() {
 		})
 }
 
-func (gui *Gui) renderTags() {
+func (gui *Gui) RenderTags() {
 	v := gui.views.Tags
 	if v == nil {
 		return
 	}
 
-	items := gui.filteredTagItems()
-	renderList(v, len(items), gui.state.Tags.SelectedIndex,
-		gui.state.CurrentContext == TagsContext, 1,
+	tagsCtx := gui.contexts.Tags
+	items := tagsCtx.FilteredItems()
+	renderList(v, len(items), tagsCtx.GetSelectedLineIdx(),
+		gui.contextMgr.Current() == "tags", 1,
 		" No tags found.",
 		func(i int, selected bool) listItem {
 			tag := items[i]

@@ -1,6 +1,10 @@
 package gui
 
-import "github.com/jesseduffield/gocui"
+import (
+	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
+)
 
 // DrillFlags controls which drill-down behaviors a completionEditor supports.
 type DrillFlags int
@@ -11,12 +15,12 @@ const (
 )
 
 // completionEditor is a configurable gocui.Editor that handles completion
-// navigation and drill-down for any popup with a CompletionState.
+// navigation and drill-down for any popup with a types.CompletionState.
 // It replaces the four near-identical editors (search, pick, inputPopup, snippet).
 type completionEditor struct {
 	gui        *Gui
-	state      func() *CompletionState
-	triggers   func() []CompletionTrigger
+	state      func() *types.CompletionState
+	triggers   func() []types.CompletionTrigger
 	drillFlags DrillFlags
 }
 

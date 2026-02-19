@@ -26,32 +26,40 @@ Higher-order functions (`completionEsc`, `completionTab`, `completionEnter`) tha
 
 ## 4. Dialog System
 
-**Files:** `dialogs.go`, `state.go` (`DialogState`)
+**Files:** `dialogs.go`, `types/dialog.go`
 
 Generic modal dialog framework supporting three types:
 
 - **Confirm:** Yes/no prompts (e.g., "Delete note?")
 - **Input:** Text field with callback (e.g., "Rename tag to:")
-- **Menu:** Navigable list with optional shortcut keys (e.g., help, merge direction)
+- **Menu:** Navigable list with optional shortcut keys (e.g., help, merge direction, view options)
 
-API: `showConfirm(title, message, onConfirm)`, `showInput(title, message, onConfirm)`, `closeDialog()`.
+`MenuItem` is defined in `types/dialog.go` (shared by helpers). `DialogState` is in `dialogs.go`.
+
+API: `showConfirm(title, message, onConfirm)`, `showInput(title, message, onConfirm)`, `ShowMenuDialog(title, items)`, `closeDialog()`.
 
 ## 5. Input Popup Configuration
 
-**Files:** `state.go` (`InputPopupConfig`), `handlers_preview.go`
+**Files:** `types/popup.go`
 
-Generic "fill in a field" popup with configurable title, seed text, completion triggers, and `OnAccept` callback. Used for parent selection, tag rename, query save, and any future single-field dialogs.
+Generic "fill in a field" popup with configurable title, seed text, completion triggers, and `OnAccept` callback. Used for parent selection, tag rename, query save, inline tag/date toggling, and any future single-field dialogs. `InputPopupConfig` lives in `types/` so helpers can create popups without importing `gui`.
 
 ## 6. List Panel Navigation
 
-**Files:** `handlers.go` (`listPanel`)
+**Files:** `context/list_context_trait.go`, `controllers/list_controller_trait.go`
 
-Shared j/k/g/G/arrow/mouse-wheel navigation for Notes, Queries, Tags, and Parents panels. Configured via closures:
+`ListContextTrait` (embedded in each list context) owns the selection cursor and render/preview callbacks. `ListControllerTrait[T]` (embedded in each list controller) provides shared j/k/g/G/arrow navigation against the context.
 
-- `selectedIndex *int` — pointer to the panel's selection state
-- `itemCount func() int` — current item count
-- `render func()` — re-render the list
-- `updatePreview func()` — refresh preview for new selection
+Controller-side API:
+- `NavBindings()` — returns the standard j/k/g/G/arrow `*types.Binding` slice
+- `withItem(fn)` — guard that calls `fn(item)` only when a selection exists
+- `singleItemSelected()` — produces a `DisabledReason` for binding guards
+- `require(reasons...)` — combines multiple disabled reasons
+
+Context-side state:
+- `ListCursor` — holds `selectedLineIdx` and delegates clamp/find-by-ID to the context's `IList`
+- `renderFn func()` — re-renders the list view (called on selection change)
+- `updatePreviewFn func()` — refreshes preview for the new selection
 
 ## 7. Generic List Rendering
 
@@ -59,23 +67,21 @@ Shared j/k/g/G/arrow/mouse-wheel navigation for Notes, Queries, Tags, and Parent
 
 Renders any list panel with selection highlighting, scroll management, empty-state message, and per-item formatting via a builder callback. Drives all four list panels plus the command palette.
 
-## 8. Command Table
+## 8. Palette Command Sources
 
-**Files:** `commands.go`
+**Files:** `commands.go`, `handlers_palette.go`
 
-Single `Command` struct is the source of truth for both keybinding registration and command palette generation:
+The command palette aggregates from two sources:
 
-- `Keys` / `Views` — gocui keybindings (nil = palette-only)
-- `Handler` / `OnRun` — action callbacks
-- `Contexts` — palette context filtering (nil = always visible)
-- `NoPalette` — suppress from palette
-- `KeyHint` — display hint (auto-derived if empty)
+1. **Controller bindings** — any `types.Binding` with a non-empty `Description` automatically appears in the palette. The binding's `Category` and `Description` become the palette entry; `Key` is shown as the shortcut hint.
+
+2. **`paletteOnlyCommands()`** (`commands.go`) — tab-switching and snippet management commands that have no keybinding; accessible only via the palette. Returns `[]PaletteCommand` which is merged with the controller-derived entries in `handlers_palette.go`.
 
 ## 9. Context System
 
 **Files:** `gui.go`, `state.go` (`ContextKey`)
 
-`ContextKey` enum (Notes, Queries, Tags, Preview, Search, SearchFilter, Capture, Pick, Palette) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions and tracks `PreviousContext` for back-navigation.
+`ContextKey` enum (Notes, Queries, Tags, Preview, Search, SearchFilter, Capture, Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions. `ContextStack` tracks the navigation path for back-navigation.
 
 ## 10. Hint Definitions
 
@@ -88,3 +94,17 @@ Single `Command` struct is the source of truth for both keybinding registration 
 **Files:** `completion_render.go` (`renderSuggestionView`)
 
 Generic suggestion dropdown renderer with scrolling and column-aligned label + detail. Used by all five completion-capable views (search, capture, pick, input popup, snippet).
+
+## 12. IGuiCommon Interface Bridge
+
+**Files:** `gui_common.go`, `helpers/helper_common.go`, `controllers/controller_common.go`
+
+Two separate `IGuiCommon` interfaces prevent circular imports between `gui`, `helpers`, and `controllers`. `*Gui` satisfies both via adapter methods in `gui_common.go`. This allows helpers and controllers to call GUI operations (render, refresh, show dialogs, push context) without importing the `gui` package.
+
+Controllers access helpers through the `IHelpers` interface, which provides typed accessors for each helper (e.g., `Helpers().Preview()`, `Helpers().NoteActions()`).
+
+## 13. Preview Navigation History
+
+**Files:** `helpers/preview_helper.go`, `context/preview_state.go`
+
+The preview pane maintains a navigation history stack (`NavHistory []NavEntry`) in `PreviewContext`. Each entry captures the full preview state (cards, mode, cursor, scroll, title). `PushNavHistory()` snapshots before navigating, `NavBack()`/`NavForward()` restore entries. The history caps at 50 entries and supports `ShowNavHistory()` to jump to any entry via a menu dialog.

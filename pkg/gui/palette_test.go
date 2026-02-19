@@ -5,264 +5,261 @@ import (
 	"strings"
 	"testing"
 
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
+
 	"github.com/jesseduffield/gocui"
 )
 
 // --- Unit tests for filtering and availability ---
 
 func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
-			{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
+			{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("")
 
-	if len(gui.state.Palette.Filtered) != 3 {
-		t.Errorf("Filtered = %d, want 3", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 3 {
+		t.Errorf("Filtered = %d, want 3", len(gui.contexts.Palette.Palette.Filtered))
 	}
 }
 
 func TestFilterPaletteCommands_MatchesName(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
 			{Name: "Edit Note", Category: "Notes"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("quit")
 
-	if len(gui.state.Palette.Filtered) != 1 {
-		t.Errorf("Filtered = %d, want 1", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 1 {
+		t.Errorf("Filtered = %d, want 1", len(gui.contexts.Palette.Palette.Filtered))
 	}
-	if gui.state.Palette.Filtered[0].Name != "Quit" {
-		t.Errorf("Filtered[0].Name = %q, want Quit", gui.state.Palette.Filtered[0].Name)
+	if gui.contexts.Palette.Palette.Filtered[0].Name != "Quit" {
+		t.Errorf("Filtered[0].Name = %q, want Quit", gui.contexts.Palette.Palette.Filtered[0].Name)
 	}
 }
 
 func TestFilterPaletteCommands_MatchesCategory(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
 			{Name: "Edit Note", Category: "Notes"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("notes")
 
-	if len(gui.state.Palette.Filtered) != 1 {
-		t.Errorf("Filtered = %d, want 1", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 1 {
+		t.Errorf("Filtered = %d, want 1", len(gui.contexts.Palette.Palette.Filtered))
 	}
-	if gui.state.Palette.Filtered[0].Name != "Edit Note" {
-		t.Errorf("Filtered[0].Name = %q, want Edit Note", gui.state.Palette.Filtered[0].Name)
+	if gui.contexts.Palette.Palette.Filtered[0].Name != "Edit Note" {
+		t.Errorf("Filtered[0].Name = %q, want Edit Note", gui.contexts.Palette.Palette.Filtered[0].Name)
 	}
 }
 
 func TestFilterPaletteCommands_CaseInsensitive(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Toggle Frontmatter", Category: "Preview"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("FRONT")
 
-	if len(gui.state.Palette.Filtered) != 1 {
-		t.Errorf("Filtered = %d, want 1", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 1 {
+		t.Errorf("Filtered = %d, want 1", len(gui.contexts.Palette.Palette.Filtered))
 	}
 }
 
 func TestFilterPaletteCommands_NoMatch(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("zzzzz")
 
-	if len(gui.state.Palette.Filtered) != 0 {
-		t.Errorf("Filtered = %d, want 0", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 0 {
+		t.Errorf("Filtered = %d, want 0", len(gui.contexts.Palette.Palette.Filtered))
 	}
 }
 
 func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
-			{Name: "Delete Tag", Category: "Tags", Contexts: []ContextKey{TagsContext}},
-			{Name: "Delete Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
+			{Name: "Delete Tag", Category: "Tags", Contexts: []types.ContextKey{"tags"}},
+			{Name: "Delete Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}},
 			{Name: "Quit", Category: "Global"},
 		},
-		OriginContext: NotesContext,
 	}
 
 	gui.filterPaletteCommands("delete")
 
-	if len(gui.state.Palette.Filtered) != 2 {
-		t.Fatalf("Filtered = %d, want 2", len(gui.state.Palette.Filtered))
+	if len(gui.contexts.Palette.Palette.Filtered) != 2 {
+		t.Fatalf("Filtered = %d, want 2", len(gui.contexts.Palette.Palette.Filtered))
 	}
 	// Available command (Notes context matches) should come first
-	if gui.state.Palette.Filtered[0].Name != "Delete Note" {
-		t.Errorf("Filtered[0].Name = %q, want Delete Note (available first)", gui.state.Palette.Filtered[0].Name)
+	if gui.contexts.Palette.Palette.Filtered[0].Name != "Delete Note" {
+		t.Errorf("Filtered[0].Name = %q, want Delete Note (available first)", gui.contexts.Palette.Palette.Filtered[0].Name)
 	}
-	if gui.state.Palette.Filtered[1].Name != "Delete Tag" {
-		t.Errorf("Filtered[1].Name = %q, want Delete Tag (unavailable second)", gui.state.Palette.Filtered[1].Name)
+	if gui.contexts.Palette.Palette.Filtered[1].Name != "Delete Tag" {
+		t.Errorf("Filtered[1].Name = %q, want Delete Tag (unavailable second)", gui.contexts.Palette.Palette.Filtered[1].Name)
 	}
 }
 
 func TestFilterPaletteCommands_ClampsSelection(t *testing.T) {
-	gui := &Gui{state: NewGuiState()}
-	gui.state.Palette = &PaletteState{
-		Commands: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
 			{Name: "Refresh", Category: "Global"},
 		},
-		OriginContext: NotesContext,
+
 		SelectedIndex: 2,
 	}
 
 	// Filter to 1 result; selection must clamp
 	gui.filterPaletteCommands("quit")
 
-	if gui.state.Palette.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0 (clamped)", gui.state.Palette.SelectedIndex)
+	if gui.contexts.Palette.Palette.SelectedIndex != 0 {
+		t.Errorf("SelectedIndex = %d, want 0 (clamped)", gui.contexts.Palette.Palette.SelectedIndex)
 	}
 }
 
 func TestIsPaletteCommandAvailable_EmptyContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Quit", Category: "Global"}
-	if !isPaletteCommandAvailable(cmd, NotesContext) {
+	cmd := types.PaletteCommand{Name: "Quit", Category: "Global"}
+	if !isPaletteCommandAvailable(cmd, "notes") {
 		t.Error("command with empty Context should always be available")
 	}
-	if !isPaletteCommandAvailable(cmd, TagsContext) {
+	if !isPaletteCommandAvailable(cmd, "tags") {
 		t.Error("command with empty Context should always be available")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MatchingContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
-	if !isPaletteCommandAvailable(cmd, NotesContext) {
+	cmd := types.PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}}
+	if !isPaletteCommandAvailable(cmd, "notes") {
 		t.Error("command should be available when context matches")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MismatchedContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
-	if isPaletteCommandAvailable(cmd, TagsContext) {
+	cmd := types.PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}}
+	if isPaletteCommandAvailable(cmd, "tags") {
 		t.Error("command should not be available when context doesn't match")
 	}
 }
 
 func TestPaletteSelectMove_Down(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}}
-	gui.state.Palette = &PaletteState{
-		Filtered: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"}, {Name: "C"},
 		},
 		SelectedIndex: 0,
 	}
 
 	gui.paletteSelectMove(1)
-	if gui.state.Palette.SelectedIndex != 1 {
-		t.Errorf("SelectedIndex = %d, want 1", gui.state.Palette.SelectedIndex)
+	if gui.contexts.Palette.Palette.SelectedIndex != 1 {
+		t.Errorf("SelectedIndex = %d, want 1", gui.contexts.Palette.Palette.SelectedIndex)
 	}
 }
 
 func TestPaletteSelectMove_Up(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}}
-	gui.state.Palette = &PaletteState{
-		Filtered: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"}, {Name: "C"},
 		},
 		SelectedIndex: 2,
 	}
 
 	gui.paletteSelectMove(-1)
-	if gui.state.Palette.SelectedIndex != 1 {
-		t.Errorf("SelectedIndex = %d, want 1", gui.state.Palette.SelectedIndex)
+	if gui.contexts.Palette.Palette.SelectedIndex != 1 {
+		t.Errorf("SelectedIndex = %d, want 1", gui.contexts.Palette.Palette.SelectedIndex)
 	}
 }
 
 func TestPaletteSelectMove_ClampsAtTop(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}}
-	gui.state.Palette = &PaletteState{
-		Filtered: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"},
 		},
 		SelectedIndex: 0,
 	}
 
 	gui.paletteSelectMove(-1)
-	if gui.state.Palette.SelectedIndex != 0 {
-		t.Errorf("SelectedIndex = %d, want 0 (clamped)", gui.state.Palette.SelectedIndex)
+	if gui.contexts.Palette.Palette.SelectedIndex != 0 {
+		t.Errorf("SelectedIndex = %d, want 0 (clamped)", gui.contexts.Palette.Palette.SelectedIndex)
 	}
 }
 
 func TestPaletteSelectMove_ClampsAtBottom(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}}
-	gui.state.Palette = &PaletteState{
-		Filtered: []PaletteCommand{
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"},
 		},
 		SelectedIndex: 1,
 	}
 
 	gui.paletteSelectMove(1)
-	if gui.state.Palette.SelectedIndex != 1 {
-		t.Errorf("SelectedIndex = %d, want 1 (clamped)", gui.state.Palette.SelectedIndex)
+	if gui.contexts.Palette.Palette.SelectedIndex != 1 {
+		t.Errorf("SelectedIndex = %d, want 1 (clamped)", gui.contexts.Palette.Palette.SelectedIndex)
 	}
 }
 
 // --- GUI integration tests ---
 
-func TestOpenPalette_EntersPaletteMode(t *testing.T) {
+func TestOpenPalette_EntersPaletteOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	tg.gui.openPalette(tg.g, nil)
 
-	if !tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be true")
+	if !tg.gui.popupActive() {
+		t.Error("popupActive() should be true after openPalette")
 	}
-	if tg.gui.state.CurrentContext != PaletteContext {
-		t.Errorf("CurrentContext = %v, want PaletteContext", tg.gui.state.CurrentContext)
+	if tg.gui.contextMgr.Current() != "palette" {
+		t.Errorf("currentContext() = %v, want palette", tg.gui.contextMgr.Current())
 	}
-	if tg.gui.state.Palette == nil {
+	if tg.gui.contexts.Palette.Palette == nil {
 		t.Fatal("Palette state should not be nil")
 	}
-	if len(tg.gui.state.Palette.Filtered) == 0 {
+	if len(tg.gui.contexts.Palette.Palette.Filtered) == 0 {
 		t.Error("Filtered commands should not be empty")
 	}
 }
 
-func TestOpenPalette_RecordsOriginContext(t *testing.T) {
+func TestOpenPalette_PreviousContextIsOrigin(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.Palette.OriginContext != TagsContext {
-		t.Errorf("OriginContext = %v, want TagsContext", tg.gui.state.Palette.OriginContext)
+	if tg.gui.contextMgr.Previous() != "tags" {
+		t.Errorf("previousContext() = %v, want tags", tg.gui.contextMgr.Previous())
 	}
 }
 
@@ -270,11 +267,11 @@ func TestOpenPalette_BlockedDuringSearch(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openSearch(tg.g, nil)
+	tg.gui.helpers.Search().OpenSearch()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during search")
+	if tg.gui.contextMgr.Current() != "search" {
+		t.Error("currentContext should remain search, not switch to palette")
 	}
 }
 
@@ -282,11 +279,11 @@ func TestOpenPalette_BlockedDuringCapture(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openCapture(tg.g, nil)
+	tg.gui.helpers.Capture().OpenCapture()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during capture")
+	if tg.gui.contextMgr.Current() != "capture" {
+		t.Error("currentContext should remain capture, not switch to palette")
 	}
 }
 
@@ -294,11 +291,11 @@ func TestOpenPalette_BlockedDuringPick(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openPick(tg.g, nil)
+	tg.gui.helpers.Pick().OpenPick()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should not activate during pick")
+	if tg.gui.contextMgr.Current() != "pick" {
+		t.Error("currentContext should remain pick, not switch to palette")
 	}
 }
 
@@ -310,9 +307,9 @@ func TestOpenPalette_BlockedWhenAlreadyOpen(t *testing.T) {
 	// Try opening again
 	tg.gui.openPalette(tg.g, nil)
 
-	// Should still be in palette mode, not double-opened
-	if !tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should still be true")
+	// Should still be in palette context, not double-opened
+	if tg.gui.contextMgr.Current() != "palette" {
+		t.Error("currentContext should still be palette")
 	}
 }
 
@@ -320,18 +317,18 @@ func TestClosePalette_RestoresContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.closePalette()
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after close")
+	if tg.gui.popupActive() {
+		t.Error("popupActive() should be false after closePalette")
 	}
-	if tg.gui.state.Palette != nil {
+	if tg.gui.contexts.Palette.Palette != nil {
 		t.Error("Palette state should be nil after close")
 	}
-	if tg.gui.state.CurrentContext != TagsContext {
-		t.Errorf("CurrentContext = %v, want TagsContext (restored)", tg.gui.state.CurrentContext)
+	if tg.gui.contextMgr.Current() != "tags" {
+		t.Errorf("currentContext() = %v, want tags (restored)", tg.gui.contextMgr.Current())
 	}
 }
 
@@ -342,8 +339,8 @@ func TestPaletteEsc_ClosesPalette(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.paletteEsc(tg.g, nil)
 
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after Esc")
+	if tg.gui.popupActive() {
+		t.Error("popupActive() should be false after paletteEsc")
 	}
 }
 
@@ -355,7 +352,7 @@ func TestPaletteEnter_ExecutesCommand(t *testing.T) {
 
 	// Find "Quit" in the filtered list and select it
 	quitIdx := -1
-	for i, cmd := range tg.gui.state.Palette.Filtered {
+	for i, cmd := range tg.gui.contexts.Palette.Palette.Filtered {
 		if cmd.Name == "Quit" {
 			quitIdx = i
 			break
@@ -365,7 +362,7 @@ func TestPaletteEnter_ExecutesCommand(t *testing.T) {
 		t.Fatal("Quit command not found in palette")
 	}
 
-	tg.gui.state.Palette.SelectedIndex = quitIdx
+	tg.gui.contexts.Palette.Palette.SelectedIndex = quitIdx
 	err := tg.gui.paletteEnter(tg.g, nil)
 
 	if err != gocui.ErrQuit {
@@ -378,12 +375,12 @@ func TestPaletteEnter_SkipsUnavailableCommand(t *testing.T) {
 	defer tg.Close()
 
 	// Open palette from Tags context
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
-	// Find "Open in Editor" (requires NotesContext, unavailable from Tags)
+	// Find "Open in Editor" (requires "notes", unavailable from Tags)
 	editIdx := -1
-	for i, cmd := range tg.gui.state.Palette.Filtered {
+	for i, cmd := range tg.gui.contexts.Palette.Palette.Filtered {
 		if cmd.Name == "Open in Editor" {
 			editIdx = i
 			break
@@ -393,7 +390,7 @@ func TestPaletteEnter_SkipsUnavailableCommand(t *testing.T) {
 		t.Fatal("Open in Editor command not found in palette")
 	}
 
-	tg.gui.state.Palette.SelectedIndex = editIdx
+	tg.gui.contexts.Palette.Palette.SelectedIndex = editIdx
 	err := tg.gui.paletteEnter(tg.g, nil)
 
 	if err != nil {
@@ -412,7 +409,7 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 
 	// Find "Focus Preview" and execute it
 	idx := -1
-	for i, cmd := range tg.gui.state.Palette.Filtered {
+	for i, cmd := range tg.gui.contexts.Palette.Palette.Filtered {
 		if cmd.Name == "Focus Preview" {
 			idx = i
 			break
@@ -422,15 +419,15 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 		t.Fatal("Focus Preview not found in palette")
 	}
 
-	tg.gui.state.Palette.SelectedIndex = idx
+	tg.gui.contexts.Palette.Palette.SelectedIndex = idx
 	tg.gui.paletteEnter(tg.g, nil)
 
 	// Palette should be closed and we should be in Preview context
-	if tg.gui.state.PaletteMode {
-		t.Error("PaletteMode should be false after execution")
+	if tg.gui.popupActive() {
+		t.Error("popupActive() should be false after palette execution")
 	}
-	if tg.gui.state.CurrentContext != PreviewContext {
-		t.Errorf("CurrentContext = %v, want PreviewContext", tg.gui.state.CurrentContext)
+	if tg.gui.contextMgr.Current() != "preview" {
+		t.Errorf("currentContext() = %v, want preview", tg.gui.contextMgr.Current())
 	}
 }
 
@@ -485,25 +482,26 @@ func TestPaletteViewsDeleted_WhenClosed(t *testing.T) {
 }
 
 func TestContextToView_Palette(t *testing.T) {
-	gui := &Gui{}
-	if gui.contextToView(PaletteContext) != PaletteView {
-		t.Errorf("contextToView(PaletteContext) = %q, want %q", gui.contextToView(PaletteContext), PaletteView)
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+	key := types.ContextKey("palette")
+	if tg.gui.contextToView(key) != PaletteView {
+		t.Errorf("contextToView(palette) = %q, want %q", tg.gui.contextToView(key), PaletteView)
 	}
 }
 
-func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
+func TestPaletteOnlyCommands_AllAppearInPaletteCommands(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	cmds := tg.gui.commands()
+	onlyCmds := tg.gui.paletteOnlyCommands()
 	paletteCmds := tg.gui.paletteCommands()
 
-	// Build set of palette command names+contexts key
 	type key struct {
 		name     string
 		contexts string
 	}
-	contextsKey := func(ctxs []ContextKey) string {
+	contextsKey := func(ctxs []types.ContextKey) string {
 		sorted := make([]string, len(ctxs))
 		for i, c := range ctxs {
 			sorted[i] = string(c)
@@ -516,18 +514,15 @@ func TestCommands_AllBoundCommandsHavePaletteEntry(t *testing.T) {
 		paletteSet[key{pc.Name, contextsKey(pc.Contexts)}] = true
 	}
 
-	for _, cmd := range cmds {
-		if cmd.NoPalette || cmd.Name == "" || cmd.Handler == nil || len(cmd.Keys) == 0 {
-			continue
-		}
+	for _, cmd := range onlyCmds {
 		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if !paletteSet[k] {
-			t.Errorf("command %q (contexts %q) has Keys+Handler but no palette entry", cmd.Name, cmd.Contexts)
+			t.Errorf("paletteOnlyCommands entry %q (contexts %q) not found in paletteCommands()", cmd.Name, cmd.Contexts)
 		}
 	}
 }
 
-func TestCommands_NoDuplicateNameContexts(t *testing.T) {
+func TestPaletteCommands_NoDuplicateNameContexts(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
@@ -535,7 +530,7 @@ func TestCommands_NoDuplicateNameContexts(t *testing.T) {
 		name     string
 		contexts string
 	}
-	contextsKey := func(ctxs []ContextKey) string {
+	contextsKey := func(ctxs []types.ContextKey) string {
 		sorted := make([]string, len(ctxs))
 		for i, c := range ctxs {
 			sorted[i] = string(c)
@@ -544,13 +539,10 @@ func TestCommands_NoDuplicateNameContexts(t *testing.T) {
 		return strings.Join(sorted, ",")
 	}
 	seen := make(map[key]bool)
-	for _, cmd := range tg.gui.commands() {
-		if cmd.Name == "" {
-			continue
-		}
+	for _, cmd := range tg.gui.paletteCommands() {
 		k := key{cmd.Name, contextsKey(cmd.Contexts)}
 		if seen[k] {
-			t.Errorf("duplicate command: Name=%q Contexts=%q", cmd.Name, cmd.Contexts)
+			t.Errorf("duplicate palette command: Name=%q Contexts=%q", cmd.Name, cmd.Contexts)
 		}
 		seen[k] = true
 	}

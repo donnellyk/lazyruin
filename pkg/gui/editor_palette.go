@@ -14,7 +14,7 @@ type paletteEditor struct {
 }
 
 func (e *paletteEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) bool {
-	state := e.gui.state.Palette
+	state := e.gui.contexts.Palette.Palette
 	if state == nil {
 		return false
 	}

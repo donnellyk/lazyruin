@@ -5,6 +5,10 @@ import (
 
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/config"
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/controllers"
+	helperspkg "kvnd/lazyruin/pkg/gui/helpers"
+	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/termenv"
@@ -20,16 +24,50 @@ type Gui struct {
 	stopBg         chan struct{}
 	QuickCapture   bool // when true, open capture on start and quit on save
 	darkBackground bool
+
+	// New controller/context architecture (Phase 2+)
+	contexts          *context.ContextTree
+	contextMgr        *ContextMgr
+	notesController   *controllers.NotesController
+	tagsController    *controllers.TagsController
+	queriesController *controllers.QueriesController
+	previewController *controllers.PreviewController
+	globalController  *controllers.GlobalController
+
+	// Shared helper/controller dependencies
+	helpers          *helperspkg.Helpers
+	controllerCommon *controllers.ControllerCommon
 }
 
 // NewGui creates a new Gui instance.
 func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
-	return &Gui{
-		config:  cfg,
-		ruinCmd: ruinCmd,
-		views:   &Views{},
-		state:   NewGuiState(),
+	gui := &Gui{
+		config:     cfg,
+		ruinCmd:    ruinCmd,
+		views:      &Views{},
+		state:      NewGuiState(),
+		contexts:   &context.ContextTree{},
+		contextMgr: NewContextMgr(),
 	}
+	// Wire shared helper/controller dependencies.
+	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui.config, gui)
+	gui.helpers = helperspkg.NewHelpers(helperCommon)
+	gui.controllerCommon = controllers.NewControllerCommon(gui, ruinCmd, gui.helpers)
+
+	gui.setupNotesContext()
+	gui.setupTagsContext()
+	gui.setupQueriesContext()
+	gui.setupPreviewContext()
+	gui.setupSearchContext()
+	gui.setupCaptureContext()
+	gui.setupPickContext()
+	gui.setupInputPopupContext()
+	gui.setupGlobalContext()
+	gui.setupPaletteContext()
+	gui.setupSnippetEditorContext()
+	gui.setupCalendarContext()
+	gui.setupContribContext()
+	return gui
 }
 
 // Run starts the GUI event loop.
@@ -93,126 +131,114 @@ func (gui *Gui) backgroundRefresh() {
 // backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
 func (gui *Gui) backgroundRefreshData() {
 	// Preserve selections
-	cardIdx := gui.state.Preview.SelectedCardIndex
+	cardIdx := gui.contexts.Preview.SelectedCardIndex
 
-	gui.refreshNotes(true)
-	gui.refreshTags(true)
-	gui.refreshQueries(true)
-	gui.refreshParents(true)
+	gui.RefreshNotes(true)
+	gui.RefreshTags(true)
+	gui.RefreshQueries(true)
+	gui.RefreshParents(true)
 
-	if gui.state.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.state.Preview.Cards) {
-		gui.state.Preview.SelectedCardIndex = cardIdx
+	if gui.contexts.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.contexts.Preview.Cards) {
+		gui.contexts.Preview.SelectedCardIndex = cardIdx
 	}
 
-	gui.renderPreview()
-	gui.updateStatusBar()
+	gui.RenderPreview()
+	gui.UpdateStatusBar()
 }
 
-// renderAll re-renders all views with current state (e.g. after resize)
-func (gui *Gui) renderAll() {
-	gui.renderNotes()
-	gui.renderQueries()
-	gui.renderTags()
-	gui.renderPreview()
-	gui.updateStatusBar()
-}
-
-func (gui *Gui) refreshAll() {
-	gui.refreshNotes(false)
-	gui.refreshTags(false)
-	gui.refreshQueries(false)
-	gui.refreshParents(false)
-}
-
-func (gui *Gui) refreshNotes(preserve bool) {
-	gui.fetchNotesForCurrentTab(preserve)
-}
-
-func (gui *Gui) refreshTags(preserve bool) {
-	idx := gui.state.Tags.SelectedIndex
-	tags, err := gui.ruinCmd.Tags.List()
-	if err != nil {
-		return
-	}
-	gui.state.Tags.Items = tags
-	if preserve && idx < len(tags) {
-		gui.state.Tags.SelectedIndex = idx
-	} else {
-		gui.state.Tags.SelectedIndex = 0
-	}
-	gui.renderTags()
-}
-
-func (gui *Gui) refreshQueries(preserve bool) {
-	idx := gui.state.Queries.SelectedIndex
-	queries, err := gui.ruinCmd.Queries.List()
-	if err != nil {
-		return
-	}
-	gui.state.Queries.Items = queries
-	if preserve && idx < len(queries) {
-		gui.state.Queries.SelectedIndex = idx
-	} else {
-		gui.state.Queries.SelectedIndex = 0
-	}
-	gui.renderQueries()
-}
-
-func (gui *Gui) setContext(ctx ContextKey) {
-	gui.state.PreviousContext = gui.state.CurrentContext
-	gui.state.CurrentContext = ctx
-
+// activateContext sets focus and re-renders lists for the given context.
+// Per-context refresh/preview logic is handled by HandleFocus hooks.
+func (gui *Gui) activateContext(ctx types.ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
 
 	// Re-render lists to update highlight visibility
-	gui.renderNotes()
-	gui.renderQueries()
-	gui.renderTags()
+	gui.RenderNotes()
+	gui.RenderQueries()
+	gui.RenderTags()
 
-	// Refresh data (preserving selections) and update preview based on new context
-	switch ctx {
-	case NotesContext:
-		gui.refreshNotes(true)
-		gui.updatePreviewForNotes()
-	case QueriesContext:
-		if gui.state.Queries.CurrentTab == QueriesTabParents {
-			gui.refreshParents(true)
-			gui.updatePreviewForParents()
-		} else {
-			gui.refreshQueries(true)
-			gui.updatePreviewForQueries()
-		}
-	case TagsContext:
-		gui.refreshTags(true)
-		gui.updatePreviewForTags()
-	case PreviewContext:
-		gui.renderPreview()
-	}
-
-	gui.updateStatusBar()
+	gui.UpdateStatusBar()
 }
 
-func (gui *Gui) contextToView(ctx ContextKey) string {
-	switch ctx {
-	case NotesContext:
-		return NotesView
-	case QueriesContext:
-		return QueriesView
-	case TagsContext:
-		return TagsView
-	case PreviewContext:
-		return PreviewView
-	case SearchContext:
-		return SearchView
-	case SearchFilterContext:
-		return SearchFilterView
-	case CaptureContext:
-		return CaptureView
-	case PickContext:
-		return PickView
-	case PaletteContext:
-		return PaletteView
+// pushContext pushes a new context onto the stack and activates it.
+func (gui *Gui) pushContext(ctx types.Context) {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
 	}
-	return NotesView
+	gui.contextMgr.Push(ctx.GetKey())
+	gui.activateContext(ctx.GetKey())
+	ctx.HandleFocus(types.OnFocusOpts{})
+}
+
+// popContext pops the top context and activates the one below it.
+func (gui *Gui) popContext() {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
+	}
+	gui.contextMgr.Pop()
+	gui.activateContext(gui.contextMgr.Current())
+	if next := gui.currentContextObject(); next != nil {
+		next.HandleFocus(types.OnFocusOpts{})
+	}
+}
+
+// replaceContext replaces the top of the stack (e.g., search->preview).
+func (gui *Gui) replaceContext(ctx types.Context) {
+	if cur := gui.currentContextObject(); cur != nil {
+		cur.HandleFocusLost(types.OnFocusLostOpts{})
+	}
+	gui.contextMgr.Replace(ctx.GetKey())
+	gui.activateContext(ctx.GetKey())
+	ctx.HandleFocus(types.OnFocusOpts{})
+}
+
+// pushContextByKey looks up the context by key and pushes it.
+// Falls back to a direct stack push for lightweight contexts not in the tree.
+func (gui *Gui) pushContextByKey(key types.ContextKey) {
+	ctx := gui.contextMgr.ContextByKey(key)
+	if ctx != nil {
+		gui.pushContext(ctx)
+		return
+	}
+	// Lightweight context (e.g., "searchFilter"): push key directly.
+	gui.contextMgr.Push(key)
+	gui.activateContext(key)
+}
+
+// replaceContextByKey looks up the context by key and replaces the top of the stack.
+// Falls back to a direct stack replace for lightweight contexts not in the tree.
+func (gui *Gui) replaceContextByKey(key types.ContextKey) {
+	ctx := gui.contextMgr.ContextByKey(key)
+	if ctx != nil {
+		gui.replaceContext(ctx)
+		return
+	}
+	// Lightweight context: replace key directly.
+	gui.contextMgr.Replace(key)
+	gui.activateContext(key)
+}
+
+// currentContextObject looks up the types.Context for the top of stack.
+func (gui *Gui) currentContextObject() types.Context {
+	return gui.contextMgr.ContextByKey(gui.contextMgr.Current())
+}
+
+// popupActive returns true when the current context is a popup (not a main panel).
+func (gui *Gui) popupActive() bool {
+	ctx := gui.contextMgr.ContextByKey(gui.contextMgr.Current())
+	if ctx == nil {
+		return false
+	}
+	kind := ctx.GetKind()
+	return kind != types.SIDE_CONTEXT && kind != types.MAIN_CONTEXT
+}
+
+// overlayActive returns true when any overlay or dialog is open.
+func (gui *Gui) overlayActive() bool {
+	return gui.popupActive() ||
+		(gui.state.Dialog != nil && gui.state.Dialog.Active)
+}
+
+func (gui *Gui) contextToView(ctx types.ContextKey) string {
+	return gui.contexts.ViewNameForKey(ctx)
 }

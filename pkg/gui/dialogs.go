@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"kvnd/lazyruin/pkg/gui/types"
+
 	"github.com/jesseduffield/gocui"
 )
 
@@ -12,14 +14,6 @@ const (
 	ConfirmView = "confirm"
 	InputView   = "input"
 )
-
-// MenuItem represents a single item in a menu dialog
-type MenuItem struct {
-	Label    string
-	Key      string // shortcut key hint (e.g. "j", "k")
-	OnRun    func() error
-	IsHeader bool
-}
 
 // DialogState tracks the current dialog state
 type DialogState struct {
@@ -30,7 +24,7 @@ type DialogState struct {
 	OnConfirm     func() error
 	OnCancel      func()
 	InputBuffer   string
-	MenuItems     []MenuItem
+	MenuItems     []types.MenuItem
 	MenuSelection int
 }
 
@@ -42,7 +36,7 @@ func centerRect(maxX, maxY, width, height int) (x0, y0, x1, y1 int) {
 }
 
 // showConfirm displays a confirmation dialog
-func (gui *Gui) showConfirm(title, message string, onConfirm func() error) {
+func (gui *Gui) ShowConfirm(title, message string, onConfirm func() error) {
 	gui.state.Dialog = &DialogState{
 		Active:    true,
 		Type:      "confirm",
@@ -53,7 +47,7 @@ func (gui *Gui) showConfirm(title, message string, onConfirm func() error) {
 }
 
 // showInput displays a text input dialog
-func (gui *Gui) showInput(title, message string, onConfirm func(input string) error) {
+func (gui *Gui) ShowInput(title, message string, onConfirm func(input string) error) {
 	gui.state.Dialog = &DialogState{
 		Active:  true,
 		Type:    "input",
@@ -67,33 +61,33 @@ func (gui *Gui) showInput(title, message string, onConfirm func(input string) er
 
 // showHelp displays a context-sensitive keybindings menu
 func (gui *Gui) showHelp() {
-	var items []MenuItem
+	var items []types.MenuItem
 
 	// Context-specific section from shared hint definitions
 	def := gui.contextHintDefs()
 	if def.header != "" {
-		items = append(items, MenuItem{Label: def.header, IsHeader: true})
+		items = append(items, types.MenuItem{Label: def.header, IsHeader: true})
 	}
 	for _, h := range def.hints {
-		items = append(items, MenuItem{Key: h.key, Label: h.action})
+		items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 	}
 
 	// Blank separator
-	items = append(items, MenuItem{})
+	items = append(items, types.MenuItem{})
 
 	// Global section
-	items = append(items, MenuItem{Label: "Global", IsHeader: true})
+	items = append(items, types.MenuItem{Label: "Global", IsHeader: true})
 	for _, h := range globalHints() {
-		items = append(items, MenuItem{Key: h.key, Label: h.action})
+		items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 	}
 
 	// Navigation section
 	navHints := gui.navigationHints()
 	if len(navHints) > 0 {
-		items = append(items, MenuItem{}) // blank separator
-		items = append(items, MenuItem{Label: "Navigation", IsHeader: true})
+		items = append(items, types.MenuItem{}) // blank separator
+		items = append(items, types.MenuItem{Label: "Navigation", IsHeader: true})
 		for _, h := range navHints {
-			items = append(items, MenuItem{Key: h.key, Label: h.action})
+			items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 		}
 	}
 
@@ -115,20 +109,6 @@ func (gui *Gui) showHelp() {
 	}
 }
 
-// showMergeOverlay displays the merge direction chooser as a menu
-func (gui *Gui) showMergeOverlay() {
-	gui.state.Dialog = &DialogState{
-		Active: true,
-		Type:   "menu",
-		Title:  "Merge",
-		MenuItems: []MenuItem{
-			{Label: "Merge with note above", Key: "u", OnRun: func() error { return gui.executeMerge("up") }},
-			{Label: "Merge with note below", Key: "d", OnRun: func() error { return gui.executeMerge("down") }},
-		},
-		MenuSelection: 0,
-	}
-}
-
 // closeDialog closes any open dialog
 func (gui *Gui) closeDialog() {
 	if gui.state.Dialog != nil && gui.state.Dialog.OnCancel != nil {
@@ -139,7 +119,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(MenuView)
 	// Restore focus to the view for the current context
-	gui.g.SetCurrentView(gui.contextToView(gui.state.CurrentContext))
+	gui.g.SetCurrentView(gui.contextToView(gui.contextMgr.Current()))
 }
 
 // createConfirmDialog renders the confirmation dialog

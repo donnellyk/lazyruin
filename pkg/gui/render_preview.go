@@ -3,15 +3,20 @@ package gui
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/reflow/wordwrap"
 )
 
-func (gui *Gui) renderPreview() {
+// inlineTagRe matches #tag patterns (hashtag followed by word characters).
+var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
+
+func (gui *Gui) RenderPreview() {
 	v := gui.views.Preview
 	if v == nil {
 		return
@@ -23,13 +28,13 @@ func (gui *Gui) renderPreview() {
 	// cycle. highlightNextLink/highlightPrevLink set it right before calling
 	// renderPreview, so it's visible for this render but auto-clears for any
 	// subsequent render triggered by other navigation.
-	gui.state.Preview.renderedLink = gui.state.Preview.HighlightedLink
-	gui.state.Preview.HighlightedLink = -1
+	gui.contexts.Preview.RenderedLink = gui.contexts.Preview.HighlightedLink
+	gui.contexts.Preview.HighlightedLink = -1
 
-	switch gui.state.Preview.Mode {
-	case PreviewModeCardList:
+	switch gui.contexts.Preview.Mode {
+	case context.PreviewModeCardList:
 		gui.renderSeparatorCards(v)
-	case PreviewModePickResults:
+	case context.PreviewModePickResults:
 		gui.renderPickResults(v)
 	}
 }
@@ -70,15 +75,15 @@ func isHeaderLine(line string) bool {
 // When a link is highlighted (HighlightedLink >= 0), only the link span is highlighted
 // instead of the full line.
 func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highlight bool) {
-	if !highlight || lineNum != gui.state.Preview.CursorLine {
+	if !highlight || lineNum != gui.contexts.Preview.CursorLine {
 		fmt.Fprintln(v, line)
 		return
 	}
 
 	// Check for link-only highlight (set by renderPreview snapshot)
-	hl := gui.state.Preview.renderedLink
-	if hl >= 0 && hl < len(gui.state.Preview.Links) {
-		link := gui.state.Preview.Links[hl]
+	hl := gui.contexts.Preview.RenderedLink
+	if hl >= 0 && hl < len(gui.contexts.Preview.Links) {
+		link := gui.contexts.Preview.Links[hl]
 		if link.Line == lineNum {
 			fmt.Fprintln(v, highlightSpan(line, link.Col, link.Len))
 			return
@@ -140,7 +145,7 @@ func highlightSpan(line string, col, length int) string {
 }
 
 // buildCardContent returns the rendered lines for a single card's body content.
-func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
+func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []string {
 	content := note.Content
 	if content == "" {
 		content, _ = gui.loadNoteContent(note.Path)
@@ -148,7 +153,7 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 
 	var lines []string
 
-	if gui.state.Preview.ShowFrontmatter {
+	if gui.contexts.Preview.ShowFrontmatter {
 		if fm, err := gui.loadNoteFrontmatter(note.Path); err == nil && fm != "" {
 			lines = append(lines, " "+AnsiDim+"---"+AnsiReset)
 			for _, fl := range strings.Split(fm, "\n") {
@@ -158,7 +163,7 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 		}
 	}
 
-	if gui.state.Preview.RenderMarkdown {
+	if gui.contexts.Preview.RenderMarkdown {
 		rendered := gui.renderMarkdown(content, contentWidth)
 		for _, rl := range strings.Split(rendered, "\n") {
 			lines = append(lines, " "+rl)
@@ -185,7 +190,7 @@ func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
 
 // renderSeparatorCards renders cards using separator lines instead of frames
 func (gui *Gui) renderSeparatorCards(v *gocui.View) {
-	cards := gui.state.Preview.Cards
+	cards := gui.contexts.Preview.Cards
 	if len(cards) == 0 {
 		fmt.Fprintln(v, "No matching notes.")
 		return
@@ -197,16 +202,16 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	}
 	contentWidth := max(width-2, 10)
 
-	isActive := gui.state.CurrentContext == PreviewContext
+	isActive := gui.contextMgr.Current() == "preview"
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
-	gui.state.Preview.CardLineRanges = make([][2]int, len(cards))
-	gui.state.Preview.HeaderLines = gui.state.Preview.HeaderLines[:0]
+	gui.contexts.Preview.CardLineRanges = make([][2]int, len(cards))
+	gui.contexts.Preview.HeaderLines = gui.contexts.Preview.HeaderLines[:0]
 
 	for i, note := range cards {
-		selected := isActive && i == gui.state.Preview.SelectedCardIndex
-		gui.state.Preview.CardLineRanges[i][0] = currentLine
+		selected := isActive && i == gui.contexts.Preview.SelectedCardIndex
+		gui.contexts.Preview.CardLineRanges[i][0] = currentLine
 
 		if selected {
 			selectedStartLine = currentLine
@@ -218,16 +223,16 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 			title = "Untitled"
 		}
 		upperRight := ""
-		if gui.state.Preview.TemporarilyMoved[i] && len(cards) > 1 {
+		if gui.contexts.Preview.TemporarilyMoved[i] && len(cards) > 1 {
 			upperRight = " Temporarily Moved "
 		}
 		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), currentLine, isActive)
 		currentLine++
 
 		// Card body content
-		for _, line := range gui.buildCardContent(note, contentWidth) {
+		for _, line := range gui.BuildCardContent(note, contentWidth) {
 			if isHeaderLine(line) {
-				gui.state.Preview.HeaderLines = append(gui.state.Preview.HeaderLines, currentLine)
+				gui.contexts.Preview.HeaderLines = append(gui.contexts.Preview.HeaderLines, currentLine)
 			}
 			gui.fprintPreviewLine(v, line, currentLine, isActive)
 			currentLine++
@@ -245,7 +250,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", rightText, width, selected), currentLine, isActive)
 		currentLine++
 
-		gui.state.Preview.CardLineRanges[i][1] = currentLine
+		gui.contexts.Preview.CardLineRanges[i][1] = currentLine
 		if selected {
 			selectedEndLine = currentLine
 		}
@@ -259,15 +264,15 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 
 	// Scroll to keep cursor/card visible, including borders when at card edges
 	_, viewHeight := v.InnerSize()
-	originY := gui.state.Preview.ScrollOffset
+	originY := gui.contexts.Preview.ScrollOffset
 	if isActive {
-		cl := gui.state.Preview.CursorLine
-		idx := gui.state.Preview.SelectedCardIndex
+		cl := gui.contexts.Preview.CursorLine
+		idx := gui.contexts.Preview.SelectedCardIndex
 		// If cursor is on the first content line of a card, show the upper separator too
 		showFrom := cl
 		showTo := cl
-		if idx < len(gui.state.Preview.CardLineRanges) {
-			r := gui.state.Preview.CardLineRanges[idx]
+		if idx < len(gui.contexts.Preview.CardLineRanges) {
+			r := gui.contexts.Preview.CardLineRanges[idx]
 			if cl == r[0]+1 {
 				showFrom = r[0] // include upper separator
 			}
@@ -287,7 +292,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 			originY = selectedEndLine - viewHeight
 		}
 	}
-	gui.state.Preview.ScrollOffset = originY
+	gui.contexts.Preview.ScrollOffset = originY
 	v.SetOrigin(0, originY)
 }
 
@@ -337,12 +342,12 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 // resolveParentLabel returns a display name for a parent UUID by checking
 // loaded parent bookmarks, then loaded notes, then falling back to a truncated UUID.
 func (gui *Gui) resolveParentLabel(uuid string) string {
-	for _, bm := range gui.state.Parents.Items {
+	for _, bm := range gui.contexts.Queries.Parents {
 		if bm.UUID == uuid {
 			return bm.Name
 		}
 	}
-	for _, note := range gui.state.Notes.Items {
+	for _, note := range gui.contexts.Notes.Items {
 		if note.UUID == uuid {
 			return note.Title
 		}
@@ -356,7 +361,7 @@ func (gui *Gui) resolveParentLabel(uuid string) string {
 
 // renderPickResults renders line-level pick results grouped by note title
 func (gui *Gui) renderPickResults(v *gocui.View) {
-	results := gui.state.Preview.PickResults
+	results := gui.contexts.Preview.PickResults
 	if len(results) == 0 {
 		fmt.Fprintln(v, "No matching lines.")
 		return
@@ -368,16 +373,16 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 	}
 	contentWidth := max(width-2, 10)
 
-	isActive := gui.state.CurrentContext == PreviewContext
+	isActive := gui.contextMgr.Current() == "preview"
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
-	gui.state.Preview.CardLineRanges = make([][2]int, len(results))
-	gui.state.Preview.HeaderLines = gui.state.Preview.HeaderLines[:0]
+	gui.contexts.Preview.CardLineRanges = make([][2]int, len(results))
+	gui.contexts.Preview.HeaderLines = gui.contexts.Preview.HeaderLines[:0]
 
 	for i, result := range results {
-		selected := isActive && i == gui.state.Preview.SelectedCardIndex
-		gui.state.Preview.CardLineRanges[i][0] = currentLine
+		selected := isActive && i == gui.contexts.Preview.SelectedCardIndex
+		gui.contexts.Preview.CardLineRanges[i][0] = currentLine
 
 		if selected {
 			selectedStartLine = currentLine
@@ -416,7 +421,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", matchCount, width, selected), currentLine, isActive)
 		currentLine++
 
-		gui.state.Preview.CardLineRanges[i][1] = currentLine
+		gui.contexts.Preview.CardLineRanges[i][1] = currentLine
 		if selected {
 			selectedEndLine = currentLine
 		}
@@ -430,9 +435,9 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 
 	// Scroll to keep cursor/group visible
 	_, viewHeight := v.InnerSize()
-	originY := gui.state.Preview.ScrollOffset
+	originY := gui.contexts.Preview.ScrollOffset
 	if isActive {
-		cl := gui.state.Preview.CursorLine
+		cl := gui.contexts.Preview.CursorLine
 		if cl < originY {
 			originY = cl
 		} else if cl >= originY+viewHeight {
@@ -445,7 +450,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 			originY = selectedEndLine - viewHeight
 		}
 	}
-	gui.state.Preview.ScrollOffset = originY
+	gui.contexts.Preview.ScrollOffset = originY
 	v.SetOrigin(0, originY)
 }
 

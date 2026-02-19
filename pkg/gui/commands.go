@@ -2,131 +2,36 @@ package gui
 
 import (
 	"fmt"
+	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 )
 
-// Command is the single source of truth for user-facing actions.
-// It drives both keybinding registration and palette command generation.
-type Command struct {
-	Name      string                              // palette/hint display name
-	Category  string                              // palette grouping ("Notes", "Global", etc.)
-	Keys      []any                               // gocui keys to bind; nil = palette-only
-	Views     []string                            // gocui view names to bind; nil = global
-	Handler   func(*gocui.Gui, *gocui.View) error // keybinding handler
-	OnRun     func() error                        // palette-only runner (when Handler is nil)
-	Contexts  []ContextKey                        // palette context filter; nil = always available
-	KeyHint   string                              // display string ("<c-r>"); auto-derived if empty
-	NoPalette bool                                // true = suppress from command palette
-}
+// paletteOnlyCommands returns commands that have no controller home.
+// These are accessible only via the command palette (no keybinding).
+func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
+	return []types.PaletteCommand{
+		// Tab switching (palette-only, no keybinding)
+		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(0) }},
+		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(1) }},
+		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(2) }},
+		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(0) }},
+		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(1) }},
+		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(0) }},
+		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(1) }},
+		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(2) }},
 
-// commands returns the unified command table.
-func (gui *Gui) commands() []Command {
-	return []Command{
-		// Global
-		{Name: "Quit", Category: "Global", Keys: []any{'q', gocui.KeyCtrlC}, Handler: gui.quit},
-		{Name: "Search", Category: "Global", Keys: []any{'/'}, Handler: gui.openSearch},
-		{Name: "Pick", Category: "Global", Keys: []any{'p', '\\'}, Handler: gui.openPick},
-		{Name: "New Note", Category: "Global", Keys: []any{'n'}, Handler: gui.newNote},
-		{Name: "Refresh", Category: "Global", Keys: []any{gocui.KeyCtrlR}, Handler: gui.refresh},
-		{Name: "Keybindings", Category: "Global", Keys: []any{'?'}, Handler: gui.showHelpHandler},
-		{Name: "Command Palette", Category: "Global", Keys: []any{':'}, Handler: gui.openPalette, NoPalette: true},
-		{Name: "Calendar", Category: "Global", Keys: []any{'c'}, Handler: gui.openCalendar},
-		{Name: "Contributions", Category: "Global", Keys: []any{'C'}, Handler: gui.openContrib},
+		// Search filter (palette-only; keybinding registered in setupKeybindings)
+		{Name: "Clear Search", Category: "Search", Key: "x", Contexts: []types.ContextKey{"searchFilter"}, OnRun: func() error {
+			gui.helpers.Search().ClearSearch()
+			return nil
+		}},
 
-		// Focus
-		{Name: "Focus Notes", Category: "Focus", Keys: []any{'1'}, Handler: gui.focusNotes},
-		{Name: "Focus Queries", Category: "Focus", Keys: []any{'2'}, Handler: gui.focusQueries},
-		{Name: "Focus Tags", Category: "Focus", Keys: []any{'3'}, Handler: gui.focusTags},
-		{Name: "Focus Preview", Category: "Focus", Keys: []any{}, Handler: gui.focusPreview},
-		{Name: "Focus Search Filter", Category: "Focus", Keys: []any{'0'}, Handler: gui.focusSearchFilter},
-
-		// Tabs (palette-only, no keybindings)
-		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(0) }},
-		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(1) }},
-		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(2) }},
-		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(0) }},
-		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(1) }},
-		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(0) }},
-		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
-		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
-
-		// Notes
-		{Name: "View in Preview", Category: "Notes", Keys: []any{gocui.KeyEnter}, Views: []string{NotesView}, Handler: gui.viewNoteInPreview, Contexts: []ContextKey{NotesContext}},
-		{Name: "Open in Editor", Category: "Notes", Keys: []any{'E'}, Views: []string{NotesView}, Handler: gui.editNote, Contexts: []ContextKey{NotesContext}},
-		{Name: "Delete Note", Category: "Notes", Keys: []any{'d'}, Views: []string{NotesView}, Handler: gui.deleteNote, Contexts: []ContextKey{NotesContext}},
-		{Name: "Copy Note Path", Category: "Notes", Keys: []any{'y'}, Views: []string{NotesView}, Handler: gui.copyNotePath, Contexts: []ContextKey{NotesContext}},
-
-		// Note Actions (shared Notes + Preview)
-		{Name: "Add Tag", Category: "Note Actions", Keys: []any{'t'}, Views: []string{NotesView, PreviewView}, Handler: gui.addGlobalTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Remove Tag", Category: "Note Actions", Keys: []any{'T'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeTag, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Set Parent", Category: "Note Actions", Keys: []any{'>'}, Views: []string{NotesView, PreviewView}, Handler: gui.setParentDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Remove Parent", Category: "Note Actions", Keys: []any{'P'}, Views: []string{NotesView, PreviewView}, Handler: gui.removeParent, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Toggle Bookmark", Category: "Note Actions", Keys: []any{'b'}, Views: []string{NotesView, PreviewView}, Handler: gui.toggleBookmark, Contexts: []ContextKey{NotesContext, PreviewContext}},
-		{Name: "Show Info", Category: "Note Actions", Keys: []any{'s'}, Views: []string{NotesView, PreviewView}, Handler: gui.showInfoDialog, Contexts: []ContextKey{NotesContext, PreviewContext}},
-
-		// Tags
-		{Name: "Filter by Tag", Category: "Tags", Keys: []any{gocui.KeyEnter}, Views: []string{TagsView}, Handler: gui.filterByTag, Contexts: []ContextKey{TagsContext}},
-		{Name: "Rename Tag", Category: "Tags", Keys: []any{'r'}, Views: []string{TagsView}, Handler: gui.renameTag, Contexts: []ContextKey{TagsContext}},
-		{Name: "Delete Tag", Category: "Tags", Keys: []any{'d'}, Views: []string{TagsView}, Handler: gui.deleteTag, Contexts: []ContextKey{TagsContext}},
-
-		// Queries
-		{Name: "Run Query", Category: "Queries", Keys: []any{gocui.KeyEnter}, Views: []string{QueriesView}, Handler: gui.runQuery, Contexts: []ContextKey{QueriesContext}},
-		{Name: "Delete Query", Category: "Queries", Keys: []any{'d'}, Views: []string{QueriesView}, Handler: gui.deleteQuery, Contexts: []ContextKey{QueriesContext}},
-
-		// Preview
-		{Name: "Delete Card", Category: "Preview", Keys: []any{'d'}, Views: []string{PreviewView}, Handler: gui.deleteCardFromPreview, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Open in Editor", Category: "Preview", Keys: []any{'E'}, Views: []string{PreviewView}, Handler: gui.openCardInEditor, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle #done", Category: "Preview", Keys: []any{'D'}, Views: []string{PreviewView}, Handler: gui.appendDone, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Move Card", Category: "Preview", Keys: []any{'m'}, Views: []string{PreviewView}, Handler: gui.moveCardHandler, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Merge Notes", Category: "Preview", Keys: []any{'M'}, Views: []string{PreviewView}, Handler: gui.mergeCardHandler, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Frontmatter", Category: "Preview", Keys: []any{'f'}, Views: []string{PreviewView}, Handler: gui.toggleFrontmatter, Contexts: []ContextKey{PreviewContext}},
-		{Name: "View Options", Category: "Preview", Keys: []any{'v'}, Views: []string{PreviewView}, Handler: gui.viewOptionsDialog, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Inline Tag", Category: "Preview", Keys: []any{gocui.KeyCtrlT}, Views: []string{PreviewView}, Handler: gui.toggleInlineTag, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-t>"},
-		{Name: "Toggle Inline Date", Category: "Preview", Keys: []any{gocui.KeyCtrlD}, Views: []string{PreviewView}, Handler: gui.toggleInlineDate, Contexts: []ContextKey{PreviewContext}, KeyHint: "<c-d>"},
-		{Name: "Open Link", Category: "Preview", Keys: []any{'o'}, Views: []string{PreviewView}, Handler: gui.openLink, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Toggle Todo", Category: "Preview", Keys: []any{'x'}, Views: []string{PreviewView}, Handler: gui.toggleTodo, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Focus Note from Preview", Category: "Preview", Keys: []any{gocui.KeyEnter}, Views: []string{PreviewView}, Handler: gui.focusNoteFromPreview, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Back", Category: "Preview", Keys: []any{gocui.KeyEsc}, Views: []string{PreviewView}, Handler: gui.previewBack, NoPalette: true},
-		{Name: "Go Back", Category: "Preview", Keys: []any{'['}, Views: []string{PreviewView}, Handler: gui.navBack, Contexts: []ContextKey{PreviewContext}},
-		{Name: "Go Forward", Category: "Preview", Keys: []any{']'}, Views: []string{PreviewView}, Handler: gui.navForward, Contexts: []ContextKey{PreviewContext}},
-
-		// Preview (palette-only)
-		{Name: "Toggle Title", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleTitle)},
-		{Name: "Toggle Global Tags", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleGlobalTags)},
-		{Name: "Toggle Markdown", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.wrap(gui.toggleMarkdown)},
-		{Name: "Order Cards", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.orderCards},
-		{Name: "View History", Category: "Preview", Contexts: []ContextKey{PreviewContext}, OnRun: gui.showNavHistory},
-
-		// Search Filter
-		{Name: "Clear Search", Category: "Search", Keys: []any{'x'}, Views: []string{SearchFilterView}, Handler: gui.clearSearch, Contexts: []ContextKey{SearchFilterContext}},
-
-		// Snippets
-		{Name: "List Snippets", Category: "Snippets", OnRun: gui.listSnippets},
-		{Name: "Create Snippet", Category: "Snippets", OnRun: gui.createSnippet},
-		{Name: "Delete Snippet", Category: "Snippets", OnRun: gui.deleteSnippet},
+		// Snippets (palette-only, no keybinding)
+		{Name: "List Snippets", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().ListSnippets() }},
+		{Name: "Create Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().CreateSnippet() }},
+		{Name: "Delete Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().DeleteSnippet() }},
 	}
-}
-
-// wrap converts a standard gocui handler into a closure for palette commands.
-func (gui *Gui) wrap(fn func(*gocui.Gui, *gocui.View) error) func() error {
-	return func() error {
-		return fn(gui.g, nil)
-	}
-}
-
-// overlayActive returns true when any dialog or overlay is open.
-func (gui *Gui) overlayActive() bool {
-	return (gui.state.Dialog != nil && gui.state.Dialog.Active) ||
-		gui.state.SearchMode || gui.state.CaptureMode ||
-		gui.state.PickMode || gui.state.PaletteMode ||
-		gui.state.InputPopupMode || gui.state.SnippetEditorMode ||
-		gui.state.CalendarMode || gui.state.ContribMode
-}
-
-// dialogActive returns true when a dialog or overlay is open.
-func (gui *Gui) dialogActive() bool {
-	return gui.overlayActive()
 }
 
 // suppressDuringDialog wraps a handler to no-op when a dialog is active.
@@ -147,16 +52,6 @@ func (gui *Gui) suppressTabClickDuringDialog(fn func(int) error) func(int) error
 		}
 		return fn(tabIndex)
 	}
-}
-
-// isMainPanelView returns true for the four main panel views
-// whose interactions should be suppressed when a dialog is open.
-func isMainPanelView(view string) bool {
-	switch view {
-	case NotesView, QueriesView, TagsView, PreviewView:
-		return true
-	}
-	return false
 }
 
 // keyNames maps special gocui keys to display strings.

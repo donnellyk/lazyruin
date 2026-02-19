@@ -6,51 +6,53 @@ import (
 	"sort"
 	"strings"
 
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
+
 	"github.com/jesseduffield/gocui"
 )
 
-// paletteCommands derives the palette command list from the unified command table.
-func (gui *Gui) paletteCommands() []PaletteCommand {
-	var cmds []PaletteCommand
-	for _, c := range gui.commands() {
-		if c.NoPalette || c.Name == "" {
-			continue
-		}
+// paletteCommands builds the full palette command list from controller bindings
+// and palette-only commands (tabs, snippets, etc. without a controller home).
+func (gui *Gui) paletteCommands() []types.PaletteCommand {
+	var cmds []types.PaletteCommand
 
-		hint := c.KeyHint
-		if hint == "" && len(c.Keys) > 0 {
-			hint = keyDisplayString(c.Keys[0])
-		}
+	// Palette-only commands (no controller home)
+	cmds = append(cmds, gui.paletteOnlyCommands()...)
 
-		var runner func() error
-		if c.OnRun != nil {
-			runner = c.OnRun
-		} else if c.Handler != nil {
-			if len(c.Views) > 0 {
-				h := c.Handler
-				viewName := c.Views[0]
-				runner = func() error {
-					v, _ := gui.g.View(viewName)
-					return h(gui.g, v)
-				}
-			} else {
-				runner = gui.wrap(c.Handler)
+	// Controller bindings
+	opts := types.KeybindingsOpts{}
+	for _, ctx := range gui.contexts.All() {
+		ctxKey := ctx.GetKey()
+		isGlobal := ctx.GetKind() == types.GLOBAL_CONTEXT
+		for _, b := range ctx.GetKeybindings(opts) {
+			if b.Description == "" {
+				continue // nav-only, skip
 			}
+			keyHint := ""
+			if b.Key != nil {
+				keyHint = keyDisplayString(b.Key)
+			}
+			// Global context bindings are available regardless of active context.
+			var contexts []types.ContextKey
+			if !isGlobal {
+				contexts = []types.ContextKey{ctxKey}
+			}
+			cmds = append(cmds, types.PaletteCommand{
+				Name:     b.Description,
+				Category: b.Category,
+				Key:      keyHint,
+				OnRun:    b.Handler,
+				Contexts: contexts,
+			})
 		}
-
-		cmds = append(cmds, PaletteCommand{
-			Name:     c.Name,
-			Category: c.Category,
-			Key:      hint,
-			OnRun:    runner,
-			Contexts: c.Contexts,
-		})
 	}
+
 	return cmds
 }
 
 // isPaletteCommandAvailable checks if a command is available given the origin context.
-func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
+func isPaletteCommandAvailable(cmd types.PaletteCommand, origin types.ContextKey) bool {
 	if len(cmd.Contexts) == 0 {
 		return true
 	}
@@ -64,52 +66,46 @@ func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
 
 // openPalette opens the command palette popup.
 func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
-	// Don't open palette during other popups
-	if gui.state.SearchMode || gui.state.CaptureMode || gui.state.PickMode || gui.state.PaletteMode {
+	if gui.popupActive() {
 		return nil
 	}
 
 	cmds := gui.paletteCommands()
-	origin := gui.state.CurrentContext
 
-	gui.state.PaletteMode = true
-	gui.state.Palette = &PaletteState{
-		Commands:      cmds,
-		OriginContext: origin,
+	gui.contexts.Palette.Palette = &types.PaletteState{
+		Commands: cmds,
 	}
 
 	gui.filterPaletteCommands("")
-	gui.setContext(PaletteContext)
+	gui.pushContextByKey("palette")
 	return nil
 }
 
 // closePalette tears down the palette popup and restores previous context.
 func (gui *Gui) closePalette() {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return
 	}
-	origin := gui.state.Palette.OriginContext
-	gui.state.PaletteMode = false
-	gui.state.PaletteSeedDone = false
-	gui.state.Palette = nil
+	gui.contexts.Palette.SeedDone = false
+	gui.contexts.Palette.Palette = nil
 	gui.g.Cursor = false
-	gui.setContext(origin)
+	gui.popContext()
 }
 
 // executePaletteCommand closes the palette and runs the selected command.
 func (gui *Gui) executePaletteCommand() error {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return nil
 	}
-	idx := gui.state.Palette.SelectedIndex
-	if idx < 0 || idx >= len(gui.state.Palette.Filtered) {
+	idx := gui.contexts.Palette.Palette.SelectedIndex
+	if idx < 0 || idx >= len(gui.contexts.Palette.Palette.Filtered) {
 		return nil
 	}
 
-	cmd := gui.state.Palette.Filtered[idx]
+	cmd := gui.contexts.Palette.Palette.Filtered[idx]
 
 	// Don't execute unavailable commands
-	if !isPaletteCommandAvailable(cmd, gui.state.Palette.OriginContext) {
+	if !isPaletteCommandAvailable(cmd, gui.contextMgr.Previous()) {
 		return nil
 	}
 
@@ -120,17 +116,17 @@ func (gui *Gui) executePaletteCommand() error {
 
 // filterPaletteCommands filters commands by a case-insensitive substring match.
 func (gui *Gui) filterPaletteCommands(filter string) {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return
 	}
 
-	gui.state.Palette.FilterText = filter
+	gui.contexts.Palette.Palette.FilterText = filter
 	lower := strings.ToLower(filter)
 
-	var available, unavailable []PaletteCommand
-	origin := gui.state.Palette.OriginContext
+	var available, unavailable []types.PaletteCommand
+	origin := gui.contextMgr.Previous()
 
-	for _, cmd := range gui.state.Palette.Commands {
+	for _, cmd := range gui.contexts.Palette.Palette.Commands {
 		match := lower == "" ||
 			strings.Contains(strings.ToLower(cmd.Name), lower) ||
 			strings.Contains(strings.ToLower(cmd.Category), lower)
@@ -151,30 +147,30 @@ func (gui *Gui) filterPaletteCommands(filter string) {
 		return unavailable[i].Name < unavailable[j].Name
 	})
 
-	gui.state.Palette.Filtered = append(available, unavailable...)
+	gui.contexts.Palette.Palette.Filtered = append(available, unavailable...)
 
 	// Clamp selection
-	if gui.state.Palette.SelectedIndex >= len(gui.state.Palette.Filtered) {
-		gui.state.Palette.SelectedIndex = max(0, len(gui.state.Palette.Filtered)-1)
+	if gui.contexts.Palette.Palette.SelectedIndex >= len(gui.contexts.Palette.Palette.Filtered) {
+		gui.contexts.Palette.Palette.SelectedIndex = max(0, len(gui.contexts.Palette.Palette.Filtered)-1)
 	}
 }
 
 // paletteSelectMove moves the selection by delta and re-renders with scroll-to-selection.
 func (gui *Gui) paletteSelectMove(delta int) {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return
 	}
-	next := gui.state.Palette.SelectedIndex + delta
+	next := gui.contexts.Palette.Palette.SelectedIndex + delta
 	if next < 0 {
 		next = 0
 	}
-	if max := len(gui.state.Palette.Filtered) - 1; next > max {
+	if max := len(gui.contexts.Palette.Palette.Filtered) - 1; next > max {
 		next = max
 	}
 	if next < 0 {
 		next = 0
 	}
-	gui.state.Palette.SelectedIndex = next
+	gui.contexts.Palette.Palette.SelectedIndex = next
 	gui.renderPaletteList()
 	gui.scrollPaletteToSelection()
 }
@@ -183,11 +179,11 @@ func (gui *Gui) paletteSelectMove(delta int) {
 // Called after selection or filter changes, but NOT after mouse wheel scrolling.
 func (gui *Gui) scrollPaletteToSelection() {
 	v := gui.views.PaletteList
-	if gui.state.Palette == nil || v == nil {
+	if gui.contexts.Palette.Palette == nil || v == nil {
 		return
 	}
 	_, viewHeight := v.InnerSize()
-	scrollListView(v, gui.state.Palette.SelectedIndex, 1, viewHeight)
+	scrollListView(v, gui.contexts.Palette.Palette.SelectedIndex, 1, viewHeight)
 }
 
 // paletteEnter handles Enter in the palette view.
@@ -203,12 +199,12 @@ func (gui *Gui) paletteEsc(g *gocui.Gui, v *gocui.View) error {
 
 // paletteListClick handles mouse clicks on the palette list.
 func (gui *Gui) paletteListClick(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return nil
 	}
 	idx := listClickIndex(v, 1)
-	if idx >= 0 && idx < len(gui.state.Palette.Filtered) {
-		gui.state.Palette.SelectedIndex = idx
+	if idx >= 0 && idx < len(gui.contexts.Palette.Palette.Filtered) {
+		gui.contexts.Palette.Palette.SelectedIndex = idx
 		gui.renderPaletteList()
 		gui.scrollPaletteToSelection()
 	}
@@ -220,20 +216,20 @@ func (gui *Gui) paletteListClick(g *gocui.Gui, v *gocui.View) error {
 // should follow up with scrollPaletteToSelection(). Mouse-wheel handlers
 // only call scrollViewport() and never re-render, so their origin persists.
 func (gui *Gui) renderPaletteList() {
-	if gui.state.Palette == nil || gui.views.PaletteList == nil {
+	if gui.contexts.Palette.Palette == nil || gui.views.PaletteList == nil {
 		return
 	}
 
 	v := gui.views.PaletteList
 	v.Clear()
 
-	filtered := gui.state.Palette.Filtered
+	filtered := gui.contexts.Palette.Palette.Filtered
 	if len(filtered) == 0 {
 		fmt.Fprintln(v, " No matching commands.")
 		return
 	}
 
-	originCtx := gui.state.Palette.OriginContext
+	originCtx := gui.contextMgr.Previous()
 	width, _ := v.InnerSize()
 	if width < 10 {
 		width = 30
@@ -255,7 +251,7 @@ func (gui *Gui) renderPaletteList() {
 			keyPad = 1
 		}
 
-		if i == gui.state.Palette.SelectedIndex {
+		if i == gui.contexts.Palette.Palette.SelectedIndex {
 			line := " " + key + strings.Repeat(" ", keyPad) + label
 			fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line), AnsiReset)
 		} else if !avail {
@@ -267,62 +263,62 @@ func (gui *Gui) renderPaletteList() {
 }
 
 // quickOpenItems builds PaletteCommand entries from all navigable items in rank order.
-func (gui *Gui) quickOpenItems() []PaletteCommand {
-	var items []PaletteCommand
+func (gui *Gui) quickOpenItems() []types.PaletteCommand {
+	var items []types.PaletteCommand
 
 	// Saved queries
-	for i, q := range gui.state.Queries.Items {
+	for i, q := range gui.contexts.Queries.Queries {
 		idx := i
 		query := q
-		items = append(items, PaletteCommand{
+		items = append(items, types.PaletteCommand{
 			Name:     query.Name,
 			Category: "Query",
 			OnRun: func() error {
-				gui.state.Queries.CurrentTab = QueriesTabQueries
-				gui.state.Queries.SelectedIndex = idx
-				gui.setContext(QueriesContext)
-				gui.renderQueries()
-				return gui.runQuery(nil, nil)
+				gui.contexts.Queries.CurrentTab = context.QueriesTabQueries
+				gui.contexts.Queries.QueriesTrait().SetSelectedLineIdx(idx)
+				gui.pushContextByKey("queries")
+				gui.RenderQueries()
+				return gui.helpers.Queries().RunQuery()
 			},
 		})
 	}
 
 	// Bookmark parents
-	for i := range gui.state.Parents.Items {
+	for i := range gui.contexts.Queries.Parents {
 		idx := i
-		items = append(items, PaletteCommand{
-			Name:     gui.state.Parents.Items[idx].Name,
+		items = append(items, types.PaletteCommand{
+			Name:     gui.contexts.Queries.Parents[idx].Name,
 			Category: "Parent",
 			OnRun: func() error {
-				gui.state.Queries.CurrentTab = QueriesTabParents
-				gui.state.Parents.SelectedIndex = idx
-				gui.setContext(QueriesContext)
-				gui.renderQueries()
-				return gui.viewParent(nil, nil)
+				gui.contexts.Queries.CurrentTab = context.QueriesTabParents
+				gui.contexts.Queries.ParentsTrait().SetSelectedLineIdx(idx)
+				gui.pushContextByKey("queries")
+				gui.RenderQueries()
+				return gui.helpers.Queries().ViewParent()
 			},
 		})
 	}
 
 	// Tags
-	for _, t := range gui.state.Tags.Items {
+	for _, t := range gui.contexts.Tags.Items {
 		tag := t
 		name := "#" + tag.Name
 		if slices.Contains(tag.Scope, "inline") {
-			items = append(items, PaletteCommand{
+			items = append(items, types.PaletteCommand{
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.setContext(TagsContext)
-					return gui.filterByTagPick(&tag)
+					gui.pushContextByKey("tags")
+					return gui.helpers.Tags().FilterByTagPick(&tag)
 				},
 			})
 		} else {
-			items = append(items, PaletteCommand{
+			items = append(items, types.PaletteCommand{
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.setContext(TagsContext)
-					return gui.filterByTagSearch(&tag)
+					gui.pushContextByKey("tags")
+					return gui.helpers.Tags().FilterByTagSearch(&tag)
 				},
 			})
 		}
@@ -330,20 +326,20 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 
 	// Notes (deduplicated by title)
 	seen := make(map[string]bool)
-	for i, n := range gui.state.Notes.Items {
+	for i, n := range gui.contexts.Notes.Items {
 		idx := i
 		if seen[n.Title] {
 			continue
 		}
 		seen[n.Title] = true
-		items = append(items, PaletteCommand{
+		items = append(items, types.PaletteCommand{
 			Name:     n.Title,
 			Category: "Note",
 			OnRun: func() error {
-				gui.state.Notes.SelectedIndex = idx
-				gui.setContext(NotesContext)
-				gui.renderNotes()
-				gui.updatePreviewForNotes()
+				gui.contexts.Notes.SetSelectedLineIdx(idx)
+				gui.pushContextByKey("notes")
+				gui.RenderNotes()
+				gui.helpers.Preview().UpdatePreviewForNotes()
 				return nil
 			},
 		})
@@ -354,14 +350,14 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 
 // filterQuickOpenItems filters Quick Open items by case-insensitive substring match.
 func (gui *Gui) filterQuickOpenItems(filter string) {
-	if gui.state.Palette == nil {
+	if gui.contexts.Palette.Palette == nil {
 		return
 	}
 
-	gui.state.Palette.FilterText = filter
+	gui.contexts.Palette.Palette.FilterText = filter
 	lower := strings.ToLower(filter)
 
-	var filtered []PaletteCommand
+	var filtered []types.PaletteCommand
 	for _, item := range gui.quickOpenItems() {
 		if lower == "" ||
 			strings.Contains(strings.ToLower(item.Name), lower) ||
@@ -370,10 +366,10 @@ func (gui *Gui) filterQuickOpenItems(filter string) {
 		}
 	}
 
-	gui.state.Palette.Filtered = filtered
+	gui.contexts.Palette.Palette.Filtered = filtered
 
 	// Clamp selection
-	if gui.state.Palette.SelectedIndex >= len(gui.state.Palette.Filtered) {
-		gui.state.Palette.SelectedIndex = max(0, len(gui.state.Palette.Filtered)-1)
+	if gui.contexts.Palette.Palette.SelectedIndex >= len(gui.contexts.Palette.Palette.Filtered) {
+		gui.contexts.Palette.Palette.SelectedIndex = max(0, len(gui.contexts.Palette.Palette.Filtered)-1)
 	}
 }

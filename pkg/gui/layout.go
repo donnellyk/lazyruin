@@ -5,8 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 func (gui *Gui) layout(g *gocui.Gui) error {
@@ -29,7 +32,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 	// Search filter pane height (only shown when search is active)
 	searchFilterHeight := 0
-	if gui.state.SearchQuery != "" {
+	if gui.contexts.Search.Query != "" {
 		searchFilterHeight = 3
 	}
 
@@ -38,7 +41,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	queriesHeight := contentHeight / 4
 
 	// Show search filter pane if there's an active search
-	if gui.state.SearchQuery != "" {
+	if gui.contexts.Search.Query != "" {
 		if err := gui.createSearchFilterView(g, 0, 0, sidebarWidth-1, searchFilterHeight-1); err != nil {
 			return err
 		}
@@ -72,80 +75,78 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
-	if gui.state.SearchMode {
+	// Manage overlay views based on the current context
+	switch gui.contextMgr.Current() {
+	case "search":
 		if err := gui.createSearchPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	} else {
-		g.DeleteView(SearchView)
-		g.DeleteView(SearchSuggestView)
-	}
-
-	if gui.state.CaptureMode {
+	case "capture":
 		if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	} else {
+	case "pick":
+		if err := gui.createPickPopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	case "inputPopup":
+		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	case "snippetName":
+		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
+			return err
+		}
+	case "palette":
+		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
+			return err
+		}
+	case "calendarGrid":
+		if err := gui.createCalendarViews(g, maxX, maxY); err != nil {
+			return err
+		}
+	case "contribGrid":
+		if err := gui.createContribViews(g, maxX, maxY); err != nil {
+			return err
+		}
+	}
+	// Delete views for inactive overlays
+	ctx := gui.contextMgr.Current()
+	if ctx != "search" {
+		g.DeleteView(SearchView)
+		g.DeleteView(SearchSuggestView)
+	}
+	if ctx != "capture" {
 		g.DeleteView(CaptureView)
 		g.DeleteView(CaptureSuggestView)
 		gui.views.Capture = nil
 	}
-
-	if gui.state.PickMode {
-		if err := gui.createPickPopup(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "pick" {
 		g.DeleteView(PickView)
 		g.DeleteView(PickSuggestView)
 		gui.views.Pick = nil
 	}
-
-	if gui.state.InputPopupMode {
-		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "inputPopup" {
 		g.DeleteView(InputPopupView)
 		g.DeleteView(InputPopupSuggestView)
 	}
-
-	if gui.state.SnippetEditorMode {
-		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "snippetName" {
 		g.DeleteView(SnippetNameView)
 		g.DeleteView(SnippetExpansionView)
 		g.DeleteView(SnippetSuggestView)
 	}
-
-	if gui.state.PaletteMode {
-		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "palette" {
 		g.DeleteView(PaletteView)
 		g.DeleteView(PaletteListView)
 		gui.views.Palette = nil
 		gui.views.PaletteList = nil
 	}
-
-	if gui.state.CalendarMode {
-		if err := gui.createCalendarViews(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "calendarGrid" {
 		g.DeleteView(CalendarGridView)
 		g.DeleteView(CalendarInputView)
 		g.DeleteView(CalendarNotesView)
 	}
-
-	if gui.state.ContribMode {
-		if err := gui.createContribViews(g, maxX, maxY); err != nil {
-			return err
-		}
-	} else {
+	if ctx != "contribGrid" {
 		g.DeleteView(ContribGridView)
 		g.DeleteView(ContribNotesView)
 	}
@@ -160,19 +161,18 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
 		g.SetCurrentView(NotesView)
-		gui.refreshAll()
-		gui.updatePreviewForNotes()
+		gui.RefreshAll()
+		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
-			gui.state.CaptureMode = true
-			gui.state.CaptureCompletion = NewCompletionState()
-			gui.state.CurrentContext = CaptureContext
+			gui.contexts.Capture.Completion = types.NewCompletionState()
+			gui.contextMgr.SetStack([]types.ContextKey{"notes", "capture"})
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		gui.state.Preview.ScrollOffset = 0
+		gui.contexts.Preview.ScrollOffset = 0
 		gocui.Screen.Clear()
-		gui.renderAll()
+		gui.RenderAll()
 	}
 
 	return nil
@@ -191,10 +191,10 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.SearchFilter = v
 	v.Title = "[0]-Search"
-	v.Footer = fmt.Sprintf("%d results", len(gui.state.Preview.Cards))
+	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.Preview.Cards))
 	setRoundedCorners(v)
 
-	if gui.state.CurrentContext == SearchFilterContext {
+	if gui.contextMgr.Current() == "searchFilter" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -203,7 +203,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	v.Clear()
-	fmt.Fprintf(v, " %s", gui.state.SearchQuery)
+	fmt.Fprintf(v, " %s", gui.contexts.Search.Query)
 
 	return nil
 }
@@ -219,13 +219,13 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// v.Title = "[1]"
 	v.Tabs = []string{"All", "Today", "Recent"}
 	v.SelFgColor = gocui.ColorGreen
-	gui.updateNotesTab()
+	gui.UpdateNotesTab()
 	setRoundedCorners(v)
 
 	// Notes uses manual multi-line highlighting in renderNotes()
 	v.Highlight = false
 
-	if gui.state.CurrentContext == NotesContext {
+	if gui.contextMgr.Current() == "notes" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -247,10 +247,10 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Tabs = []string{"Queries", "Parents"}
 	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
-	gui.updateQueriesTab()
+	gui.UpdateQueriesTab()
 	setRoundedCorners(v)
 
-	if gui.state.CurrentContext == QueriesContext {
+	if gui.contextMgr.Current() == "queries" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -272,10 +272,10 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Tabs = []string{"All", "Global", "Inline"}
 	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
-	gui.updateTagsTab()
+	gui.UpdateTagsTab()
 	setRoundedCorners(v)
 
-	if gui.state.CurrentContext == TagsContext {
+	if gui.contextMgr.Current() == "tags" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -298,18 +298,18 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	// Set title with card count for multi-card/pick mode
 	switch {
-	case gui.state.Preview.Mode == PreviewModeCardList && len(gui.state.Preview.Cards) > 0:
+	case gui.contexts.Preview.Mode == context.PreviewModeCardList && len(gui.contexts.Preview.Cards) > 0:
 		v.Title = "Preview"
-		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.Cards))
-	case gui.state.Preview.Mode == PreviewModePickResults && len(gui.state.Preview.PickResults) > 0:
-		v.Title = " Pick: " + gui.state.PickQuery + " "
-		v.Footer = fmt.Sprintf("%d of %d", gui.state.Preview.SelectedCardIndex+1, len(gui.state.Preview.PickResults))
+		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.Cards))
+	case gui.contexts.Preview.Mode == context.PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
+		v.Title = " Pick: " + gui.contexts.Pick.Query + " "
+		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.PickResults))
 	default:
 		v.Footer = ""
 		v.Title = " Preview "
 	}
 
-	if gui.state.CurrentContext == PreviewContext {
+	if gui.contextMgr.Current() == "preview" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -329,7 +329,7 @@ func (gui *Gui) createStatusView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.views.Status = v
 	v.Frame = false
 
-	gui.updateStatusBar()
+	gui.UpdateStatusBar()
 
 	return nil
 }
@@ -358,7 +358,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.SearchCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.Search.Completion },
 		triggers:   gui.searchTriggers,
 		drillFlags: 0,
 	}
@@ -372,7 +372,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(SearchView)
 
 	// Render suggestion dropdown below the search popup
-	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.state.SearchCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.contexts.Search.Completion, x0, y1, width); err != nil {
 		return err
 	}
 
@@ -380,7 +380,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
-	config := gui.state.InputPopupConfig
+	config := gui.contexts.InputPopup.Config
 	if config == nil {
 		return nil
 	}
@@ -407,9 +407,9 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:   gui,
-		state: func() *CompletionState { return gui.state.InputPopupCompletion },
-		triggers: func() []CompletionTrigger {
-			if c := gui.state.InputPopupConfig; c != nil && c.Triggers != nil {
+		state: func() *types.CompletionState { return gui.contexts.InputPopup.Completion },
+		triggers: func() []types.CompletionTrigger {
+			if c := gui.contexts.InputPopup.Config; c != nil && c.Triggers != nil {
 				return c.Triggers()
 			}
 			return nil
@@ -421,11 +421,11 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.TitleColor = gocui.ColorGreen
 
 	// Seed text on first open so completion appears immediately
-	if !gui.state.InputPopupSeedDone && config.Seed != "" {
-		gui.state.InputPopupSeedDone = true
+	if !gui.contexts.InputPopup.SeedDone && config.Seed != "" {
+		gui.contexts.InputPopup.SeedDone = true
 		v.TextArea.TypeString(config.Seed)
 		if config.Triggers != nil {
-			gui.updateCompletion(v, config.Triggers(), gui.state.InputPopupCompletion)
+			gui.updateCompletion(v, config.Triggers(), gui.contexts.InputPopup.Completion)
 		}
 	}
 
@@ -436,7 +436,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(InputPopupView)
 
 	// Render suggestion dropdown below
-	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.state.InputPopupCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.contexts.InputPopup.Completion, x0, y1, width); err != nil {
 		return err
 	}
 
@@ -489,14 +489,14 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 
 	// Render suggestion dropdown below the capture popup
 	suggestY := y0 + 3 // position below a few lines into the popup
-	if gui.state.CaptureCompletion.Active {
+	if gui.contexts.Capture.Completion.Active {
 		_, cy := v.TextArea.GetCursorXY()
 		suggestY = y0 + cy + 2 // position relative to cursor line
 		if suggestY > y1-2 {
 			suggestY = y1 // below the popup if cursor is near bottom
 		}
 	}
-	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.state.CaptureCompletion, x0, suggestY, x1-x0); err != nil {
+	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.contexts.Capture.Completion, x0, suggestY, x1-x0); err != nil {
 		return err
 	}
 
@@ -527,7 +527,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.PickCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.Pick.Completion },
 		triggers:   gui.pickTriggers,
 		drillFlags: 0,
 	}
@@ -535,10 +535,10 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
 	// Seed "#" on first open so tag completion appears immediately
-	if gui.state.PickSeedHash {
-		gui.state.PickSeedHash = false
+	if gui.contexts.Pick.SeedHash {
+		gui.contexts.Pick.SeedHash = false
 		v.TextArea.TypeString("#")
-		gui.updateCompletion(v, gui.pickTriggers(), gui.state.PickCompletion)
+		gui.updateCompletion(v, gui.pickTriggers(), gui.contexts.Pick.Completion)
 	}
 
 	v.RenderTextArea()
@@ -547,7 +547,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetViewOnTop(PickView)
 	g.SetCurrentView(PickView)
 
-	if err := gui.renderSuggestionView(g, PickSuggestView, gui.state.PickCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, PickSuggestView, gui.contexts.Pick.Completion, x0, y1, width); err != nil {
 		return err
 	}
 
@@ -588,8 +588,8 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.TitleColor = gocui.ColorGreen
 
 	// Start in Command Palette mode; typing ":" switches to Quick Open
-	if !gui.state.PaletteSeedDone {
-		gui.state.PaletteSeedDone = true
+	if !gui.contexts.Palette.SeedDone {
+		gui.contexts.Palette.SeedDone = true
 		v.Title = " Command Palette "
 		gui.filterPaletteCommands("")
 	}
@@ -632,7 +632,7 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 
 func (gui *Gui) pickFooter() string {
 	anyLabel := "off"
-	if gui.state.PickAnyMode {
+	if gui.contexts.Pick.AnyMode {
 		anyLabel = "on"
 	}
 	return " # for tags | --any: " + anyLabel + " | <c-a>: toggle | Tab: complete | Esc: cancel "
@@ -663,8 +663,8 @@ func (gui *Gui) updateCaptureFooter() {
 		tagsStr = strings.Join(tags, ", ")
 	}
 	var parentTitle string
-	if gui.state.CaptureParent != nil {
-		parentTitle = gui.state.CaptureParent.Title
+	if gui.contexts.Capture.Parent != nil {
+		parentTitle = gui.contexts.Capture.Parent.Title
 	}
 
 	footer := " " + models.JoinDot(date, tagsStr, parentTitle) + " "
@@ -718,14 +718,14 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	ev.Wrap = false
 	ev.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.SnippetEditorCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.SnippetEditor.Completion },
 		triggers:   gui.snippetExpansionTriggers,
 		drillFlags: DrillParent | DrillWikiLink,
 	}
 	setRoundedCorners(ev)
 
 	// Green frame on focused view, default on other
-	if gui.state.SnippetEditorFocus == 0 {
+	if gui.contexts.SnippetEditor.Focus == 0 {
 		nv.FrameColor = gocui.ColorGreen
 		nv.TitleColor = gocui.ColorGreen
 		ev.FrameColor = gocui.ColorDefault
@@ -744,14 +744,14 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	g.SetViewOnTop(SnippetNameView)
 	g.SetViewOnTop(SnippetExpansionView)
 
-	if gui.state.SnippetEditorFocus == 0 {
+	if gui.contexts.SnippetEditor.Focus == 0 {
 		g.SetCurrentView(SnippetNameView)
 	} else {
 		g.SetCurrentView(SnippetExpansionView)
 	}
 
 	// Suggestion dropdown below expansion view
-	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.state.SnippetEditorCompletion, x0, ey1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, width); err != nil {
 		return err
 	}
 

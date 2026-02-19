@@ -1,5 +1,7 @@
 package gui
 
+import "kvnd/lazyruin/pkg/gui/context"
+
 // contextHint defines a single keybinding hint shared between the status bar and help menu.
 type contextHint struct {
 	key    string
@@ -16,8 +18,8 @@ type contextHintDef struct {
 // contextHintDefs returns the hint definitions for the current context.
 // This is the single source of truth consumed by both updateStatusBar() and showHelp().
 func (gui *Gui) contextHintDefs() contextHintDef {
-	switch gui.state.CurrentContext {
-	case NotesContext:
+	switch gui.contextMgr.Current() {
+	case "notes":
 		return contextHintDef{
 			header: "Notes",
 			hints: []contextHint{
@@ -46,8 +48,8 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"?", "Keybindings"},
 			},
 		}
-	case QueriesContext:
-		if gui.state.Queries.CurrentTab == QueriesTabParents {
+	case "queries":
+		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			return contextHintDef{
 				header: "Parents",
 				hints: []contextHint{
@@ -77,7 +79,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"?", "Keybindings"},
 			},
 		}
-	case TagsContext:
+	case "tags":
 		return contextHintDef{
 			header: "Tags",
 			hints: []contextHint{
@@ -94,7 +96,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"?", "Keybindings"},
 			},
 		}
-	case PreviewContext:
+	case "preview":
 		return contextHintDef{
 			header: "Preview",
 			hints: []contextHint{
@@ -133,7 +135,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"?", "Keys"},
 			},
 		}
-	case SearchContext:
+	case "search":
 		return contextHintDef{
 			hints: []contextHint{
 				{"enter", "Search"},
@@ -141,7 +143,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Cancel"},
 			},
 		}
-	case CaptureContext:
+	case "capture":
 		return contextHintDef{
 			hints: []contextHint{
 				{"<c-s>", "Save"},
@@ -150,7 +152,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{">", "Parent"},
 			},
 		}
-	case PickContext:
+	case "pick":
 		return contextHintDef{
 			hints: []contextHint{
 				{"enter", "Pick"},
@@ -159,7 +161,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Cancel"},
 			},
 		}
-	case PaletteContext:
+	case "palette":
 		return contextHintDef{
 			hints: []contextHint{
 				{"enter", "Execute"},
@@ -167,7 +169,7 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Cancel"},
 			},
 		}
-	case SearchFilterContext:
+	case "searchFilter":
 		return contextHintDef{
 			header: "Search Filter",
 			hints: []contextHint{
@@ -190,14 +192,14 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 
 // navigationHints returns the navigation section hints for the help menu.
 func (gui *Gui) navigationHints() []contextHint {
-	switch gui.state.CurrentContext {
-	case NotesContext, QueriesContext, TagsContext:
+	switch gui.contextMgr.Current() {
+	case "notes", "queries", "tags":
 		return []contextHint{
 			{"j/k", "Move down/up"},
 			{"g", "Go to top"},
 			{"G", "Go to bottom"},
 		}
-	case PreviewContext:
+	case "preview":
 		return []contextHint{
 			{"j/k", "Scroll line-by-line"},
 			{"J/K", "Jump between cards"},

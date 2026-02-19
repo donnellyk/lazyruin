@@ -3,12 +3,15 @@ package gui
 import (
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // isAbbreviationCompletion returns true if the active completion is triggered by !.
-func isAbbreviationCompletion(v *gocui.View, state *CompletionState) bool {
+func isAbbreviationCompletion(v *gocui.View, state *types.CompletionState) bool {
 	if !state.Active {
 		return false
 	}
@@ -72,11 +75,11 @@ func extractParentPath(text string) (remaining, parentPath string) {
 	return remaining, parentPath
 }
 
-// resolveParentPath resolves a /-delimited path to a CaptureParentInfo.
+// resolveParentPath resolves a /-delimited path to a context.CaptureParentInfo.
 // The first segment matches a parent bookmark name; if no bookmark matches,
 // it falls back to searching all notes by title (for >> mode).
 // Subsequent segments drill into children by matching titles.
-func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
+func (gui *Gui) resolveParentPath(path string) *context.CaptureParentInfo {
 	segments := strings.Split(path, "/")
 	if len(segments) == 0 || segments[0] == "" {
 		return nil
@@ -86,7 +89,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 	var currentUUID string
 	var titleParts []string
 	segLower := strings.ToLower(segments[0])
-	for _, p := range gui.state.Parents.Items {
+	for _, p := range gui.contexts.Queries.Parents {
 		if strings.ToLower(p.Name) == segLower {
 			currentUUID = p.UUID
 			titleParts = append(titleParts, p.Title)
@@ -96,7 +99,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 
 	// Fallback: match by note title (for >> all-notes mode)
 	if currentUUID == "" {
-		for _, note := range gui.state.Notes.Items {
+		for _, note := range gui.contexts.Notes.Items {
 			if strings.ToLower(note.Title) == segLower {
 				currentUUID = note.UUID
 				titleParts = append(titleParts, note.Title)
@@ -135,7 +138,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 		}
 	}
 
-	return &CaptureParentInfo{
+	return &context.CaptureParentInfo{
 		UUID:  currentUUID,
 		Title: titleParts[len(titleParts)-1],
 	}
@@ -144,7 +147,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 // acceptAbbreviationInCapture handles accepting an abbreviation completion in Capture mode.
 // It expands the abbreviation, extracts any >path token to set the capture parent,
 // and inserts the remaining text.
-func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *CompletionState) {
+func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -165,7 +168,7 @@ func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *CompletionStat
 	// Resolve parent path if present
 	if parentPath != "" {
 		if info := gui.resolveParentPath(parentPath); info != nil {
-			gui.state.CaptureParent = info
+			gui.contexts.Capture.Parent = info
 		}
 	}
 
