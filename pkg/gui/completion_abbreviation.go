@@ -3,12 +3,14 @@ package gui
 import (
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // isAbbreviationCompletion returns true if the active completion is triggered by !.
-func isAbbreviationCompletion(v *gocui.View, state *CompletionState) bool {
+func isAbbreviationCompletion(v *gocui.View, state *types.CompletionState) bool {
 	if !state.Active {
 		return false
 	}
@@ -144,7 +146,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 // acceptAbbreviationInCapture handles accepting an abbreviation completion in Capture mode.
 // It expands the abbreviation, extracts any >path token to set the capture parent,
 // and inserts the remaining text.
-func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *CompletionState) {
+func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}

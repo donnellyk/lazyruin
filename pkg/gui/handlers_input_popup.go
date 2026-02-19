@@ -1,14 +1,15 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
 )
 
 // openInputPopup opens the generic input popup with the given config.
-func (gui *Gui) openInputPopup(config *InputPopupConfig) {
-	gui.state.InputPopupCompletion = NewCompletionState()
+func (gui *Gui) openInputPopup(config *types.InputPopupConfig) {
+	gui.state.InputPopupCompletion = types.NewCompletionState()
 	gui.state.InputPopupSeedDone = false
 	gui.state.InputPopupConfig = config
 	gui.pushContextByKey(InputPopupCtx)
@@ -16,7 +17,7 @@ func (gui *Gui) openInputPopup(config *InputPopupConfig) {
 
 // closeInputPopup closes the input popup and restores focus.
 func (gui *Gui) closeInputPopup() {
-	gui.state.InputPopupCompletion = NewCompletionState()
+	gui.state.InputPopupCompletion = types.NewCompletionState()
 	gui.state.InputPopupConfig = nil
 	gui.g.Cursor = false
 	gui.g.DeleteView(InputPopupView)
@@ -30,7 +31,7 @@ func (gui *Gui) inputPopupEnter(g *gocui.Gui, v *gocui.View) error {
 	config := gui.state.InputPopupConfig
 
 	raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-	var item *CompletionItem
+	var item *types.CompletionItem
 	if state.Active && len(state.Items) > 0 {
 		selected := state.Items[state.SelectedIndex]
 		item = &selected

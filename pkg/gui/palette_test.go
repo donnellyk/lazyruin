@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/types"
 	"sort"
 	"strings"
 	"testing"
@@ -16,7 +17,7 @@ func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
 		Commands: []PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
-			{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
+			{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}},
 		},
 	}
 
@@ -102,8 +103,8 @@ func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
 	gui := &Gui{state: NewGuiState()}
 	gui.state.Palette = &PaletteState{
 		Commands: []PaletteCommand{
-			{Name: "Delete Tag", Category: "Tags", Contexts: []ContextKey{TagsContext}},
-			{Name: "Delete Note", Category: "Notes", Contexts: []ContextKey{NotesContext}},
+			{Name: "Delete Tag", Category: "Tags", Contexts: []types.ContextKey{TagsContext}},
+			{Name: "Delete Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}},
 			{Name: "Quit", Category: "Global"},
 		},
 	}
@@ -153,14 +154,14 @@ func TestIsPaletteCommandAvailable_EmptyContext(t *testing.T) {
 }
 
 func TestIsPaletteCommandAvailable_MatchingContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}}
 	if !isPaletteCommandAvailable(cmd, NotesContext) {
 		t.Error("command should be available when context matches")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MismatchedContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []ContextKey{NotesContext}}
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}}
 	if isPaletteCommandAvailable(cmd, TagsContext) {
 		t.Error("command should not be available when context doesn't match")
 	}
@@ -497,7 +498,7 @@ func TestPaletteOnlyCommands_AllAppearInPaletteCommands(t *testing.T) {
 		name     string
 		contexts string
 	}
-	contextsKey := func(ctxs []ContextKey) string {
+	contextsKey := func(ctxs []types.ContextKey) string {
 		sorted := make([]string, len(ctxs))
 		for i, c := range ctxs {
 			sorted[i] = string(c)
@@ -526,7 +527,7 @@ func TestPaletteCommands_NoDuplicateNameContexts(t *testing.T) {
 		name     string
 		contexts string
 	}
-	contextsKey := func(ctxs []ContextKey) string {
+	contextsKey := func(ctxs []types.ContextKey) string {
 		sorted := make([]string, len(ctxs))
 		for i, c := range ctxs {
 			sorted[i] = string(c)

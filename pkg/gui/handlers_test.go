@@ -447,8 +447,8 @@ func TestNotesDown_UpdatesPreview(t *testing.T) {
 	testNotesDown(tg)
 
 	// Preview should be in card list mode showing the selected note as a single card
-	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != context.PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want context.PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
 }
 
@@ -494,8 +494,8 @@ func TestFilterByTag_SetsPreviewCardList(t *testing.T) {
 	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
-	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != context.PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want context.PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
 	if tg.gui.contexts.Preview.SelectedCardIndex != 0 {
 		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.contexts.Preview.SelectedCardIndex)
@@ -528,8 +528,8 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	tg.gui.globalController.FocusQueries()
 	tg.gui.helpers.Queries().RunQuery()
 
-	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
+	if tg.gui.contexts.Preview.Mode != context.PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want context.PreviewModeCardList", tg.gui.contexts.Preview.Mode)
 	}
 	if len(tg.gui.contexts.Preview.Cards) == 0 {
 		t.Error("Preview.Cards should not be empty after running query")
@@ -598,7 +598,7 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 
 	// Set up card list mode — set CardLineRanges AFTER setContext since
 	// setContext(PreviewContext) calls renderPreview which rebuilds them.
-	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Mode = context.PreviewModeCardList
 	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	// Override with known ranges after any render
@@ -616,7 +616,7 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Mode = context.PreviewModeCardList
 	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.contexts.Preview.CursorLine = 3
@@ -633,7 +633,7 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.contexts.Preview.Mode = PreviewModeCardList
+	tg.gui.contexts.Preview.Mode = context.PreviewModeCardList
 	tg.gui.contexts.Preview.Cards = tg.gui.contexts.Notes.Items
 	tg.gui.state.ContextStack = append(tg.gui.state.ContextStack, PreviewContext)
 	tg.gui.contexts.Preview.CursorLine = 1

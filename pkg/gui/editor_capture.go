@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
@@ -86,7 +87,7 @@ func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 }
 
 // isWikiLinkCompletion returns true if the active completion is triggered by [[.
-func isWikiLinkCompletion(v *gocui.View, state *CompletionState) bool {
+func isWikiLinkCompletion(v *gocui.View, state *types.CompletionState) bool {
 	if !state.Active {
 		return false
 	}
@@ -98,7 +99,7 @@ func isWikiLinkCompletion(v *gocui.View, state *CompletionState) bool {
 // drillWikiLinkHeader commits the selected note title and transitions to header mode.
 // It replaces the current trigger token with [[Title# so the completion system
 // re-detects the filter as containing '#' and switches to header candidates.
-func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
+func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -132,7 +133,7 @@ func (gui *Gui) drillWikiLinkHeader(v *gocui.View, state *CompletionState) {
 }
 
 // isParentCompletion returns true if the active completion is triggered by >.
-func isParentCompletion(v *gocui.View, state *CompletionState) bool {
+func isParentCompletion(v *gocui.View, state *types.CompletionState) bool {
 	if !state.Active {
 		return false
 	}
@@ -144,13 +145,13 @@ func isParentCompletion(v *gocui.View, state *CompletionState) bool {
 // drillParentChild commits the selected parent and transitions to showing its children.
 // Pushes the selection onto the drill stack and rewrites the token as >Parent/Child/.../
 // The triggers parameter determines which completion triggers are re-evaluated after drilling.
-func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState, triggers []CompletionTrigger) {
+func (gui *Gui) drillParentChild(v *gocui.View, state *types.CompletionState, triggers []types.CompletionTrigger) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
 
 	item := state.Items[state.SelectedIndex]
-	state.ParentDrill = append(state.ParentDrill, ParentDrillEntry{
+	state.ParentDrill = append(state.ParentDrill, types.ParentDrillEntry{
 		Name: item.Label,
 		UUID: item.Value,
 	})
@@ -188,7 +189,7 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *CompletionState, triggers
 
 // acceptParentCompletion sets the selected note as the capture parent,
 // removes the >... token from the content, and updates the footer.
-func (gui *Gui) acceptParentCompletion(v *gocui.View, state *CompletionState) {
+func (gui *Gui) acceptParentCompletion(v *gocui.View, state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}

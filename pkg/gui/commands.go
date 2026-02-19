@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -21,7 +22,7 @@ func (gui *Gui) paletteOnlyCommands() []PaletteCommand {
 		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(2) }},
 
 		// Search filter (palette-only; keybinding registered in setupKeybindings)
-		{Name: "Clear Search", Category: "Search", Key: "x", Contexts: []ContextKey{SearchFilterContext}, OnRun: func() error {
+		{Name: "Clear Search", Category: "Search", Key: "x", Contexts: []types.ContextKey{SearchFilterContext}, OnRun: func() error {
 			gui.helpers.Search().ClearSearch()
 			return nil
 		}},

@@ -1,54 +1,35 @@
 package gui
 
 import (
-	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
 
-// Type alias for backward compatibility — canonical definition lives in types/.
-type InputPopupConfig = types.InputPopupConfig
-
-// ContextKey is an alias for types.ContextKey so both old and new code
-// use the same type without conversions during the hybrid migration period.
-type ContextKey = types.ContextKey
-
 const (
-	NotesContext        ContextKey = "notes"
-	QueriesContext      ContextKey = "queries"
-	TagsContext         ContextKey = "tags"
-	PreviewContext      ContextKey = "preview"
-	SearchContext       ContextKey = "search"
-	SearchFilterContext ContextKey = "searchFilter"
-	CaptureContext      ContextKey = "capture"
-	PickContext         ContextKey = "pick"
-	PaletteContext      ContextKey = "palette"
-	InputPopupCtx       ContextKey = "inputPopup"
-	SnippetEditorCtx    ContextKey = "snippetName"
-	CalendarCtx         ContextKey = "calendarGrid"
-	ContribCtx          ContextKey = "contribGrid"
+	NotesContext        types.ContextKey = "notes"
+	QueriesContext      types.ContextKey = "queries"
+	TagsContext         types.ContextKey = "tags"
+	PreviewContext      types.ContextKey = "preview"
+	SearchContext       types.ContextKey = "search"
+	SearchFilterContext types.ContextKey = "searchFilter"
+	CaptureContext      types.ContextKey = "capture"
+	PickContext         types.ContextKey = "pick"
+	PaletteContext      types.ContextKey = "palette"
+	InputPopupCtx       types.ContextKey = "inputPopup"
+	SnippetEditorCtx    types.ContextKey = "snippetName"
+	CalendarCtx         types.ContextKey = "calendarGrid"
+	ContribCtx          types.ContextKey = "contribGrid"
 )
 
 // mainPanelContexts is the set of non-popup panel contexts.
 // A context NOT in this set is treated as a popup by popupActive().
-var mainPanelContexts = map[ContextKey]bool{
+var mainPanelContexts = map[types.ContextKey]bool{
 	NotesContext:        true,
 	QueriesContext:      true,
 	TagsContext:         true,
 	PreviewContext:      true,
 	SearchFilterContext: true,
 }
-
-// Type aliases — canonical definitions live in context/.
-type PreviewMode = context.PreviewMode
-type PreviewLink = context.PreviewLink
-type PreviewState = context.PreviewState
-type NavEntry = context.NavEntry
-
-const (
-	PreviewModeCardList    = context.PreviewModeCardList
-	PreviewModePickResults = context.PreviewModePickResults
-)
 
 // CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
 type CaptureParentInfo struct {
@@ -58,22 +39,22 @@ type CaptureParentInfo struct {
 
 type GuiState struct {
 	Dialog                  *DialogState
-	ContextStack            []ContextKey
+	ContextStack            []types.ContextKey
 	SearchQuery             string
 	CaptureParent           *CaptureParentInfo
-	SearchCompletion        *CompletionState
-	CaptureCompletion       *CompletionState
-	PickCompletion          *CompletionState
+	SearchCompletion        *types.CompletionState
+	CaptureCompletion       *types.CompletionState
+	PickCompletion          *types.CompletionState
 	PickQuery               string
 	PickAnyMode             bool
 	PickSeedHash            bool
 	PaletteSeedDone         bool
 	Palette                 *PaletteState
-	InputPopupCompletion    *CompletionState
+	InputPopupCompletion    *types.CompletionState
 	InputPopupSeedDone      bool
-	InputPopupConfig        *InputPopupConfig
+	InputPopupConfig        *types.InputPopupConfig
 	SnippetEditorFocus      int // 0 = name, 1 = expansion
-	SnippetEditorCompletion *CompletionState
+	SnippetEditorCompletion *types.CompletionState
 	Calendar                *CalendarState
 	Contrib                 *ContribState
 	Initialized             bool
@@ -87,7 +68,7 @@ type PaletteCommand struct {
 	Category string
 	Key      string
 	OnRun    func() error
-	Contexts []ContextKey // nil = always available
+	Contexts []types.ContextKey // nil = always available
 }
 
 // PaletteState holds the runtime state of the command palette.
@@ -120,12 +101,12 @@ type ContribState struct {
 
 func NewGuiState() *GuiState {
 	return &GuiState{
-		SearchCompletion:        NewCompletionState(),
-		CaptureCompletion:       NewCompletionState(),
-		PickCompletion:          NewCompletionState(),
-		InputPopupCompletion:    NewCompletionState(),
-		SnippetEditorCompletion: NewCompletionState(),
-		ContextStack:            []ContextKey{NotesContext},
+		SearchCompletion:        types.NewCompletionState(),
+		CaptureCompletion:       types.NewCompletionState(),
+		PickCompletion:          types.NewCompletionState(),
+		InputPopupCompletion:    types.NewCompletionState(),
+		SnippetEditorCompletion: types.NewCompletionState(),
+		ContextStack:            []types.ContextKey{NotesContext},
 	}
 }
 
@@ -135,7 +116,7 @@ func (s *GuiState) popupActive() bool {
 }
 
 // currentContext returns the top of the context stack.
-func (s *GuiState) currentContext() ContextKey {
+func (s *GuiState) currentContext() types.ContextKey {
 	if len(s.ContextStack) == 0 {
 		return NotesContext
 	}
@@ -143,7 +124,7 @@ func (s *GuiState) currentContext() ContextKey {
 }
 
 // previousContext returns the second-from-top of the context stack.
-func (s *GuiState) previousContext() ContextKey {
+func (s *GuiState) previousContext() types.ContextKey {
 	if len(s.ContextStack) < 2 {
 		return NotesContext
 	}

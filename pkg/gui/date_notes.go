@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // fetchNotesForDate fetches notes created on the given date (YYYY-MM-DD format).

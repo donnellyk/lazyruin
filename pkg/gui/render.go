@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // listItem holds the formatted lines for a single list item.

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"kvnd/lazyruin/pkg/gui/types"
 	"sort"
 	"strings"
 
@@ -21,10 +22,10 @@ func (gui *Gui) listSnippets() error {
 	}
 	sort.Strings(keys)
 
-	var items []MenuItem
+	var items []types.MenuItem
 	for _, k := range keys {
 		expansion := gui.config.Abbreviations[k]
-		items = append(items, MenuItem{
+		items = append(items, types.MenuItem{
 			Key:   "!" + k,
 			Label: expansion,
 		})
@@ -42,9 +43,9 @@ func (gui *Gui) listSnippets() error {
 // snippetExpansionTriggers returns the completion triggers for the snippet
 // expansion field. It merges search and capture triggers, excluding ! (to
 // avoid recursion) and rebinding > to use SnippetEditorCompletion.
-func (gui *Gui) snippetExpansionTriggers() []CompletionTrigger {
+func (gui *Gui) snippetExpansionTriggers() []types.CompletionTrigger {
 	seen := make(map[string]bool)
-	var merged []CompletionTrigger
+	var merged []types.CompletionTrigger
 
 	// Capture triggers first (content-oriented: [[, >, /markdown, etc.)
 	for _, t := range gui.captureTriggers() {
@@ -74,7 +75,7 @@ func (gui *Gui) snippetExpansionTriggers() []CompletionTrigger {
 // acceptSnippetParentCompletion accepts a parent completion but keeps the >path
 // token in the content (unlike acceptParentCompletion which removes it).
 // Snippets store >path literally so it can be resolved when the abbreviation is expanded.
-func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *CompletionState) {
+func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -113,7 +114,7 @@ func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *CompletionSt
 // createSnippet opens the two-field stacked snippet editor.
 func (gui *Gui) createSnippet() error {
 	gui.state.SnippetEditorFocus = 0
-	gui.state.SnippetEditorCompletion = NewCompletionState()
+	gui.state.SnippetEditorCompletion = types.NewCompletionState()
 	gui.pushContextByKey(SnippetEditorCtx)
 	return nil
 }
@@ -224,7 +225,7 @@ func (gui *Gui) snippetEditorEsc(g *gocui.Gui, v *gocui.View) error {
 
 // closeSnippetEditor tears down the snippet editor views and restores focus.
 func (gui *Gui) closeSnippetEditor(g *gocui.Gui) error {
-	gui.state.SnippetEditorCompletion = NewCompletionState()
+	gui.state.SnippetEditorCompletion = types.NewCompletionState()
 	g.DeleteView(SnippetNameView)
 	g.DeleteView(SnippetExpansionView)
 	g.DeleteView(SnippetSuggestView)
@@ -246,7 +247,7 @@ func (gui *Gui) deleteSnippet() error {
 	}
 	sort.Strings(keys)
 
-	var items []MenuItem
+	var items []types.MenuItem
 	for _, k := range keys {
 		name := k
 		expansion := gui.config.Abbreviations[name]
@@ -254,7 +255,7 @@ func (gui *Gui) deleteSnippet() error {
 		if len(detail) > 40 {
 			detail = detail[:37] + "..."
 		}
-		items = append(items, MenuItem{
+		items = append(items, types.MenuItem{
 			Key:   "!" + name,
 			Label: detail,
 			OnRun: func() error {

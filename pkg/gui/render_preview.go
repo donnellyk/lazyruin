@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -31,9 +32,9 @@ func (gui *Gui) renderPreview() {
 	gui.contexts.Preview.HighlightedLink = -1
 
 	switch gui.contexts.Preview.Mode {
-	case PreviewModeCardList:
+	case context.PreviewModeCardList:
 		gui.renderSeparatorCards(v)
-	case PreviewModePickResults:
+	case context.PreviewModePickResults:
 		gui.renderPickResults(v)
 	}
 }

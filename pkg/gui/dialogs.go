@@ -15,9 +15,6 @@ const (
 	InputView   = "input"
 )
 
-// MenuItem is a type alias — canonical definition lives in types/.
-type MenuItem = types.MenuItem
-
 // DialogState tracks the current dialog state
 type DialogState struct {
 	Active        bool
@@ -27,7 +24,7 @@ type DialogState struct {
 	OnConfirm     func() error
 	OnCancel      func()
 	InputBuffer   string
-	MenuItems     []MenuItem
+	MenuItems     []types.MenuItem
 	MenuSelection int
 }
 
@@ -64,33 +61,33 @@ func (gui *Gui) showInput(title, message string, onConfirm func(input string) er
 
 // showHelp displays a context-sensitive keybindings menu
 func (gui *Gui) showHelp() {
-	var items []MenuItem
+	var items []types.MenuItem
 
 	// Context-specific section from shared hint definitions
 	def := gui.contextHintDefs()
 	if def.header != "" {
-		items = append(items, MenuItem{Label: def.header, IsHeader: true})
+		items = append(items, types.MenuItem{Label: def.header, IsHeader: true})
 	}
 	for _, h := range def.hints {
-		items = append(items, MenuItem{Key: h.key, Label: h.action})
+		items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 	}
 
 	// Blank separator
-	items = append(items, MenuItem{})
+	items = append(items, types.MenuItem{})
 
 	// Global section
-	items = append(items, MenuItem{Label: "Global", IsHeader: true})
+	items = append(items, types.MenuItem{Label: "Global", IsHeader: true})
 	for _, h := range globalHints() {
-		items = append(items, MenuItem{Key: h.key, Label: h.action})
+		items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 	}
 
 	// Navigation section
 	navHints := gui.navigationHints()
 	if len(navHints) > 0 {
-		items = append(items, MenuItem{}) // blank separator
-		items = append(items, MenuItem{Label: "Navigation", IsHeader: true})
+		items = append(items, types.MenuItem{}) // blank separator
+		items = append(items, types.MenuItem{Label: "Navigation", IsHeader: true})
 		for _, h := range navHints {
-			items = append(items, MenuItem{Key: h.key, Label: h.action})
+			items = append(items, types.MenuItem{Key: h.key, Label: h.action})
 		}
 	}
 

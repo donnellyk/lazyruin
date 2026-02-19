@@ -3,18 +3,10 @@ package gui
 import (
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
-
-// Type aliases for backward compatibility — canonical definitions live in types/.
-type CompletionItem = types.CompletionItem
-type CompletionTrigger = types.CompletionTrigger
-type ParentDrillEntry = types.ParentDrillEntry
-type CompletionState = types.CompletionState
-
-// NewCompletionState returns an initialized CompletionState.
-var NewCompletionState = types.NewCompletionState
 
 // extractTokenAtCursor scans backward from cursorPos to find the current token
 // (delimited by whitespace or start of string). Returns the token and its start position.
@@ -56,7 +48,7 @@ func lineContainsAt(content string, cursorPos int) bool {
 // Returns the matching trigger and the filter text (portion after the prefix), or nil.
 // As a fallback, scans backward for unclosed [[ to support bracket-style triggers
 // whose filter text may contain spaces.
-func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) (*CompletionTrigger, string, int) {
+func detectTrigger(content string, cursorPos int, triggers []types.CompletionTrigger) (*types.CompletionTrigger, string, int) {
 	token, tokenStart := extractTokenAtCursor(content, cursorPos)
 	for i := range triggers {
 		t := &triggers[i]
@@ -133,8 +125,8 @@ func detectTrigger(content string, cursorPos int, triggers []CompletionTrigger) 
 }
 
 // updateCompletion is called after every keystroke. It checks whether a trigger
-// is active and updates the CompletionState accordingly.
-func (gui *Gui) updateCompletion(v *gocui.View, triggers []CompletionTrigger, state *CompletionState) {
+// is active and updates the types.CompletionState accordingly.
+func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigger, state *types.CompletionState) {
 	content := v.TextArea.GetUnwrappedContent()
 	cursorPos := viewCursorBytePos(v)
 
@@ -178,7 +170,7 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []CompletionTrigger, st
 // acceptCompletion replaces the current trigger token with the selected item's InsertText.
 // When triggers is non-nil and the item has ContinueCompleting set, completion is
 // re-run immediately so the inserted prefix can chain into its own trigger.
-func (gui *Gui) acceptCompletion(v *gocui.View, state *CompletionState, triggers []CompletionTrigger) {
+func (gui *Gui) acceptCompletion(v *gocui.View, state *types.CompletionState, triggers []types.CompletionTrigger) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -193,7 +185,7 @@ func (gui *Gui) acceptCompletion(v *gocui.View, state *CompletionState, triggers
 }
 
 // acceptReplaceCompletion is the standard completion: replace the trigger token with InsertText.
-func (gui *Gui) acceptReplaceCompletion(v *gocui.View, state *CompletionState, item CompletionItem, triggers []CompletionTrigger) {
+func (gui *Gui) acceptReplaceCompletion(v *gocui.View, state *types.CompletionState, item types.CompletionItem, triggers []types.CompletionTrigger) {
 	cursorPos := viewCursorBytePos(v)
 
 	// Calculate how many chars to backspace (from cursorPos back to TriggerStart)
@@ -220,7 +212,7 @@ func (gui *Gui) acceptReplaceCompletion(v *gocui.View, state *CompletionState, i
 
 // acceptPrependCompletion prepends InsertText to the current line content,
 // removing the trigger token. Used for line-prefix items like headings and bullets.
-func (gui *Gui) acceptPrependCompletion(v *gocui.View, state *CompletionState, item CompletionItem) {
+func (gui *Gui) acceptPrependCompletion(v *gocui.View, state *types.CompletionState, item types.CompletionItem) {
 	content := v.TextArea.GetUnwrappedContent()
 	cursorPos := viewCursorBytePos(v)
 
@@ -265,7 +257,7 @@ func (gui *Gui) acceptPrependCompletion(v *gocui.View, state *CompletionState, i
 
 // completionEsc returns an Esc handler that dismisses completion if active,
 // otherwise calls onClose.
-func (gui *Gui) completionEsc(state func() *CompletionState, onClose func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
+func (gui *Gui) completionEsc(state func() *types.CompletionState, onClose func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		if s := state(); s.Active {
 			s.Dismiss()
@@ -276,7 +268,7 @@ func (gui *Gui) completionEsc(state func() *CompletionState, onClose func(*gocui
 }
 
 // completionTab returns a Tab handler that accepts completion if active.
-func (gui *Gui) completionTab(state func() *CompletionState, triggers func() []CompletionTrigger) func(*gocui.Gui, *gocui.View) error {
+func (gui *Gui) completionTab(state func() *types.CompletionState, triggers func() []types.CompletionTrigger) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		if s := state(); s.Active && len(s.Items) > 0 {
 			gui.acceptCompletion(v, s, triggers())
@@ -287,7 +279,7 @@ func (gui *Gui) completionTab(state func() *CompletionState, triggers func() []C
 
 // completionEnter returns an Enter handler that accepts completion if active,
 // otherwise calls onSubmit.
-func (gui *Gui) completionEnter(state func() *CompletionState, triggers func() []CompletionTrigger, onSubmit func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
+func (gui *Gui) completionEnter(state func() *types.CompletionState, triggers func() []types.CompletionTrigger, onSubmit func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		if s := state(); s.Active && len(s.Items) > 0 {
 			gui.acceptCompletion(v, s, triggers())
@@ -298,7 +290,7 @@ func (gui *Gui) completionEnter(state func() *CompletionState, triggers func() [
 }
 
 // completionDown moves the selection down in the completion list.
-func completionDown(state *CompletionState) {
+func completionDown(state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
@@ -308,7 +300,7 @@ func completionDown(state *CompletionState) {
 }
 
 // completionUp moves the selection up in the completion list.
-func completionUp(state *CompletionState) {
+func completionUp(state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}

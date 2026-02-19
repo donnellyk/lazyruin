@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
 
 type binding struct {

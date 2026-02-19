@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/types"
 	"testing"
 	"time"
 )
@@ -64,9 +65,9 @@ func TestExtractTokenAtCursor(t *testing.T) {
 }
 
 func TestDetectTrigger(t *testing.T) {
-	triggers := []CompletionTrigger{
-		{Prefix: "#", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "created:", Candidates: func(filter string) []CompletionItem { return nil }},
+	triggers := []types.CompletionTrigger{
+		{Prefix: "#", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "created:", Candidates: func(filter string) []types.CompletionItem { return nil }},
 	}
 
 	tests := []struct {
@@ -108,9 +109,9 @@ func TestDetectTrigger(t *testing.T) {
 }
 
 func TestCompletionDown(t *testing.T) {
-	state := &CompletionState{
+	state := &types.CompletionState{
 		Active:        true,
-		Items:         []CompletionItem{{Label: "a"}, {Label: "b"}, {Label: "c"}},
+		Items:         []types.CompletionItem{{Label: "a"}, {Label: "b"}, {Label: "c"}},
 		SelectedIndex: 0,
 	}
 
@@ -132,9 +133,9 @@ func TestCompletionDown(t *testing.T) {
 }
 
 func TestCompletionUp(t *testing.T) {
-	state := &CompletionState{
+	state := &types.CompletionState{
 		Active:        true,
-		Items:         []CompletionItem{{Label: "a"}, {Label: "b"}, {Label: "c"}},
+		Items:         []types.CompletionItem{{Label: "a"}, {Label: "b"}, {Label: "c"}},
 		SelectedIndex: 2,
 	}
 
@@ -156,9 +157,9 @@ func TestCompletionUp(t *testing.T) {
 }
 
 func TestCompletionDown_Inactive(t *testing.T) {
-	state := &CompletionState{
+	state := &types.CompletionState{
 		Active:        false,
-		Items:         []CompletionItem{{Label: "a"}},
+		Items:         []types.CompletionItem{{Label: "a"}},
 		SelectedIndex: 0,
 	}
 
@@ -283,13 +284,13 @@ func TestExtractParentPath(t *testing.T) {
 }
 
 func TestDetectTrigger_SpaceAwareDates(t *testing.T) {
-	triggers := []CompletionTrigger{
-		{Prefix: "#", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "created:", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "before:", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "after:", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "between:", Candidates: func(filter string) []CompletionItem { return nil }},
-		{Prefix: "@", Candidates: func(filter string) []CompletionItem { return nil }},
+	triggers := []types.CompletionTrigger{
+		{Prefix: "#", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "created:", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "before:", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "after:", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "between:", Candidates: func(filter string) []types.CompletionItem { return nil }},
+		{Prefix: "@", Candidates: func(filter string) []types.CompletionItem { return nil }},
 	}
 
 	tests := []struct {
@@ -496,7 +497,7 @@ func TestAmbientDateCandidates(t *testing.T) {
 }
 
 func TestNewCompletionState(t *testing.T) {
-	state := NewCompletionState()
+	state := types.NewCompletionState()
 	if state.Active {
 		t.Error("new state should not be active")
 	}

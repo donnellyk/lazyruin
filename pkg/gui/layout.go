@@ -5,8 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 func (gui *Gui) layout(g *gocui.Gui) error {
@@ -161,8 +164,8 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.RefreshAll()
 		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
-			gui.state.CaptureCompletion = NewCompletionState()
-			gui.state.ContextStack = []ContextKey{NotesContext, CaptureContext}
+			gui.state.CaptureCompletion = types.NewCompletionState()
+			gui.state.ContextStack = []types.ContextKey{NotesContext, CaptureContext}
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
@@ -295,10 +298,10 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	// Set title with card count for multi-card/pick mode
 	switch {
-	case gui.contexts.Preview.Mode == PreviewModeCardList && len(gui.contexts.Preview.Cards) > 0:
+	case gui.contexts.Preview.Mode == context.PreviewModeCardList && len(gui.contexts.Preview.Cards) > 0:
 		v.Title = "Preview"
 		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.Cards))
-	case gui.contexts.Preview.Mode == PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
+	case gui.contexts.Preview.Mode == context.PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
 		v.Title = " Pick: " + gui.state.PickQuery + " "
 		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.PickResults))
 	default:
@@ -355,7 +358,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.SearchCompletion },
+		state:      func() *types.CompletionState { return gui.state.SearchCompletion },
 		triggers:   gui.searchTriggers,
 		drillFlags: 0,
 	}
@@ -404,8 +407,8 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:   gui,
-		state: func() *CompletionState { return gui.state.InputPopupCompletion },
-		triggers: func() []CompletionTrigger {
+		state: func() *types.CompletionState { return gui.state.InputPopupCompletion },
+		triggers: func() []types.CompletionTrigger {
 			if c := gui.state.InputPopupConfig; c != nil && c.Triggers != nil {
 				return c.Triggers()
 			}
@@ -524,7 +527,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.PickCompletion },
+		state:      func() *types.CompletionState { return gui.state.PickCompletion },
 		triggers:   gui.pickTriggers,
 		drillFlags: 0,
 	}
@@ -715,7 +718,7 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	ev.Wrap = false
 	ev.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *CompletionState { return gui.state.SnippetEditorCompletion },
+		state:      func() *types.CompletionState { return gui.state.SnippetEditorCompletion },
 		triggers:   gui.snippetExpansionTriggers,
 		drillFlags: DrillParent | DrillWikiLink,
 	}

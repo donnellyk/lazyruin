@@ -1,11 +1,12 @@
 package gui
 
 import (
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // Adapter methods that implement types.IGuiCommon (and helpers.IGuiCommon
@@ -65,7 +66,7 @@ func (gui *Gui) ContextByKey(key types.ContextKey) types.Context {
 func (gui *Gui) PushContextByKey(key types.ContextKey)    { gui.pushContextByKey(key) }
 func (gui *Gui) ReplaceContextByKey(key types.ContextKey) { gui.replaceContextByKey(key) }
 
-// contextByKey looks up a types.Context by its ContextKey.
+// contextByKey looks up a types.Context by its types.ContextKey.
 func (gui *Gui) contextByKey(key types.ContextKey) types.Context {
 	for _, ctx := range gui.contexts.All() {
 		if ctx.GetKey() == key {

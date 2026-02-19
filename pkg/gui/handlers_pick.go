@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
@@ -10,7 +11,7 @@ func (gui *Gui) openPick(g *gocui.Gui, v *gocui.View) error {
 	if gui.state.popupActive() {
 		return nil
 	}
-	gui.state.PickCompletion = NewCompletionState()
+	gui.state.PickCompletion = types.NewCompletionState()
 	gui.state.PickAnyMode = false
 	gui.state.PickSeedHash = true
 	gui.pushContextByKey(PickContext)
@@ -49,7 +50,7 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 
 	// Always close the pick dialog
 	gui.state.PickQuery = raw
-	gui.state.PickCompletion = NewCompletionState()
+	gui.state.PickCompletion = types.NewCompletionState()
 	g.Cursor = false
 
 	if err != nil {
@@ -63,7 +64,7 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) cancelPick(g *gocui.Gui, v *gocui.View) error {
-	gui.state.PickCompletion = NewCompletionState()
+	gui.state.PickCompletion = types.NewCompletionState()
 	g.Cursor = false
 	gui.popContext()
 	return nil

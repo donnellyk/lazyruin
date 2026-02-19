@@ -6,9 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // paletteCommands builds the full palette command list from controller bindings
@@ -33,9 +34,9 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 				keyHint = keyDisplayString(b.Key)
 			}
 			// Global context bindings are available regardless of active context.
-			var contexts []ContextKey
+			var contexts []types.ContextKey
 			if !isGlobal {
-				contexts = []ContextKey{ctxKey}
+				contexts = []types.ContextKey{ctxKey}
 			}
 			cmds = append(cmds, PaletteCommand{
 				Name:     b.Description,
@@ -51,7 +52,7 @@ func (gui *Gui) paletteCommands() []PaletteCommand {
 }
 
 // isPaletteCommandAvailable checks if a command is available given the origin context.
-func isPaletteCommandAvailable(cmd PaletteCommand, origin ContextKey) bool {
+func isPaletteCommandAvailable(cmd PaletteCommand, origin types.ContextKey) bool {
 	if len(cmd.Contexts) == 0 {
 		return true
 	}

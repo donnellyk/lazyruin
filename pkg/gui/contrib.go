@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // openContrib opens the contribution chart dialog.

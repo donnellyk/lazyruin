@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	anytime "github.com/ijt/go-anytime"
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
+
+	anytime "github.com/ijt/go-anytime"
+	"github.com/jesseduffield/gocui"
 )
 
 // Calendar focus: 0 = grid, 1 = notes, 2 = input

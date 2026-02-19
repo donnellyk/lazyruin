@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
 
@@ -27,7 +28,7 @@ func TestNewPreviewContext_Initialized(t *testing.T) {
 	pc := context.NewPreviewContext()
 
 	if pc.PreviewState == nil {
-		t.Error("PreviewState should not be nil")
+		t.Error("context.PreviewState should not be nil")
 	}
 	if pc.NavIndex != -1 {
 		t.Errorf("NavIndex = %d, want -1", pc.NavIndex)
@@ -37,8 +38,8 @@ func TestNewPreviewContext_Initialized(t *testing.T) {
 func TestPreviewContext_StateDefaults(t *testing.T) {
 	pc := context.NewPreviewContext()
 
-	if pc.Mode != PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", pc.Mode)
+	if pc.Mode != context.PreviewModeCardList {
+		t.Errorf("Preview.Mode = %v, want context.PreviewModeCardList", pc.Mode)
 	}
 	if pc.SelectedCardIndex != 0 {
 		t.Errorf("Preview.SelectedCardIndex = %d, want 0", pc.SelectedCardIndex)
@@ -53,7 +54,7 @@ func TestPreviewContext_StateDefaults(t *testing.T) {
 
 func TestContextKey_Values(t *testing.T) {
 	tests := []struct {
-		ctx      ContextKey
+		ctx      types.ContextKey
 		expected string
 	}{
 		{NotesContext, "notes"},
@@ -65,17 +66,17 @@ func TestContextKey_Values(t *testing.T) {
 
 	for _, tc := range tests {
 		if string(tc.ctx) != tc.expected {
-			t.Errorf("ContextKey %v = %q, want %q", tc.ctx, string(tc.ctx), tc.expected)
+			t.Errorf("types.ContextKey %v = %q, want %q", tc.ctx, string(tc.ctx), tc.expected)
 		}
 	}
 }
 
 func TestPreviewMode_Values(t *testing.T) {
-	if PreviewModeCardList != 0 {
-		t.Errorf("PreviewModeCardList = %d, want 0", PreviewModeCardList)
+	if context.PreviewModeCardList != 0 {
+		t.Errorf("context.PreviewModeCardList = %d, want 0", context.PreviewModeCardList)
 	}
-	if PreviewModePickResults != 1 {
-		t.Errorf("PreviewModePickResults = %d, want 1", PreviewModePickResults)
+	if context.PreviewModePickResults != 1 {
+		t.Errorf("context.PreviewModePickResults = %d, want 1", context.PreviewModePickResults)
 	}
 }
 
@@ -107,8 +108,8 @@ func TestPreviewState_ModeSwitch(t *testing.T) {
 	pc := context.NewPreviewContext()
 
 	// Default is card list mode
-	if pc.Mode != PreviewModeCardList {
-		t.Errorf("Initial mode = %v, want PreviewModeCardList", pc.Mode)
+	if pc.Mode != context.PreviewModeCardList {
+		t.Errorf("Initial mode = %v, want context.PreviewModeCardList", pc.Mode)
 	}
 
 	// Set up card list
@@ -123,11 +124,11 @@ func TestPreviewState_ModeSwitch(t *testing.T) {
 	}
 
 	// Switch to pick results mode
-	pc.Mode = PreviewModePickResults
+	pc.Mode = context.PreviewModePickResults
 	pc.ScrollOffset = 5
 
-	if pc.Mode != PreviewModePickResults {
-		t.Errorf("Mode = %v, want PreviewModePickResults", pc.Mode)
+	if pc.Mode != context.PreviewModePickResults {
+		t.Errorf("Mode = %v, want context.PreviewModePickResults", pc.Mode)
 	}
 	if pc.ScrollOffset != 5 {
 		t.Errorf("ScrollOffset = %d, want 5", pc.ScrollOffset)

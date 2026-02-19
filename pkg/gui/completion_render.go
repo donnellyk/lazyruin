@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
@@ -61,7 +62,7 @@ const maxSuggestionItems = 6
 
 // renderSuggestionView creates or updates a suggestion dropdown view at the given position.
 // It returns the view name so the caller can manage it.
-func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *CompletionState, x0, y0, maxWidth int) error {
+func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *types.CompletionState, x0, y0, maxWidth int) error {
 	if !state.Active || len(state.Items) == 0 {
 		g.DeleteView(viewName)
 		return nil

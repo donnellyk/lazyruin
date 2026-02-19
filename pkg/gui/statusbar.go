@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // showError displays an error message in the status bar for 3 seconds, then restores it.

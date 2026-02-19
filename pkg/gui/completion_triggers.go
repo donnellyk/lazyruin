@@ -1,10 +1,13 @@
 package gui
 
-import "strings"
+import (
+	"kvnd/lazyruin/pkg/gui/types"
+	"strings"
+)
 
 // triggerHints builds overview CompletionItems for each trigger prefix,
 // shown when the input is empty or cursor is at whitespace.
-func triggerHints(triggers []CompletionTrigger) []CompletionItem {
+func triggerHints(triggers []types.CompletionTrigger) []types.CompletionItem {
 	descriptions := map[string]string{
 		"#":        "filter by tag",
 		"created:": "creation date",
@@ -19,7 +22,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 		"@":        "insert date",
 		"!":        "abbreviation",
 	}
-	var items []CompletionItem
+	var items []types.CompletionItem
 	for _, t := range triggers {
 		if t.Prefix == "/" {
 			continue // don't include the / trigger itself in its own hints
@@ -28,7 +31,7 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 		if detail == "" {
 			detail = "filter"
 		}
-		items = append(items, CompletionItem{
+		items = append(items, types.CompletionItem{
 			Label:              t.Prefix,
 			InsertText:         t.Prefix,
 			Detail:             detail,
@@ -40,8 +43,8 @@ func triggerHints(triggers []CompletionTrigger) []CompletionItem {
 
 // searchTriggers returns the completion triggers for the search popup.
 // The "/" trigger shows an overview of all available filter prefixes.
-func (gui *Gui) searchTriggers() []CompletionTrigger {
-	triggers := []CompletionTrigger{
+func (gui *Gui) searchTriggers() []types.CompletionTrigger {
+	triggers := []types.CompletionTrigger{
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
@@ -57,15 +60,15 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 	}
 	// Capture triggers slice for the "/" hint candidate closure
 	hintTriggers := triggers
-	triggers = append(triggers, CompletionTrigger{
+	triggers = append(triggers, types.CompletionTrigger{
 		Prefix: "/",
-		Candidates: func(filter string) []CompletionItem {
+		Candidates: func(filter string) []types.CompletionItem {
 			items := triggerHints(hintTriggers)
 			if filter == "" {
 				return items
 			}
 			filter = strings.ToLower(filter)
-			var filtered []CompletionItem
+			var filtered []types.CompletionItem
 			for _, item := range items {
 				if strings.Contains(strings.ToLower(item.Label), filter) ||
 					strings.Contains(strings.ToLower(item.Detail), filter) {
@@ -79,8 +82,8 @@ func (gui *Gui) searchTriggers() []CompletionTrigger {
 }
 
 // captureTriggers returns the completion triggers for the capture popup.
-func (gui *Gui) captureTriggers() []CompletionTrigger {
-	return []CompletionTrigger{
+func (gui *Gui) captureTriggers() []types.CompletionTrigger {
+	return []types.CompletionTrigger{
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
@@ -91,8 +94,8 @@ func (gui *Gui) captureTriggers() []CompletionTrigger {
 }
 
 // pickTriggers returns the completion triggers for the pick popup.
-func (gui *Gui) pickTriggers() []CompletionTrigger {
-	return []CompletionTrigger{
+func (gui *Gui) pickTriggers() []types.CompletionTrigger {
+	return []types.CompletionTrigger{
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
 	}

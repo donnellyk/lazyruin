@@ -136,7 +136,7 @@ func (gui *Gui) setupSearchContext() {
 	searchCtx := context.NewSearchContext()
 	gui.contexts.Search = searchCtx
 
-	searchState := func() *CompletionState { return gui.state.SearchCompletion }
+	searchState := func() *types.CompletionState { return gui.state.SearchCompletion }
 	searchHelper := func() *helperspkg.SearchHelper { return gui.helpers.Search() }
 	ctrl := controllers.NewPopupController(
 		func() *context.SearchContext { return gui.contexts.Search },
@@ -185,7 +185,7 @@ func (gui *Gui) setupPickContext() {
 	pickCtx := context.NewPickContext()
 	gui.contexts.Pick = pickCtx
 
-	pickState := func() *CompletionState { return gui.state.PickCompletion }
+	pickState := func() *types.CompletionState { return gui.state.PickCompletion }
 	ctrl := controllers.NewPopupController(
 		func() *context.PickContext { return gui.contexts.Pick },
 		[]*types.Binding{
@@ -414,7 +414,7 @@ func (gui *Gui) backgroundRefreshData() {
 }
 
 // activateContext sets focus and refreshes data for the given context.
-func (gui *Gui) activateContext(ctx ContextKey) {
+func (gui *Gui) activateContext(ctx types.ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
 
@@ -478,7 +478,7 @@ func (gui *Gui) replaceContext(ctx types.Context) {
 	if len(gui.state.ContextStack) > 0 {
 		gui.state.ContextStack[len(gui.state.ContextStack)-1] = ctx.GetKey()
 	} else {
-		gui.state.ContextStack = []ContextKey{ctx.GetKey()}
+		gui.state.ContextStack = []types.ContextKey{ctx.GetKey()}
 	}
 	gui.activateContext(ctx.GetKey())
 	ctx.HandleFocus(types.OnFocusOpts{})
@@ -486,7 +486,7 @@ func (gui *Gui) replaceContext(ctx types.Context) {
 
 // pushContextByKey looks up the context by key and pushes it.
 // Falls back to a direct stack push for lightweight contexts not in the tree.
-func (gui *Gui) pushContextByKey(key ContextKey) {
+func (gui *Gui) pushContextByKey(key types.ContextKey) {
 	ctx := gui.contextByKey(key)
 	if ctx != nil {
 		gui.pushContext(ctx)
@@ -499,7 +499,7 @@ func (gui *Gui) pushContextByKey(key ContextKey) {
 
 // replaceContextByKey looks up the context by key and replaces the top of the stack.
 // Falls back to a direct stack replace for lightweight contexts not in the tree.
-func (gui *Gui) replaceContextByKey(key ContextKey) {
+func (gui *Gui) replaceContextByKey(key types.ContextKey) {
 	ctx := gui.contextByKey(key)
 	if ctx != nil {
 		gui.replaceContext(ctx)
@@ -509,7 +509,7 @@ func (gui *Gui) replaceContextByKey(key ContextKey) {
 	if len(gui.state.ContextStack) > 0 {
 		gui.state.ContextStack[len(gui.state.ContextStack)-1] = key
 	} else {
-		gui.state.ContextStack = []ContextKey{key}
+		gui.state.ContextStack = []types.ContextKey{key}
 	}
 	gui.activateContext(key)
 }
@@ -525,6 +525,6 @@ func (gui *Gui) overlayActive() bool {
 		(gui.state.Dialog != nil && gui.state.Dialog.Active)
 }
 
-func (gui *Gui) contextToView(ctx ContextKey) string {
+func (gui *Gui) contextToView(ctx types.ContextKey) string {
 	return gui.contexts.ViewNameForKey(ctx)
 }
