@@ -12,9 +12,6 @@ type GuiState struct {
 	SearchCompletion        *types.CompletionState
 	PaletteSeedDone         bool
 	Palette                 *PaletteState
-	InputPopupCompletion    *types.CompletionState
-	InputPopupSeedDone      bool
-	InputPopupConfig        *types.InputPopupConfig
 	SnippetEditorFocus      int // 0 = name, 1 = expansion
 	SnippetEditorCompletion *types.CompletionState
 	Calendar                *CalendarState
@@ -64,7 +61,6 @@ type ContribState struct {
 func NewGuiState() *GuiState {
 	return &GuiState{
 		SearchCompletion:        types.NewCompletionState(),
-		InputPopupCompletion:    types.NewCompletionState(),
 		SnippetEditorCompletion: types.NewCompletionState(),
 		ContextStack:            []types.ContextKey{"notes"},
 	}

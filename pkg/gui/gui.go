@@ -230,12 +230,25 @@ func (gui *Gui) setupInputPopupContext() {
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Handler: func() error {
 				v, _ := gui.g.View(InputPopupView)
-				return gui.inputPopupEnter(gui.g, v)
+				raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+				state := gui.contexts.InputPopup.Completion
+				var item *types.CompletionItem
+				if state.Active && len(state.Items) > 0 {
+					selected := state.Items[state.SelectedIndex]
+					item = &selected
+				}
+				return gui.helpers.InputPopup().HandleEnter(raw, item)
 			}},
-			{Key: gocui.KeyEsc, Handler: func() error { return gui.inputPopupEsc(gui.g, nil) }},
+			{Key: gocui.KeyEsc, Handler: func() error { return gui.helpers.InputPopup().HandleEsc() }},
 			{Key: gocui.KeyTab, Handler: func() error {
-				v, _ := gui.g.View(InputPopupView)
-				return gui.inputPopupTab(gui.g, v)
+				ctx := gui.contexts.InputPopup
+				if ctx.Completion.Active && len(ctx.Completion.Items) > 0 {
+					v, _ := gui.g.View(InputPopupView)
+					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+					selected := ctx.Completion.Items[ctx.Completion.SelectedIndex]
+					return gui.helpers.InputPopup().HandleEnter(raw, &selected)
+				}
+				return nil
 			}},
 		},
 	)

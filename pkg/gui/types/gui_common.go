@@ -84,6 +84,7 @@ type IGuiCommon interface {
 
 	// View access
 	GetView(name string) *gocui.View
+	DeleteView(name string)
 
 	// Preview rendering
 	BuildCardContent(note models.Note, width int) []string

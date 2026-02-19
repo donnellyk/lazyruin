@@ -380,7 +380,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
-	config := gui.state.InputPopupConfig
+	config := gui.contexts.InputPopup.Config
 	if config == nil {
 		return nil
 	}
@@ -407,9 +407,9 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:   gui,
-		state: func() *types.CompletionState { return gui.state.InputPopupCompletion },
+		state: func() *types.CompletionState { return gui.contexts.InputPopup.Completion },
 		triggers: func() []types.CompletionTrigger {
-			if c := gui.state.InputPopupConfig; c != nil && c.Triggers != nil {
+			if c := gui.contexts.InputPopup.Config; c != nil && c.Triggers != nil {
 				return c.Triggers()
 			}
 			return nil
@@ -421,11 +421,11 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.TitleColor = gocui.ColorGreen
 
 	// Seed text on first open so completion appears immediately
-	if !gui.state.InputPopupSeedDone && config.Seed != "" {
-		gui.state.InputPopupSeedDone = true
+	if !gui.contexts.InputPopup.SeedDone && config.Seed != "" {
+		gui.contexts.InputPopup.SeedDone = true
 		v.TextArea.TypeString(config.Seed)
 		if config.Triggers != nil {
-			gui.updateCompletion(v, config.Triggers(), gui.state.InputPopupCompletion)
+			gui.updateCompletion(v, config.Triggers(), gui.contexts.InputPopup.Completion)
 		}
 	}
 
@@ -436,7 +436,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(InputPopupView)
 
 	// Render suggestion dropdown below
-	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.state.InputPopupCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.contexts.InputPopup.Completion, x0, y1, width); err != nil {
 		return err
 	}
 

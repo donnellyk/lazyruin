@@ -33,6 +33,12 @@ func (gui *Gui) GetView(name string) *gocui.View {
 	return v
 }
 
+func (gui *Gui) DeleteView(name string) {
+	if gui.g != nil {
+		gui.g.DeleteView(name)
+	}
+}
+
 func (gui *Gui) CurrentContext() types.Context {
 	return gui.contextByKey(gui.state.currentContext())
 }
@@ -100,7 +106,7 @@ func (gui *Gui) ShowInput(title, message string, onConfirm func(string) error) {
 }
 func (gui *Gui) ShowError(err error) { gui.showError(err) }
 func (gui *Gui) OpenInputPopup(config *types.InputPopupConfig) {
-	gui.openInputPopup(config)
+	gui.helpers.InputPopup().OpenInputPopup(config)
 }
 
 // Refresh — delegates to domain helpers.
@@ -112,7 +118,7 @@ func (gui *Gui) RefreshAll()                  { gui.helpers.Refresh().RefreshAll
 
 // State access
 func (gui *Gui) GetInputPopupCompletion() *types.CompletionState {
-	return gui.state.InputPopupCompletion
+	return gui.contexts.InputPopup.Completion
 }
 
 // Search
