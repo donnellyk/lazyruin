@@ -108,7 +108,7 @@ func testNotesDown(tg *testGui) {
 	if idx+1 < len(items) {
 		notesCtx.MoveSelectedLine(1)
 
-		tg.gui.renderNotes()
+		tg.gui.RenderNotes()
 	}
 }
 
@@ -118,7 +118,7 @@ func testNotesUp(tg *testGui) {
 	if notesCtx.GetSelectedLineIdx() > 0 {
 		notesCtx.MoveSelectedLine(-1)
 
-		tg.gui.renderNotes()
+		tg.gui.RenderNotes()
 	}
 }
 
@@ -136,7 +136,7 @@ func testNotesBottom(tg *testGui) {
 	if len(notesCtx.Items) > 0 {
 		notesCtx.SetSelectedLineIdx(len(notesCtx.Items) - 1)
 
-		tg.gui.renderNotes()
+		tg.gui.RenderNotes()
 	}
 }
 
@@ -148,7 +148,7 @@ func testQueriesDown(tg *testGui) {
 	if t.GetSelectedLineIdx()+1 < count {
 		t.MoveSelectedLine(1)
 
-		tg.gui.renderQueries()
+		tg.gui.RenderQueries()
 	}
 }
 
@@ -341,7 +341,7 @@ func TestOpenSearch_EntersSearchOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openSearch(tg.g, nil)
+	tg.gui.helpers.Search().OpenSearch()
 
 	if !tg.gui.state.popupActive() {
 		t.Error("popupActive() should be true after openSearch")
@@ -359,8 +359,8 @@ func TestCancelSearch_RestoresContext(t *testing.T) {
 	tg.gui.focusTags(tg.g, nil)
 	prev := tg.gui.state.currentContext()
 
-	tg.gui.openSearch(tg.g, nil)
-	tg.gui.cancelSearch(tg.g, tg.gui.views.Search)
+	tg.gui.helpers.Search().OpenSearch()
+	tg.gui.helpers.Search().CancelSearch()
 
 	if tg.gui.state.popupActive() {
 		t.Error("popupActive() should be false after cancelSearch")
@@ -377,7 +377,7 @@ func TestClearSearch_ResetsState(t *testing.T) {
 	// Simulate an active search by setting SearchQuery
 	tg.gui.state.SearchQuery = "#daily"
 
-	tg.gui.clearSearch(tg.g, nil)
+	tg.gui.helpers.Search().ClearSearch()
 
 	if tg.gui.state.SearchQuery != "" {
 		t.Errorf("SearchQuery = %q, want empty", tg.gui.state.SearchQuery)
@@ -492,7 +492,7 @@ func TestFilterByTag_SetsPreviewCardList(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
 		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
@@ -511,7 +511,7 @@ func TestFilterByTag_EmptyTags_Noop(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	// Should remain in tags context, no switch to preview
 	if tg.gui.state.currentContext() != TagsContext {
@@ -526,7 +526,7 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil)
-	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
+	tg.gui.helpers.Queries().RunQuery()
 
 	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
 		t.Errorf("Preview.Mode = %v, want PreviewModeCardList", tg.gui.contexts.Preview.Mode)
@@ -545,7 +545,7 @@ func TestRunQuery_EmptyQueries_Noop(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil)
-	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
+	tg.gui.helpers.Queries().RunQuery()
 
 	if tg.gui.state.currentContext() != QueriesContext {
 		t.Errorf("CurrentContext = %v, want QueriesContext (noop for empty)", tg.gui.state.currentContext())
@@ -560,7 +560,7 @@ func TestPreviewCardDown_CardListMode(t *testing.T) {
 
 	// Enter card list mode via tag filter
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
@@ -578,7 +578,7 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
@@ -771,7 +771,7 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 
 	// Enter card list via tag filter, select second card
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
@@ -816,7 +816,7 @@ func TestNewNote_OpensCapture(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.newNote(tg.g, nil)
+	tg.gui.openCapture(tg.g, nil)
 
 	if tg.gui.state.currentContext() != CaptureContext {
 		t.Error("newNote should push CaptureContext")
@@ -875,7 +875,7 @@ func TestFilterByTag_WithError_NoPanic(t *testing.T) {
 	tg.gui.contexts.Tags.Items = []models.Tag{{Name: "broken", Count: 1}}
 
 	// filterByTag should not panic even though Search fails
-	tg.gui.filterByTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 }
 
 func TestRunQuery_WithError_NoPanic(t *testing.T) {
@@ -888,7 +888,7 @@ func TestRunQuery_WithError_NoPanic(t *testing.T) {
 	tg.gui.contexts.Queries.Queries = []models.Query{{Name: "broken", Query: "#fail"}}
 
 	// Should not panic
-	tg.gui.runQuery(tg.g, tg.gui.views.Queries)
+	tg.gui.helpers.Queries().RunQuery()
 }
 
 // --- Tab cycle includes search filter ---
@@ -917,7 +917,7 @@ func TestDeleteNote_ShowsConfirmDialog(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.deleteNote(tg.g, tg.gui.views.Notes)
+	tg.gui.helpers.Notes().DeleteNote(tg.gui.contexts.Notes.Selected())
 
 	if tg.gui.state.Dialog == nil {
 		t.Fatal("Dialog should be set")
@@ -935,7 +935,7 @@ func TestDeleteNote_EmptyNotes_Noop(t *testing.T) {
 	tg := newTestGui(t, mock)
 	defer tg.Close()
 
-	tg.gui.deleteNote(tg.g, tg.gui.views.Notes)
+	tg.gui.helpers.Notes().DeleteNote(tg.gui.contexts.Notes.Selected())
 
 	if tg.gui.state.Dialog != nil {
 		t.Error("Dialog should not be shown for empty notes")
@@ -947,7 +947,7 @@ func TestDeleteTag_ShowsConfirmDialog(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.deleteTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().DeleteTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.state.Dialog == nil {
 		t.Fatal("Dialog should be set")
@@ -962,7 +962,7 @@ func TestDeleteQuery_ShowsConfirmDialog(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusQueries(tg.g, nil)
-	tg.gui.deleteQuery(tg.g, tg.gui.views.Queries)
+	tg.gui.helpers.Queries().DeleteQuery()
 
 	if tg.gui.state.Dialog == nil {
 		t.Fatal("Dialog should be set")
@@ -977,7 +977,7 @@ func TestRenameTag_ShowsInputDialog(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.renameTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().RenameTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.state.Dialog == nil {
 		t.Fatal("Dialog should be set")
@@ -1049,7 +1049,7 @@ func TestDeleteTag_ConfirmYes_DeletesTag(t *testing.T) {
 	initialCount := len(tg.gui.contexts.Tags.Items)
 
 	tg.gui.focusTags(tg.g, nil)
-	tg.gui.deleteTag(tg.g, tg.gui.views.Tags)
+	tg.gui.helpers.Tags().DeleteTag(tg.gui.contexts.Tags.Selected())
 
 	// Force layout to create confirm dialog view
 	tg.g.ForceLayoutAndRedraw()
