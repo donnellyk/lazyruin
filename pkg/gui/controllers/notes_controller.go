@@ -169,35 +169,35 @@ func (self *NotesController) viewInPreview(note models.Note) error {
 }
 
 func (self *NotesController) editNote(note models.Note) error {
-	return self.c.H().Editor().OpenInEditor(note.Path)
+	return self.c.Helpers().Editor().OpenInEditor(note.Path)
 }
 
 func (self *NotesController) deleteNote(note models.Note) error {
-	return self.c.H().Notes().DeleteNote(&note)
+	return self.c.Helpers().Notes().DeleteNote(&note)
 }
 
 func (self *NotesController) copyPath(note models.Note) error {
-	return self.c.H().Clipboard().CopyToClipboard(note.Path)
+	return self.c.Helpers().Clipboard().CopyToClipboard(note.Path)
 }
 
 func (self *NotesController) addTag(_ models.Note) error {
-	return self.c.H().NoteActions().AddGlobalTag()
+	return self.c.Helpers().NoteActions().AddGlobalTag()
 }
 
 func (self *NotesController) removeTag(_ models.Note) error {
-	return self.c.H().NoteActions().RemoveTag()
+	return self.c.Helpers().NoteActions().RemoveTag()
 }
 
 func (self *NotesController) setParent(_ models.Note) error {
-	return self.c.H().NoteActions().SetParentDialog()
+	return self.c.Helpers().NoteActions().SetParentDialog()
 }
 
 func (self *NotesController) removeParent(_ models.Note) error {
-	return self.c.H().NoteActions().RemoveParent()
+	return self.c.Helpers().NoteActions().RemoveParent()
 }
 
 func (self *NotesController) toggleBookmark(_ models.Note) error {
-	return self.c.H().NoteActions().ToggleBookmark()
+	return self.c.Helpers().NoteActions().ToggleBookmark()
 }
 
 func (self *NotesController) showInfo(note models.Note) error {

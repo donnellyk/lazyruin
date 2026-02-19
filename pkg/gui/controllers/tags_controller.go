@@ -99,13 +99,13 @@ func (self *TagsController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
 // Action handlers — call helpers directly.
 
 func (self *TagsController) filterByTag(tag models.Tag) error {
-	return self.c.H().Tags().FilterByTag(&tag)
+	return self.c.Helpers().Tags().FilterByTag(&tag)
 }
 
 func (self *TagsController) renameTag(tag models.Tag) error {
-	return self.c.H().Tags().RenameTag(&tag)
+	return self.c.Helpers().Tags().RenameTag(&tag)
 }
 
 func (self *TagsController) deleteTag(tag models.Tag) error {
-	return self.c.H().Tags().DeleteTag(&tag)
+	return self.c.Helpers().Tags().DeleteTag(&tag)
 }

@@ -21,6 +21,10 @@ type IHelpers interface {
 	Search() *helpers.SearchHelper
 	Clipboard() *helpers.ClipboardHelper
 	Preview() *helpers.PreviewHelper
+	Capture() *helpers.CaptureHelper
+	Pick() *helpers.PickHelper
+	InputPopup() *helpers.InputPopupHelper
+	Snippet() *helpers.SnippetHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.
@@ -52,10 +56,4 @@ func (self *ControllerCommon) RuinCmd() *commands.RuinCommand {
 // Helpers returns the helpers aggregator.
 func (self *ControllerCommon) Helpers() IHelpers {
 	return self.helpers
-}
-
-// H returns the concrete *Helpers, avoiding the type assertion boilerplate
-// that every controller previously duplicated in a local h() method.
-func (self *ControllerCommon) H() *helpers.Helpers {
-	return self.helpers.(*helpers.Helpers)
 }

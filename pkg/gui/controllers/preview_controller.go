@@ -31,16 +31,20 @@ func (self *PreviewController) Context() types.Context {
 }
 
 func (self *PreviewController) p() *helpers.PreviewHelper {
-	return self.c.H().Preview()
+	return self.c.Helpers().Preview()
 }
 
 // Note action wrappers — call helpers directly.
-func (self *PreviewController) addTag() error       { return self.c.H().NoteActions().AddGlobalTag() }
-func (self *PreviewController) removeTag() error    { return self.c.H().NoteActions().RemoveTag() }
-func (self *PreviewController) setParent() error    { return self.c.H().NoteActions().SetParentDialog() }
-func (self *PreviewController) removeParent() error { return self.c.H().NoteActions().RemoveParent() }
+func (self *PreviewController) addTag() error    { return self.c.Helpers().NoteActions().AddGlobalTag() }
+func (self *PreviewController) removeTag() error { return self.c.Helpers().NoteActions().RemoveTag() }
+func (self *PreviewController) setParent() error {
+	return self.c.Helpers().NoteActions().SetParentDialog()
+}
+func (self *PreviewController) removeParent() error {
+	return self.c.Helpers().NoteActions().RemoveParent()
+}
 func (self *PreviewController) toggleBookmark() error {
-	return self.c.H().NoteActions().ToggleBookmark()
+	return self.c.Helpers().NoteActions().ToggleBookmark()
 }
 
 // GetKeybindingsFn returns the keybinding producer for preview.

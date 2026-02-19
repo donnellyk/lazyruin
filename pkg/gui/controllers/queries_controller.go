@@ -114,9 +114,9 @@ func (self *QueriesController) activeItemSelected() *types.DisabledReason {
 }
 
 func (self *QueriesController) runActiveItem() error {
-	return self.c.H().Queries().RunQuery()
+	return self.c.Helpers().Queries().RunQuery()
 }
 
 func (self *QueriesController) deleteActiveItem() error {
-	return self.c.H().Queries().DeleteQuery()
+	return self.c.Helpers().Queries().DeleteQuery()
 }

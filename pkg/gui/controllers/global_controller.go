@@ -113,7 +113,7 @@ func (self *GlobalController) PrevPanel() error {
 func (self *GlobalController) FocusNotes() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "notes" {
-		self.c.H().Notes().CycleNotesTab()
+		self.c.Helpers().Notes().CycleNotesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("notes"); ctx != nil {
@@ -126,7 +126,7 @@ func (self *GlobalController) FocusNotes() error {
 func (self *GlobalController) FocusQueries() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "queries" {
-		self.c.H().Queries().CycleQueriesTab()
+		self.c.Helpers().Queries().CycleQueriesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("queries"); ctx != nil {
@@ -139,7 +139,7 @@ func (self *GlobalController) FocusQueries() error {
 func (self *GlobalController) FocusTags() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "tags" {
-		self.c.H().Tags().CycleTagsTab()
+		self.c.Helpers().Tags().CycleTagsTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("tags"); ctx != nil {
@@ -158,7 +158,7 @@ func (self *GlobalController) FocusPreview() error {
 }
 
 func (self *GlobalController) openSearch() error {
-	return self.c.H().Search().OpenSearch()
+	return self.c.Helpers().Search().OpenSearch()
 }
 
 func (self *GlobalController) refresh() error {
@@ -167,7 +167,7 @@ func (self *GlobalController) refresh() error {
 }
 
 func (self *GlobalController) focusSearchFilter() error {
-	return self.c.H().Search().FocusSearchFilter()
+	return self.c.Helpers().Search().FocusSearchFilter()
 }
 
 // GetKeybindingsFn returns all global keybinding producers.
