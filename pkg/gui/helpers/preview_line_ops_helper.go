@@ -199,13 +199,13 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 
 	uuid := card.UUID
 	gui := self.c.GuiCommon()
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Toggle Inline Tag",
 		Footer: " # for tags | Tab: accept | Esc: cancel ",
 		Seed:   "#",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{{Prefix: "#", Candidates: func(filter string) []types.CompletionItem {
-				items := gui.TagCandidates(filter)
+				items := self.c.Helpers().Completion().TagCandidates(filter)
 				var onLine, rest []types.CompletionItem
 				for _, item := range items {
 					if existingTags[strings.ToLower(item.Label)] {
@@ -268,13 +268,13 @@ func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
 
 	uuid := card.UUID
 	gui := self.c.GuiCommon()
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Toggle Inline Date",
 		Footer: " @ for dates | Tab: accept | Esc: cancel ",
 		Seed:   "@",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{{Prefix: "@", Candidates: func(filter string) []types.CompletionItem {
-				items := gui.AtDateCandidates(filter)
+				items := AtDateCandidates(filter)
 				var onLine, rest []types.CompletionItem
 				for _, item := range items {
 					if existingDates[item.InsertText] {

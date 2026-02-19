@@ -105,7 +105,7 @@ func (gui *Gui) setupSearchContext() {
 	gui.contexts.Search = searchCtx
 	gui.contextMgr.Register(searchCtx)
 
-	searchState := func() *types.CompletionState { return gui.state.SearchCompletion }
+	searchState := func() *types.CompletionState { return gui.contexts.Search.Completion }
 	searchHelper := func() *helperspkg.SearchHelper { return gui.helpers.Search() }
 	ctrl := controllers.NewPopupController(
 		func() *context.SearchContext { return gui.contexts.Search },

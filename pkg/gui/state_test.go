@@ -9,10 +9,17 @@ import (
 )
 
 func TestNewGuiState_Defaults(t *testing.T) {
-	state := NewGuiState()
+	_ = NewGuiState()
+}
 
-	if state.SearchQuery != "" {
-		t.Errorf("SearchQuery = %q, want empty", state.SearchQuery)
+func TestNewSearchContext_Defaults(t *testing.T) {
+	sc := context.NewSearchContext()
+
+	if sc.Query != "" {
+		t.Errorf("Query = %q, want empty", sc.Query)
+	}
+	if sc.Completion == nil {
+		t.Error("Completion should not be nil")
 	}
 }
 

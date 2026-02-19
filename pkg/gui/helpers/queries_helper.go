@@ -115,7 +115,7 @@ func (self *QueriesHelper) RunQuery() error {
 		return nil
 	}
 
-	notes, err := self.c.RuinCmd().Queries.Run(query.Name, gui.BuildSearchOptions())
+	notes, err := self.c.RuinCmd().Queries.Run(query.Name, self.c.Helpers().Preview().BuildSearchOptions())
 	if err != nil {
 		gui.ShowError(err)
 		return nil
@@ -194,7 +194,7 @@ func (self *QueriesHelper) UpdatePreviewForQueries() {
 	}
 
 	self.c.Helpers().Preview().UpdatePreviewCardList(" Query: "+query.Name+" ", func() ([]models.Note, error) {
-		return self.c.RuinCmd().Queries.Run(query.Name, gui.BuildSearchOptions())
+		return self.c.RuinCmd().Queries.Run(query.Name, self.c.Helpers().Preview().BuildSearchOptions())
 	})
 }
 

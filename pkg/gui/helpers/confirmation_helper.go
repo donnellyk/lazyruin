@@ -29,7 +29,7 @@ func (self *ConfirmationHelper) ShowError(err error) {
 
 // OpenInputPopup opens the generic input popup with completion support.
 func (self *ConfirmationHelper) OpenInputPopup(config *types.InputPopupConfig) {
-	self.c.GuiCommon().OpenInputPopup(config)
+	self.c.Helpers().InputPopup().OpenInputPopup(config)
 }
 
 // ConfirmDelete shows a confirmation dialog and executes deleteFn on confirm.

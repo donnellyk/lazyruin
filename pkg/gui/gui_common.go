@@ -60,7 +60,7 @@ func (gui *Gui) ReplaceContext(ctx types.Context) {
 
 func (gui *Gui) PopupActive() bool { return gui.overlayActive() }
 
-func (gui *Gui) SearchQueryActive() bool { return gui.state.SearchQuery != "" }
+func (gui *Gui) SearchQueryActive() bool { return gui.contexts.Search.Query != "" }
 
 func (gui *Gui) ContextByKey(key types.ContextKey) types.Context {
 	return gui.contextMgr.ContextByKey(key)
@@ -72,10 +72,6 @@ func (gui *Gui) ReplaceContextByKey(key types.ContextKey) { gui.replaceContextBy
 // --- helpers.IGuiCommon adapter methods ---
 
 func (gui *Gui) Contexts() *context.ContextTree { return gui.contexts }
-
-func (gui *Gui) OpenInputPopup(config *types.InputPopupConfig) {
-	gui.helpers.InputPopup().OpenInputPopup(config)
-}
 
 // Refresh — convenience methods on *Gui for startup/background refresh.
 // Not part of IGuiCommon; helpers call through Helpers() directly.
@@ -90,18 +86,10 @@ func (gui *Gui) GetInputPopupCompletion() *types.CompletionState {
 	return gui.contexts.InputPopup.Completion
 }
 
-func (gui *Gui) SetSearchQuery(query string) { gui.state.SearchQuery = query }
-func (gui *Gui) GetSearchQuery() string      { return gui.state.SearchQuery }
-func (gui *Gui) SetSearchCompletion(state *types.CompletionState) {
-	gui.state.SearchCompletion = state
-}
 func (gui *Gui) SetCursorEnabled(enabled bool) {
 	if gui.g != nil {
 		gui.g.Cursor = enabled
 	}
-}
-func (gui *Gui) AmbientDateCandidates() func(string) []types.CompletionItem {
-	return ambientDateCandidates
 }
 
 // Dialogs (menu)
@@ -118,11 +106,6 @@ func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
 // Context state
 func (gui *Gui) PreviousContextKey() types.ContextKey {
 	return gui.contextMgr.Previous()
-}
-
-// Date candidates
-func (gui *Gui) AtDateCandidates(filter string) []types.CompletionItem {
-	return atDateCandidates(filter)
 }
 
 // Compile-time assertion that *Gui satisfies types.IGuiCommon.

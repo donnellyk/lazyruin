@@ -2,10 +2,11 @@ package context
 
 import "kvnd/lazyruin/pkg/gui/types"
 
-// SearchContext owns the search popup panel.
-// During the hybrid migration period, state remains in GuiState.
+// SearchContext owns the search popup panel and its associated state.
 type SearchContext struct {
 	BaseContext
+	Query      string
+	Completion *types.CompletionState
 }
 
 // NewSearchContext creates a SearchContext.
@@ -18,6 +19,7 @@ func NewSearchContext() *SearchContext {
 			Focusable: true,
 			Title:     "Search",
 		}),
+		Completion: types.NewCompletionState(),
 	}
 }
 

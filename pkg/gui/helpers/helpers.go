@@ -23,6 +23,7 @@ type Helpers struct {
 	snippet          *SnippetHelper
 	calendar         *CalendarHelper
 	contrib          *ContribHelper
+	completion       *CompletionHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -49,6 +50,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		snippet:          NewSnippetHelper(common),
 		calendar:         NewCalendarHelper(common),
 		contrib:          NewContribHelper(common),
+		completion:       NewCompletionHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -77,3 +79,4 @@ func (h *Helpers) InputPopup() *InputPopupHelper             { return h.inputPop
 func (h *Helpers) Snippet() *SnippetHelper                   { return h.snippet }
 func (h *Helpers) Calendar() *CalendarHelper                 { return h.calendar }
 func (h *Helpers) Contrib() *ContribHelper                   { return h.contrib }
+func (h *Helpers) Completion() *CompletionHelper             { return h.completion }

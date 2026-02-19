@@ -32,7 +32,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 	// Search filter pane height (only shown when search is active)
 	searchFilterHeight := 0
-	if gui.state.SearchQuery != "" {
+	if gui.contexts.Search.Query != "" {
 		searchFilterHeight = 3
 	}
 
@@ -41,7 +41,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	queriesHeight := contentHeight / 4
 
 	// Show search filter pane if there's an active search
-	if gui.state.SearchQuery != "" {
+	if gui.contexts.Search.Query != "" {
 		if err := gui.createSearchFilterView(g, 0, 0, sidebarWidth-1, searchFilterHeight-1); err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	}
 
 	v.Clear()
-	fmt.Fprintf(v, " %s", gui.state.SearchQuery)
+	fmt.Fprintf(v, " %s", gui.contexts.Search.Query)
 
 	return nil
 }
@@ -358,7 +358,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *types.CompletionState { return gui.state.SearchCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.Search.Completion },
 		triggers:   gui.searchTriggers,
 		drillFlags: 0,
 	}
@@ -372,7 +372,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(SearchView)
 
 	// Render suggestion dropdown below the search popup
-	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.state.SearchCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.contexts.Search.Completion, x0, y1, width); err != nil {
 		return err
 	}
 

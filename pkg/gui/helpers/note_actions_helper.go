@@ -24,12 +24,12 @@ func (self *NoteActionsHelper) AddGlobalTag() error {
 		return nil
 	}
 	uuid := card.UUID
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Add Tag",
 		Footer: " # for tags | Tab: accept | Esc: cancel ",
 		Seed:   "#",
 		Triggers: func() []types.CompletionTrigger {
-			return []types.CompletionTrigger{{Prefix: "#", Candidates: gui.TagCandidates}}
+			return []types.CompletionTrigger{{Prefix: "#", Candidates: self.c.Helpers().Completion().TagCandidates}}
 		},
 		OnAccept: func(_ string, item *types.CompletionItem) error {
 			tag := ""
@@ -64,12 +64,12 @@ func (self *NoteActionsHelper) RemoveTag() error {
 		return nil
 	}
 	uuid := card.UUID
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Remove Tag",
 		Footer: " # for tags | Tab: accept | Esc: cancel ",
 		Seed:   "#",
 		Triggers: func() []types.CompletionTrigger {
-			return []types.CompletionTrigger{{Prefix: "#", Candidates: gui.CurrentCardTagCandidates}}
+			return []types.CompletionTrigger{{Prefix: "#", Candidates: self.c.Helpers().Completion().CurrentCardTagCandidates}}
 		},
 		OnAccept: func(_ string, item *types.CompletionItem) error {
 			tag := ""
@@ -100,13 +100,13 @@ func (self *NoteActionsHelper) SetParentDialog() error {
 		return nil
 	}
 	uuid := card.UUID
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Set Parent",
 		Footer: " > bookmarks | >> all notes | / drill | Tab: accept | Esc: cancel ",
 		Seed:   ">",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{
-				{Prefix: ">", Candidates: gui.ParentCandidatesFor(gui.Contexts().InputPopup.Completion)},
+				{Prefix: ">", Candidates: self.c.Helpers().Completion().ParentCandidatesFor(self.c.GuiCommon().Contexts().InputPopup.Completion)},
 			}
 		},
 		OnAccept: func(raw string, item *types.CompletionItem) error {
@@ -173,7 +173,7 @@ func (self *NoteActionsHelper) ToggleBookmark() error {
 		defaultName = card.UUID[:8]
 	}
 	cardUUID := card.UUID
-	gui.OpenInputPopup(&types.InputPopupConfig{
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Save Bookmark",
 		Footer: " Enter: save | Esc: cancel ",
 		Seed:   defaultName,

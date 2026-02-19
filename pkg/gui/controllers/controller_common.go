@@ -32,6 +32,7 @@ type IHelpers interface {
 	Snippet() *helpers.SnippetHelper
 	Calendar() *helpers.CalendarHelper
 	Contrib() *helpers.ContribHelper
+	Completion() *helpers.CompletionHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.

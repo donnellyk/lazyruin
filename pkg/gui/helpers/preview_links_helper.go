@@ -123,7 +123,7 @@ func (self *PreviewLinksHelper) FollowLink(link context.PreviewLink) error {
 		if target == "" {
 			return nil
 		}
-		opts := self.c.GuiCommon().BuildSearchOptions()
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
 		note, err := self.c.RuinCmd().Search.GetByTitle(target, opts)
 		if err != nil || note == nil {
 			return nil

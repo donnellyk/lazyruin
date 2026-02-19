@@ -3,6 +3,7 @@ package helpers
 import (
 	"strings"
 
+	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
@@ -23,6 +24,16 @@ func NewPreviewHelper(c *HelperCommon) *PreviewHelper {
 
 func (self *PreviewHelper) ctx() *context.PreviewContext {
 	return self.c.GuiCommon().Contexts().Preview
+}
+
+// BuildSearchOptions returns SearchOptions based on current preview toggle state.
+func (self *PreviewHelper) BuildSearchOptions() commands.SearchOptions {
+	pc := self.ctx()
+	return commands.SearchOptions{
+		IncludeContent:  true,
+		StripGlobalTags: !pc.ShowGlobalTags,
+		StripTitle:      !pc.ShowTitle,
+	}
 }
 
 func (self *PreviewHelper) view() *gocui.View {
@@ -116,10 +127,11 @@ func (self *PreviewHelper) reloadPreviewCards() {
 	gui := self.c.GuiCommon()
 	pc := self.ctx()
 	pc.TemporarilyMoved = nil
-	opts := gui.BuildSearchOptions()
+	opts := self.BuildSearchOptions()
 
-	if gui.GetSearchQuery() != "" {
-		notes, err := self.c.RuinCmd().Search.Search(gui.GetSearchQuery(), opts)
+	searchQuery := gui.Contexts().Search.Query
+	if searchQuery != "" {
+		notes, err := self.c.RuinCmd().Search.Search(searchQuery, opts)
 		if err == nil {
 			pc.Cards = notes
 		}
@@ -165,7 +177,7 @@ func (self *PreviewHelper) reloadPreviewCards() {
 
 func (self *PreviewHelper) reloadPreviewCardsFromNotes() {
 	pc := self.ctx()
-	opts := self.c.GuiCommon().BuildSearchOptions()
+	opts := self.BuildSearchOptions()
 	updated := make([]models.Note, 0, len(pc.Cards))
 	for _, card := range pc.Cards {
 		fresh, err := self.c.RuinCmd().Search.Get(card.UUID, opts)

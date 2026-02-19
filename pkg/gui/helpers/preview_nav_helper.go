@@ -158,7 +158,7 @@ func (self *PreviewNavHelper) ShowNavHistory() error {
 
 // OpenNoteByUUID loads a note by UUID and displays it in the preview.
 func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
-	opts := self.c.GuiCommon().BuildSearchOptions()
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	note, err := self.c.RuinCmd().Search.Get(uuid, opts)
 	if err != nil || note == nil {
 		return nil

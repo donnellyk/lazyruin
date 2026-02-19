@@ -83,7 +83,7 @@ func (self *TagsHelper) FilterByTag(tag *models.Tag) error {
 // FilterByTagSearch searches for notes with the given tag.
 func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 	gui := self.c.GuiCommon()
-	opts := gui.BuildSearchOptions()
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	notes, err := self.c.RuinCmd().Search.Search(tag.Name, opts)
 	if err != nil {
 		gui.ShowError(err)
@@ -168,7 +168,7 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 	}
 
 	self.c.Helpers().Preview().UpdatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
-		return self.c.RuinCmd().Search.Search(tag.Name, gui.BuildSearchOptions())
+		return self.c.RuinCmd().Search.Search(tag.Name, self.c.Helpers().Preview().BuildSearchOptions())
 	})
 }
 

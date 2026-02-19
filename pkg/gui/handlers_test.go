@@ -375,12 +375,12 @@ func TestClearSearch_ResetsState(t *testing.T) {
 	defer tg.Close()
 
 	// Simulate an active search by setting SearchQuery
-	tg.gui.state.SearchQuery = "#daily"
+	tg.gui.contexts.Search.Query = "#daily"
 
 	tg.gui.helpers.Search().ClearSearch()
 
-	if tg.gui.state.SearchQuery != "" {
-		t.Errorf("SearchQuery = %q, want empty", tg.gui.state.SearchQuery)
+	if tg.gui.contexts.Search.Query != "" {
+		t.Errorf("SearchQuery = %q, want empty", tg.gui.contexts.Search.Query)
 	}
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
 		t.Errorf("CurrentTab = %v, want NotesTabAll", tg.gui.contexts.Notes.CurrentTab)
@@ -898,7 +898,7 @@ func TestNextPanel_IncludesSearchFilter_WhenActive(t *testing.T) {
 	defer tg.Close()
 
 	// Set an active search query to add SearchFilter to the cycle
-	tg.gui.state.SearchQuery = "#test"
+	tg.gui.contexts.Search.Query = "#test"
 
 	// Force layout to create SearchFilter view
 	tg.g.ForceLayoutAndRedraw()

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -42,21 +41,10 @@ type IGuiCommon interface {
 	ShowConfirm(title, message string, onConfirm func() error)
 	ShowInput(title, message string, onConfirm func(string) error)
 	ShowError(err error)
-	OpenInputPopup(config *InputPopupConfig)
 	ShowMenuDialog(title string, items []MenuItem)
 
 	// Search
-	BuildSearchOptions() commands.SearchOptions
-	SetSearchQuery(query string)
-	GetSearchQuery() string
-	SetSearchCompletion(state *CompletionState)
 	SetCursorEnabled(enabled bool)
-	AmbientDateCandidates() func(string) []CompletionItem
-
-	// Completion candidates
-	TagCandidates(filter string) []CompletionItem
-	CurrentCardTagCandidates(filter string) []CompletionItem
-	ParentCandidatesFor(state *CompletionState) func(string) []CompletionItem
 
 	// Editor
 	Suspend() error
@@ -71,7 +59,4 @@ type IGuiCommon interface {
 
 	// Context state
 	PreviousContextKey() ContextKey
-
-	// Date candidates
-	AtDateCandidates(filter string) []CompletionItem
 }

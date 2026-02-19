@@ -17,6 +17,10 @@ func NewSearchHelper(c *HelperCommon) *SearchHelper {
 	return &SearchHelper{c: c}
 }
 
+func (self *SearchHelper) searchCtx() *context.SearchContext {
+	return self.c.GuiCommon().Contexts().Search
+}
+
 // OpenSearch opens the search popup with completion.
 func (self *SearchHelper) OpenSearch() error {
 	gui := self.c.GuiCommon()
@@ -24,8 +28,8 @@ func (self *SearchHelper) OpenSearch() error {
 		return nil
 	}
 	cs := types.NewCompletionState()
-	cs.FallbackCandidates = gui.AmbientDateCandidates()
-	gui.SetSearchCompletion(cs)
+	cs.FallbackCandidates = AmbientDateCandidates()
+	self.searchCtx().Completion = cs
 	gui.PushContextByKey("search")
 	return nil
 }
@@ -39,7 +43,7 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 	}
 
 	query, sort := extractSort(raw)
-	opts := gui.BuildSearchOptions()
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	opts.Sort = sort
 	notes, err := self.c.RuinCmd().Search.Search(query, opts)
 	if err != nil {
@@ -47,8 +51,9 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 		return true
 	}
 
-	gui.SetSearchQuery(raw)
-	gui.SetSearchCompletion(types.NewCompletionState())
+	sc := self.searchCtx()
+	sc.Query = raw
+	sc.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
@@ -60,7 +65,7 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 // CancelSearch dismisses the search popup.
 func (self *SearchHelper) CancelSearch() {
 	gui := self.c.GuiCommon()
-	gui.SetSearchCompletion(types.NewCompletionState())
+	self.searchCtx().Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 	gui.PopContext()
 }
@@ -68,7 +73,7 @@ func (self *SearchHelper) CancelSearch() {
 // ClearSearch clears the active search and returns to the notes panel.
 func (self *SearchHelper) ClearSearch() {
 	gui := self.c.GuiCommon()
-	gui.SetSearchQuery("")
+	self.searchCtx().Query = ""
 	notesCtx := gui.Contexts().Notes
 	notesCtx.CurrentTab = context.NotesTabAll
 	self.c.Helpers().Notes().LoadNotesForCurrentTab()
@@ -78,10 +83,10 @@ func (self *SearchHelper) ClearSearch() {
 // FocusSearchFilter re-runs the current search and focuses the filter pane.
 func (self *SearchHelper) FocusSearchFilter() error {
 	gui := self.c.GuiCommon()
-	sq := gui.GetSearchQuery()
+	sq := self.searchCtx().Query
 	if sq != "" {
 		query, sort := extractSort(sq)
-		opts := gui.BuildSearchOptions()
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
 		opts.Sort = sort
 		notes, err := self.c.RuinCmd().Search.Search(query, opts)
 		if err == nil {

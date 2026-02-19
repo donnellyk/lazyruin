@@ -30,7 +30,7 @@ func (self *NotesHelper) FetchNotesForCurrentTab(preserve bool) {
 	var notes []models.Note
 	var err error
 
-	opts := gui.BuildSearchOptions()
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	opts.Sort = "created:desc"
 	opts.IncludeContent = true
 	opts.StripTitle = true
