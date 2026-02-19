@@ -308,3 +308,19 @@ func completionUp(state *types.CompletionState) {
 		state.SelectedIndex--
 	}
 }
+
+// captureTab handles Tab in the capture popup, accepting the active completion.
+func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
+	state := gui.contexts.Capture.Completion
+	if state.Active {
+		if isAbbreviationCompletion(v, state) {
+			gui.acceptAbbreviationInCapture(v, state)
+		} else if isParentCompletion(v, state) {
+			gui.acceptParentCompletion(v, state)
+		} else {
+			gui.acceptCompletion(v, state, gui.captureTriggers())
+		}
+		gui.renderCaptureTextArea(v)
+	}
+	return nil
+}

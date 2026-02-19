@@ -172,8 +172,11 @@ func (gui *Gui) setupCaptureContext() {
 	ctrl := controllers.NewPopupController(
 		func() *context.CaptureContext { return gui.contexts.Capture },
 		[]*types.Binding{
-			{Key: gocui.KeyCtrlS, Handler: func() error { return gui.submitCapture(gui.g, gui.views.Capture) }},
-			{Key: gocui.KeyEsc, Handler: func() error { return gui.cancelCapture(gui.g, gui.views.Capture) }},
+			{Key: gocui.KeyCtrlS, Handler: func() error {
+				content := strings.TrimSpace(gui.views.Capture.TextArea.GetUnwrappedContent())
+				return gui.helpers.Capture().SubmitCapture(content, gui.QuickCapture)
+			}},
+			{Key: gocui.KeyEsc, Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},
 			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
 		},
 	)
@@ -236,7 +239,7 @@ func (gui *Gui) setupGlobalContext() {
 		GetContext: func() *context.GlobalContext { return gui.contexts.Global },
 		OnQuit:     func() error { return gui.quit(gui.g, nil) },
 		OnPick:     func() error { return gui.openPick(gui.g, nil) },
-		OnNewNote:  func() error { return gui.openCapture(gui.g, nil) },
+		OnNewNote:  func() error { return gui.helpers.Capture().OpenCapture() },
 		OnHelp:     func() error { gui.showHelp(); return nil },
 		OnPalette:  func() error { return gui.openPalette(gui.g, nil) },
 		OnCalendar: func() error { return gui.openCalendar(gui.g, nil) },

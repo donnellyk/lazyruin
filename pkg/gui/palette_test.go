@@ -277,7 +277,7 @@ func TestOpenPalette_BlockedDuringCapture(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openCapture(tg.g, nil)
+	tg.gui.helpers.Capture().OpenCapture()
 	tg.gui.openPalette(tg.g, nil)
 
 	if tg.gui.state.currentContext() != "capture" {

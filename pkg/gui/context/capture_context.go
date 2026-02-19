@@ -2,10 +2,17 @@ package context
 
 import "kvnd/lazyruin/pkg/gui/types"
 
+// CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
+type CaptureParentInfo struct {
+	UUID  string
+	Title string // display title for footer (e.g. "Parent / Child")
+}
+
 // CaptureContext owns the capture popup panel.
-// During the hybrid migration period, state remains in GuiState.
 type CaptureContext struct {
 	BaseContext
+	Parent     *CaptureParentInfo
+	Completion *types.CompletionState
 }
 
 // NewCaptureContext creates a CaptureContext.
@@ -18,6 +25,7 @@ func NewCaptureContext() *CaptureContext {
 			Focusable: true,
 			Title:     "Capture",
 		}),
+		Completion: types.NewCompletionState(),
 	}
 }
 

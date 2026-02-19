@@ -799,7 +799,7 @@ func TestOpenCapture_EntersCaptureOverlay(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openCapture(tg.g, nil)
+	tg.gui.helpers.Capture().OpenCapture()
 
 	if !tg.gui.popupActive() {
 		t.Error("popupActive() should be true after openCapture")
@@ -807,7 +807,7 @@ func TestOpenCapture_EntersCaptureOverlay(t *testing.T) {
 	if tg.gui.state.currentContext() != "capture" {
 		t.Errorf("currentContext() = %v, want capture", tg.gui.state.currentContext())
 	}
-	if tg.gui.state.CaptureParent != nil {
+	if tg.gui.contexts.Capture.Parent != nil {
 		t.Error("CaptureParent should be nil initially")
 	}
 }
@@ -816,7 +816,7 @@ func TestNewNote_OpensCapture(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openCapture(tg.g, nil)
+	tg.gui.helpers.Capture().OpenCapture()
 
 	if tg.gui.state.currentContext() != "capture" {
 		t.Error("newNote should push capture context")

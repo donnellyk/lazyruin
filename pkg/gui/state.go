@@ -5,19 +5,11 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
-// CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
-type CaptureParentInfo struct {
-	UUID  string
-	Title string // display title for footer (e.g. "Parent / Child")
-}
-
 type GuiState struct {
 	Dialog                  *DialogState
 	ContextStack            []types.ContextKey
 	SearchQuery             string
-	CaptureParent           *CaptureParentInfo
 	SearchCompletion        *types.CompletionState
-	CaptureCompletion       *types.CompletionState
 	PickCompletion          *types.CompletionState
 	PickQuery               string
 	PickAnyMode             bool
@@ -76,7 +68,6 @@ type ContribState struct {
 func NewGuiState() *GuiState {
 	return &GuiState{
 		SearchCompletion:        types.NewCompletionState(),
-		CaptureCompletion:       types.NewCompletionState(),
 		PickCompletion:          types.NewCompletionState(),
 		InputPopupCompletion:    types.NewCompletionState(),
 		SnippetEditorCompletion: types.NewCompletionState(),
