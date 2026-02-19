@@ -28,7 +28,7 @@ type composeResult struct {
 
 // ComposeFlat runs compose and returns the fully-assembled document as a single Note.
 func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, error) {
-	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--content")
+	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--content", "--normalize-headers", "--sort", "created:desc")
 	if err != nil {
 		return models.Note{}, err
 	}
