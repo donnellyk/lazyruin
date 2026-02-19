@@ -180,7 +180,10 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *types.CompletionState, tr
 	}
 	v.TextArea.TypeString(path.String())
 
-	state.Dismiss()
+	// Reset completion for re-evaluation, preserving the drill stack
+	state.Active = false
+	state.Items = nil
+	state.SelectedIndex = 0
 
 	v.RenderTextArea()
 

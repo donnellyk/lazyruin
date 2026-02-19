@@ -79,6 +79,17 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		return json.Marshal(m.notes)
 
 	case "search":
+		// Filter notes by parent UUID
+		if len(args) > 1 && strings.HasPrefix(args[1], "parent:") {
+			parentUUID := strings.TrimPrefix(args[1], "parent:")
+			var filtered []models.Note
+			for _, n := range m.notes {
+				if n.Parent == parentUUID {
+					filtered = append(filtered, n)
+				}
+			}
+			return json.Marshal(filtered)
+		}
 		// Filter notes by tag if searching by tag (matches both global and inline)
 		if len(args) > 1 && strings.HasPrefix(args[1], "#") {
 			tag := args[1]
