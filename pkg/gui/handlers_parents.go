@@ -25,10 +25,10 @@ func (gui *Gui) loadDataForQueriesTab() {
 	gui.updateQueriesTab()
 	switch gui.contexts.Queries.CurrentTab {
 	case guictx.QueriesTabParents:
-		gui.refreshParents(false)
+		gui.RefreshParents(false)
 		gui.updatePreviewForParents()
 	default:
-		gui.refreshQueries(false)
+		gui.RefreshQueries(false)
 		gui.updatePreviewForQueries()
 	}
 }
@@ -72,7 +72,7 @@ func (gui *Gui) deleteQuery(g *gocui.Gui, v *gocui.View) error {
 			gui.showError(err)
 			return nil
 		}
-		gui.refreshQueries(false)
+		gui.RefreshQueries(false)
 		return nil
 	})
 	return nil
@@ -126,7 +126,7 @@ func (gui *Gui) deleteParent(g *gocui.Gui, v *gocui.View) error {
 			gui.showError(err)
 			return nil
 		}
-		gui.refreshParents(false)
+		gui.RefreshParents(false)
 		return nil
 	})
 	return nil

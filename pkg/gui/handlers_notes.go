@@ -102,7 +102,7 @@ func (gui *Gui) deleteNote(g *gocui.Gui, v *gocui.View) error {
 			gui.showError(err)
 			return nil
 		}
-		gui.refreshNotes(false)
+		gui.RefreshNotes(false)
 		return nil
 	})
 	return nil

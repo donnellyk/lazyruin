@@ -479,9 +479,10 @@ func TestPaletteViewsDeleted_WhenClosed(t *testing.T) {
 }
 
 func TestContextToView_Palette(t *testing.T) {
-	gui := &Gui{}
-	if gui.contextToView(PaletteContext) != PaletteView {
-		t.Errorf("contextToView(PaletteContext) = %q, want %q", gui.contextToView(PaletteContext), PaletteView)
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+	if tg.gui.contextToView(PaletteContext) != PaletteView {
+		t.Errorf("contextToView(PaletteContext) = %q, want %q", tg.gui.contextToView(PaletteContext), PaletteView)
 	}
 }
 

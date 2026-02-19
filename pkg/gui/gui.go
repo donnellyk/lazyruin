@@ -389,10 +389,10 @@ func (gui *Gui) backgroundRefreshData() {
 	// Preserve selections
 	cardIdx := gui.contexts.Preview.SelectedCardIndex
 
-	gui.refreshNotes(true)
-	gui.refreshTags(true)
-	gui.refreshQueries(true)
-	gui.refreshParents(true)
+	gui.RefreshNotes(true)
+	gui.RefreshTags(true)
+	gui.RefreshQueries(true)
+	gui.RefreshParents(true)
 
 	if gui.contexts.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.contexts.Preview.Cards) {
 		gui.contexts.Preview.SelectedCardIndex = cardIdx
@@ -401,14 +401,6 @@ func (gui *Gui) backgroundRefreshData() {
 	gui.renderPreview()
 	gui.updateStatusBar()
 }
-
-// Thin wrappers — real logic lives in helpers.
-func (gui *Gui) renderAll()                   { gui.helpers.Refresh().RenderAll() }
-func (gui *Gui) refreshAll()                  { gui.helpers.Refresh().RefreshAll() }
-func (gui *Gui) refreshNotes(preserve bool)   { gui.helpers.Notes().FetchNotesForCurrentTab(preserve) }
-func (gui *Gui) refreshTags(preserve bool)    { gui.helpers.Tags().RefreshTags(preserve) }
-func (gui *Gui) refreshQueries(preserve bool) { gui.helpers.Queries().RefreshQueries(preserve) }
-func (gui *Gui) refreshParents(preserve bool) { gui.helpers.Queries().RefreshParents(preserve) }
 
 // activateContext sets focus and refreshes data for the given context.
 func (gui *Gui) activateContext(ctx ContextKey) {
@@ -423,18 +415,18 @@ func (gui *Gui) activateContext(ctx ContextKey) {
 	// Refresh data (preserving selections) and update preview based on new context
 	switch ctx {
 	case NotesContext:
-		gui.refreshNotes(true)
+		gui.RefreshNotes(true)
 		gui.helpers.Preview().UpdatePreviewForNotes()
 	case QueriesContext:
 		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
-			gui.refreshParents(true)
+			gui.RefreshParents(true)
 			gui.updatePreviewForParents()
 		} else {
-			gui.refreshQueries(true)
+			gui.RefreshQueries(true)
 			gui.updatePreviewForQueries()
 		}
 	case TagsContext:
-		gui.refreshTags(true)
+		gui.RefreshTags(true)
 		gui.updatePreviewForTags()
 	case PreviewContext:
 		gui.renderPreview()
@@ -479,33 +471,5 @@ func (gui *Gui) overlayActive() bool {
 }
 
 func (gui *Gui) contextToView(ctx ContextKey) string {
-	switch ctx {
-	case NotesContext:
-		return NotesView
-	case QueriesContext:
-		return QueriesView
-	case TagsContext:
-		return TagsView
-	case PreviewContext:
-		return PreviewView
-	case SearchContext:
-		return SearchView
-	case SearchFilterContext:
-		return SearchFilterView
-	case CaptureContext:
-		return CaptureView
-	case PickContext:
-		return PickView
-	case PaletteContext:
-		return PaletteView
-	case InputPopupCtx:
-		return InputPopupView
-	case SnippetEditorCtx:
-		return SnippetNameView
-	case CalendarCtx:
-		return CalendarGridView
-	case ContribCtx:
-		return ContribGridView
-	}
-	return NotesView
+	return gui.contexts.ViewNameForKey(ctx)
 }

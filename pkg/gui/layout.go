@@ -158,7 +158,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
 		g.SetCurrentView(NotesView)
-		gui.refreshAll()
+		gui.RefreshAll()
 		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
 			gui.state.CaptureCompletion = NewCompletionState()
@@ -169,7 +169,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastHeight = maxY
 		gui.contexts.Preview.ScrollOffset = 0
 		gocui.Screen.Clear()
-		gui.renderAll()
+		gui.RenderAll()
 	}
 
 	return nil

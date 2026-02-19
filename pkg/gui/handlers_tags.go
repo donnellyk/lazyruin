@@ -80,8 +80,8 @@ func (gui *Gui) renameTag(g *gocui.Gui, v *gocui.View) error {
 			gui.showError(err)
 			return nil
 		}
-		gui.refreshTags(false)
-		gui.refreshNotes(false)
+		gui.RefreshTags(false)
+		gui.RefreshNotes(false)
 		return nil
 	})
 	return nil
@@ -99,8 +99,8 @@ func (gui *Gui) deleteTag(g *gocui.Gui, v *gocui.View) error {
 			gui.showError(err)
 			return nil
 		}
-		gui.refreshTags(false)
-		gui.refreshNotes(false)
+		gui.RefreshTags(false)
+		gui.RefreshNotes(false)
 		return nil
 	})
 	return nil

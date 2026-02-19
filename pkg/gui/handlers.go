@@ -79,7 +79,7 @@ func (gui *Gui) openSearch(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) refresh(g *gocui.Gui, v *gocui.View) error {
-	gui.refreshAll()
+	gui.RefreshAll()
 	return nil
 }
 
@@ -164,10 +164,10 @@ func (gui *Gui) openInEditor(path string) error {
 		return err
 	}
 
-	gui.refreshTags(false)
-	gui.refreshQueries(false)
-	gui.refreshParents(false)
+	gui.RefreshTags(false)
+	gui.RefreshQueries(false)
+	gui.RefreshParents(false)
 	gui.helpers.Preview().ReloadContent()
-	gui.renderAll()
+	gui.RenderAll()
 	return nil
 }

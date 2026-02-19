@@ -42,8 +42,8 @@ func (gui *Gui) submitCapture(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.closeCapture(g)
-	gui.refreshNotes(false)
-	gui.refreshTags(false)
+	gui.RefreshNotes(false)
+	gui.RefreshTags(false)
 	return nil
 }
 

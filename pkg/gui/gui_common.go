@@ -8,28 +8,8 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
-// IGuiCommon defines the interface that controllers and helpers use
-// to interact with the GUI without depending on the full Gui struct.
-type IGuiCommon interface {
-	PushContext(ctx types.Context, opts types.OnFocusOpts)
-	PopContext()
-	ReplaceContext(ctx types.Context)
-	CurrentContext() types.Context
-	CurrentContextKey() types.ContextKey
-	PopupActive() bool
-	SearchQueryActive() bool
-	ContextByKey(key types.ContextKey) types.Context
-	PushContextByKey(key types.ContextKey)
-
-	GetView(name string) *gocui.View
-	Render()
-	Update(func() error)
-	Suspend() error
-	Resume() error
-}
-
-// Adapter methods that satisfy both IGuiCommon interfaces
-// (gui package IGuiCommon for controllers, and helpers.IGuiCommon for helpers).
+// Adapter methods that implement types.IGuiCommon (and helpers.IGuiCommon
+// which embeds it plus Contexts()).
 
 func (gui *Gui) Render()    { gui.helpers.Refresh().RenderAll() }
 func (gui *Gui) RenderAll() { gui.helpers.Refresh().RenderAll() }
@@ -210,5 +190,5 @@ func (gui *Gui) AtDateCandidates(filter string) []types.CompletionItem {
 	return atDateCandidates(filter)
 }
 
-// Compile-time assertion that Gui satisfies IGuiCommon.
-var _ IGuiCommon = &Gui{}
+// Compile-time assertion that *Gui satisfies types.IGuiCommon.
+var _ types.IGuiCommon = &Gui{}

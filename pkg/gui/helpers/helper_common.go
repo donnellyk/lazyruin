@@ -4,93 +4,13 @@ import (
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
-
-	"github.com/jesseduffield/gocui"
 )
 
-// IGuiCommon is the interface helpers use to interact with the GUI.
-// Avoids importing the gui package directly.
+// IGuiCommon extends types.IGuiCommon with Contexts(), which can't live
+// in types/ due to the types↔context import cycle.
 type IGuiCommon interface {
-	// Rendering
-	Render()
-	Update(func() error)
-	RenderNotes()
-	RenderTags()
-	RenderQueries()
-	RenderPreview()
-	RenderAll()
-	UpdateNotesTab()
-	UpdateTagsTab()
-	UpdateQueriesTab()
-	UpdateStatusBar()
-
-	// Context access
+	types.IGuiCommon
 	Contexts() *context.ContextTree
-
-	// Navigation
-	PushContextByKey(key types.ContextKey)
-	PopContext()
-	ReplaceContextByKey(key types.ContextKey)
-
-	// Dialogs
-	ShowConfirm(title, message string, onConfirm func() error)
-	ShowInput(title, message string, onConfirm func(string) error)
-	ShowError(err error)
-	OpenInputPopup(config *types.InputPopupConfig)
-
-	// Refresh
-	RefreshNotes(preserve bool)
-	RefreshTags(preserve bool)
-	RefreshQueries(preserve bool)
-	RefreshParents(preserve bool)
-	RefreshAll()
-
-	// State access
-	GetInputPopupCompletion() *types.CompletionState
-
-	// Search
-	BuildSearchOptions() commands.SearchOptions
-	SetSearchQuery(query string)
-	GetSearchQuery() string
-	SetSearchCompletion(state *types.CompletionState)
-	PopupActive() bool
-	SetCursorEnabled(enabled bool)
-	AmbientDateCandidates() func(string) []types.CompletionItem
-
-	// Preview
-	PreviewPushNavHistory()
-	PreviewReloadContent()
-	PreviewUpdatePreviewForNotes()
-	PreviewUpdatePreviewCardList(title string, fetch func() ([]models.Note, error))
-	PreviewCurrentCard() *models.Note
-	SetPreviewCards(cards []models.Note, selectedIdx int, title string)
-	SetPreviewPickResults(results []models.PickResult, selectedIdx int, cursorLine int, scrollOffset int, title string)
-
-	// Completion candidates
-	TagCandidates(filter string) []types.CompletionItem
-	CurrentCardTagCandidates(filter string) []types.CompletionItem
-	ParentCandidatesFor(state *types.CompletionState) func(string) []types.CompletionItem
-
-	// Editor
-	Suspend() error
-	Resume() error
-
-	// View access
-	GetView(name string) *gocui.View
-
-	// Dialogs (menu)
-	ShowMenuDialog(title string, items []types.MenuItem)
-
-	// Preview rendering
-	BuildCardContent(note models.Note, width int) []string
-
-	// Context state
-	CurrentContextKey() types.ContextKey
-	PreviousContextKey() types.ContextKey
-
-	// Date candidates
-	AtDateCandidates(filter string) []types.CompletionItem
 }
 
 // HelperCommon provides shared dependencies for all helpers.

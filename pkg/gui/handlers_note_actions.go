@@ -34,7 +34,7 @@ func (gui *Gui) addGlobalTag(g *gocui.Gui, v *gocui.View) error {
 				return nil
 			}
 			gui.helpers.Preview().ReloadContent()
-			gui.refreshTags(false)
+			gui.RefreshTags(false)
 			return nil
 		},
 	})
@@ -73,7 +73,7 @@ func (gui *Gui) removeTag(g *gocui.Gui, v *gocui.View) error {
 				return nil
 			}
 			gui.helpers.Preview().ReloadContent()
-			gui.refreshTags(false)
+			gui.RefreshTags(false)
 			return nil
 		},
 	})
@@ -147,7 +147,7 @@ func (gui *Gui) toggleBookmark(g *gocui.Gui, v *gocui.View) error {
 			if bm.UUID == card.UUID {
 				// Remove existing bookmark
 				gui.ruinCmd.Parent.Delete(bm.Name)
-				gui.refreshParents(false)
+				gui.RefreshParents(false)
 				return nil
 			}
 		}
@@ -171,7 +171,7 @@ func (gui *Gui) toggleBookmark(g *gocui.Gui, v *gocui.View) error {
 				gui.showError(err)
 				return nil
 			}
-			gui.refreshParents(false)
+			gui.RefreshParents(false)
 			return nil
 		},
 	})

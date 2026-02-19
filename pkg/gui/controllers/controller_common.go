@@ -1,28 +1,13 @@
 package controllers
 
 import (
-	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 )
 
-// IGuiCommon is the interface controllers use to interact with the GUI.
-// This avoids importing the gui package directly.
-type IGuiCommon interface {
-	CurrentContext() types.Context
-	CurrentContextKey() types.ContextKey
-	PushContext(ctx types.Context, opts types.OnFocusOpts)
-	PushContextByKey(key types.ContextKey)
-	PopContext()
-	ReplaceContext(ctx types.Context)
-	PopupActive() bool
-	SearchQueryActive() bool
-	ContextByKey(key types.ContextKey) types.Context
-	GetView(name string) *gocui.View
-	Render()
-	RefreshAll()
-}
+// IGuiCommon is a type alias for the authoritative interface in types/.
+type IGuiCommon = types.IGuiCommon
 
 // IHelpers provides typed access to helper instances.
 type IHelpers interface {

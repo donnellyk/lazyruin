@@ -20,6 +20,17 @@ type ContextTree struct {
 	Contrib       *ContribContext
 }
 
+// ViewNameForKey returns the primary view name for a context key,
+// derived from the context's own metadata. Falls back to "notes".
+func (self *ContextTree) ViewNameForKey(key types.ContextKey) string {
+	for _, ctx := range self.All() {
+		if ctx.GetKey() == key {
+			return ctx.GetPrimaryViewName()
+		}
+	}
+	return "notes"
+}
+
 // All returns all contexts in the tree for iteration.
 // During the hybrid migration, this only includes migrated contexts.
 func (self *ContextTree) All() []types.Context {
