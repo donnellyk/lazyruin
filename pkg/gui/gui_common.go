@@ -38,11 +38,11 @@ func (gui *Gui) DeleteView(name string) {
 }
 
 func (gui *Gui) CurrentContext() types.Context {
-	return gui.contextByKey(gui.state.currentContext())
+	return gui.contextMgr.ContextByKey(gui.contextMgr.Current())
 }
 
 func (gui *Gui) CurrentContextKey() types.ContextKey {
-	return gui.state.currentContext()
+	return gui.contextMgr.Current()
 }
 
 func (gui *Gui) PushContext(ctx types.Context, opts types.OnFocusOpts) {
@@ -64,21 +64,11 @@ func (gui *Gui) PopupActive() bool { return gui.overlayActive() }
 func (gui *Gui) SearchQueryActive() bool { return gui.state.SearchQuery != "" }
 
 func (gui *Gui) ContextByKey(key types.ContextKey) types.Context {
-	return gui.contextByKey(key)
+	return gui.contextMgr.ContextByKey(key)
 }
 
 func (gui *Gui) PushContextByKey(key types.ContextKey)    { gui.pushContextByKey(key) }
 func (gui *Gui) ReplaceContextByKey(key types.ContextKey) { gui.replaceContextByKey(key) }
-
-// contextByKey looks up a types.Context by its types.ContextKey.
-func (gui *Gui) contextByKey(key types.ContextKey) types.Context {
-	for _, ctx := range gui.contexts.All() {
-		if ctx.GetKey() == key {
-			return ctx
-		}
-	}
-	return nil
-}
 
 // --- helpers.IGuiCommon adapter methods ---
 
@@ -144,7 +134,7 @@ func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
 
 // Context state
 func (gui *Gui) PreviousContextKey() types.ContextKey {
-	return gui.state.previousContext()
+	return gui.contextMgr.Previous()
 }
 
 // Date candidates

@@ -29,6 +29,7 @@ type Gui struct {
 
 	// New controller/context architecture (Phase 2+)
 	contexts          *context.ContextTree
+	contextMgr        *ContextMgr
 	notesController   *controllers.NotesController
 	tagsController    *controllers.TagsController
 	queriesController *controllers.QueriesController
@@ -43,11 +44,12 @@ type Gui struct {
 // NewGui creates a new Gui instance.
 func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui := &Gui{
-		config:   cfg,
-		ruinCmd:  ruinCmd,
-		views:    &Views{},
-		state:    NewGuiState(),
-		contexts: &context.ContextTree{},
+		config:     cfg,
+		ruinCmd:    ruinCmd,
+		views:      &Views{},
+		state:      NewGuiState(),
+		contexts:   &context.ContextTree{},
+		contextMgr: NewContextMgr(),
 	}
 	// Wire shared helper/controller dependencies.
 	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui.config, gui)
@@ -74,6 +76,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 func (gui *Gui) setupNotesContext() {
 	notesCtx := context.NewNotesContext(gui.RenderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
 	gui.contexts.Notes = notesCtx
+	gui.contextMgr.Register(notesCtx)
 
 	notesCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		gui.RefreshNotes(true)
@@ -96,6 +99,7 @@ func (gui *Gui) setupTagsContext() {
 	tagsCtx := context.NewTagsContext(gui.RenderTags, func() { gui.helpers.Tags().UpdatePreviewForTags() })
 
 	gui.contexts.Tags = tagsCtx
+	gui.contextMgr.Register(tagsCtx)
 
 	tagsCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		gui.RefreshTags(true)
@@ -117,6 +121,7 @@ func (gui *Gui) setupQueriesContext() {
 		gui.RenderQueries, func() { gui.helpers.Queries().UpdatePreviewForParents() },
 	)
 	gui.contexts.Queries = queriesCtx
+	gui.contextMgr.Register(queriesCtx)
 
 	queriesCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
@@ -140,6 +145,7 @@ func (gui *Gui) setupQueriesContext() {
 func (gui *Gui) setupPreviewContext() {
 	previewCtx := context.NewPreviewContext()
 	gui.contexts.Preview = previewCtx
+	gui.contextMgr.Register(previewCtx)
 
 	previewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		gui.RenderPreview()
@@ -157,6 +163,7 @@ func (gui *Gui) setupPreviewContext() {
 func (gui *Gui) setupSearchContext() {
 	searchCtx := context.NewSearchContext()
 	gui.contexts.Search = searchCtx
+	gui.contextMgr.Register(searchCtx)
 
 	searchState := func() *types.CompletionState { return gui.state.SearchCompletion }
 	searchHelper := func() *helperspkg.SearchHelper { return gui.helpers.Search() }
@@ -190,6 +197,7 @@ func (gui *Gui) setupSearchContext() {
 func (gui *Gui) setupCaptureContext() {
 	captureCtx := context.NewCaptureContext()
 	gui.contexts.Capture = captureCtx
+	gui.contextMgr.Register(captureCtx)
 
 	ctrl := controllers.NewPopupController(
 		func() *context.CaptureContext { return gui.contexts.Capture },
@@ -209,6 +217,7 @@ func (gui *Gui) setupCaptureContext() {
 func (gui *Gui) setupPickContext() {
 	pickCtx := context.NewPickContext()
 	gui.contexts.Pick = pickCtx
+	gui.contextMgr.Register(pickCtx)
 
 	pickState := func() *types.CompletionState { return gui.contexts.Pick.Completion }
 	ctrl := controllers.NewPopupController(
@@ -246,6 +255,7 @@ func (gui *Gui) setupPickContext() {
 func (gui *Gui) setupInputPopupContext() {
 	inputPopupCtx := context.NewInputPopupContext()
 	gui.contexts.InputPopup = inputPopupCtx
+	gui.contextMgr.Register(inputPopupCtx)
 
 	ctrl := controllers.NewPopupController(
 		func() *context.InputPopupContext { return gui.contexts.InputPopup },
@@ -281,6 +291,7 @@ func (gui *Gui) setupInputPopupContext() {
 func (gui *Gui) setupGlobalContext() {
 	globalCtx := context.NewGlobalContext()
 	gui.contexts.Global = globalCtx
+	gui.contextMgr.Register(globalCtx)
 
 	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
 		Common:     gui.controllerCommon,
@@ -301,6 +312,7 @@ func (gui *Gui) setupGlobalContext() {
 func (gui *Gui) setupPaletteContext() {
 	paletteCtx := context.NewPaletteContext()
 	gui.contexts.Palette = paletteCtx
+	gui.contextMgr.Register(paletteCtx)
 
 	ctrl := controllers.NewPaletteController(controllers.PaletteControllerOpts{
 		GetContext:  func() *context.PaletteContext { return gui.contexts.Palette },
@@ -315,6 +327,7 @@ func (gui *Gui) setupPaletteContext() {
 func (gui *Gui) setupSnippetEditorContext() {
 	snippetCtx := context.NewSnippetEditorContext()
 	gui.contexts.SnippetEditor = snippetCtx
+	gui.contextMgr.Register(snippetCtx)
 
 	acceptExpansionCompletion := func() {
 		ctx := gui.contexts.SnippetEditor
@@ -393,6 +406,7 @@ func (gui *Gui) setupSnippetEditorContext() {
 func (gui *Gui) setupCalendarContext() {
 	calendarCtx := context.NewCalendarContext()
 	gui.contexts.Calendar = calendarCtx
+	gui.contextMgr.Register(calendarCtx)
 
 	ctrl := controllers.NewCalendarController(controllers.CalendarControllerOpts{
 		GetContext:   func() *context.CalendarContext { return gui.contexts.Calendar },
@@ -432,6 +446,7 @@ func (gui *Gui) setupCalendarContext() {
 func (gui *Gui) setupContribContext() {
 	contribCtx := context.NewContribContext()
 	gui.contexts.Contrib = contribCtx
+	gui.contextMgr.Register(contribCtx)
 
 	ctrl := controllers.NewContribController(controllers.ContribControllerOpts{
 		GetContext:  func() *context.ContribContext { return gui.contexts.Contrib },
@@ -544,7 +559,7 @@ func (gui *Gui) pushContext(ctx types.Context) {
 	if cur := gui.currentContextObject(); cur != nil {
 		cur.HandleFocusLost(types.OnFocusLostOpts{})
 	}
-	gui.state.ContextStack = append(gui.state.ContextStack, ctx.GetKey())
+	gui.contextMgr.Push(ctx.GetKey())
 	gui.activateContext(ctx.GetKey())
 	ctx.HandleFocus(types.OnFocusOpts{})
 }
@@ -554,10 +569,8 @@ func (gui *Gui) popContext() {
 	if cur := gui.currentContextObject(); cur != nil {
 		cur.HandleFocusLost(types.OnFocusLostOpts{})
 	}
-	if len(gui.state.ContextStack) > 1 {
-		gui.state.ContextStack = gui.state.ContextStack[:len(gui.state.ContextStack)-1]
-	}
-	gui.activateContext(gui.state.currentContext())
+	gui.contextMgr.Pop()
+	gui.activateContext(gui.contextMgr.Current())
 	if next := gui.currentContextObject(); next != nil {
 		next.HandleFocus(types.OnFocusOpts{})
 	}
@@ -568,11 +581,7 @@ func (gui *Gui) replaceContext(ctx types.Context) {
 	if cur := gui.currentContextObject(); cur != nil {
 		cur.HandleFocusLost(types.OnFocusLostOpts{})
 	}
-	if len(gui.state.ContextStack) > 0 {
-		gui.state.ContextStack[len(gui.state.ContextStack)-1] = ctx.GetKey()
-	} else {
-		gui.state.ContextStack = []types.ContextKey{ctx.GetKey()}
-	}
+	gui.contextMgr.Replace(ctx.GetKey())
 	gui.activateContext(ctx.GetKey())
 	ctx.HandleFocus(types.OnFocusOpts{})
 }
@@ -580,41 +589,37 @@ func (gui *Gui) replaceContext(ctx types.Context) {
 // pushContextByKey looks up the context by key and pushes it.
 // Falls back to a direct stack push for lightweight contexts not in the tree.
 func (gui *Gui) pushContextByKey(key types.ContextKey) {
-	ctx := gui.contextByKey(key)
+	ctx := gui.contextMgr.ContextByKey(key)
 	if ctx != nil {
 		gui.pushContext(ctx)
 		return
 	}
 	// Lightweight context (e.g., "searchFilter"): push key directly.
-	gui.state.ContextStack = append(gui.state.ContextStack, key)
+	gui.contextMgr.Push(key)
 	gui.activateContext(key)
 }
 
 // replaceContextByKey looks up the context by key and replaces the top of the stack.
 // Falls back to a direct stack replace for lightweight contexts not in the tree.
 func (gui *Gui) replaceContextByKey(key types.ContextKey) {
-	ctx := gui.contextByKey(key)
+	ctx := gui.contextMgr.ContextByKey(key)
 	if ctx != nil {
 		gui.replaceContext(ctx)
 		return
 	}
 	// Lightweight context: replace key directly.
-	if len(gui.state.ContextStack) > 0 {
-		gui.state.ContextStack[len(gui.state.ContextStack)-1] = key
-	} else {
-		gui.state.ContextStack = []types.ContextKey{key}
-	}
+	gui.contextMgr.Replace(key)
 	gui.activateContext(key)
 }
 
 // currentContextObject looks up the types.Context for the top of stack.
 func (gui *Gui) currentContextObject() types.Context {
-	return gui.contextByKey(gui.state.currentContext())
+	return gui.contextMgr.ContextByKey(gui.contextMgr.Current())
 }
 
 // popupActive returns true when the current context is a popup (not a main panel).
 func (gui *Gui) popupActive() bool {
-	ctx := gui.contextByKey(gui.state.currentContext())
+	ctx := gui.contextMgr.ContextByKey(gui.contextMgr.Current())
 	if ctx == nil {
 		return false
 	}

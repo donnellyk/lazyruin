@@ -202,7 +202,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 	}
 	contentWidth := max(width-2, 10)
 
-	isActive := gui.state.currentContext() == "preview"
+	isActive := gui.contextMgr.Current() == "preview"
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
@@ -373,7 +373,7 @@ func (gui *Gui) renderPickResults(v *gocui.View) {
 	}
 	contentWidth := max(width-2, 10)
 
-	isActive := gui.state.currentContext() == "preview"
+	isActive := gui.contextMgr.Current() == "preview"
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0

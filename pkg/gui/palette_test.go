@@ -14,7 +14,7 @@ import (
 // --- Unit tests for filtering and availability ---
 
 func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
@@ -31,7 +31,7 @@ func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_MatchesName(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
@@ -51,7 +51,7 @@ func TestFilterPaletteCommands_MatchesName(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_MatchesCategory(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
@@ -71,7 +71,7 @@ func TestFilterPaletteCommands_MatchesCategory(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_CaseInsensitive(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Toggle Frontmatter", Category: "Preview"},
@@ -86,7 +86,7 @@ func TestFilterPaletteCommands_CaseInsensitive(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_NoMatch(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
@@ -102,7 +102,7 @@ func TestFilterPaletteCommands_NoMatch(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Delete Tag", Category: "Tags", Contexts: []types.ContextKey{"tags"}},
@@ -126,7 +126,7 @@ func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
 }
 
 func TestFilterPaletteCommands_ClampsSelection(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Commands: []types.PaletteCommand{
 			{Name: "Quit", Category: "Global"},
@@ -170,7 +170,7 @@ func TestIsPaletteCommandAvailable_MismatchedContext(t *testing.T) {
 }
 
 func TestPaletteSelectMove_Down(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"}, {Name: "C"},
@@ -185,7 +185,7 @@ func TestPaletteSelectMove_Down(t *testing.T) {
 }
 
 func TestPaletteSelectMove_Up(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"}, {Name: "C"},
@@ -200,7 +200,7 @@ func TestPaletteSelectMove_Up(t *testing.T) {
 }
 
 func TestPaletteSelectMove_ClampsAtTop(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"},
@@ -215,7 +215,7 @@ func TestPaletteSelectMove_ClampsAtTop(t *testing.T) {
 }
 
 func TestPaletteSelectMove_ClampsAtBottom(t *testing.T) {
-	gui := &Gui{state: NewGuiState(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
+	gui := &Gui{state: NewGuiState(), contextMgr: NewContextMgr(), views: &Views{}, contexts: &context.ContextTree{Palette: context.NewPaletteContext()}}
 	gui.contexts.Palette.Palette = &types.PaletteState{
 		Filtered: []types.PaletteCommand{
 			{Name: "A"}, {Name: "B"},
@@ -240,8 +240,8 @@ func TestOpenPalette_EntersPaletteOverlay(t *testing.T) {
 	if !tg.gui.popupActive() {
 		t.Error("popupActive() should be true after openPalette")
 	}
-	if tg.gui.state.currentContext() != "palette" {
-		t.Errorf("currentContext() = %v, want palette", tg.gui.state.currentContext())
+	if tg.gui.contextMgr.Current() != "palette" {
+		t.Errorf("currentContext() = %v, want palette", tg.gui.contextMgr.Current())
 	}
 	if tg.gui.contexts.Palette.Palette == nil {
 		t.Fatal("Palette state should not be nil")
@@ -258,8 +258,8 @@ func TestOpenPalette_PreviousContextIsOrigin(t *testing.T) {
 	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.previousContext() != "tags" {
-		t.Errorf("previousContext() = %v, want tags", tg.gui.state.previousContext())
+	if tg.gui.contextMgr.Previous() != "tags" {
+		t.Errorf("previousContext() = %v, want tags", tg.gui.contextMgr.Previous())
 	}
 }
 
@@ -270,7 +270,7 @@ func TestOpenPalette_BlockedDuringSearch(t *testing.T) {
 	tg.gui.helpers.Search().OpenSearch()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != "search" {
+	if tg.gui.contextMgr.Current() != "search" {
 		t.Error("currentContext should remain search, not switch to palette")
 	}
 }
@@ -282,7 +282,7 @@ func TestOpenPalette_BlockedDuringCapture(t *testing.T) {
 	tg.gui.helpers.Capture().OpenCapture()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != "capture" {
+	if tg.gui.contextMgr.Current() != "capture" {
 		t.Error("currentContext should remain capture, not switch to palette")
 	}
 }
@@ -294,7 +294,7 @@ func TestOpenPalette_BlockedDuringPick(t *testing.T) {
 	tg.gui.helpers.Pick().OpenPick()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != "pick" {
+	if tg.gui.contextMgr.Current() != "pick" {
 		t.Error("currentContext should remain pick, not switch to palette")
 	}
 }
@@ -308,7 +308,7 @@ func TestOpenPalette_BlockedWhenAlreadyOpen(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 
 	// Should still be in palette context, not double-opened
-	if tg.gui.state.currentContext() != "palette" {
+	if tg.gui.contextMgr.Current() != "palette" {
 		t.Error("currentContext should still be palette")
 	}
 }
@@ -327,8 +327,8 @@ func TestClosePalette_RestoresContext(t *testing.T) {
 	if tg.gui.contexts.Palette.Palette != nil {
 		t.Error("Palette state should be nil after close")
 	}
-	if tg.gui.state.currentContext() != "tags" {
-		t.Errorf("currentContext() = %v, want tags (restored)", tg.gui.state.currentContext())
+	if tg.gui.contextMgr.Current() != "tags" {
+		t.Errorf("currentContext() = %v, want tags (restored)", tg.gui.contextMgr.Current())
 	}
 }
 
@@ -426,8 +426,8 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 	if tg.gui.popupActive() {
 		t.Error("popupActive() should be false after palette execution")
 	}
-	if tg.gui.state.currentContext() != "preview" {
-		t.Errorf("currentContext() = %v, want preview", tg.gui.state.currentContext())
+	if tg.gui.contextMgr.Current() != "preview" {
+		t.Errorf("currentContext() = %v, want preview", tg.gui.contextMgr.Current())
 	}
 }
 

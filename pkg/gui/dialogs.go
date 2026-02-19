@@ -119,7 +119,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(MenuView)
 	// Restore focus to the view for the current context
-	gui.g.SetCurrentView(gui.contextToView(gui.state.currentContext()))
+	gui.g.SetCurrentView(gui.contextToView(gui.contextMgr.Current()))
 }
 
 // createConfirmDialog renders the confirmation dialog

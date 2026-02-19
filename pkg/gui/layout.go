@@ -76,7 +76,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	}
 
 	// Manage overlay views based on the current context
-	switch gui.state.currentContext() {
+	switch gui.contextMgr.Current() {
 	case "search":
 		if err := gui.createSearchPopup(g, maxX, maxY); err != nil {
 			return err
@@ -111,7 +111,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		}
 	}
 	// Delete views for inactive overlays
-	ctx := gui.state.currentContext()
+	ctx := gui.contextMgr.Current()
 	if ctx != "search" {
 		g.DeleteView(SearchView)
 		g.DeleteView(SearchSuggestView)
@@ -165,7 +165,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
 			gui.contexts.Capture.Completion = types.NewCompletionState()
-			gui.state.ContextStack = []types.ContextKey{"notes", "capture"}
+			gui.contextMgr.SetStack([]types.ContextKey{"notes", "capture"})
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
@@ -194,7 +194,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.Preview.Cards))
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == "searchFilter" {
+	if gui.contextMgr.Current() == "searchFilter" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -225,7 +225,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// Notes uses manual multi-line highlighting in renderNotes()
 	v.Highlight = false
 
-	if gui.state.currentContext() == "notes" {
+	if gui.contextMgr.Current() == "notes" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -250,7 +250,7 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.UpdateQueriesTab()
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == "queries" {
+	if gui.contextMgr.Current() == "queries" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -275,7 +275,7 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.UpdateTagsTab()
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == "tags" {
+	if gui.contextMgr.Current() == "tags" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -309,7 +309,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		v.Title = " Preview "
 	}
 
-	if gui.state.currentContext() == "preview" {
+	if gui.contextMgr.Current() == "preview" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {

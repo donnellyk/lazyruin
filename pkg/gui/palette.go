@@ -105,7 +105,7 @@ func (gui *Gui) executePaletteCommand() error {
 	cmd := gui.contexts.Palette.Palette.Filtered[idx]
 
 	// Don't execute unavailable commands
-	if !isPaletteCommandAvailable(cmd, gui.state.previousContext()) {
+	if !isPaletteCommandAvailable(cmd, gui.contextMgr.Previous()) {
 		return nil
 	}
 
@@ -124,7 +124,7 @@ func (gui *Gui) filterPaletteCommands(filter string) {
 	lower := strings.ToLower(filter)
 
 	var available, unavailable []types.PaletteCommand
-	origin := gui.state.previousContext()
+	origin := gui.contextMgr.Previous()
 
 	for _, cmd := range gui.contexts.Palette.Palette.Commands {
 		match := lower == "" ||
@@ -229,7 +229,7 @@ func (gui *Gui) renderPaletteList() {
 		return
 	}
 
-	originCtx := gui.state.previousContext()
+	originCtx := gui.contextMgr.Previous()
 	width, _ := v.InnerSize()
 	if width < 10 {
 		width = 30

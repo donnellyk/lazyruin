@@ -11,12 +11,19 @@ import (
 func TestNewGuiState_Defaults(t *testing.T) {
 	state := NewGuiState()
 
-	if state.currentContext() != "notes" {
-		t.Errorf("currentContext() = %v, want %v", state.currentContext(), "notes")
-	}
-
 	if state.SearchQuery != "" {
 		t.Errorf("SearchQuery = %q, want empty", state.SearchQuery)
+	}
+}
+
+func TestNewContextMgr_Defaults(t *testing.T) {
+	mgr := NewContextMgr()
+
+	if mgr.Current() != "notes" {
+		t.Errorf("Current() = %v, want notes", mgr.Current())
+	}
+	if mgr.Previous() != "notes" {
+		t.Errorf("Previous() = %v, want notes", mgr.Previous())
 	}
 }
 
@@ -76,27 +83,74 @@ func TestPreviewMode_Values(t *testing.T) {
 	}
 }
 
-func TestGuiState_ContextTracking(t *testing.T) {
-	state := NewGuiState()
+func TestContextMgr_ContextTracking(t *testing.T) {
+	mgr := NewContextMgr()
 
 	// Simulate context switch via stack push
-	state.ContextStack = append(state.ContextStack, "tags")
+	mgr.Push("tags")
 
-	if state.previousContext() != "notes" {
-		t.Errorf("previousContext() = %v, want notes", state.previousContext())
+	if mgr.Previous() != "notes" {
+		t.Errorf("Previous() = %v, want notes", mgr.Previous())
 	}
-	if state.currentContext() != "tags" {
-		t.Errorf("currentContext() = %v, want tags", state.currentContext())
+	if mgr.Current() != "tags" {
+		t.Errorf("Current() = %v, want tags", mgr.Current())
 	}
 
 	// Switch again
-	state.ContextStack = append(state.ContextStack, "preview")
+	mgr.Push("preview")
 
-	if state.previousContext() != "tags" {
-		t.Errorf("previousContext() = %v, want tags", state.previousContext())
+	if mgr.Previous() != "tags" {
+		t.Errorf("Previous() = %v, want tags", mgr.Previous())
 	}
-	if state.currentContext() != "preview" {
-		t.Errorf("currentContext() = %v, want preview", state.currentContext())
+	if mgr.Current() != "preview" {
+		t.Errorf("Current() = %v, want preview", mgr.Current())
+	}
+}
+
+func TestContextMgr_Pop(t *testing.T) {
+	mgr := NewContextMgr()
+	mgr.Push("tags")
+	mgr.Push("preview")
+
+	mgr.Pop()
+	if mgr.Current() != "tags" {
+		t.Errorf("after Pop: Current() = %v, want tags", mgr.Current())
+	}
+
+	mgr.Pop()
+	if mgr.Current() != "notes" {
+		t.Errorf("after second Pop: Current() = %v, want notes", mgr.Current())
+	}
+
+	// Pop on single-element stack is a no-op
+	mgr.Pop()
+	if mgr.Current() != "notes" {
+		t.Errorf("after Pop on single: Current() = %v, want notes", mgr.Current())
+	}
+}
+
+func TestContextMgr_Replace(t *testing.T) {
+	mgr := NewContextMgr()
+	mgr.Push("tags")
+
+	mgr.Replace("queries")
+	if mgr.Current() != "queries" {
+		t.Errorf("after Replace: Current() = %v, want queries", mgr.Current())
+	}
+	if mgr.Previous() != "notes" {
+		t.Errorf("after Replace: Previous() = %v, want notes", mgr.Previous())
+	}
+}
+
+func TestContextMgr_SetStack(t *testing.T) {
+	mgr := NewContextMgr()
+	mgr.SetStack([]types.ContextKey{"notes", "capture"})
+
+	if mgr.Current() != "capture" {
+		t.Errorf("Current() = %v, want capture", mgr.Current())
+	}
+	if mgr.Previous() != "notes" {
+		t.Errorf("Previous() = %v, want notes", mgr.Previous())
 	}
 }
 
