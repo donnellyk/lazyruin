@@ -11,12 +11,8 @@ import (
 func TestNewGuiState_Defaults(t *testing.T) {
 	state := NewGuiState()
 
-	if state.currentContext() != NotesContext {
-		t.Errorf("currentContext() = %v, want %v", state.currentContext(), NotesContext)
-	}
-
-	if state.popupActive() {
-		t.Error("popupActive() should be false by default")
+	if state.currentContext() != "notes" {
+		t.Errorf("currentContext() = %v, want %v", state.currentContext(), "notes")
 	}
 
 	if state.SearchQuery != "" {
@@ -57,11 +53,11 @@ func TestContextKey_Values(t *testing.T) {
 		ctx      types.ContextKey
 		expected string
 	}{
-		{NotesContext, "notes"},
-		{QueriesContext, "queries"},
-		{TagsContext, "tags"},
-		{PreviewContext, "preview"},
-		{SearchContext, "search"},
+		{"notes", "notes"},
+		{"queries", "queries"},
+		{"tags", "tags"},
+		{"preview", "preview"},
+		{"search", "search"},
 	}
 
 	for _, tc := range tests {
@@ -84,23 +80,23 @@ func TestGuiState_ContextTracking(t *testing.T) {
 	state := NewGuiState()
 
 	// Simulate context switch via stack push
-	state.ContextStack = append(state.ContextStack, TagsContext)
+	state.ContextStack = append(state.ContextStack, "tags")
 
-	if state.previousContext() != NotesContext {
-		t.Errorf("previousContext() = %v, want NotesContext", state.previousContext())
+	if state.previousContext() != "notes" {
+		t.Errorf("previousContext() = %v, want notes", state.previousContext())
 	}
-	if state.currentContext() != TagsContext {
-		t.Errorf("currentContext() = %v, want TagsContext", state.currentContext())
+	if state.currentContext() != "tags" {
+		t.Errorf("currentContext() = %v, want tags", state.currentContext())
 	}
 
 	// Switch again
-	state.ContextStack = append(state.ContextStack, PreviewContext)
+	state.ContextStack = append(state.ContextStack, "preview")
 
-	if state.previousContext() != TagsContext {
-		t.Errorf("previousContext() = %v, want TagsContext", state.previousContext())
+	if state.previousContext() != "tags" {
+		t.Errorf("previousContext() = %v, want tags", state.previousContext())
 	}
-	if state.currentContext() != PreviewContext {
-		t.Errorf("currentContext() = %v, want PreviewContext", state.currentContext())
+	if state.currentContext() != "preview" {
+		t.Errorf("currentContext() = %v, want preview", state.currentContext())
 	}
 }
 
@@ -153,30 +149,4 @@ func TestPreviewState_FrontmatterToggle(t *testing.T) {
 	}
 }
 
-func TestSearchPopupActive_Toggle(t *testing.T) {
-	state := NewGuiState()
-
-	if state.popupActive() {
-		t.Error("popupActive() should be false by default")
-	}
-
-	// Enter search via context stack
-	state.ContextStack = append(state.ContextStack, SearchContext)
-
-	if !state.popupActive() {
-		t.Error("popupActive() should be true when SearchContext is active")
-	}
-	if state.currentContext() != SearchContext {
-		t.Errorf("currentContext() = %v, want SearchContext", state.currentContext())
-	}
-
-	// Exit search
-	state.ContextStack = state.ContextStack[:len(state.ContextStack)-1]
-
-	if state.popupActive() {
-		t.Error("popupActive() should be false after exiting search")
-	}
-	if state.currentContext() != NotesContext {
-		t.Errorf("currentContext() = %v, want NotesContext", state.currentContext())
-	}
-}
+// popupActive is tested through handlers_test.go where a full *Gui is available.

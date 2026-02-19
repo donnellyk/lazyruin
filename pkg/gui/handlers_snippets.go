@@ -115,7 +115,7 @@ func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *types.Comple
 func (gui *Gui) createSnippet() error {
 	gui.state.SnippetEditorFocus = 0
 	gui.state.SnippetEditorCompletion = types.NewCompletionState()
-	gui.pushContextByKey(SnippetEditorCtx)
+	gui.pushContextByKey("snippetName")
 	return nil
 }
 

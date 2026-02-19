@@ -12,7 +12,7 @@ func (gui *Gui) openInputPopup(config *types.InputPopupConfig) {
 	gui.state.InputPopupCompletion = types.NewCompletionState()
 	gui.state.InputPopupSeedDone = false
 	gui.state.InputPopupConfig = config
-	gui.pushContextByKey(InputPopupCtx)
+	gui.pushContextByKey("inputPopup")
 }
 
 // closeInputPopup closes the input popup and restores focus.

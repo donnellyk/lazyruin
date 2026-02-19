@@ -17,7 +17,7 @@ func TestFilterPaletteCommands_EmptyFilter_ReturnsAll(t *testing.T) {
 		Commands: []PaletteCommand{
 			{Name: "Quit", Category: "Global"},
 			{Name: "Search", Category: "Global"},
-			{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}},
+			{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}},
 		},
 	}
 
@@ -103,8 +103,8 @@ func TestFilterPaletteCommands_AvailableFirst(t *testing.T) {
 	gui := &Gui{state: NewGuiState()}
 	gui.state.Palette = &PaletteState{
 		Commands: []PaletteCommand{
-			{Name: "Delete Tag", Category: "Tags", Contexts: []types.ContextKey{TagsContext}},
-			{Name: "Delete Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}},
+			{Name: "Delete Tag", Category: "Tags", Contexts: []types.ContextKey{"tags"}},
+			{Name: "Delete Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}},
 			{Name: "Quit", Category: "Global"},
 		},
 	}
@@ -145,24 +145,24 @@ func TestFilterPaletteCommands_ClampsSelection(t *testing.T) {
 
 func TestIsPaletteCommandAvailable_EmptyContext(t *testing.T) {
 	cmd := PaletteCommand{Name: "Quit", Category: "Global"}
-	if !isPaletteCommandAvailable(cmd, NotesContext) {
+	if !isPaletteCommandAvailable(cmd, "notes") {
 		t.Error("command with empty Context should always be available")
 	}
-	if !isPaletteCommandAvailable(cmd, TagsContext) {
+	if !isPaletteCommandAvailable(cmd, "tags") {
 		t.Error("command with empty Context should always be available")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MatchingContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}}
-	if !isPaletteCommandAvailable(cmd, NotesContext) {
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}}
+	if !isPaletteCommandAvailable(cmd, "notes") {
 		t.Error("command should be available when context matches")
 	}
 }
 
 func TestIsPaletteCommandAvailable_MismatchedContext(t *testing.T) {
-	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{NotesContext}}
-	if isPaletteCommandAvailable(cmd, TagsContext) {
+	cmd := PaletteCommand{Name: "Edit Note", Category: "Notes", Contexts: []types.ContextKey{"notes"}}
+	if isPaletteCommandAvailable(cmd, "tags") {
 		t.Error("command should not be available when context doesn't match")
 	}
 }
@@ -235,11 +235,11 @@ func TestOpenPalette_EntersPaletteOverlay(t *testing.T) {
 
 	tg.gui.openPalette(tg.g, nil)
 
-	if !tg.gui.state.popupActive() {
+	if !tg.gui.popupActive() {
 		t.Error("popupActive() should be true after openPalette")
 	}
-	if tg.gui.state.currentContext() != PaletteContext {
-		t.Errorf("currentContext() = %v, want PaletteContext", tg.gui.state.currentContext())
+	if tg.gui.state.currentContext() != "palette" {
+		t.Errorf("currentContext() = %v, want palette", tg.gui.state.currentContext())
 	}
 	if tg.gui.state.Palette == nil {
 		t.Fatal("Palette state should not be nil")
@@ -256,8 +256,8 @@ func TestOpenPalette_PreviousContextIsOrigin(t *testing.T) {
 	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.previousContext() != TagsContext {
-		t.Errorf("previousContext() = %v, want TagsContext", tg.gui.state.previousContext())
+	if tg.gui.state.previousContext() != "tags" {
+		t.Errorf("previousContext() = %v, want tags", tg.gui.state.previousContext())
 	}
 }
 
@@ -268,8 +268,8 @@ func TestOpenPalette_BlockedDuringSearch(t *testing.T) {
 	tg.gui.helpers.Search().OpenSearch()
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != SearchContext {
-		t.Error("currentContext should remain SearchContext, not switch to palette")
+	if tg.gui.state.currentContext() != "search" {
+		t.Error("currentContext should remain search, not switch to palette")
 	}
 }
 
@@ -280,8 +280,8 @@ func TestOpenPalette_BlockedDuringCapture(t *testing.T) {
 	tg.gui.openCapture(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != CaptureContext {
-		t.Error("currentContext should remain CaptureContext, not switch to palette")
+	if tg.gui.state.currentContext() != "capture" {
+		t.Error("currentContext should remain capture, not switch to palette")
 	}
 }
 
@@ -292,8 +292,8 @@ func TestOpenPalette_BlockedDuringPick(t *testing.T) {
 	tg.gui.openPick(tg.g, nil)
 	tg.gui.openPalette(tg.g, nil)
 
-	if tg.gui.state.currentContext() != PickContext {
-		t.Error("currentContext should remain PickContext, not switch to palette")
+	if tg.gui.state.currentContext() != "pick" {
+		t.Error("currentContext should remain pick, not switch to palette")
 	}
 }
 
@@ -306,8 +306,8 @@ func TestOpenPalette_BlockedWhenAlreadyOpen(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 
 	// Should still be in palette context, not double-opened
-	if tg.gui.state.currentContext() != PaletteContext {
-		t.Error("currentContext should still be PaletteContext")
+	if tg.gui.state.currentContext() != "palette" {
+		t.Error("currentContext should still be palette")
 	}
 }
 
@@ -319,14 +319,14 @@ func TestClosePalette_RestoresContext(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.closePalette()
 
-	if tg.gui.state.popupActive() {
+	if tg.gui.popupActive() {
 		t.Error("popupActive() should be false after closePalette")
 	}
 	if tg.gui.state.Palette != nil {
 		t.Error("Palette state should be nil after close")
 	}
-	if tg.gui.state.currentContext() != TagsContext {
-		t.Errorf("currentContext() = %v, want TagsContext (restored)", tg.gui.state.currentContext())
+	if tg.gui.state.currentContext() != "tags" {
+		t.Errorf("currentContext() = %v, want tags (restored)", tg.gui.state.currentContext())
 	}
 }
 
@@ -337,7 +337,7 @@ func TestPaletteEsc_ClosesPalette(t *testing.T) {
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.paletteEsc(tg.g, nil)
 
-	if tg.gui.state.popupActive() {
+	if tg.gui.popupActive() {
 		t.Error("popupActive() should be false after paletteEsc")
 	}
 }
@@ -376,7 +376,7 @@ func TestPaletteEnter_SkipsUnavailableCommand(t *testing.T) {
 	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
-	// Find "Open in Editor" (requires NotesContext, unavailable from Tags)
+	// Find "Open in Editor" (requires "notes", unavailable from Tags)
 	editIdx := -1
 	for i, cmd := range tg.gui.state.Palette.Filtered {
 		if cmd.Name == "Open in Editor" {
@@ -421,11 +421,11 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 	tg.gui.paletteEnter(tg.g, nil)
 
 	// Palette should be closed and we should be in Preview context
-	if tg.gui.state.popupActive() {
+	if tg.gui.popupActive() {
 		t.Error("popupActive() should be false after palette execution")
 	}
-	if tg.gui.state.currentContext() != PreviewContext {
-		t.Errorf("currentContext() = %v, want PreviewContext", tg.gui.state.currentContext())
+	if tg.gui.state.currentContext() != "preview" {
+		t.Errorf("currentContext() = %v, want preview", tg.gui.state.currentContext())
 	}
 }
 
@@ -482,8 +482,9 @@ func TestPaletteViewsDeleted_WhenClosed(t *testing.T) {
 func TestContextToView_Palette(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
-	if tg.gui.contextToView(PaletteContext) != PaletteView {
-		t.Errorf("contextToView(PaletteContext) = %q, want %q", tg.gui.contextToView(PaletteContext), PaletteView)
+	key := types.ContextKey("palette")
+	if tg.gui.contextToView(key) != PaletteView {
+		t.Errorf("contextToView(palette) = %q, want %q", tg.gui.contextToView(key), PaletteView)
 	}
 }
 

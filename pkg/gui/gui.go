@@ -70,7 +70,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	return gui
 }
 
-// setupNotesContext initializes the NotesContext and NotesController.
+// setupNotesContext initializes the "notes" and NotesController.
 func (gui *Gui) setupNotesContext() {
 	notesCtx := context.NewNotesContext(gui.renderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
 	gui.contexts.Notes = notesCtx
@@ -86,7 +86,7 @@ func (gui *Gui) setupNotesContext() {
 	controllers.AttachController(gui.notesController)
 }
 
-// setupTagsContext initializes the new TagsContext and TagsController.
+// setupTagsContext initializes the new "tags" and TagsController.
 func (gui *Gui) setupTagsContext() {
 	tagsCtx := context.NewTagsContext(gui.renderTags, func() { gui.helpers.Tags().UpdatePreviewForTags() })
 
@@ -101,7 +101,7 @@ func (gui *Gui) setupTagsContext() {
 	controllers.AttachController(gui.tagsController)
 }
 
-// setupQueriesContext initializes the QueriesContext and QueriesController.
+// setupQueriesContext initializes the "queries" and QueriesController.
 func (gui *Gui) setupQueriesContext() {
 	queriesCtx := context.NewQueriesContext(
 		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForQueries() },
@@ -118,7 +118,7 @@ func (gui *Gui) setupQueriesContext() {
 	controllers.AttachController(gui.queriesController)
 }
 
-// setupPreviewContext initializes the PreviewContext and PreviewController.
+// setupPreviewContext initializes the "preview" and PreviewController.
 func (gui *Gui) setupPreviewContext() {
 	previewCtx := context.NewPreviewContext()
 	gui.contexts.Preview = previewCtx
@@ -131,7 +131,7 @@ func (gui *Gui) setupPreviewContext() {
 	controllers.AttachController(gui.previewController)
 }
 
-// setupSearchContext initializes the SearchContext and its popup controller.
+// setupSearchContext initializes the "search" and its popup controller.
 func (gui *Gui) setupSearchContext() {
 	searchCtx := context.NewSearchContext()
 	gui.contexts.Search = searchCtx
@@ -164,7 +164,7 @@ func (gui *Gui) setupSearchContext() {
 	controllers.AttachController(ctrl)
 }
 
-// setupCaptureContext initializes the CaptureContext and its popup controller.
+// setupCaptureContext initializes the "capture" and its popup controller.
 func (gui *Gui) setupCaptureContext() {
 	captureCtx := context.NewCaptureContext()
 	gui.contexts.Capture = captureCtx
@@ -180,7 +180,7 @@ func (gui *Gui) setupCaptureContext() {
 	controllers.AttachController(ctrl)
 }
 
-// setupPickContext initializes the PickContext and its popup controller.
+// setupPickContext initializes the "pick" and its popup controller.
 func (gui *Gui) setupPickContext() {
 	pickCtx := context.NewPickContext()
 	gui.contexts.Pick = pickCtx
@@ -246,7 +246,7 @@ func (gui *Gui) setupGlobalContext() {
 	controllers.AttachController(ctrl)
 }
 
-// setupPaletteContext initializes the PaletteContext and PaletteController.
+// setupPaletteContext initializes the "palette" and PaletteController.
 func (gui *Gui) setupPaletteContext() {
 	paletteCtx := context.NewPaletteContext()
 	gui.contexts.Palette = paletteCtx
@@ -425,10 +425,10 @@ func (gui *Gui) activateContext(ctx types.ContextKey) {
 
 	// Refresh data (preserving selections) and update preview based on new context
 	switch ctx {
-	case NotesContext:
+	case "notes":
 		gui.RefreshNotes(true)
 		gui.helpers.Preview().UpdatePreviewForNotes()
-	case QueriesContext:
+	case "queries":
 		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			gui.RefreshParents(true)
 			gui.helpers.Queries().UpdatePreviewForParents()
@@ -436,10 +436,10 @@ func (gui *Gui) activateContext(ctx types.ContextKey) {
 			gui.RefreshQueries(true)
 			gui.helpers.Queries().UpdatePreviewForQueries()
 		}
-	case TagsContext:
+	case "tags":
 		gui.RefreshTags(true)
 		gui.helpers.Tags().UpdatePreviewForTags()
-	case PreviewContext:
+	case "preview":
 		gui.renderPreview()
 	}
 
@@ -492,7 +492,7 @@ func (gui *Gui) pushContextByKey(key types.ContextKey) {
 		gui.pushContext(ctx)
 		return
 	}
-	// Lightweight context (e.g., SearchFilterContext): push key directly.
+	// Lightweight context (e.g., "searchFilter"): push key directly.
 	gui.state.ContextStack = append(gui.state.ContextStack, key)
 	gui.activateContext(key)
 }
@@ -519,9 +519,19 @@ func (gui *Gui) currentContextObject() types.Context {
 	return gui.contextByKey(gui.state.currentContext())
 }
 
+// popupActive returns true when the current context is a popup (not a main panel).
+func (gui *Gui) popupActive() bool {
+	ctx := gui.contextByKey(gui.state.currentContext())
+	if ctx == nil {
+		return false
+	}
+	kind := ctx.GetKind()
+	return kind != types.SIDE_CONTEXT && kind != types.MAIN_CONTEXT
+}
+
 // overlayActive returns true when any overlay or dialog is open.
 func (gui *Gui) overlayActive() bool {
-	return gui.state.popupActive() ||
+	return gui.popupActive() ||
 		(gui.state.Dialog != nil && gui.state.Dialog.Active)
 }
 

@@ -13,7 +13,7 @@ import (
 
 // openContrib opens the contribution chart dialog.
 func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.popupActive() {
+	if gui.popupActive() {
 		return nil
 	}
 
@@ -26,7 +26,7 @@ func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
 
 	gui.contribLoadData()
 	gui.contribRefreshNotes()
-	gui.pushContextByKey(ContribCtx)
+	gui.pushContextByKey("contribGrid")
 	return nil
 }
 
@@ -371,7 +371,7 @@ func (gui *Gui) contribLoadInPreview() {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" Contrib: "+date+" ", notes)
-	gui.pushContextByKey(PreviewContext)
+	gui.pushContextByKey("preview")
 }
 
 // contribLoadNoteInPreview loads a single note into preview.
@@ -394,5 +394,5 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.pushContextByKey(PreviewContext)
+	gui.pushContextByKey("preview")
 }

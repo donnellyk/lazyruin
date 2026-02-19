@@ -66,7 +66,7 @@ func isPaletteCommandAvailable(cmd PaletteCommand, origin types.ContextKey) bool
 
 // openPalette opens the command palette popup.
 func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.popupActive() {
+	if gui.popupActive() {
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func (gui *Gui) openPalette(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.filterPaletteCommands("")
-	gui.pushContextByKey(PaletteContext)
+	gui.pushContextByKey("palette")
 	return nil
 }
 
@@ -276,7 +276,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			OnRun: func() error {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabQueries
 				gui.contexts.Queries.QueriesTrait().SetSelectedLineIdx(idx)
-				gui.pushContextByKey(QueriesContext)
+				gui.pushContextByKey("queries")
 				gui.RenderQueries()
 				return gui.helpers.Queries().RunQuery()
 			},
@@ -292,7 +292,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			OnRun: func() error {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabParents
 				gui.contexts.Queries.ParentsTrait().SetSelectedLineIdx(idx)
-				gui.pushContextByKey(QueriesContext)
+				gui.pushContextByKey("queries")
 				gui.RenderQueries()
 				return gui.helpers.Queries().ViewParent()
 			},
@@ -308,7 +308,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.pushContextByKey(TagsContext)
+					gui.pushContextByKey("tags")
 					return gui.helpers.Tags().FilterByTagPick(&tag)
 				},
 			})
@@ -317,7 +317,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Name:     name,
 				Category: "Tag",
 				OnRun: func() error {
-					gui.pushContextByKey(TagsContext)
+					gui.pushContextByKey("tags")
 					return gui.helpers.Tags().FilterByTagSearch(&tag)
 				},
 			})
@@ -337,7 +337,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			Category: "Note",
 			OnRun: func() error {
 				gui.contexts.Notes.SetSelectedLineIdx(idx)
-				gui.pushContextByKey(NotesContext)
+				gui.pushContextByKey("notes")
 				gui.RenderNotes()
 				gui.helpers.Preview().UpdatePreviewForNotes()
 				return nil

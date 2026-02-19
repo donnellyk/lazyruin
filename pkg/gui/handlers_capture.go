@@ -8,12 +8,12 @@ import (
 )
 
 func (gui *Gui) openCapture(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.popupActive() {
+	if gui.popupActive() {
 		return nil
 	}
 	gui.state.CaptureParent = nil
 	gui.state.CaptureCompletion = types.NewCompletionState()
-	gui.pushContextByKey(CaptureContext)
+	gui.pushContextByKey("capture")
 	return nil
 }
 

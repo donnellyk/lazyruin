@@ -21,7 +21,7 @@ const (
 
 // openCalendar opens the calendar dialog.
 func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.popupActive() {
+	if gui.popupActive() {
 		return nil
 	}
 
@@ -35,7 +35,7 @@ func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.calendarRefreshNotes()
-	gui.pushContextByKey(CalendarCtx)
+	gui.pushContextByKey("calendarGrid")
 	return nil
 }
 
@@ -453,7 +453,7 @@ func (gui *Gui) calendarLoadInPreview() {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" Calendar: "+date+" ", notes)
-	gui.pushContextByKey(PreviewContext)
+	gui.pushContextByKey("preview")
 }
 
 // calendarLoadNoteInPreview loads a single note into the preview.
@@ -476,5 +476,5 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 	gui.helpers.Preview().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.pushContextByKey(PreviewContext)
+	gui.pushContextByKey("preview")
 }

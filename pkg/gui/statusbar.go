@@ -50,7 +50,7 @@ func (gui *Gui) updateStatusBar() {
 }
 
 // notesTabIndex returns the index for the current notes tab.
-// Delegates to NotesContext.
+// Delegates to "notes".
 func (gui *Gui) notesTabIndex() int {
 	return gui.contexts.Notes.TabIndex()
 }
@@ -63,7 +63,7 @@ func (gui *Gui) updateNotesTab() {
 }
 
 // queriesTabIndex returns the index for the current queries tab.
-// Delegates to QueriesContext.
+// Delegates to "queries".
 func (gui *Gui) queriesTabIndex() int {
 	return gui.contexts.Queries.TabIndex()
 }
@@ -76,7 +76,7 @@ func (gui *Gui) updateQueriesTab() {
 }
 
 // tagsTabIndex returns the index for the current tags tab.
-// Delegates to TagsContext.
+// Delegates to "tags".
 func (gui *Gui) tagsTabIndex() int {
 	return gui.contexts.Tags.TabIndex()
 }

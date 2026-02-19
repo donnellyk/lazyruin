@@ -8,13 +8,13 @@ import (
 )
 
 func (gui *Gui) openPick(g *gocui.Gui, v *gocui.View) error {
-	if gui.state.popupActive() {
+	if gui.popupActive() {
 		return nil
 	}
 	gui.state.PickCompletion = types.NewCompletionState()
 	gui.state.PickAnyMode = false
 	gui.state.PickSeedHash = true
-	gui.pushContextByKey(PickContext)
+	gui.pushContextByKey("pick")
 	return nil
 }
 
@@ -59,7 +59,7 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 
 	gui.helpers.Preview().ShowPickResults(" Pick: "+raw+" ", results)
 
-	gui.replaceContextByKey(PreviewContext)
+	gui.replaceContextByKey("preview")
 	return nil
 }
 

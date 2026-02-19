@@ -5,32 +5,6 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
-const (
-	NotesContext        types.ContextKey = "notes"
-	QueriesContext      types.ContextKey = "queries"
-	TagsContext         types.ContextKey = "tags"
-	PreviewContext      types.ContextKey = "preview"
-	SearchContext       types.ContextKey = "search"
-	SearchFilterContext types.ContextKey = "searchFilter"
-	CaptureContext      types.ContextKey = "capture"
-	PickContext         types.ContextKey = "pick"
-	PaletteContext      types.ContextKey = "palette"
-	InputPopupCtx       types.ContextKey = "inputPopup"
-	SnippetEditorCtx    types.ContextKey = "snippetName"
-	CalendarCtx         types.ContextKey = "calendarGrid"
-	ContribCtx          types.ContextKey = "contribGrid"
-)
-
-// mainPanelContexts is the set of non-popup panel contexts.
-// A context NOT in this set is treated as a popup by popupActive().
-var mainPanelContexts = map[types.ContextKey]bool{
-	NotesContext:        true,
-	QueriesContext:      true,
-	TagsContext:         true,
-	PreviewContext:      true,
-	SearchFilterContext: true,
-}
-
 // CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
 type CaptureParentInfo struct {
 	UUID  string
@@ -106,19 +80,14 @@ func NewGuiState() *GuiState {
 		PickCompletion:          types.NewCompletionState(),
 		InputPopupCompletion:    types.NewCompletionState(),
 		SnippetEditorCompletion: types.NewCompletionState(),
-		ContextStack:            []types.ContextKey{NotesContext},
+		ContextStack:            []types.ContextKey{"notes"},
 	}
-}
-
-// popupActive returns true when the current context is a popup (not a main panel).
-func (s *GuiState) popupActive() bool {
-	return !mainPanelContexts[s.currentContext()]
 }
 
 // currentContext returns the top of the context stack.
 func (s *GuiState) currentContext() types.ContextKey {
 	if len(s.ContextStack) == 0 {
-		return NotesContext
+		return "notes"
 	}
 	return s.ContextStack[len(s.ContextStack)-1]
 }
@@ -126,7 +95,7 @@ func (s *GuiState) currentContext() types.ContextKey {
 // previousContext returns the second-from-top of the context stack.
 func (s *GuiState) previousContext() types.ContextKey {
 	if len(s.ContextStack) < 2 {
-		return NotesContext
+		return "notes"
 	}
 	return s.ContextStack[len(s.ContextStack)-2]
 }

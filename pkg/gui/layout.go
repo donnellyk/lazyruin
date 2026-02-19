@@ -77,76 +77,76 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 	// Manage overlay views based on the current context
 	switch gui.state.currentContext() {
-	case SearchContext:
+	case "search":
 		if err := gui.createSearchPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case CaptureContext:
+	case "capture":
 		if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case PickContext:
+	case "pick":
 		if err := gui.createPickPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case InputPopupCtx:
+	case "inputPopup":
 		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case SnippetEditorCtx:
+	case "snippetName":
 		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
 			return err
 		}
-	case PaletteContext:
+	case "palette":
 		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case CalendarCtx:
+	case "calendarGrid":
 		if err := gui.createCalendarViews(g, maxX, maxY); err != nil {
 			return err
 		}
-	case ContribCtx:
+	case "contribGrid":
 		if err := gui.createContribViews(g, maxX, maxY); err != nil {
 			return err
 		}
 	}
 	// Delete views for inactive overlays
 	ctx := gui.state.currentContext()
-	if ctx != SearchContext {
+	if ctx != "search" {
 		g.DeleteView(SearchView)
 		g.DeleteView(SearchSuggestView)
 	}
-	if ctx != CaptureContext {
+	if ctx != "capture" {
 		g.DeleteView(CaptureView)
 		g.DeleteView(CaptureSuggestView)
 		gui.views.Capture = nil
 	}
-	if ctx != PickContext {
+	if ctx != "pick" {
 		g.DeleteView(PickView)
 		g.DeleteView(PickSuggestView)
 		gui.views.Pick = nil
 	}
-	if ctx != InputPopupCtx {
+	if ctx != "inputPopup" {
 		g.DeleteView(InputPopupView)
 		g.DeleteView(InputPopupSuggestView)
 	}
-	if ctx != SnippetEditorCtx {
+	if ctx != "snippetName" {
 		g.DeleteView(SnippetNameView)
 		g.DeleteView(SnippetExpansionView)
 		g.DeleteView(SnippetSuggestView)
 	}
-	if ctx != PaletteContext {
+	if ctx != "palette" {
 		g.DeleteView(PaletteView)
 		g.DeleteView(PaletteListView)
 		gui.views.Palette = nil
 		gui.views.PaletteList = nil
 	}
-	if ctx != CalendarCtx {
+	if ctx != "calendarGrid" {
 		g.DeleteView(CalendarGridView)
 		g.DeleteView(CalendarInputView)
 		g.DeleteView(CalendarNotesView)
 	}
-	if ctx != ContribCtx {
+	if ctx != "contribGrid" {
 		g.DeleteView(ContribGridView)
 		g.DeleteView(ContribNotesView)
 	}
@@ -165,7 +165,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
 			gui.state.CaptureCompletion = types.NewCompletionState()
-			gui.state.ContextStack = []types.ContextKey{NotesContext, CaptureContext}
+			gui.state.ContextStack = []types.ContextKey{"notes", "capture"}
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
@@ -194,7 +194,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.Preview.Cards))
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == SearchFilterContext {
+	if gui.state.currentContext() == "searchFilter" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -225,7 +225,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// Notes uses manual multi-line highlighting in renderNotes()
 	v.Highlight = false
 
-	if gui.state.currentContext() == NotesContext {
+	if gui.state.currentContext() == "notes" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -250,7 +250,7 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.updateQueriesTab()
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == QueriesContext {
+	if gui.state.currentContext() == "queries" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -275,7 +275,7 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.updateTagsTab()
 	setRoundedCorners(v)
 
-	if gui.state.currentContext() == TagsContext {
+	if gui.state.currentContext() == "tags" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
@@ -309,7 +309,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		v.Title = " Preview "
 	}
 
-	if gui.state.currentContext() == PreviewContext {
+	if gui.state.currentContext() == "preview" {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {
