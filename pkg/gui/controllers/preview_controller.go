@@ -8,7 +8,7 @@ import (
 )
 
 // PreviewController handles all Preview panel keybindings.
-// Action methods delegate to PreviewHelper.
+// Action methods delegate to specialized preview helpers.
 type PreviewController struct {
 	baseController
 	c          *ControllerCommon
@@ -30,8 +30,20 @@ func (self *PreviewController) Context() types.Context {
 	return self.getContext()
 }
 
-func (self *PreviewController) p() *helpers.PreviewHelper {
-	return self.c.Helpers().Preview()
+// Helper accessors.
+func (self *PreviewController) preview() *helpers.PreviewHelper { return self.c.Helpers().Preview() }
+func (self *PreviewController) nav() *helpers.PreviewNavHelper  { return self.c.Helpers().PreviewNav() }
+func (self *PreviewController) links() *helpers.PreviewLinksHelper {
+	return self.c.Helpers().PreviewLinks()
+}
+func (self *PreviewController) mutations() *helpers.PreviewMutationsHelper {
+	return self.c.Helpers().PreviewMutations()
+}
+func (self *PreviewController) lineOps() *helpers.PreviewLineOpsHelper {
+	return self.c.Helpers().PreviewLineOps()
+}
+func (self *PreviewController) info() *helpers.PreviewInfoHelper {
+	return self.c.Helpers().PreviewInfo()
 }
 
 // Note action wrappers — call helpers directly.
@@ -53,29 +65,29 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 	return func(opts types.KeybindingsOpts) []*types.Binding {
 		return []*types.Binding{
 			// Navigation (no Description -> excluded from palette)
-			{Key: 'j', Handler: self.p().MoveDown},
-			{Key: gocui.KeyArrowDown, Handler: self.p().MoveDown},
-			{Key: 'k', Handler: self.p().MoveUp},
-			{Key: gocui.KeyArrowUp, Handler: self.p().MoveUp},
-			{Key: 'J', Handler: self.p().CardDown},
-			{Key: 'K', Handler: self.p().CardUp},
-			{Key: '}', Handler: self.p().NextHeader},
-			{Key: '{', Handler: self.p().PrevHeader},
-			{Key: 'l', Handler: self.p().HighlightNextLink},
-			{Key: 'L', Handler: self.p().HighlightPrevLink},
+			{Key: 'j', Handler: self.nav().MoveDown},
+			{Key: gocui.KeyArrowDown, Handler: self.nav().MoveDown},
+			{Key: 'k', Handler: self.nav().MoveUp},
+			{Key: gocui.KeyArrowUp, Handler: self.nav().MoveUp},
+			{Key: 'J', Handler: self.nav().CardDown},
+			{Key: 'K', Handler: self.nav().CardUp},
+			{Key: '}', Handler: self.nav().NextHeader},
+			{Key: '{', Handler: self.nav().PrevHeader},
+			{Key: 'l', Handler: self.links().HighlightNextLink},
+			{Key: 'L', Handler: self.links().HighlightPrevLink},
 
 			// Card actions (Description -> shown in palette)
 			{
 				ID:          "preview.delete",
 				Key:         'd',
-				Handler:     self.p().DeleteCard,
+				Handler:     self.mutations().DeleteCard,
 				Description: "Delete Card",
 				Category:    "Preview",
 			},
 			{
 				ID:              "preview.open_editor",
 				Key:             'E',
-				Handler:         self.p().OpenInEditor,
+				Handler:         self.nav().OpenInEditor,
 				Description:     "Open in Editor",
 				Category:        "Preview",
 				DisplayOnScreen: true,
@@ -83,70 +95,70 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 			{
 				ID:          "preview.append_done",
 				Key:         'D',
-				Handler:     self.p().AppendDone,
+				Handler:     self.lineOps().AppendDone,
 				Description: "Toggle #done",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.move_card",
 				Key:         'm',
-				Handler:     self.p().MoveCardDialog,
+				Handler:     self.mutations().MoveCardDialog,
 				Description: "Move Card",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.merge_card",
 				Key:         'M',
-				Handler:     self.p().MergeCardDialog,
+				Handler:     self.mutations().MergeCardDialog,
 				Description: "Merge Notes",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_frontmatter",
 				Key:         'f',
-				Handler:     self.p().ToggleFrontmatter,
+				Handler:     self.preview().ToggleFrontmatter,
 				Description: "Toggle Frontmatter",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.view_options",
 				Key:         'v',
-				Handler:     self.p().ViewOptionsDialog,
+				Handler:     self.preview().ViewOptionsDialog,
 				Description: "View Options",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_inline_tag",
 				Key:         gocui.KeyCtrlT,
-				Handler:     self.p().ToggleInlineTag,
+				Handler:     self.lineOps().ToggleInlineTag,
 				Description: "Toggle Inline Tag",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_inline_date",
 				Key:         gocui.KeyCtrlD,
-				Handler:     self.p().ToggleInlineDate,
+				Handler:     self.lineOps().ToggleInlineDate,
 				Description: "Toggle Inline Date",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.open_link",
 				Key:         'o',
-				Handler:     self.p().OpenLink,
+				Handler:     self.links().OpenLink,
 				Description: "Open Link",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_todo",
 				Key:         'x',
-				Handler:     self.p().ToggleTodo,
+				Handler:     self.lineOps().ToggleTodo,
 				Description: "Toggle Todo",
 				Category:    "Preview",
 			},
 			{
 				ID:              "preview.focus_note",
 				Key:             gocui.KeyEnter,
-				Handler:         self.p().FocusNote,
+				Handler:         self.nav().FocusNote,
 				Description:     "Focus Note from Preview",
 				Category:        "Preview",
 				DisplayOnScreen: true,
@@ -155,19 +167,19 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 			{
 				ID:      "preview.back",
 				Key:     gocui.KeyEsc,
-				Handler: self.p().Back,
+				Handler: self.nav().Back,
 			},
 			{
 				ID:          "preview.nav_back",
 				Key:         '[',
-				Handler:     self.p().NavBack,
+				Handler:     self.nav().NavBack,
 				Description: "Go Back",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.nav_forward",
 				Key:         ']',
-				Handler:     self.p().NavForward,
+				Handler:     self.nav().NavForward,
 				Description: "Go Forward",
 				Category:    "Preview",
 			},
@@ -212,7 +224,7 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 			{
 				ID:          "preview.show_info",
 				Key:         's',
-				Handler:     self.p().ShowInfoDialog,
+				Handler:     self.info().ShowInfoDialog,
 				Description: "Show Info",
 				Category:    "Note Actions",
 			},
@@ -220,31 +232,31 @@ func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
 			// Palette-only commands (Key == nil -> no keybinding, palette entry only)
 			{
 				ID:          "preview.toggle_title",
-				Handler:     self.p().ToggleTitle,
+				Handler:     self.preview().ToggleTitle,
 				Description: "Toggle Title",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_global_tags",
-				Handler:     self.p().ToggleGlobalTags,
+				Handler:     self.preview().ToggleGlobalTags,
 				Description: "Toggle Global Tags",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.toggle_markdown",
-				Handler:     self.p().ToggleMarkdown,
+				Handler:     self.preview().ToggleMarkdown,
 				Description: "Toggle Markdown",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.order_cards",
-				Handler:     self.p().OrderCards,
+				Handler:     self.mutations().OrderCards,
 				Description: "Order Cards",
 				Category:    "Preview",
 			},
 			{
 				ID:          "preview.show_nav_history",
-				Handler:     self.p().ShowNavHistory,
+				Handler:     self.nav().ShowNavHistory,
 				Description: "View History",
 				Category:    "Preview",
 			},
@@ -260,21 +272,21 @@ func (self *PreviewController) GetMouseKeybindingsFn() types.MouseKeybindingsFn 
 				ViewName: "preview",
 				Key:      gocui.MouseLeft,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.p().Click()
+					return self.nav().Click()
 				},
 			},
 			{
 				ViewName: "",
 				Key:      gocui.MouseWheelDown,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.p().ScrollDown()
+					return self.nav().ScrollDown()
 				},
 			},
 			{
 				ViewName: "",
 				Key:      gocui.MouseWheelUp,
 				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.p().ScrollUp()
+					return self.nav().ScrollUp()
 				},
 			},
 		}

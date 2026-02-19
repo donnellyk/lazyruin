@@ -451,7 +451,7 @@ func (gui *Gui) calendarLoadInPreview() {
 	}
 
 	date := gui.calendarSelectedDate()
-	gui.helpers.Preview().PushNavHistory()
+	gui.helpers.PreviewNav().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" Calendar: "+date+" ", notes)
 	gui.pushContextByKey("preview")
@@ -474,7 +474,7 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 	}
 
 	title := full.Title
-	gui.helpers.Preview().PushNavHistory()
+	gui.helpers.PreviewNav().PushNavHistory()
 	gui.closeCalendar()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
 	gui.pushContextByKey("preview")

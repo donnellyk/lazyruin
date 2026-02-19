@@ -104,8 +104,8 @@ func (gui *Gui) AmbientDateCandidates() func(string) []types.CompletionItem {
 	return ambientDateCandidates
 }
 
-// Preview — delegates to PreviewHelper.
-func (gui *Gui) PreviewPushNavHistory()        { gui.helpers.Preview().PushNavHistory() }
+// Preview — delegates to preview helpers.
+func (gui *Gui) PreviewPushNavHistory()        { gui.helpers.PreviewNav().PushNavHistory() }
 func (gui *Gui) PreviewReloadContent()         { gui.helpers.Preview().ReloadContent() }
 func (gui *Gui) PreviewUpdatePreviewForNotes() { gui.helpers.Preview().UpdatePreviewForNotes() }
 func (gui *Gui) PreviewUpdatePreviewCardList(title string, fetch func() ([]models.Note, error)) {

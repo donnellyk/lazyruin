@@ -566,7 +566,7 @@ func TestPreviewCardDown_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.helpers.Preview().CardDown()
+	tg.gui.helpers.PreviewNav().CardDown()
 
 	if tg.gui.contexts.Preview.SelectedCardIndex != 1 {
 		t.Errorf("SelectedCardIndex = %d, want 1", tg.gui.contexts.Preview.SelectedCardIndex)
@@ -584,8 +584,8 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.helpers.Preview().CardDown()
-	tg.gui.helpers.Preview().CardUp()
+	tg.gui.helpers.PreviewNav().CardDown()
+	tg.gui.helpers.PreviewNav().CardUp()
 
 	if tg.gui.contexts.Preview.SelectedCardIndex != 0 {
 		t.Errorf("SelectedCardIndex = %d, want 0", tg.gui.contexts.Preview.SelectedCardIndex)
@@ -605,7 +605,7 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 	tg.gui.contexts.Preview.CursorLine = 1
 	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.helpers.Preview().MoveDown()
+	tg.gui.helpers.PreviewNav().MoveDown()
 
 	if tg.gui.contexts.Preview.CursorLine != 2 {
 		t.Errorf("CursorLine = %d, want 2 after previewDown", tg.gui.contexts.Preview.CursorLine)
@@ -622,7 +622,7 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 	tg.gui.contexts.Preview.CursorLine = 3
 	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
 
-	tg.gui.helpers.Preview().MoveUp()
+	tg.gui.helpers.PreviewNav().MoveUp()
 
 	if tg.gui.contexts.Preview.CursorLine != 2 {
 		t.Errorf("CursorLine = %d, want 2 after previewUp", tg.gui.contexts.Preview.CursorLine)
@@ -639,7 +639,7 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 	tg.gui.contexts.Preview.CursorLine = 1
 	tg.gui.contexts.Preview.CardLineRanges = [][2]int{{0, 5}}
 
-	tg.gui.helpers.Preview().MoveUp()
+	tg.gui.helpers.PreviewNav().MoveUp()
 
 	// Cursor should stay at 1 (line 0 is a separator, not content)
 	if tg.gui.contexts.Preview.CursorLine != 1 {
@@ -653,7 +653,7 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 
 	tg.gui.globalController.FocusTags()
 	tg.gui.globalController.FocusPreview()
-	tg.gui.helpers.Preview().Back()
+	tg.gui.helpers.PreviewNav().Back()
 
 	if tg.gui.contextMgr.Current() != "tags" {
 		t.Errorf("CurrentContext = %v, want tags (restored)", tg.gui.contextMgr.Current())
@@ -777,10 +777,10 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 		t.Skipf("need at least 2 cards, got %d", len(tg.gui.contexts.Preview.Cards))
 	}
 
-	tg.gui.helpers.Preview().MoveDown()
+	tg.gui.helpers.PreviewNav().MoveDown()
 	card := tg.gui.contexts.Preview.Cards[tg.gui.contexts.Preview.SelectedCardIndex]
 
-	tg.gui.helpers.Preview().FocusNote()
+	tg.gui.helpers.PreviewNav().FocusNote()
 
 	if tg.gui.contextMgr.Current() != "notes" {
 		t.Errorf("CurrentContext = %v, want notes", tg.gui.contextMgr.Current())

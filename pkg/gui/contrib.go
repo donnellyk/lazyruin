@@ -369,7 +369,7 @@ func (gui *Gui) contribLoadInPreview() {
 	}
 
 	date := s.SelectedDate
-	gui.helpers.Preview().PushNavHistory()
+	gui.helpers.PreviewNav().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" Contrib: "+date+" ", notes)
 	gui.pushContextByKey("preview")
@@ -392,7 +392,7 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 	}
 
 	title := full.Title
-	gui.helpers.Preview().PushNavHistory()
+	gui.helpers.PreviewNav().PushNavHistory()
 	gui.closeContrib()
 	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
 	gui.pushContextByKey("preview")

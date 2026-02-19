@@ -21,6 +21,11 @@ type IHelpers interface {
 	Search() *helpers.SearchHelper
 	Clipboard() *helpers.ClipboardHelper
 	Preview() *helpers.PreviewHelper
+	PreviewNav() *helpers.PreviewNavHelper
+	PreviewLinks() *helpers.PreviewLinksHelper
+	PreviewMutations() *helpers.PreviewMutationsHelper
+	PreviewLineOps() *helpers.PreviewLineOpsHelper
+	PreviewInfo() *helpers.PreviewInfoHelper
 	Capture() *helpers.CaptureHelper
 	Pick() *helpers.PickHelper
 	InputPopup() *helpers.InputPopupHelper

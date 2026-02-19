@@ -87,7 +87,7 @@ func (gui *Gui) setupNotesContext() {
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
 		OnShowInfo: func(_ *models.Note) error {
-			return gui.helpers.Preview().ShowInfoDialog()
+			return gui.helpers.PreviewInfo().ShowInfoDialog()
 		},
 	})
 
