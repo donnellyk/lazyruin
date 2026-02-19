@@ -11,7 +11,6 @@ import (
 // Adapter methods that implement types.IGuiCommon (and helpers.IGuiCommon
 // which embeds it plus Contexts()).
 
-func (gui *Gui) Render()    { gui.helpers.Refresh().RenderAll() }
 func (gui *Gui) RenderAll() { gui.helpers.Refresh().RenderAll() }
 
 func (gui *Gui) Update(fn func() error) {
@@ -83,14 +82,8 @@ func (gui *Gui) contextByKey(key types.ContextKey) types.Context {
 
 // --- helpers.IGuiCommon adapter methods ---
 
-// Context access
 func (gui *Gui) Contexts() *context.ContextTree { return gui.contexts }
 
-// Rendering: RenderNotes, RenderTags, RenderQueries defined in render.go
-// RenderPreview defined in render_preview.go
-// UpdateNotesTab, UpdateTagsTab, UpdateQueriesTab, UpdateStatusBar defined in statusbar.go
-// ShowConfirm, ShowInput defined in dialogs.go
-// ShowError defined in statusbar.go
 func (gui *Gui) OpenInputPopup(config *types.InputPopupConfig) {
 	gui.helpers.InputPopup().OpenInputPopup(config)
 }
@@ -107,7 +100,6 @@ func (gui *Gui) GetInputPopupCompletion() *types.CompletionState {
 	return gui.contexts.InputPopup.Completion
 }
 
-// Search: BuildSearchOptions defined in handlers.go
 func (gui *Gui) SetSearchQuery(query string) { gui.state.SearchQuery = query }
 func (gui *Gui) GetSearchQuery() string      { return gui.state.SearchQuery }
 func (gui *Gui) SetSearchCompletion(state *types.CompletionState) {
@@ -139,11 +131,6 @@ func (gui *Gui) SetPreviewPickResults(results []models.PickResult, selectedIdx i
 	gui.helpers.Preview().ShowPickResults(title, results)
 }
 
-// Completion candidates: TagCandidates, CurrentCardTagCandidates, ParentCandidatesFor defined in completion_candidates.go
-
-// View access (already satisfies controllers.IGuiCommon; now also helpers.IGuiCommon)
-// GetView is defined above.
-
 // Dialogs (menu)
 func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
 	gui.state.Dialog = &DialogState{
@@ -155,10 +142,7 @@ func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
 	}
 }
 
-// Preview rendering: BuildCardContent defined in render_preview.go
-
 // Context state
-// CurrentContextKey is defined above (line 59).
 func (gui *Gui) PreviousContextKey() types.ContextKey {
 	return gui.state.previousContext()
 }

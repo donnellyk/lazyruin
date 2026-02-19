@@ -15,7 +15,6 @@ import (
 // (which can't live here due to the types↔context import cycle).
 type IGuiCommon interface {
 	// Rendering
-	Render()
 	Update(func() error)
 	RenderNotes()
 	RenderTags()
