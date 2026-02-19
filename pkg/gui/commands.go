@@ -54,16 +54,6 @@ func (gui *Gui) suppressTabClickDuringDialog(fn func(int) error) func(int) error
 	}
 }
 
-// isMainPanelView returns true for the four main panel views
-// whose interactions should be suppressed when a dialog is open.
-func isMainPanelView(view string) bool {
-	switch view {
-	case NotesView, QueriesView, TagsView, PreviewView:
-		return true
-	}
-	return false
-}
-
 // keyNames maps special gocui keys to display strings.
 var keyNames = map[gocui.Key]string{
 	gocui.KeyEnter:      "enter",

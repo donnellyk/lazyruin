@@ -9,54 +9,9 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-type binding struct {
-	view    string
-	key     any
-	handler func(*gocui.Gui, *gocui.View) error
-}
-
-// registerBindings registers a slice of keybindings.
-func (gui *Gui) registerBindings(bindings []binding) error {
-	for _, b := range bindings {
-		if err := gui.g.SetKeybinding(b.view, b.key, gocui.ModNone, b.handler); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // setupKeybindings configures all keyboard shortcuts.
 func (gui *Gui) setupKeybindings() error {
-	// Infrastructure bindings not owned by any controller.
-	navBindings := []func() []binding{
-		gui.globalNavBindings,
-		// notesNavBindings removed — notes bindings registered via NotesController
-		// queriesNavBindings removed — queries bindings registered via QueriesController
-		// tagsNavBindings removed — tags bindings registered via TagsController
-		// previewNavBindings removed — preview bindings registered via PreviewController
-		// searchBindings removed — bindings registered via SearchController
-		// captureBindings removed — bindings registered via CaptureController
-		// pickBindings removed — bindings registered via PickController
-		// inputPopupBindings removed — bindings registered via InputPopupController
-		// Tab/Backtab removed — bindings registered via GlobalController
-		// snippetEditorBindings removed — bindings registered via SnippetEditorController
-		// paletteBindings removed — bindings registered via PaletteController
-		// calendarBindings removed — bindings registered via CalendarController
-		// contribBindings removed — bindings registered via ContribController
-	}
-	for _, fn := range navBindings {
-		bindings := fn()
-		for i, b := range bindings {
-			if b.view == "" || isMainPanelView(b.view) {
-				bindings[i].handler = gui.suppressDuringDialog(b.handler)
-			}
-		}
-		if err := gui.registerBindings(bindings); err != nil {
-			return err
-		}
-	}
-
-	// Clear Search binding (SearchFilterView-specific, no controller home yet)
+	// Clear Search binding (SearchFilterView-specific)
 	if err := gui.g.SetKeybinding(SearchFilterView, 'x', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		gui.helpers.Search().ClearSearch()
 		return nil
@@ -160,23 +115,6 @@ func (gui *Gui) registerContextBindings() error {
 	return nil
 }
 
-func (gui *Gui) globalNavBindings() []binding {
-	// Tab/Backtab migrated to GlobalController.
-	return []binding{
-		{"", gocui.MouseWheelDown, func(g *gocui.Gui, v *gocui.View) error { return gui.helpers.Preview().ScrollDown() }},
-		{"", gocui.MouseWheelUp, func(g *gocui.Gui, v *gocui.View) error { return gui.helpers.Preview().ScrollUp() }},
-	}
-}
-
-// notesNavBindings removed — notes navigation is now handled by NotesController.
-// queriesNavBindings removed — queries navigation is now handled by QueriesController.
-// tagsNavBindings removed — tags navigation is now handled by TagsController.
-// previewNavBindings removed — preview navigation is now handled by PreviewController.
-// searchBindings removed — search bindings are now handled by SearchController.
-// captureBindings removed — capture bindings are now handled by CaptureController.
-// pickBindings removed — pick bindings are now handled by PickController.
-// inputPopupBindings removed — input popup bindings are now handled by InputPopupController.
-
 // DumpBindings returns a stable sorted list of all registered controller bindings
 // for debugging and regression diffing. Use with --debug-bindings flag.
 func (gui *Gui) DumpBindings() []string {
@@ -197,8 +135,3 @@ func (gui *Gui) DumpBindings() []string {
 	sort.Strings(entries)
 	return entries
 }
-
-// snippetEditorBindings removed — bindings registered via SnippetEditorController.
-// paletteBindings removed — bindings registered via PaletteController.
-// calendarBindings removed — bindings registered via CalendarController.
-// contribBindings removed — bindings registered via ContribController.

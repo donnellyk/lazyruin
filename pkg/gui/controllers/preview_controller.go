@@ -259,6 +259,20 @@ func (self *PreviewController) GetMouseKeybindingsFn() types.MouseKeybindingsFn 
 					return self.p().Click()
 				},
 			},
+			{
+				ViewName: "",
+				Key:      gocui.MouseWheelDown,
+				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
+					return self.p().ScrollDown()
+				},
+			},
+			{
+				ViewName: "",
+				Key:      gocui.MouseWheelUp,
+				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
+					return self.p().ScrollUp()
+				},
+			},
 		}
 	}
 }
