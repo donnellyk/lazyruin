@@ -46,7 +46,7 @@ func triggerHints(triggers []types.CompletionTrigger) []types.CompletionItem {
 func (gui *Gui) searchTriggers() []types.CompletionTrigger {
 	triggers := []types.CompletionTrigger{
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
-		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "#", Candidates: gui.TagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
 		{Prefix: "created:", Candidates: gui.createdCandidates},
 		{Prefix: "updated:", Candidates: gui.updatedCandidates},
@@ -86,9 +86,9 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
 		{Prefix: "!", Candidates: gui.abbreviationCandidates},
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
-		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "#", Candidates: gui.TagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
-		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.contexts.Capture.Completion)},
+		{Prefix: ">", Candidates: gui.ParentCandidatesFor(gui.contexts.Capture.Completion)},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}
 }
@@ -96,7 +96,7 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 // pickTriggers returns the completion triggers for the pick popup.
 func (gui *Gui) pickTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
-		{Prefix: "#", Candidates: gui.tagCandidates},
+		{Prefix: "#", Candidates: gui.TagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
 	}
 }
@@ -113,7 +113,7 @@ func (gui *Gui) snippetExpansionTriggers() []types.CompletionTrigger {
 			continue
 		}
 		if t.Prefix == ">" {
-			t.Candidates = gui.parentCandidatesFor(gui.contexts.SnippetEditor.Completion)
+			t.Candidates = gui.ParentCandidatesFor(gui.contexts.SnippetEditor.Completion)
 		}
 		seen[t.Prefix] = true
 		merged = append(merged, t)

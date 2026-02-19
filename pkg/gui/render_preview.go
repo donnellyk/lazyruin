@@ -16,7 +16,7 @@ import (
 // inlineTagRe matches #tag patterns (hashtag followed by word characters).
 var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
 
-func (gui *Gui) renderPreview() {
+func (gui *Gui) RenderPreview() {
 	v := gui.views.Preview
 	if v == nil {
 		return
@@ -145,7 +145,7 @@ func highlightSpan(line string, col, length int) string {
 }
 
 // buildCardContent returns the rendered lines for a single card's body content.
-func (gui *Gui) buildCardContent(note models.Note, contentWidth int) []string {
+func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []string {
 	content := note.Content
 	if content == "" {
 		content, _ = gui.loadNoteContent(note.Path)
@@ -230,7 +230,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View) {
 		currentLine++
 
 		// Card body content
-		for _, line := range gui.buildCardContent(note, contentWidth) {
+		for _, line := range gui.BuildCardContent(note, contentWidth) {
 			if isHeaderLine(line) {
 				gui.contexts.Preview.HeaderLines = append(gui.contexts.Preview.HeaderLines, currentLine)
 			}

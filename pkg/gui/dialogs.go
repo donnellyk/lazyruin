@@ -36,7 +36,7 @@ func centerRect(maxX, maxY, width, height int) (x0, y0, x1, y1 int) {
 }
 
 // showConfirm displays a confirmation dialog
-func (gui *Gui) showConfirm(title, message string, onConfirm func() error) {
+func (gui *Gui) ShowConfirm(title, message string, onConfirm func() error) {
 	gui.state.Dialog = &DialogState{
 		Active:    true,
 		Type:      "confirm",
@@ -47,7 +47,7 @@ func (gui *Gui) showConfirm(title, message string, onConfirm func() error) {
 }
 
 // showInput displays a text input dialog
-func (gui *Gui) showInput(title, message string, onConfirm func(input string) error) {
+func (gui *Gui) ShowInput(title, message string, onConfirm func(input string) error) {
 	gui.state.Dialog = &DialogState{
 		Active:  true,
 		Type:    "input",

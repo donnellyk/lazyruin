@@ -61,7 +61,7 @@ func renderList(v *gocui.View, itemCount int, selectedIndex int, isActive bool, 
 	scrollListView(v, selLine, linesPerItem, viewHeight)
 }
 
-func (gui *Gui) renderNotes() {
+func (gui *Gui) RenderNotes() {
 	v := gui.views.Notes
 	if v == nil {
 		return
@@ -108,7 +108,7 @@ func (gui *Gui) renderNotes() {
 		})
 }
 
-func (gui *Gui) renderQueries() {
+func (gui *Gui) RenderQueries() {
 	queriesCtx := gui.contexts.Queries
 	if queriesCtx.CurrentTab == "parents" {
 		gui.renderParents()
@@ -168,7 +168,7 @@ func (gui *Gui) renderParents() {
 		})
 }
 
-func (gui *Gui) renderTags() {
+func (gui *Gui) RenderTags() {
 	v := gui.views.Tags
 	if v == nil {
 		return

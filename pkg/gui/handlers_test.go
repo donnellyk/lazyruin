@@ -992,7 +992,7 @@ func TestConfirmYes_CallsCallback(t *testing.T) {
 	defer tg.Close()
 
 	called := false
-	tg.gui.showConfirm("Test", "Are you sure?", func() error {
+	tg.gui.ShowConfirm("Test", "Are you sure?", func() error {
 		called = true
 		return nil
 	})
@@ -1020,7 +1020,7 @@ func TestConfirmNo_ClosesDialog(t *testing.T) {
 	defer tg.Close()
 
 	called := false
-	tg.gui.showConfirm("Test", "Are you sure?", func() error {
+	tg.gui.ShowConfirm("Test", "Are you sure?", func() error {
 		called = true
 		return nil
 	})
@@ -1133,7 +1133,7 @@ func TestCloseDialog_CleansUp(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.showConfirm("Test", "msg", func() error { return nil })
+	tg.gui.ShowConfirm("Test", "msg", func() error { return nil })
 	tg.g.ForceLayoutAndRedraw()
 
 	tg.gui.closeDialog()

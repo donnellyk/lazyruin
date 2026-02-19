@@ -219,7 +219,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// v.Title = "[1]"
 	v.Tabs = []string{"All", "Today", "Recent"}
 	v.SelFgColor = gocui.ColorGreen
-	gui.updateNotesTab()
+	gui.UpdateNotesTab()
 	setRoundedCorners(v)
 
 	// Notes uses manual multi-line highlighting in renderNotes()
@@ -247,7 +247,7 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Tabs = []string{"Queries", "Parents"}
 	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
-	gui.updateQueriesTab()
+	gui.UpdateQueriesTab()
 	setRoundedCorners(v)
 
 	if gui.state.currentContext() == "queries" {
@@ -272,7 +272,7 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Tabs = []string{"All", "Global", "Inline"}
 	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
-	gui.updateTagsTab()
+	gui.UpdateTagsTab()
 	setRoundedCorners(v)
 
 	if gui.state.currentContext() == "tags" {
@@ -329,7 +329,7 @@ func (gui *Gui) createStatusView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.views.Status = v
 	v.Frame = false
 
-	gui.updateStatusBar()
+	gui.UpdateStatusBar()
 
 	return nil
 }

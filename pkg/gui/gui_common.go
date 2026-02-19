@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
@@ -87,24 +86,11 @@ func (gui *Gui) contextByKey(key types.ContextKey) types.Context {
 // Context access
 func (gui *Gui) Contexts() *context.ContextTree { return gui.contexts }
 
-// Rendering
-func (gui *Gui) RenderNotes()      { gui.renderNotes() }
-func (gui *Gui) RenderTags()       { gui.renderTags() }
-func (gui *Gui) RenderQueries()    { gui.renderQueries() }
-func (gui *Gui) RenderPreview()    { gui.renderPreview() }
-func (gui *Gui) UpdateNotesTab()   { gui.updateNotesTab() }
-func (gui *Gui) UpdateTagsTab()    { gui.updateTagsTab() }
-func (gui *Gui) UpdateQueriesTab() { gui.updateQueriesTab() }
-func (gui *Gui) UpdateStatusBar()  { gui.updateStatusBar() }
-
-// Dialogs
-func (gui *Gui) ShowConfirm(title, message string, onConfirm func() error) {
-	gui.showConfirm(title, message, onConfirm)
-}
-func (gui *Gui) ShowInput(title, message string, onConfirm func(string) error) {
-	gui.showInput(title, message, onConfirm)
-}
-func (gui *Gui) ShowError(err error) { gui.showError(err) }
+// Rendering: RenderNotes, RenderTags, RenderQueries defined in render.go
+// RenderPreview defined in render_preview.go
+// UpdateNotesTab, UpdateTagsTab, UpdateQueriesTab, UpdateStatusBar defined in statusbar.go
+// ShowConfirm, ShowInput defined in dialogs.go
+// ShowError defined in statusbar.go
 func (gui *Gui) OpenInputPopup(config *types.InputPopupConfig) {
 	gui.helpers.InputPopup().OpenInputPopup(config)
 }
@@ -121,10 +107,7 @@ func (gui *Gui) GetInputPopupCompletion() *types.CompletionState {
 	return gui.contexts.InputPopup.Completion
 }
 
-// Search
-func (gui *Gui) BuildSearchOptions() commands.SearchOptions {
-	return gui.buildSearchOptions()
-}
+// Search: BuildSearchOptions defined in handlers.go
 func (gui *Gui) SetSearchQuery(query string) { gui.state.SearchQuery = query }
 func (gui *Gui) GetSearchQuery() string      { return gui.state.SearchQuery }
 func (gui *Gui) SetSearchCompletion(state *types.CompletionState) {
@@ -156,16 +139,7 @@ func (gui *Gui) SetPreviewPickResults(results []models.PickResult, selectedIdx i
 	gui.helpers.Preview().ShowPickResults(title, results)
 }
 
-// Completion candidates
-func (gui *Gui) TagCandidates(filter string) []types.CompletionItem {
-	return gui.tagCandidates(filter)
-}
-func (gui *Gui) CurrentCardTagCandidates(filter string) []types.CompletionItem {
-	return gui.currentCardTagCandidates(filter)
-}
-func (gui *Gui) ParentCandidatesFor(state *types.CompletionState) func(string) []types.CompletionItem {
-	return gui.parentCandidatesFor(state)
-}
+// Completion candidates: TagCandidates, CurrentCardTagCandidates, ParentCandidatesFor defined in completion_candidates.go
 
 // View access (already satisfies controllers.IGuiCommon; now also helpers.IGuiCommon)
 // GetView is defined above.
@@ -181,10 +155,7 @@ func (gui *Gui) ShowMenuDialog(title string, items []types.MenuItem) {
 	}
 }
 
-// Preview rendering
-func (gui *Gui) BuildCardContent(note models.Note, width int) []string {
-	return gui.buildCardContent(note, width)
-}
+// Preview rendering: BuildCardContent defined in render_preview.go
 
 // Context state
 // CurrentContextKey is defined above (line 59).

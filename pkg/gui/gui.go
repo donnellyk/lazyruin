@@ -72,7 +72,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 
 // setupNotesContext initializes the "notes" and NotesController.
 func (gui *Gui) setupNotesContext() {
-	notesCtx := context.NewNotesContext(gui.renderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
+	notesCtx := context.NewNotesContext(gui.RenderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
 	gui.contexts.Notes = notesCtx
 
 	notesCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
@@ -93,7 +93,7 @@ func (gui *Gui) setupNotesContext() {
 
 // setupTagsContext initializes the new "tags" and TagsController.
 func (gui *Gui) setupTagsContext() {
-	tagsCtx := context.NewTagsContext(gui.renderTags, func() { gui.helpers.Tags().UpdatePreviewForTags() })
+	tagsCtx := context.NewTagsContext(gui.RenderTags, func() { gui.helpers.Tags().UpdatePreviewForTags() })
 
 	gui.contexts.Tags = tagsCtx
 
@@ -113,8 +113,8 @@ func (gui *Gui) setupTagsContext() {
 // setupQueriesContext initializes the "queries" and QueriesController.
 func (gui *Gui) setupQueriesContext() {
 	queriesCtx := context.NewQueriesContext(
-		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForQueries() },
-		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForParents() },
+		gui.RenderQueries, func() { gui.helpers.Queries().UpdatePreviewForQueries() },
+		gui.RenderQueries, func() { gui.helpers.Queries().UpdatePreviewForParents() },
 	)
 	gui.contexts.Queries = queriesCtx
 
@@ -142,7 +142,7 @@ func (gui *Gui) setupPreviewContext() {
 	gui.contexts.Preview = previewCtx
 
 	previewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
-		gui.renderPreview()
+		gui.RenderPreview()
 	})
 
 	gui.previewController = controllers.NewPreviewController(
@@ -521,8 +521,8 @@ func (gui *Gui) backgroundRefreshData() {
 		gui.contexts.Preview.SelectedCardIndex = cardIdx
 	}
 
-	gui.renderPreview()
-	gui.updateStatusBar()
+	gui.RenderPreview()
+	gui.UpdateStatusBar()
 }
 
 // activateContext sets focus and re-renders lists for the given context.
@@ -532,11 +532,11 @@ func (gui *Gui) activateContext(ctx types.ContextKey) {
 	gui.g.SetCurrentView(viewName)
 
 	// Re-render lists to update highlight visibility
-	gui.renderNotes()
-	gui.renderQueries()
-	gui.renderTags()
+	gui.RenderNotes()
+	gui.RenderQueries()
+	gui.RenderTags()
 
-	gui.updateStatusBar()
+	gui.UpdateStatusBar()
 }
 
 // pushContext pushes a new context onto the stack and activates it.

@@ -13,7 +13,7 @@ import (
 )
 
 // tagCandidates returns tag completion items filtered by the given prefix.
-func (gui *Gui) tagCandidates(filter string) []types.CompletionItem {
+func (gui *Gui) TagCandidates(filter string) []types.CompletionItem {
 	filter = strings.ToLower(filter)
 	var items []types.CompletionItem
 	for _, tag := range gui.contexts.Tags.Items {
@@ -36,7 +36,7 @@ func (gui *Gui) tagCandidates(filter string) []types.CompletionItem {
 }
 
 // currentCardTagCandidates returns tag completion items limited to tags on the current preview card.
-func (gui *Gui) currentCardTagCandidates(filter string) []types.CompletionItem {
+func (gui *Gui) CurrentCardTagCandidates(filter string) []types.CompletionItem {
 	card := gui.helpers.Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
@@ -570,7 +570,7 @@ func markdownCandidates(filter string) []types.CompletionItem {
 // parentCandidatesFor returns a candidate function for the > trigger that uses the given
 // types.CompletionState for drill-down tracking. This allows both the capture editor and
 // parent input popup to share the same parent-selection logic.
-func (gui *Gui) parentCandidatesFor(completionState *types.CompletionState) func(string) []types.CompletionItem {
+func (gui *Gui) ParentCandidatesFor(completionState *types.CompletionState) func(string) []types.CompletionItem {
 	return func(filter string) []types.CompletionItem {
 		state := completionState
 

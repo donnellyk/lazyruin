@@ -10,7 +10,7 @@ import (
 )
 
 // showError displays an error message in the status bar for 3 seconds, then restores it.
-func (gui *Gui) showError(err error) {
+func (gui *Gui) ShowError(err error) {
 	if gui.views.Status == nil || err == nil {
 		return
 	}
@@ -20,13 +20,13 @@ func (gui *Gui) showError(err error) {
 	go func() {
 		time.Sleep(3 * time.Second)
 		gui.g.Update(func(g *gocui.Gui) error {
-			gui.updateStatusBar()
+			gui.UpdateStatusBar()
 			return nil
 		})
 	}()
 }
 
-func (gui *Gui) updateStatusBar() {
+func (gui *Gui) UpdateStatusBar() {
 	if gui.views.Status == nil {
 		return
 	}
@@ -56,7 +56,7 @@ func (gui *Gui) notesTabIndex() int {
 }
 
 // updateNotesTab syncs the gocui view's TabIndex with the current tab
-func (gui *Gui) updateNotesTab() {
+func (gui *Gui) UpdateNotesTab() {
 	if gui.views.Notes != nil {
 		gui.views.Notes.TabIndex = gui.notesTabIndex()
 	}
@@ -69,7 +69,7 @@ func (gui *Gui) queriesTabIndex() int {
 }
 
 // updateQueriesTab syncs the gocui view's TabIndex with the current queries tab
-func (gui *Gui) updateQueriesTab() {
+func (gui *Gui) UpdateQueriesTab() {
 	if gui.views.Queries != nil {
 		gui.views.Queries.TabIndex = gui.queriesTabIndex()
 	}
@@ -84,7 +84,7 @@ func (gui *Gui) tagsTabIndex() int {
 var tagsTabsNew = []context.TagsTab{context.TagsTabAll, context.TagsTabGlobal, context.TagsTabInline}
 
 // updateTagsTab syncs the gocui view's TabIndex with the current tags tab.
-func (gui *Gui) updateTagsTab() {
+func (gui *Gui) UpdateTagsTab() {
 	if gui.views.Tags != nil {
 		gui.views.Tags.TabIndex = gui.tagsTabIndex()
 	}
