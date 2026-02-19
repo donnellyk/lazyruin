@@ -188,20 +188,33 @@ func (gui *Gui) setupPickContext() {
 	pickCtx := context.NewPickContext()
 	gui.contexts.Pick = pickCtx
 
-	pickState := func() *types.CompletionState { return gui.state.PickCompletion }
+	pickState := func() *types.CompletionState { return gui.contexts.Pick.Completion }
 	ctrl := controllers.NewPopupController(
 		func() *context.PickContext { return gui.contexts.Pick },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Handler: func() error {
-				return gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)(gui.g, gui.views.Pick)
+				executePick := func(g *gocui.Gui, v *gocui.View) error {
+					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+					return gui.helpers.Pick().ExecutePick(raw)
+				}
+				return gui.completionEnter(pickState, gui.pickTriggers, executePick)(gui.g, gui.views.Pick)
 			}},
 			{Key: gocui.KeyEsc, Handler: func() error {
-				return gui.completionEsc(pickState, gui.cancelPick)(gui.g, gui.views.Pick)
+				cancelPick := func(g *gocui.Gui, v *gocui.View) error {
+					return gui.helpers.Pick().CancelPick()
+				}
+				return gui.completionEsc(pickState, cancelPick)(gui.g, gui.views.Pick)
 			}},
 			{Key: gocui.KeyTab, Handler: func() error {
 				return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
 			}},
-			{Key: gocui.KeyCtrlA, Handler: func() error { return gui.togglePickAny(gui.g, gui.views.Pick) }},
+			{Key: gocui.KeyCtrlA, Handler: func() error {
+				gui.helpers.Pick().TogglePickAny()
+				if gui.views.Pick != nil {
+					gui.views.Pick.Footer = gui.pickFooter()
+				}
+				return nil
+			}},
 		},
 	)
 	controllers.AttachController(ctrl)
@@ -238,7 +251,7 @@ func (gui *Gui) setupGlobalContext() {
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.GlobalContext { return gui.contexts.Global },
 		OnQuit:     func() error { return gui.quit(gui.g, nil) },
-		OnPick:     func() error { return gui.openPick(gui.g, nil) },
+		OnPick:     func() error { return gui.helpers.Pick().OpenPick() },
 		OnNewNote:  func() error { return gui.helpers.Capture().OpenCapture() },
 		OnHelp:     func() error { gui.showHelp(); return nil },
 		OnPalette:  func() error { return gui.openPalette(gui.g, nil) },

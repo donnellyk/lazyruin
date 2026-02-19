@@ -2,10 +2,13 @@ package context
 
 import "kvnd/lazyruin/pkg/gui/types"
 
-// PickContext owns the pick popup panel.
-// During the hybrid migration period, state remains in GuiState.
+// PickContext owns the pick popup panel and its state.
 type PickContext struct {
 	BaseContext
+	Query      string
+	AnyMode    bool
+	SeedHash   bool
+	Completion *types.CompletionState
 }
 
 // NewPickContext creates a PickContext.
@@ -18,6 +21,7 @@ func NewPickContext() *PickContext {
 			Focusable: true,
 			Title:     "Pick",
 		}),
+		Completion: types.NewCompletionState(),
 	}
 }
 

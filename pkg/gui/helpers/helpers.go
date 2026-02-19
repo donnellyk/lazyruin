@@ -13,6 +13,7 @@ type Helpers struct {
 	clipboard    *ClipboardHelper
 	preview      *PreviewHelper
 	capture      *CaptureHelper
+	pick         *PickHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -29,6 +30,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		clipboard:    NewClipboardHelper(common),
 		preview:      NewPreviewHelper(common),
 		capture:      NewCaptureHelper(common),
+		pick:         NewPickHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -47,3 +49,4 @@ func (h *Helpers) Search() *SearchHelper             { return h.search }
 func (h *Helpers) Clipboard() *ClipboardHelper       { return h.clipboard }
 func (h *Helpers) Preview() *PreviewHelper           { return h.preview }
 func (h *Helpers) Capture() *CaptureHelper           { return h.capture }
+func (h *Helpers) Pick() *PickHelper                 { return h.pick }

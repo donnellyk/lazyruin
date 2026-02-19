@@ -164,7 +164,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.RefreshAll()
 		gui.helpers.Preview().UpdatePreviewForNotes()
 		if gui.QuickCapture {
-			gui.state.CaptureCompletion = types.NewCompletionState()
+			gui.contexts.Capture.Completion = types.NewCompletionState()
 			gui.state.ContextStack = []types.ContextKey{"notes", "capture"}
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
@@ -302,7 +302,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		v.Title = "Preview"
 		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.Cards))
 	case gui.contexts.Preview.Mode == context.PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
-		v.Title = " Pick: " + gui.state.PickQuery + " "
+		v.Title = " Pick: " + gui.contexts.Pick.Query + " "
 		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.PickResults))
 	default:
 		v.Footer = ""
@@ -489,14 +489,14 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 
 	// Render suggestion dropdown below the capture popup
 	suggestY := y0 + 3 // position below a few lines into the popup
-	if gui.state.CaptureCompletion.Active {
+	if gui.contexts.Capture.Completion.Active {
 		_, cy := v.TextArea.GetCursorXY()
 		suggestY = y0 + cy + 2 // position relative to cursor line
 		if suggestY > y1-2 {
 			suggestY = y1 // below the popup if cursor is near bottom
 		}
 	}
-	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.state.CaptureCompletion, x0, suggestY, x1-x0); err != nil {
+	if err := gui.renderSuggestionView(g, CaptureSuggestView, gui.contexts.Capture.Completion, x0, suggestY, x1-x0); err != nil {
 		return err
 	}
 
@@ -527,7 +527,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *types.CompletionState { return gui.state.PickCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.Pick.Completion },
 		triggers:   gui.pickTriggers,
 		drillFlags: 0,
 	}
@@ -535,10 +535,10 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
 	// Seed "#" on first open so tag completion appears immediately
-	if gui.state.PickSeedHash {
-		gui.state.PickSeedHash = false
+	if gui.contexts.Pick.SeedHash {
+		gui.contexts.Pick.SeedHash = false
 		v.TextArea.TypeString("#")
-		gui.updateCompletion(v, gui.pickTriggers(), gui.state.PickCompletion)
+		gui.updateCompletion(v, gui.pickTriggers(), gui.contexts.Pick.Completion)
 	}
 
 	v.RenderTextArea()
@@ -547,7 +547,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetViewOnTop(PickView)
 	g.SetCurrentView(PickView)
 
-	if err := gui.renderSuggestionView(g, PickSuggestView, gui.state.PickCompletion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, PickSuggestView, gui.contexts.Pick.Completion, x0, y1, width); err != nil {
 		return err
 	}
 
@@ -632,7 +632,7 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 
 func (gui *Gui) pickFooter() string {
 	anyLabel := "off"
-	if gui.state.PickAnyMode {
+	if gui.contexts.Pick.AnyMode {
 		anyLabel = "on"
 	}
 	return " # for tags | --any: " + anyLabel + " | <c-a>: toggle | Tab: complete | Esc: cancel "
@@ -663,8 +663,8 @@ func (gui *Gui) updateCaptureFooter() {
 		tagsStr = strings.Join(tags, ", ")
 	}
 	var parentTitle string
-	if gui.state.CaptureParent != nil {
-		parentTitle = gui.state.CaptureParent.Title
+	if gui.contexts.Capture.Parent != nil {
+		parentTitle = gui.contexts.Capture.Parent.Title
 	}
 
 	footer := " " + models.JoinDot(date, tagsStr, parentTitle) + " "

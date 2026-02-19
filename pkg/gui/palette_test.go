@@ -289,7 +289,7 @@ func TestOpenPalette_BlockedDuringPick(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openPick(tg.g, nil)
+	tg.gui.helpers.Pick().OpenPick()
 	tg.gui.openPalette(tg.g, nil)
 
 	if tg.gui.state.currentContext() != "pick" {

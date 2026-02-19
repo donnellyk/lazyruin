@@ -10,10 +10,6 @@ type GuiState struct {
 	ContextStack            []types.ContextKey
 	SearchQuery             string
 	SearchCompletion        *types.CompletionState
-	PickCompletion          *types.CompletionState
-	PickQuery               string
-	PickAnyMode             bool
-	PickSeedHash            bool
 	PaletteSeedDone         bool
 	Palette                 *PaletteState
 	InputPopupCompletion    *types.CompletionState
@@ -68,7 +64,6 @@ type ContribState struct {
 func NewGuiState() *GuiState {
 	return &GuiState{
 		SearchCompletion:        types.NewCompletionState(),
-		PickCompletion:          types.NewCompletionState(),
 		InputPopupCompletion:    types.NewCompletionState(),
 		SnippetEditorCompletion: types.NewCompletionState(),
 		ContextStack:            []types.ContextKey{"notes"},
