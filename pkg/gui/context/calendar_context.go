@@ -1,11 +1,25 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import (
+	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
+)
 
-// CalendarContext owns the calendar dialog popup.
+// CalendarState holds the runtime state of the calendar dialog.
+type CalendarState struct {
+	Year        int
+	Month       int // 1-12
+	SelectedDay int // 1-31
+	Focus       int // 0 = grid, 1 = notes, 2 = input
+	Notes       []models.Note
+	NoteIndex   int
+}
+
+// CalendarContext owns the calendar dialog popup and its state.
 // The popup has three views: grid (navigation), input (date entry), notes (note list).
 type CalendarContext struct {
 	BaseContext
+	State *CalendarState
 }
 
 // NewCalendarContext creates a CalendarContext.

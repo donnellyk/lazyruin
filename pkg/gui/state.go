@@ -10,21 +10,10 @@ type GuiState struct {
 	ContextStack     []types.ContextKey
 	SearchQuery      string
 	SearchCompletion *types.CompletionState
-	Calendar         *CalendarState
 	Contrib          *ContribState
 	Initialized      bool
 	lastWidth        int
 	lastHeight       int
-}
-
-// CalendarState holds the runtime state of the calendar dialog.
-type CalendarState struct {
-	Year        int
-	Month       int // 1-12
-	SelectedDay int // 1-31
-	Focus       int // 0 = grid, 1 = notes, 2 = input
-	Notes       []models.Note
-	NoteIndex   int
 }
 
 // ContribState holds the runtime state of the contribution chart dialog.

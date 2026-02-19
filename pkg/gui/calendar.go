@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	anytime "github.com/ijt/go-anytime"
@@ -26,8 +27,8 @@ func (gui *Gui) openCalendar(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	now := time.Now()
-	if gui.state.Calendar == nil {
-		gui.state.Calendar = &CalendarState{
+	if gui.contexts.Calendar.State == nil {
+		gui.contexts.Calendar.State = &context.CalendarState{
 			Year:        now.Year(),
 			Month:       int(now.Month()),
 			SelectedDay: now.Day(),
@@ -50,27 +51,27 @@ func (gui *Gui) closeCalendar() {
 
 // calendarSelectedDate returns the currently selected date as YYYY-MM-DD.
 func (gui *Gui) calendarSelectedDate() string {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	return fmt.Sprintf("%04d-%02d-%02d", s.Year, s.Month, s.SelectedDay)
 }
 
 // calendarRefreshNotes fetches notes for the currently selected date.
 func (gui *Gui) calendarRefreshNotes() {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Notes = gui.fetchNotesForDate(gui.calendarSelectedDate())
 	s.NoteIndex = 0
 }
 
 // calendarSelectedTime returns the selected date as a time.Time.
 func (gui *Gui) calendarSelectedTime() time.Time {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	return time.Date(s.Year, time.Month(s.Month), s.SelectedDay, 0, 0, 0, 0, time.Local)
 }
 
 // calendarMoveDay moves the selected day by delta days, crossing month boundaries.
 func (gui *Gui) calendarMoveDay(delta int) {
 	t := gui.calendarSelectedTime().AddDate(0, 0, delta)
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Year = t.Year()
 	s.Month = int(t.Month())
 	s.SelectedDay = t.Day()
@@ -79,7 +80,7 @@ func (gui *Gui) calendarMoveDay(delta int) {
 
 // calendarSetDate sets the calendar to the given date directly.
 func (gui *Gui) calendarSetDate(t time.Time) {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Year = t.Year()
 	s.Month = int(t.Month())
 	s.SelectedDay = t.Day()
@@ -88,7 +89,7 @@ func (gui *Gui) calendarSetDate(t time.Time) {
 
 // createCalendarViews creates the calendar grid, input, and note list views.
 func (gui *Gui) createCalendarViews(g *gocui.Gui, maxX, maxY int) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	totalWidth := 34
 	gridHeight := 11 // border + padding + header + separator + 6 rows + padding(implicit) + border
 	inputHeight := 3 // 2 content lines + shared border
@@ -203,7 +204,7 @@ func (gui *Gui) createCalendarViews(g *gocui.Gui, maxX, maxY int) error {
 // renderCalendarGrid renders the month grid into the view.
 func (gui *Gui) renderCalendarGrid(v *gocui.View) {
 	v.Clear()
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	now := time.Now()
 	today := now.Day()
 	todayMonth := int(now.Month())
@@ -273,7 +274,7 @@ func daysIn(year, month int) int {
 
 // calendarGridClick handles mouse clicks on the calendar grid to select a date.
 func (gui *Gui) calendarGridClick(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Focus = calFocusGrid
 
 	_, cy := v.Cursor()
@@ -324,7 +325,7 @@ func (gui *Gui) calendarGridClick(g *gocui.Gui, v *gocui.View) error {
 
 // calendarInputClick focuses the input view when clicked.
 func (gui *Gui) calendarInputClick(g *gocui.Gui, v *gocui.View) error {
-	gui.state.Calendar.Focus = calFocusInput
+	gui.contexts.Calendar.State.Focus = calFocusInput
 	// Clear placeholder on focus
 	v.Clear()
 	v.RenderTextArea()
@@ -364,24 +365,24 @@ func (gui *Gui) calendarEsc(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) calendarTab(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Focus = (s.Focus + 1) % 3
 	return nil
 }
 
 func (gui *Gui) calendarBacktab(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	s.Focus = (s.Focus + 2) % 3
 	return nil
 }
 
 func (gui *Gui) calendarFocusInput(g *gocui.Gui, v *gocui.View) error {
-	gui.state.Calendar.Focus = calFocusInput
+	gui.contexts.Calendar.State.Focus = calFocusInput
 	return nil
 }
 
 func (gui *Gui) calendarNoteDown(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	if s.NoteIndex < len(s.Notes)-1 {
 		s.NoteIndex++
 	}
@@ -389,7 +390,7 @@ func (gui *Gui) calendarNoteDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) calendarNoteUp(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	if s.NoteIndex > 0 {
 		s.NoteIndex--
 	}
@@ -397,7 +398,7 @@ func (gui *Gui) calendarNoteUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) calendarNoteEnter(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	if len(s.Notes) == 0 {
 		return nil
 	}
@@ -409,7 +410,7 @@ func (gui *Gui) calendarNoteEnter(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) calendarInputEnter(g *gocui.Gui, v *gocui.View) error {
 	raw := strings.TrimSpace(v.TextArea.GetContent())
 	if raw == "" {
-		gui.state.Calendar.Focus = calFocusGrid
+		gui.contexts.Calendar.State.Focus = calFocusGrid
 		return nil
 	}
 	t, err := anytime.Parse(raw, time.Now())
@@ -418,7 +419,7 @@ func (gui *Gui) calendarInputEnter(g *gocui.Gui, v *gocui.View) error {
 	}
 	v.TextArea.Clear()
 	v.Clear()
-	gui.state.Calendar.Focus = calFocusGrid
+	gui.contexts.Calendar.State.Focus = calFocusGrid
 	return nil
 }
 
@@ -426,13 +427,13 @@ func (gui *Gui) calendarInputEnter(g *gocui.Gui, v *gocui.View) error {
 func (gui *Gui) calendarInputEsc(g *gocui.Gui, v *gocui.View) error {
 	v.TextArea.Clear()
 	v.Clear()
-	gui.state.Calendar.Focus = calFocusGrid
+	gui.contexts.Calendar.State.Focus = calFocusGrid
 	return nil
 }
 
 // calendarLoadInPreview loads all notes for the selected date into the preview.
 func (gui *Gui) calendarLoadInPreview() {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	if len(s.Notes) == 0 {
 		gui.closeCalendar()
 		return
@@ -458,7 +459,7 @@ func (gui *Gui) calendarLoadInPreview() {
 
 // calendarLoadNoteInPreview loads a single note into the preview.
 func (gui *Gui) calendarLoadNoteInPreview(index int) {
-	s := gui.state.Calendar
+	s := gui.contexts.Calendar.State
 	if index >= len(s.Notes) {
 		return
 	}
