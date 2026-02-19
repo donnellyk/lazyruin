@@ -2,7 +2,6 @@ package gui
 
 import (
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 )
 
 type GuiState struct {
@@ -10,20 +9,9 @@ type GuiState struct {
 	ContextStack     []types.ContextKey
 	SearchQuery      string
 	SearchCompletion *types.CompletionState
-	Contrib          *ContribState
 	Initialized      bool
 	lastWidth        int
 	lastHeight       int
-}
-
-// ContribState holds the runtime state of the contribution chart dialog.
-type ContribState struct {
-	DayCounts    map[string]int // "YYYY-MM-DD" -> count
-	SelectedDate string         // "YYYY-MM-DD"
-	Focus        int            // 0 = grid, 1 = note list
-	Notes        []models.Note
-	NoteIndex    int
-	WeekCount    int // number of weeks displayed
 }
 
 func NewGuiState() *GuiState {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -18,8 +19,8 @@ func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	now := time.Now()
-	if gui.state.Contrib == nil {
-		gui.state.Contrib = &ContribState{
+	if gui.contexts.Contrib.State == nil {
+		gui.contexts.Contrib.State = &context.ContribState{
 			SelectedDate: now.Format("2006-01-02"),
 		}
 	}
@@ -47,7 +48,7 @@ func (gui *Gui) contribLoadData() {
 		Limit: 5000,
 	})
 	if err != nil {
-		gui.state.Contrib.DayCounts = make(map[string]int)
+		gui.contexts.Contrib.State.DayCounts = make(map[string]int)
 		return
 	}
 
@@ -56,19 +57,19 @@ func (gui *Gui) contribLoadData() {
 		day := n.Created.Format("2006-01-02")
 		counts[day]++
 	}
-	gui.state.Contrib.DayCounts = counts
+	gui.contexts.Contrib.State.DayCounts = counts
 }
 
 // contribRefreshNotes fetches notes for the selected date.
 func (gui *Gui) contribRefreshNotes() {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	s.Notes = gui.fetchNotesForDate(s.SelectedDate)
 	s.NoteIndex = 0
 }
 
 // contribMoveDay moves the selected date by delta days.
 func (gui *Gui) contribMoveDay(delta int) {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	t, _ := time.ParseInLocation("2006-01-02", s.SelectedDate, time.Local)
 	t = t.AddDate(0, 0, delta)
 	s.SelectedDate = t.Format("2006-01-02")
@@ -77,7 +78,7 @@ func (gui *Gui) contribMoveDay(delta int) {
 
 // createContribViews creates the contribution chart views.
 func (gui *Gui) createContribViews(g *gocui.Gui, maxX, maxY int) error {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 
 	// Calculate width based on available space
 	// Each cell is 2 chars wide (◼ + space), plus 5 for row labels, plus 2 for borders
@@ -164,7 +165,7 @@ func (gui *Gui) createContribViews(g *gocui.Gui, maxX, maxY int) error {
 // renderContribGrid renders the contribution heatmap grid.
 func (gui *Gui) renderContribGrid(v *gocui.View) {
 	v.Clear()
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 
 	now := time.Now()
 	// End date is end of current week (Saturday)
@@ -314,7 +315,7 @@ func (gui *Gui) contribEsc(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) contribTab(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if s.Focus == 0 {
 		s.Focus = 1
 	} else {
@@ -324,7 +325,7 @@ func (gui *Gui) contribTab(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) contribNoteDown(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if s.NoteIndex < len(s.Notes)-1 {
 		s.NoteIndex++
 	}
@@ -332,7 +333,7 @@ func (gui *Gui) contribNoteDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) contribNoteUp(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if s.NoteIndex > 0 {
 		s.NoteIndex--
 	}
@@ -340,7 +341,7 @@ func (gui *Gui) contribNoteUp(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) contribNoteEnter(g *gocui.Gui, v *gocui.View) error {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if len(s.Notes) == 0 {
 		return nil
 	}
@@ -350,7 +351,7 @@ func (gui *Gui) contribNoteEnter(g *gocui.Gui, v *gocui.View) error {
 
 // contribLoadInPreview loads all notes for the selected date into preview.
 func (gui *Gui) contribLoadInPreview() {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if len(s.Notes) == 0 {
 		gui.closeContrib()
 		return
@@ -376,7 +377,7 @@ func (gui *Gui) contribLoadInPreview() {
 
 // contribLoadNoteInPreview loads a single note into preview.
 func (gui *Gui) contribLoadNoteInPreview(index int) {
-	s := gui.state.Contrib
+	s := gui.contexts.Contrib.State
 	if index >= len(s.Notes) {
 		return
 	}
