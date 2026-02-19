@@ -127,7 +127,7 @@ func testNotesTop(tg *testGui) {
 	notesCtx := tg.gui.contexts.Notes
 	notesCtx.SetSelectedLineIdx(0)
 
-	tg.gui.renderNotes()
+	tg.gui.RenderNotes()
 }
 
 // testNotesBottom jumps to the last note.
@@ -244,19 +244,19 @@ func TestNextPanel_CyclesThroughContexts(t *testing.T) {
 	}
 
 	// Tab → QueriesContext
-	tg.gui.nextPanel(tg.g, nil)
+	tg.gui.globalController.NextPanel()
 	if tg.gui.state.currentContext() != QueriesContext {
 		t.Errorf("after first Tab: context = %v, want QueriesContext", tg.gui.state.currentContext())
 	}
 
 	// Tab → TagsContext
-	tg.gui.nextPanel(tg.g, nil)
+	tg.gui.globalController.NextPanel()
 	if tg.gui.state.currentContext() != TagsContext {
 		t.Errorf("after second Tab: context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 
 	// Tab → wraps to NotesContext
-	tg.gui.nextPanel(tg.g, nil)
+	tg.gui.globalController.NextPanel()
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("after third Tab: context = %v, want NotesContext (wrap)", tg.gui.state.currentContext())
 	}
@@ -267,7 +267,7 @@ func TestPrevPanel_CyclesBackward(t *testing.T) {
 	defer tg.Close()
 
 	// BackTab from NotesContext → TagsContext (wraps backward)
-	tg.gui.prevPanel(tg.g, nil)
+	tg.gui.globalController.PrevPanel()
 	if tg.gui.state.currentContext() != TagsContext {
 		t.Errorf("after BackTab from Notes: context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
@@ -278,13 +278,13 @@ func TestFocusNotes_SwitchesContext(t *testing.T) {
 	defer tg.Close()
 
 	// Switch to tags first
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	if tg.gui.state.currentContext() != TagsContext {
 		t.Fatalf("context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
 
 	// Press 1 → NotesContext
-	tg.gui.focusNotes(tg.g, nil)
+	tg.gui.globalController.FocusNotes()
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("context = %v, want NotesContext", tg.gui.state.currentContext())
 	}
@@ -294,7 +294,7 @@ func TestFocusQueries_SwitchesContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil)
+	tg.gui.globalController.FocusQueries()
 	if tg.gui.state.currentContext() != QueriesContext {
 		t.Errorf("context = %v, want QueriesContext", tg.gui.state.currentContext())
 	}
@@ -304,7 +304,7 @@ func TestFocusTags_SwitchesContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	if tg.gui.state.currentContext() != TagsContext {
 		t.Errorf("context = %v, want TagsContext", tg.gui.state.currentContext())
 	}
@@ -314,7 +314,7 @@ func TestFocusPreview_SwitchesContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusPreview(tg.g, nil)
+	tg.gui.globalController.FocusPreview()
 	if tg.gui.state.currentContext() != PreviewContext {
 		t.Errorf("context = %v, want PreviewContext", tg.gui.state.currentContext())
 	}
@@ -324,12 +324,12 @@ func TestContextSwitch_TracksPrevious(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	if tg.gui.state.previousContext() != NotesContext {
 		t.Errorf("previousContext() = %v, want NotesContext", tg.gui.state.previousContext())
 	}
 
-	tg.gui.focusPreview(tg.g, nil)
+	tg.gui.globalController.FocusPreview()
 	if tg.gui.state.previousContext() != TagsContext {
 		t.Errorf("previousContext() = %v, want TagsContext", tg.gui.state.previousContext())
 	}
@@ -356,7 +356,7 @@ func TestCancelSearch_RestoresContext(t *testing.T) {
 	defer tg.Close()
 
 	// Start from tags context
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	prev := tg.gui.state.currentContext()
 
 	tg.gui.helpers.Search().OpenSearch()
@@ -397,7 +397,7 @@ func TestTagsDown_MovesSelection(t *testing.T) {
 	defer tg.Close()
 
 	// Focus tags panel first
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 
 	// Use TagsContext for navigation (migrated from old tagsDown)
 	tagsCtx := tg.gui.contexts.Tags
@@ -412,7 +412,7 @@ func TestTagsUp_MovesSelection(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tagsCtx := tg.gui.contexts.Tags
 	tagsCtx.MoveSelectedLine(1)
 	tagsCtx.MoveSelectedLine(1)
@@ -429,7 +429,7 @@ func TestQueriesDown_MovesSelection(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil)
+	tg.gui.globalController.FocusQueries()
 	testQueriesDown(tg)
 
 	if tg.gui.contexts.Queries.QueriesTrait().GetSelectedLineIdx() != 1 {
@@ -475,7 +475,7 @@ func TestEmptyTags_NoNavigationPanic(t *testing.T) {
 	tg := newTestGui(t, mock)
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tagsCtx := tg.gui.contexts.Tags
 	tagsCtx.MoveSelectedLine(1)
 	tagsCtx.MoveSelectedLine(-1)
@@ -491,7 +491,7 @@ func TestFilterByTag_SetsPreviewCardList(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
@@ -510,7 +510,7 @@ func TestFilterByTag_EmptyTags_Noop(t *testing.T) {
 	tg := newTestGui(t, mock)
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	// Should remain in tags context, no switch to preview
@@ -525,7 +525,7 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil)
+	tg.gui.globalController.FocusQueries()
 	tg.gui.helpers.Queries().RunQuery()
 
 	if tg.gui.contexts.Preview.Mode != PreviewModeCardList {
@@ -544,7 +544,7 @@ func TestRunQuery_EmptyQueries_Noop(t *testing.T) {
 	tg := newTestGui(t, mock)
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil)
+	tg.gui.globalController.FocusQueries()
 	tg.gui.helpers.Queries().RunQuery()
 
 	if tg.gui.state.currentContext() != QueriesContext {
@@ -559,7 +559,7 @@ func TestPreviewCardDown_CardListMode(t *testing.T) {
 	defer tg.Close()
 
 	// Enter card list mode via tag filter
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
@@ -577,7 +577,7 @@ func TestPreviewCardUp_CardListMode(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
@@ -651,8 +651,8 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
-	tg.gui.focusPreview(tg.g, nil)
+	tg.gui.globalController.FocusTags()
+	tg.gui.globalController.FocusPreview()
 	tg.gui.helpers.Preview().Back()
 
 	if tg.gui.state.currentContext() != TagsContext {
@@ -725,17 +725,17 @@ func TestFocusNotes_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 		t.Fatalf("initial tab = %v, want All", tg.gui.contexts.Notes.CurrentTab)
 	}
 
-	tg.gui.focusNotes(tg.g, nil) // cycles All → Today
+	tg.gui.globalController.FocusNotes() // cycles All → Today
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabToday {
 		t.Errorf("tab = %v, want Today", tg.gui.contexts.Notes.CurrentTab)
 	}
 
-	tg.gui.focusNotes(tg.g, nil) // cycles Today → Recent
+	tg.gui.globalController.FocusNotes() // cycles Today → Recent
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabRecent {
 		t.Errorf("tab = %v, want Recent", tg.gui.contexts.Notes.CurrentTab)
 	}
 
-	tg.gui.focusNotes(tg.g, nil) // cycles Recent → All
+	tg.gui.globalController.FocusNotes() // cycles Recent → All
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
 		t.Errorf("tab = %v, want All (wrapped)", tg.gui.contexts.Notes.CurrentTab)
 	}
@@ -747,17 +747,17 @@ func TestFocusQueries_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil) // switch to queries
+	tg.gui.globalController.FocusQueries() // switch to queries
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
 		t.Fatalf("initial tab = %v, want Queries", tg.gui.contexts.Queries.CurrentTab)
 	}
 
-	tg.gui.focusQueries(tg.g, nil) // already focused → cycle to Parents
+	tg.gui.globalController.FocusQueries() // already focused → cycle to Parents
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabParents {
 		t.Errorf("tab = %v, want Parents", tg.gui.contexts.Queries.CurrentTab)
 	}
 
-	tg.gui.focusQueries(tg.g, nil) // cycle back to Queries
+	tg.gui.globalController.FocusQueries() // cycle back to Queries
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
 		t.Errorf("tab = %v, want Queries (wrapped)", tg.gui.contexts.Queries.CurrentTab)
 	}
@@ -770,7 +770,7 @@ func TestFocusNoteFromPreview_JumpsToNote(t *testing.T) {
 	defer tg.Close()
 
 	// Enter card list via tag filter, select second card
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().FilterByTag(tg.gui.contexts.Tags.Selected())
 
 	if len(tg.gui.contexts.Preview.Cards) < 2 {
@@ -905,7 +905,7 @@ func TestNextPanel_IncludesSearchFilter_WhenActive(t *testing.T) {
 
 	// Cycle should now include SearchFilter at the start
 	tg.gui.setContext(SearchFilterContext)
-	tg.gui.nextPanel(tg.g, nil)
+	tg.gui.globalController.NextPanel()
 	if tg.gui.state.currentContext() != NotesContext {
 		t.Errorf("after Tab from SearchFilter: context = %v, want NotesContext", tg.gui.state.currentContext())
 	}
@@ -946,7 +946,7 @@ func TestDeleteTag_ShowsConfirmDialog(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().DeleteTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.state.Dialog == nil {
@@ -961,7 +961,7 @@ func TestDeleteQuery_ShowsConfirmDialog(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusQueries(tg.g, nil)
+	tg.gui.globalController.FocusQueries()
 	tg.gui.helpers.Queries().DeleteQuery()
 
 	if tg.gui.state.Dialog == nil {
@@ -976,7 +976,7 @@ func TestRenameTag_ShowsInputDialog(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().RenameTag(tg.gui.contexts.Tags.Selected())
 
 	if tg.gui.state.Dialog == nil {
@@ -1048,7 +1048,7 @@ func TestDeleteTag_ConfirmYes_DeletesTag(t *testing.T) {
 
 	initialCount := len(tg.gui.contexts.Tags.Items)
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.helpers.Tags().DeleteTag(tg.gui.contexts.Tags.Selected())
 
 	// Force layout to create confirm dialog view

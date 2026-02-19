@@ -252,7 +252,7 @@ func TestOpenPalette_PreviousContextIsOrigin(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
 	if tg.gui.state.previousContext() != TagsContext {
@@ -264,7 +264,7 @@ func TestOpenPalette_BlockedDuringSearch(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.openSearch(tg.g, nil)
+	tg.gui.helpers.Search().OpenSearch()
 	tg.gui.openPalette(tg.g, nil)
 
 	if tg.gui.state.currentContext() != SearchContext {
@@ -314,7 +314,7 @@ func TestClosePalette_RestoresContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 	tg.gui.closePalette()
 
@@ -372,7 +372,7 @@ func TestPaletteEnter_SkipsUnavailableCommand(t *testing.T) {
 	defer tg.Close()
 
 	// Open palette from Tags context
-	tg.gui.focusTags(tg.g, nil)
+	tg.gui.globalController.FocusTags()
 	tg.gui.openPalette(tg.g, nil)
 
 	// Find "Open in Editor" (requires NotesContext, unavailable from Tags)
