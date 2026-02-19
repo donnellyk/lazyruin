@@ -15,6 +15,8 @@ COLS=120
 ROWS=40
 FAILURES=0
 TOTAL=0
+POLL_INTERVAL=0.05   # seconds between polls
+POLL_MAX=60          # max polls (60 * 0.05 = 3s timeout)
 
 # --- helpers ---
 
@@ -34,17 +36,40 @@ cap() { tmux capture-pane -t "$SESSION" -p 2>/dev/null; }
 # Capture just the status bar (last 3 lines).
 status() { cap | tail -3; }
 
-# Send keys and wait for render.
+# Send keys with minimal delay (just enough for tmux to deliver).
 send() {
   tmux send-keys -t "$SESSION" "$@"
-  sleep "${SEND_DELAY:-0.4}"
+  sleep 0.05
 }
 
-# Assert captured output contains a string.
+# Brief pause to let async GUI updates (g.Update) settle between dependent keys.
+settle() { sleep 0.15; }
+
+# Poll until needle appears in capture (returns 0) or timeout (returns 1).
+wait_for() {
+  local needle="$1" max="${2:-$POLL_MAX}" i=0
+  while ! cap | grep -qF "$needle"; do
+    i=$((i + 1))
+    [ "$i" -ge "$max" ] && return 1
+    sleep "$POLL_INTERVAL"
+  done
+}
+
+# Poll until needle disappears from capture (returns 0) or timeout (returns 1).
+wait_gone() {
+  local needle="$1" max="${2:-$POLL_MAX}" i=0
+  while cap | grep -qF "$needle"; do
+    i=$((i + 1))
+    [ "$i" -ge "$max" ] && return 1
+    sleep "$POLL_INTERVAL"
+  done
+}
+
+# Assert captured output contains a string (polls until found or timeout).
 assert_contains() {
   TOTAL=$((TOTAL + 1))
   local desc="$1" needle="$2"
-  if cap | grep -qF "$needle"; then
+  if wait_for "$needle"; then
     echo "  PASS: $desc"
   else
     echo "  FAIL: $desc (expected '$needle')"
@@ -52,29 +77,32 @@ assert_contains() {
   fi
 }
 
-# Assert captured output does NOT contain a string.
+# Assert captured output does NOT contain a string (polls until gone or timeout).
 assert_not_contains() {
   TOTAL=$((TOTAL + 1))
   local desc="$1" needle="$2"
-  if cap | grep -qF "$needle"; then
-    echo "  FAIL: $desc (unexpected '$needle')"
-    FAILURES=$((FAILURES + 1))
-  else
+  if wait_gone "$needle"; then
     echo "  PASS: $desc"
+  else
+    echo "  FAIL: $desc (unexpected '$needle' still present)"
+    FAILURES=$((FAILURES + 1))
   fi
 }
 
-# Assert focus by checking the status bar for a context-specific hint.
-# Each context has a unique hint that doesn't appear in others.
+# Assert focus via status bar hint (polls until found or timeout).
 assert_status() {
   TOTAL=$((TOTAL + 1))
-  local desc="$1" needle="$2"
-  if status | grep -qF "$needle"; then
-    echo "  PASS: $desc"
-  else
-    echo "  FAIL: $desc (status bar missing '$needle')"
-    FAILURES=$((FAILURES + 1))
-  fi
+  local desc="$1" needle="$2" i=0
+  while ! status | grep -qF "$needle"; do
+    i=$((i + 1))
+    if [ "$i" -ge "$POLL_MAX" ]; then
+      echo "  FAIL: $desc (status bar missing '$needle')"
+      FAILURES=$((FAILURES + 1))
+      return
+    fi
+    sleep "$POLL_INTERVAL"
+  done
+  echo "  PASS: $desc"
 }
 
 # --- preflight ---
@@ -92,9 +120,11 @@ echo ""
 
 # --- launch ---
 
+START_TIME=$SECONDS
+
 tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
   "$BIN --vault $VAULT" 2>/dev/null
-sleep 1.5  # startup + initial load
+wait_for "Preview" 200 || die "app did not start within 10s"  # 200 * 0.05 = 10s
 
 # =============================================
 # 1. Startup — three sidebar panels rendered
@@ -129,9 +159,8 @@ assert_status "3 -> tags" "Tab: 3"
 send p
 assert_contains "p -> pick" "Pick"
 send Escape
-sleep 0.3
+settle
 send Escape
-sleep 0.3
 send 1
 assert_status "1 -> notes" "Tab: 1"
 
@@ -146,9 +175,7 @@ assert_contains "tab headers" "All - Today - Recent"
 # =============================================
 echo "[5] List navigation"
 send j
-sleep 0.2
 send j
-sleep 0.2
 TOTAL=$((TOTAL + 1))
 echo "  PASS: j/k navigation (no crash)"
 send g  # back to top
@@ -158,7 +185,6 @@ send g  # back to top
 # =============================================
 echo "[6] Notes -> Preview -> Back"
 send Enter
-sleep 0.5
 assert_status "in preview" "Back: esc"
 send Escape
 assert_status "back to notes" "Tab: 1"
@@ -168,13 +194,10 @@ assert_status "back to notes" "Tab: 1"
 # =============================================
 echo "[7] Search"
 send /
-sleep 0.3
 assert_contains "search popup open" "Search"
 assert_status "search hints" "Complete: tab"
 send -l "project"
-sleep 0.3
 send Enter
-sleep 0.8
 # Search filter bar should appear with query text and [0]-Search title
 assert_contains "search filter shown" "[0]-Search"
 assert_contains "query in filter bar" "project"
@@ -183,10 +206,8 @@ assert_status "preview after search" "Back: esc"
 
 # Clear search via search filter
 send 0  # focus search filter
-sleep 0.3
 assert_status "search filter focused" "Clear: x"
 send x
-sleep 0.5
 assert_not_contains "search filter gone" "[0]-Search"
 
 # =============================================
@@ -194,14 +215,11 @@ assert_not_contains "search filter gone" "[0]-Search"
 # =============================================
 echo "[8] Pick"
 send 1
-sleep 0.2
 send '\'
-sleep 0.3
 assert_contains "pick popup open" "Pick"
 send Escape  # dismiss completion dropdown
-sleep 0.2
+settle
 send Escape  # close pick dialog
-sleep 0.2
 assert_not_contains "pick closed" "Pick tags"
 
 # =============================================
@@ -209,16 +227,13 @@ assert_not_contains "pick closed" "Pick tags"
 # =============================================
 echo "[9] Palette"
 send 1  # ensure notes focus
-sleep 0.3
+settle
 send :
-sleep 0.5
 assert_contains "palette open" "Command Palette"
 assert_contains "commands listed" "Global:"
 send -l "quit"
-sleep 0.3
 assert_contains "filtered to quit" "Global: Quit"
 send Escape
-sleep 0.3
 assert_not_contains "palette closed" "Command Palette"
 
 # =============================================
@@ -226,34 +241,30 @@ assert_not_contains "palette closed" "Command Palette"
 # =============================================
 echo "[10] Help"
 send ?
-sleep 0.3
 assert_contains "help visible" "Keybindings"
 send Escape
-sleep 0.2
+settle
 
 # =============================================
 # 11. Note actions from Notes panel (shared keys)
 # =============================================
 echo "[11] Note actions (Notes)"
 send 1
-sleep 0.2
+settle
 send s  # Show Info
-sleep 0.5
 assert_contains "info dialog" "Info"
 send Escape
-sleep 0.2
 
 # =============================================
 # 12. Note actions from Preview (shared keys)
 # =============================================
 echo "[12] Note actions (Preview)"
 send Enter  # view in preview
-sleep 0.5
+wait_for "Back: esc" || true
 send s  # Show Info from preview
-sleep 0.5
 assert_contains "info from preview" "Info"
 send Escape
-sleep 0.2
+settle
 send Escape  # back to notes
 
 # =============================================
@@ -261,16 +272,14 @@ send Escape  # back to notes
 # =============================================
 echo "[13] Add Tag"
 send 1
-sleep 0.2
+settle
 send t  # Add Tag
-sleep 0.5
 assert_contains "add tag popup" "Add Tag"
 assert_contains "tag seed" "#"
 assert_contains "tag footer hint" "Tab: accept"
 send Escape  # dismiss completion
-sleep 0.2
+settle
 send Escape  # close popup
-sleep 0.2
 assert_not_contains "tag popup closed" "Add Tag"
 
 # =============================================
@@ -278,15 +287,13 @@ assert_not_contains "tag popup closed" "Add Tag"
 # =============================================
 echo "[14] Set Parent"
 send 1
-sleep 0.2
+settle
 send '>'  # Set Parent
-sleep 0.5
 assert_contains "set parent popup" "Set Parent"
 assert_contains "parent completion shown" "alpha"
 send Escape  # dismiss completion
-sleep 0.2
+settle
 send Escape  # close popup
-sleep 0.2
 assert_not_contains "parent popup closed" "Set Parent"
 
 # =============================================
@@ -294,9 +301,8 @@ assert_not_contains "parent popup closed" "Set Parent"
 # =============================================
 echo "[15] Queries"
 send 2
-sleep 0.3
+settle
 send Enter  # run first query
-sleep 0.8
 assert_status "preview after query" "Back: esc"
 send 1
 
@@ -305,9 +311,8 @@ send 1
 # =============================================
 echo "[16] Tags"
 send 3
-sleep 0.3
+settle
 send Enter  # filter by tag
-sleep 0.8
 assert_status "preview after tag filter" "Back: esc"
 send 1
 
@@ -316,11 +321,9 @@ send 1
 # =============================================
 echo "[17] Capture"
 send n
-sleep 0.3
 assert_contains "capture popup" "New Note"
 assert_contains "save hint" "<c-s> to save"
 send Escape
-sleep 0.2
 assert_not_contains "capture closed" "New Note"
 
 # =============================================
@@ -328,12 +331,10 @@ assert_not_contains "capture closed" "New Note"
 # =============================================
 echo "[18] Calendar"
 send 1
-sleep 0.2
+settle
 send c
-sleep 0.5
 assert_contains "calendar open" "Su Mo Tu We Th Fr Sa"
 send Escape
-sleep 0.2
 assert_not_contains "calendar closed" "Su Mo Tu We Th Fr Sa"
 
 # =============================================
@@ -341,12 +342,10 @@ assert_not_contains "calendar closed" "Su Mo Tu We Th Fr Sa"
 # =============================================
 echo "[19] Contributions"
 send 1
-sleep 0.2
+settle
 send C
-sleep 0.5
 assert_contains "contrib open" "Contributions"
 send Escape
-sleep 0.2
 assert_not_contains "contrib closed" "Contributions"
 
 # =============================================
@@ -354,7 +353,7 @@ assert_not_contains "contrib closed" "Contributions"
 # =============================================
 echo "[20] Resize"
 tmux resize-pane -t "$SESSION" -x 80 -y 24
-sleep 0.5
+sleep 0.15  # allow resize event to propagate
 TOTAL=$((TOTAL + 1))
 if cap >/dev/null 2>&1; then
   echo "  PASS: resize survived"
@@ -363,13 +362,13 @@ else
   FAILURES=$((FAILURES + 1))
 fi
 tmux resize-pane -t "$SESSION" -x "$COLS" -y "$ROWS"
-sleep 0.3
 
 # =============================================
 # Done
 # =============================================
+ELAPSED=$((SECONDS - START_TIME))
 echo ""
-echo "=== Results: $((TOTAL - FAILURES))/$TOTAL passed ==="
+echo "=== Results: $((TOTAL - FAILURES))/$TOTAL passed in ${ELAPSED}s ==="
 if [ "$FAILURES" -gt 0 ]; then
   echo "FAILED ($FAILURES failures)"
   exit 1
