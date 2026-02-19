@@ -63,12 +63,15 @@ lazyruin/
 │   │   └── config.go                # Configuration loading (vault path, snippets)
 │   │
 │   ├── gui/                         # GUI orchestration
-│   │   ├── types/                   # Pure interface definitions (no implementation)
+│   │   ├── types/                   # Pure interface + data type definitions
 │   │   │   ├── context.go           # Context, IBaseContext, IListContext, ContextKind
 │   │   │   ├── controller.go        # IController
 │   │   │   ├── binding.go           # Binding, DisabledReason, KeybindingsFn
 │   │   │   ├── list.go              # IList, IListCursor
-│   │   │   └── common.go            # OnFocusOpts, OnFocusLostOpts
+│   │   │   ├── common.go            # OnFocusOpts, OnFocusLostOpts
+│   │   │   ├── completion.go        # CompletionItem, CompletionTrigger, CompletionState
+│   │   │   ├── popup.go             # InputPopupConfig
+│   │   │   └── dialog.go            # MenuItem
 │   │   │
 │   │   ├── context/                 # Context implementations (own state + identity)
 │   │   │   ├── base_context.go      # BaseContext (aggregates controller bindings)
@@ -78,39 +81,56 @@ lazyruin/
 │   │   │   ├── notes_context.go     # Owns Items []Note, cursor, CurrentTab
 │   │   │   ├── tags_context.go      # Owns Items []Tag, cursor, CurrentTab
 │   │   │   ├── queries_context.go   # Owns Queries + Parents, cursor, CurrentTab
-│   │   │   ├── preview_context.go   # Owns Cards, ScrollOffset, CursorLine, Mode
+│   │   │   ├── preview_context.go   # Embeds *PreviewState, owns NavHistory
+│   │   │   ├── preview_state.go     # PreviewState, PreviewLink, NavEntry, PreviewMode
 │   │   │   ├── search_context.go    # PERSISTENT_POPUP — search completion state
 │   │   │   ├── capture_context.go   # PERSISTENT_POPUP — capture completion state
 │   │   │   ├── pick_context.go      # TEMPORARY_POPUP — pick completion state
 │   │   │   ├── input_popup_context.go # TEMPORARY_POPUP — generic input popup
+│   │   │   ├── palette_context.go   # TEMPORARY_POPUP — command palette
+│   │   │   ├── snippet_editor_context.go # TEMPORARY_POPUP — two-view snippet editor
+│   │   │   ├── calendar_context.go  # TEMPORARY_POPUP — three-view calendar overlay
+│   │   │   ├── contrib_context.go   # TEMPORARY_POPUP — two-view contribution chart
 │   │   │   └── context_tree.go      # ContextTree: typed accessors + All()
 │   │   │
 │   │   ├── controllers/             # Controller implementations (own keybindings)
 │   │   │   ├── base_controller.go   # Null object (all methods return nil)
-│   │   │   ├── controller_common.go # ControllerCommon (shared deps)
+│   │   │   ├── attach.go            # AttachController: wires controller to its context
+│   │   │   ├── controller_common.go # ControllerCommon, IGuiCommon, IHelpers interfaces
 │   │   │   ├── list_controller_trait.go # Generic nav: j/k/g/G + withItem/require
 │   │   │   ├── global_controller.go # quit, search, pick, new note, focus, tab/backtab
 │   │   │   ├── notes_controller.go  # list nav + enter/edit/delete/copy/tag/parent/bookmark
 │   │   │   ├── tags_controller.go   # list nav + filter/rename/delete
 │   │   │   ├── queries_controller.go # list nav + run/delete (queries + parents tabs)
-│   │   │   ├── preview_controller.go # scroll/card nav + edit/delete/done/move/links
+│   │   │   ├── preview_controller.go # Thin keybinding shell; delegates to PreviewHelper
 │   │   │   ├── search_controller.go # enter/esc/tab (completion)
 │   │   │   ├── capture_controller.go # ctrl+s/esc/tab
 │   │   │   ├── pick_controller.go   # enter/esc/tab/ctrl+a
-│   │   │   └── input_popup_controller.go # enter/esc/tab
+│   │   │   ├── input_popup_controller.go # enter/esc/tab
+│   │   │   ├── palette_controller.go # enter/esc; mouse click on list
+│   │   │   ├── snippet_editor_controller.go # esc/tab; enter dispatched per view
+│   │   │   ├── calendar_controller.go # grid h/j/k/l, input enter/esc, notes j/k
+│   │   │   └── contrib_controller.go # grid h/j/k/l/enter, notes j/k
 │   │   │
 │   │   ├── helpers/                 # Domain operation helpers
-│   │   │   ├── helpers.go           # Helpers aggregator struct
-│   │   │   ├── helper_common.go     # HelperCommon (shared deps)
-│   │   │   ├── refresh_helper.go    # Selection-preserving refresh (ID-based)
-│   │   │   ├── notes_helper.go      # Edit/Delete/AddTag/RemoveTag/SetParent/Bookmark
+│   │   │   ├── helpers.go           # Helpers aggregator struct + accessors
+│   │   │   ├── helper_common.go     # HelperCommon, IGuiCommon interface for helpers
+│   │   │   ├── refresh_helper.go    # RefreshAll, RenderAll, selection-preserving refresh
+│   │   │   ├── notes_helper.go      # FetchNotesForCurrentTab, DeleteNote, tab switching
+│   │   │   ├── note_actions_helper.go # AddGlobalTag, RemoveTag, SetParent, Bookmark
+│   │   │   ├── tags_helper.go       # RefreshTags, tab switching
+│   │   │   ├── queries_helper.go    # RefreshQueries, RefreshParents
+│   │   │   ├── preview_helper.go    # Nav history, content reload, card mutations,
+│   │   │   │                        #   display toggles, line ops, links, info dialog
 │   │   │   ├── editor_helper.go     # SuspendAndEdit, editor command
 │   │   │   ├── confirmation_helper.go # Confirm/Menu/Prompt dialogs
 │   │   │   ├── search_helper.go     # ExecuteSearch, SaveQuery
-│   │   │   └── clipboard_helper.go  # CopyToClipboard
+│   │   │   ├── clipboard_helper.go  # CopyToClipboard
+│   │   │   └── view_helper.go       # ListClickIndex, ScrollViewport (used by controllers)
 │   │   │
 │   │   ├── gui.go                   # Gui struct, Run, context stack, setup*Context()
-│   │   ├── state.go                 # GuiState (cross-cutting: Dialog, NavHistory, stack)
+│   │   ├── gui_common.go            # IGuiCommon adapter methods on *Gui
+│   │   ├── state.go                 # GuiState (cross-cutting: Dialog, completion, stack)
 │   │   ├── views.go                 # View name constants
 │   │   ├── layout.go                # View creation and positioning
 │   │   ├── commands.go              # paletteOnlyCommands() + keybinding utilities
@@ -119,18 +139,17 @@ lazyruin/
 │   │   ├── statusbar.go             # Status bar rendering
 │   │   ├── colors.go                # Color/style constants
 │   │   │
-│   │   ├── handlers.go              # Search/refresh/help/focus handlers (legacy)
-│   │   ├── handlers_notes.go        # Notes panel handlers (legacy)
-│   │   ├── handlers_tags.go         # Tags panel handlers (legacy)
-│   │   ├── handlers_queries.go      # Queries panel handlers (legacy)
-│   │   ├── handlers_parents.go      # Parent bookmark handlers (legacy)
-│   │   ├── handlers_capture.go      # Capture (new note) handlers (legacy)
-│   │   ├── handlers_pick.go         # Pick popup handlers (legacy)
-│   │   ├── handlers_snippets.go     # Snippet editor handlers (legacy)
+│   │   ├── handlers.go              # Search/refresh/help/focus handlers
+│   │   ├── handlers_notes.go        # Notes tab-switch and data-load handlers
+│   │   ├── handlers_note_actions.go # Note action handlers (add tag, etc.)
+│   │   ├── handlers_tags.go         # Tags tab-switch and data-load handlers
+│   │   ├── handlers_parents.go      # Queries/Parents tab-switch and data-load handlers
+│   │   ├── handlers_capture.go      # Capture (new note) handlers
+│   │   ├── handlers_pick.go         # Pick popup handlers
+│   │   ├── handlers_snippets.go     # Snippet editor handlers
 │   │   ├── handlers_palette.go      # Command palette handlers
-│   │   ├── handlers_input_popup.go  # Generic input popup handlers (legacy)
+│   │   ├── handlers_input_popup.go  # Generic input popup handlers
 │   │   │
-│   │   ├── preview_controller.go    # Preview-specific handler methods (legacy)
 │   │   ├── calendar.go              # Calendar overlay handlers
 │   │   ├── contrib.go               # Contributions overlay handlers
 │   │   │
@@ -138,19 +157,19 @@ lazyruin/
 │   │   ├── completion_triggers.go   # Trigger definitions per context
 │   │   ├── completion_candidates.go # Candidate provider functions
 │   │   ├── render.go                # List rendering (notes, tags, queries)
-│   │   ├── render_preview.go        # Preview pane rendering
+│   │   ├── render_preview.go        # Preview pane rendering + buildCardContent
 │   │   └── dialogs.go               # Confirmation, menu, info dialogs
 │   │
 │   └── testutil/                    # Shared test helpers (MockExecutor)
 │
 ├── scripts/
-│   └── smoke-test.sh                # Automated TUI regression via tmux (49 assertions)
+│   └── smoke-test.sh                # Automated TUI regression via tmux
 │
 └── docs/
     ├── ARCHITECTURE.md              # This file
+    ├── ABSTRACTIONS.md              # Reusable abstraction patterns
     ├── KEYBINDINGS.md               # Complete keybinding reference
-    ├── UI_MOCKUPS.md                # Visual mockups and responsive layouts
-    └── REFACTOR_PLAN.md             # Controller refactor plan and progress
+    └── UI_MOCKUPS.md                # Visual mockups and responsive layouts
 ```
 
 ## Core Components
@@ -163,18 +182,26 @@ Each panel has a **Context** that owns its state and view identity. Contexts imp
 - `SIDE_CONTEXT` — Notes, Tags, Queries panels
 - `MAIN_CONTEXT` — Preview panel
 - `PERSISTENT_POPUP` — Search, Capture (can return to previous context)
-- `TEMPORARY_POPUP` — Pick, Palette, InputPopup (ephemeral overlays)
+- `TEMPORARY_POPUP` — Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib (ephemeral overlays)
 - `GLOBAL_CONTEXT` — Bindings that fire in any view (view name `""`)
 
 **Context stack** (`GuiState.ContextStack []ContextKey`) replaces the old overlay enum. `pushContext()` / `popContext()` manage the stack. `popupActive()` checks whether the top-of-stack is a popup kind.
 
 ```go
-// Context ownership example
+// Context ownership example — NotesContext owns list items, cursor, and tab
 type NotesContext struct {
     BaseContext
     *ListContextTrait
     Items      []models.Note
-    CurrentTab NotesTab
+    CurrentTab string
+}
+
+// PreviewContext embeds all preview state + navigation history
+type PreviewContext struct {
+    BaseContext
+    *PreviewState          // Cards, Mode, CursorLine, ScrollOffset, Links, etc.
+    NavHistory []NavEntry
+    NavIndex   int
 }
 ```
 
@@ -186,23 +213,42 @@ Controllers own keybindings and handlers. They implement `types.IController` and
 
 **Trait composition**: `ListControllerTrait[T]` provides shared j/k/g/G navigation, `withItem()` (selected-item guard), `singleItemSelected()` (disabled-reason producer), and `require()` (combining disabled reasons).
 
+**Thin controllers**: Controllers are keybinding shells that delegate to helpers. No business logic lives in controllers.
+
 ```go
-func (self *TagsController) GetKeybindingsFn() types.KeybindingsFn {
+// PreviewController delegates everything to PreviewHelper
+func (self *PreviewController) GetKeybindingsFn() types.KeybindingsFn {
     return func(opts types.KeybindingsOpts) []*types.Binding {
-        return append(
-            self.NavBindings(), // j/k/g/G from ListControllerTrait
-            &types.Binding{
-                Key:         gocui.KeyEnter,
-                Handler:     self.withItem(self.filterByTag),
-                Description: "Filter by Tag",
-                Category:    "Tags",
-            },
-        )
+        return []*types.Binding{
+            {Key: 'j', Handler: self.p().MoveDown},
+            {Key: 'd', Handler: self.p().DeleteCard, Description: "Delete Card"},
+            {Key: 't', Handler: self.addTag, Description: "Add Tag"},
+            // ...
+        }
     }
 }
 ```
 
-### 3. Keybinding Registration
+### 3. Helper Layer
+
+Helpers encapsulate domain operations. They access the GUI through an `IGuiCommon` interface (avoiding circular imports) and are injected into controllers via `IHelpers`.
+
+**Dependency injection chain**: `*Gui` satisfies both the helpers' and controllers' `IGuiCommon` interfaces via adapter methods in `gui_common.go`.
+
+| Helper | Responsibility |
+|--------|---------------|
+| `RefreshHelper` | `RefreshAll`, `RenderAll`, selection-preserving refresh by stable ID |
+| `NotesHelper` | `FetchNotesForCurrentTab`, `DeleteNote`, tab switching |
+| `NoteActionsHelper` | `AddGlobalTag`, `RemoveTag`, `SetParentDialog`, `ToggleBookmark` |
+| `TagsHelper` | `RefreshTags`, tab switching |
+| `QueriesHelper` | `RefreshQueries`, `RefreshParents` |
+| `PreviewHelper` | Nav history, content reload, card navigation, card mutations (delete/move/merge/order), display toggles, line operations (todo/done/inline tag/date), link handling, info dialog |
+| `EditorHelper` | Suspend and edit in `$EDITOR` |
+| `SearchHelper` | `ExecuteSearch`, `SaveQuery` |
+| `ConfirmationHelper` | Confirm/menu/prompt dialog wrappers |
+| `ClipboardHelper` | `CopyToClipboard` |
+
+### 4. Keybinding Registration
 
 `registerContextBindings()` iterates `gui.contexts.All()` and bridges controller bindings into gocui:
 
@@ -210,39 +256,48 @@ func (self *TagsController) GetKeybindingsFn() types.KeybindingsFn {
 - Popup context bindings are NOT suppressed during overlays; main/side panel bindings ARE
 - `DumpBindings()` produces a sorted, stable list for regression diffing (`--debug-bindings` flag)
 
-### 4. Palette System
+### 5. Palette System
 
-`paletteCommands()` aggregates:
-1. **Controller bindings** — any binding with a `Description` appears in the palette
-2. **`paletteOnlyCommands()`** — Tab switching, Snippets management (no controller home)
+The palette aggregates entries from two sources:
+1. **Controller bindings** — any `types.Binding` with a non-empty `Description` automatically appears in the palette with its key hint and category
+2. **`paletteOnlyCommands()`** (`commands.go`) — tab switching and snippet management commands with no keybinding (palette-only access)
 
-Global context bindings use `Contexts: nil` (always available). Other context bindings use `Contexts: []ContextKey{ctxKey}` (filtered by active context).
-
-### 5. Helper Layer
-
-Helpers encapsulate domain operations and are injected into controllers:
-
-- **`RefreshHelper`** — Preserves selection by stable ID (`GetSelectedItemId` + `FindIndexById`) across data refreshes, not raw index
-- **`NotesHelper`** — Edit, delete, tag, parent, bookmark operations
-- **`EditorHelper`** — Suspend and edit in `$EDITOR`
-- **`ConfirmationHelper`** — Confirm/menu/prompt dialogs
+`handlers_palette.go` merges both sources into the rendered palette list.
 
 ### 6. State Management
 
-`GuiState` holds only cross-cutting concerns:
+`GuiState` holds only cross-cutting concerns that don't belong to any single context:
 
 ```go
 type GuiState struct {
-    ContextStack []ContextKey  // focus management; replaces old OverlayType enum
+    ContextStack []ContextKey  // focus management
     Dialog       *DialogState  // confirmation/menu popups
-    NavHistory   []NavEntry    // preview navigation history
-    // ... search/capture/pick/palette/calendar state during hybrid period
+    SearchQuery  string        // active search filter
+    // ... completion state for search/capture/pick/palette/snippet
+    // ... calendar/contrib overlay state
 }
 ```
 
-Panel-specific state (items, cursor, tab) lives in the respective context struct.
+Panel-specific state lives in the respective context struct:
+- Notes items/cursor/tab → `NotesContext`
+- Tags items/cursor/tab → `TagsContext`
+- Queries/Parents items/cursor/tab → `QueriesContext`
+- Preview cards/mode/cursor/scroll/links/nav history → `PreviewContext`
 
-### 7. Commands Layer
+### 7. Interface Boundaries
+
+Two separate `IGuiCommon` interfaces prevent circular imports:
+
+- **`helpers.IGuiCommon`** — rich interface with rendering, refresh, dialogs, context access, view access, search/preview/completion methods. Satisfied by `*Gui` adapter methods.
+- **`controllers.IGuiCommon`** — minimal interface with context navigation, view access, render, refresh. Controllers access domain logic through `IHelpers`, not through IGuiCommon.
+
+```
+Controllers ──→ IHelpers ──→ Helpers ──→ IGuiCommon ──→ *Gui
+     │                                                    │
+     └──→ controllers.IGuiCommon ─────────────────────────┘
+```
+
+### 8. Commands Layer
 
 Wraps ruin CLI with typed Go interfaces. All commands use `--json` output:
 
@@ -272,7 +327,7 @@ User presses Enter → executeSearch()
          │
 ruinCmd.Search.Search(query) → ruin search "<q>" --json
          │
-Parse JSON → []models.Note → state.Preview.Cards
+Parse JSON → []models.Note → PreviewContext.Cards
          │
 renderPreview() → replaceContext(PreviewContext)
 ```
@@ -280,7 +335,7 @@ renderPreview() → replaceContext(PreviewContext)
 ### Selection Preservation on Refresh
 
 ```
-refreshTags(preserve=true)
+RefreshTags(preserve=true)
     │
 prevID = tagsCtx.GetSelectedItemId()  ← stable UUID
     │
@@ -300,6 +355,6 @@ if newIdx >= 0 → tagsCtx.SetSelectedLineIdx(newIdx)
 ## Testing
 
 - `go test ./...` — unit tests across all packages
-- `scripts/smoke-test.sh` — 49 tmux-driven TUI assertions (build with `go build -o /tmp/lazyruin-test`)
+- `scripts/smoke-test.sh` — tmux-driven TUI assertions (build with `go build -o /tmp/lazyruin-test`)
 - `./lazyruin --debug-bindings` — dump all registered controller bindings for regression diffing
 - `testutil.MockExecutor` — fluent mock for CLI command testing without a real `ruin` binary
