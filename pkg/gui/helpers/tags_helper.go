@@ -90,8 +90,8 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.PreviewPushNavHistory()
-	gui.SetPreviewCards(notes, 0, " Tag: #"+tag.Name+" ")
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(" Tag: #"+tag.Name+" ", notes)
 	gui.PushContextByKey("preview")
 	return nil
 }
@@ -105,7 +105,7 @@ func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.SetPreviewPickResults(results, 0, 1, 0, " Pick: #"+tag.Name+" ")
+	self.c.Helpers().Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
 	gui.PushContextByKey("preview")
 	return nil
 }
@@ -126,8 +126,8 @@ func (self *TagsHelper) RenameTag(tag *models.Tag) error {
 			gui.ShowError(err)
 			return nil
 		}
-		gui.RefreshTags(false)
-		gui.RefreshNotes(false)
+		self.c.Helpers().Tags().RefreshTags(false)
+		self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
 		return nil
 	})
 	return nil
@@ -146,8 +146,8 @@ func (self *TagsHelper) DeleteTag(tag *models.Tag) error {
 			gui.ShowError(err)
 			return nil
 		}
-		gui.RefreshTags(false)
-		gui.RefreshNotes(false)
+		self.c.Helpers().Tags().RefreshTags(false)
+		self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
 		return nil
 	})
 	return nil
@@ -167,18 +167,17 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 		return
 	}
 
-	gui.PreviewUpdatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
+	self.c.Helpers().Preview().UpdatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
 		return self.c.RuinCmd().Search.Search(tag.Name, gui.BuildSearchOptions())
 	})
 }
 
 // UpdatePreviewPickResults runs a pick for the given tag and shows results in preview.
 func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
-	gui := self.c.GuiCommon()
 	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, false, "")
 	if err != nil {
 		return
 	}
 
-	gui.SetPreviewPickResults(results, 0, 1, 0, " Pick: #"+tag.Name+" ")
+	self.c.Helpers().Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
 }

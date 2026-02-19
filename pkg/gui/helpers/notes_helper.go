@@ -70,7 +70,7 @@ func (self *NotesHelper) FetchNotesForCurrentTab(preserve bool) {
 // resets selection, renders the list, and updates the preview.
 func (self *NotesHelper) LoadNotesForCurrentTab() {
 	self.FetchNotesForCurrentTab(false)
-	self.c.GuiCommon().PreviewUpdatePreviewForNotes()
+	self.c.Helpers().Preview().UpdatePreviewForNotes()
 }
 
 // CycleNotesTab cycles through All -> Today -> Recent tabs.
@@ -107,7 +107,7 @@ func (self *NotesHelper) DeleteNote(note *models.Note) error {
 	}
 	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
 		func() error { return self.c.RuinCmd().Note.Delete(note.UUID) },
-		func() { self.c.GuiCommon().RefreshNotes(false) },
+		func() { self.c.Helpers().Notes().FetchNotesForCurrentTab(false) },
 	)
 	return nil
 }

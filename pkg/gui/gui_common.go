@@ -3,7 +3,6 @@ package gui
 import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -78,7 +77,8 @@ func (gui *Gui) OpenInputPopup(config *types.InputPopupConfig) {
 	gui.helpers.InputPopup().OpenInputPopup(config)
 }
 
-// Refresh — delegates to domain helpers.
+// Refresh — convenience methods on *Gui for startup/background refresh.
+// Not part of IGuiCommon; helpers call through Helpers() directly.
 func (gui *Gui) RefreshNotes(preserve bool)   { gui.helpers.Notes().FetchNotesForCurrentTab(preserve) }
 func (gui *Gui) RefreshTags(preserve bool)    { gui.helpers.Tags().RefreshTags(preserve) }
 func (gui *Gui) RefreshQueries(preserve bool) { gui.helpers.Queries().RefreshQueries(preserve) }
@@ -102,23 +102,6 @@ func (gui *Gui) SetCursorEnabled(enabled bool) {
 }
 func (gui *Gui) AmbientDateCandidates() func(string) []types.CompletionItem {
 	return ambientDateCandidates
-}
-
-// Preview — delegates to preview helpers.
-func (gui *Gui) PreviewPushNavHistory()        { gui.helpers.PreviewNav().PushNavHistory() }
-func (gui *Gui) PreviewReloadContent()         { gui.helpers.Preview().ReloadContent() }
-func (gui *Gui) PreviewUpdatePreviewForNotes() { gui.helpers.Preview().UpdatePreviewForNotes() }
-func (gui *Gui) PreviewUpdatePreviewCardList(title string, fetch func() ([]models.Note, error)) {
-	gui.helpers.Preview().UpdatePreviewCardList(title, fetch)
-}
-func (gui *Gui) PreviewCurrentCard() *models.Note {
-	return gui.helpers.Preview().CurrentPreviewCard()
-}
-func (gui *Gui) SetPreviewCards(cards []models.Note, selectedIdx int, title string) {
-	gui.helpers.Preview().ShowCardList(title, cards)
-}
-func (gui *Gui) SetPreviewPickResults(results []models.PickResult, selectedIdx int, cursorLine int, scrollOffset int, title string) {
-	gui.helpers.Preview().ShowPickResults(title, results)
 }
 
 // Dialogs (menu)

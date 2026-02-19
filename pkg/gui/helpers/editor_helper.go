@@ -41,10 +41,10 @@ func (self *EditorHelper) OpenInEditor(path string) error {
 		return err
 	}
 
-	gui.RefreshTags(false)
-	gui.RefreshQueries(false)
-	gui.RefreshParents(false)
-	gui.PreviewReloadContent()
+	self.c.Helpers().Tags().RefreshTags(false)
+	self.c.Helpers().Queries().RefreshQueries(false)
+	self.c.Helpers().Queries().RefreshParents(false)
+	self.c.Helpers().Preview().ReloadContent()
 	gui.RenderAll()
 	return nil
 }

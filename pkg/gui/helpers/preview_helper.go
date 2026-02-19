@@ -99,7 +99,7 @@ func (self *PreviewHelper) ShowPickResults(title string, results []models.PickRe
 // ReloadContent reloads notes and preview cards with current toggle settings.
 func (self *PreviewHelper) ReloadContent() {
 	gui := self.c.GuiCommon()
-	gui.RefreshNotes(true)
+	self.c.Helpers().Notes().FetchNotesForCurrentTab(true)
 
 	pc := self.ctx()
 	if len(pc.Cards) > 0 {

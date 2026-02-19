@@ -14,13 +14,9 @@ type GlobalController struct {
 	getContext func() *context.GlobalContext
 
 	// Callbacks for actions not yet migrated to helpers.
-	onQuit     func() error
-	onPick     func() error
-	onNewNote  func() error
-	onHelp     func() error
-	onPalette  func() error
-	onCalendar func() error
-	onContrib  func() error
+	onQuit    func() error
+	onHelp    func() error
+	onPalette func() error
 }
 
 var _ types.IController = &GlobalController{}
@@ -30,13 +26,9 @@ type GlobalControllerOpts struct {
 	Common     *ControllerCommon
 	GetContext func() *context.GlobalContext
 	// Callbacks for actions not yet migrated to helpers.
-	OnQuit     func() error
-	OnPick     func() error
-	OnNewNote  func() error
-	OnHelp     func() error
-	OnPalette  func() error
-	OnCalendar func() error
-	OnContrib  func() error
+	OnQuit    func() error
+	OnHelp    func() error
+	OnPalette func() error
 }
 
 // NewGlobalController creates a GlobalController.
@@ -45,12 +37,8 @@ func NewGlobalController(opts GlobalControllerOpts) *GlobalController {
 		c:          opts.Common,
 		getContext: opts.GetContext,
 		onQuit:     opts.OnQuit,
-		onPick:     opts.OnPick,
-		onNewNote:  opts.OnNewNote,
 		onHelp:     opts.OnHelp,
 		onPalette:  opts.OnPalette,
-		onCalendar: opts.OnCalendar,
-		onContrib:  opts.OnContrib,
 	}
 }
 
@@ -161,8 +149,24 @@ func (self *GlobalController) openSearch() error {
 	return self.c.Helpers().Search().OpenSearch()
 }
 
+func (self *GlobalController) openPick() error {
+	return self.c.Helpers().Pick().OpenPick()
+}
+
+func (self *GlobalController) newNote() error {
+	return self.c.Helpers().Capture().OpenCapture()
+}
+
+func (self *GlobalController) openCalendar() error {
+	return self.c.Helpers().Calendar().Open()
+}
+
+func (self *GlobalController) openContrib() error {
+	return self.c.Helpers().Contrib().Open()
+}
+
 func (self *GlobalController) refresh() error {
-	self.c.GuiCommon().RefreshAll()
+	self.c.Helpers().Refresh().RefreshAll()
 	return nil
 }
 
@@ -179,14 +183,14 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 
 		// Core actions
 		{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global"},
-		{ID: "global.pick", Key: 'p', Handler: self.onPick, Description: "Pick", Category: "Global"},
-		{Key: '\\', Handler: self.onPick},
-		{ID: "global.new_note", Key: 'n', Handler: self.onNewNote, Description: "New Note", Category: "Global"},
+		{ID: "global.pick", Key: 'p', Handler: self.openPick, Description: "Pick", Category: "Global"},
+		{Key: '\\', Handler: self.openPick},
+		{ID: "global.new_note", Key: 'n', Handler: self.newNote, Description: "New Note", Category: "Global"},
 		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
 		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global"},
 		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
-		{ID: "global.calendar", Key: 'c', Handler: self.onCalendar, Description: "Calendar", Category: "Global"},
-		{ID: "global.contrib", Key: 'C', Handler: self.onContrib, Description: "Contributions", Category: "Global"},
+		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
+		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},
 
 		// Focus shortcuts
 		{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},

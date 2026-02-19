@@ -41,7 +41,7 @@ func (self *PreviewMutationsHelper) DeleteCard() error {
 			if pc.SelectedCardIndex >= len(pc.Cards) && pc.SelectedCardIndex > 0 {
 				pc.SelectedCardIndex--
 			}
-			gui.RefreshNotes(false)
+			self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
 			gui.RenderPreview()
 		},
 	)
@@ -146,9 +146,8 @@ func (self *PreviewMutationsHelper) executeMerge(direction string) error {
 		pc.SelectedCardIndex = 0
 	}
 
-	gui := self.c.GuiCommon()
-	gui.RefreshNotes(false)
-	gui.RenderPreview()
+	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.GuiCommon().RenderPreview()
 	return nil
 }
 

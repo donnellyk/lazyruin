@@ -30,6 +30,8 @@ type IHelpers interface {
 	Pick() *helpers.PickHelper
 	InputPopup() *helpers.InputPopupHelper
 	Snippet() *helpers.SnippetHelper
+	Calendar() *helpers.CalendarHelper
+	Contrib() *helpers.ContribHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.

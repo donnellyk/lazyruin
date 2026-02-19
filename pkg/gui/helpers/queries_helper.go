@@ -95,10 +95,10 @@ func (self *QueriesHelper) LoadDataForQueriesTab() {
 	gui.UpdateQueriesTab()
 	switch gui.Contexts().Queries.CurrentTab {
 	case context.QueriesTabParents:
-		gui.RefreshParents(false)
+		self.RefreshParents(false)
 		self.UpdatePreviewForParents()
 	default:
-		gui.RefreshQueries(false)
+		self.RefreshQueries(false)
 		self.UpdatePreviewForQueries()
 	}
 }
@@ -121,8 +121,8 @@ func (self *QueriesHelper) RunQuery() error {
 		return nil
 	}
 
-	gui.PreviewPushNavHistory()
-	gui.SetPreviewCards(notes, 0, " Query: "+query.Name+" ")
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(" Query: "+query.Name+" ", notes)
 	gui.PushContextByKey("preview")
 	return nil
 }
@@ -141,7 +141,7 @@ func (self *QueriesHelper) DeleteQuery() error {
 
 	self.c.Helpers().Confirmation().ConfirmDelete("Query", query.Name,
 		func() error { return self.c.RuinCmd().Queries.Delete(query.Name) },
-		func() { gui.RefreshQueries(false) },
+		func() { self.RefreshQueries(false) },
 	)
 	return nil
 }
@@ -175,7 +175,7 @@ func (self *QueriesHelper) DeleteParent() error {
 
 	self.c.Helpers().Confirmation().ConfirmDelete("Parent", parent.Name,
 		func() error { return self.c.RuinCmd().Parent.Delete(parent.Name) },
-		func() { gui.RefreshParents(false) },
+		func() { self.RefreshParents(false) },
 	)
 	return nil
 }
@@ -193,7 +193,7 @@ func (self *QueriesHelper) UpdatePreviewForQueries() {
 		return
 	}
 
-	gui.PreviewUpdatePreviewCardList(" Query: "+query.Name+" ", func() ([]models.Note, error) {
+	self.c.Helpers().Preview().UpdatePreviewCardList(" Query: "+query.Name+" ", func() ([]models.Note, error) {
 		return self.c.RuinCmd().Queries.Run(query.Name, gui.BuildSearchOptions())
 	})
 }
@@ -216,7 +216,6 @@ func (self *QueriesHelper) UpdatePreviewForParents() {
 
 // ShowComposedNote puts a single composed note into the preview as a one-card card list.
 func (self *QueriesHelper) ShowComposedNote(note models.Note, label string) {
-	gui := self.c.GuiCommon()
-	gui.PreviewPushNavHistory()
-	gui.SetPreviewCards([]models.Note{note}, 0, " Parent: "+label+" ")
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(" Parent: "+label+" ", []models.Note{note})
 }

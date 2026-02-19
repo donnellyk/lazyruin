@@ -21,6 +21,8 @@ type Helpers struct {
 	pick             *PickHelper
 	inputPopup       *InputPopupHelper
 	snippet          *SnippetHelper
+	calendar         *CalendarHelper
+	contrib          *ContribHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -45,6 +47,8 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		pick:             NewPickHelper(common),
 		inputPopup:       NewInputPopupHelper(common),
 		snippet:          NewSnippetHelper(common),
+		calendar:         NewCalendarHelper(common),
+		contrib:          NewContribHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -71,3 +75,5 @@ func (h *Helpers) Capture() *CaptureHelper                   { return h.capture 
 func (h *Helpers) Pick() *PickHelper                         { return h.pick }
 func (h *Helpers) InputPopup() *InputPopupHelper             { return h.inputPopup }
 func (h *Helpers) Snippet() *SnippetHelper                   { return h.snippet }
+func (h *Helpers) Calendar() *CalendarHelper                 { return h.calendar }
+func (h *Helpers) Contrib() *ContribHelper                   { return h.contrib }

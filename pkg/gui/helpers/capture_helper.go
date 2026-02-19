@@ -57,8 +57,8 @@ func (self *CaptureHelper) SubmitCapture(content string, quickCapture bool) erro
 	}
 
 	self.CloseCapture()
-	gui.RefreshNotes(false)
-	gui.RefreshTags(false)
+	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }
 

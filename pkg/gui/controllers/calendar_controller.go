@@ -9,68 +9,23 @@ import (
 // CalendarController handles keybindings for the calendar dialog popup.
 type CalendarController struct {
 	baseController
-	getContext   func() *context.CalendarContext
-	onGridLeft   func() error
-	onGridRight  func() error
-	onGridUp     func() error
-	onGridDown   func() error
-	onGridEnter  func() error
-	onEsc        func() error // calendarGrid and calendarNotes
-	onTab        func() error // all views
-	onBacktab    func() error // calendarGrid and calendarInput
-	onFocusInput func() error // calendarGrid and calendarNotes '/'
-	onGridClick  func() error
-	onInputEnter func() error
-	onInputEsc   func() error
-	onInputClick func() error
-	onNoteDown   func() error
-	onNoteUp     func() error
-	onNoteEnter  func() error
+	c          *ControllerCommon
+	getContext func() *context.CalendarContext
 }
 
 var _ types.IController = &CalendarController{}
 
-// CalendarControllerOpts holds the callbacks injected during wiring.
+// CalendarControllerOpts holds the dependencies for CalendarController.
 type CalendarControllerOpts struct {
-	GetContext   func() *context.CalendarContext
-	OnGridLeft   func() error
-	OnGridRight  func() error
-	OnGridUp     func() error
-	OnGridDown   func() error
-	OnGridEnter  func() error
-	OnEsc        func() error
-	OnTab        func() error
-	OnBacktab    func() error
-	OnFocusInput func() error
-	OnGridClick  func() error
-	OnInputEnter func() error
-	OnInputEsc   func() error
-	OnInputClick func() error
-	OnNoteDown   func() error
-	OnNoteUp     func() error
-	OnNoteEnter  func() error
+	Common     *ControllerCommon
+	GetContext func() *context.CalendarContext
 }
 
 // NewCalendarController creates a CalendarController.
 func NewCalendarController(opts CalendarControllerOpts) *CalendarController {
 	return &CalendarController{
-		getContext:   opts.GetContext,
-		onGridLeft:   opts.OnGridLeft,
-		onGridRight:  opts.OnGridRight,
-		onGridUp:     opts.OnGridUp,
-		onGridDown:   opts.OnGridDown,
-		onGridEnter:  opts.OnGridEnter,
-		onEsc:        opts.OnEsc,
-		onTab:        opts.OnTab,
-		onBacktab:    opts.OnBacktab,
-		onFocusInput: opts.OnFocusInput,
-		onGridClick:  opts.OnGridClick,
-		onInputEnter: opts.OnInputEnter,
-		onInputEsc:   opts.OnInputEsc,
-		onInputClick: opts.OnInputClick,
-		onNoteDown:   opts.OnNoteDown,
-		onNoteUp:     opts.OnNoteUp,
-		onNoteEnter:  opts.OnNoteEnter,
+		c:          opts.Common,
+		getContext: opts.GetContext,
 	}
 }
 
@@ -79,41 +34,52 @@ func (self *CalendarController) Context() types.Context {
 	return self.getContext()
 }
 
+func (self *CalendarController) gridLeft() error  { self.c.Helpers().Calendar().MoveDay(-1); return nil }
+func (self *CalendarController) gridRight() error { self.c.Helpers().Calendar().MoveDay(1); return nil }
+func (self *CalendarController) gridUp() error    { self.c.Helpers().Calendar().MoveDay(-7); return nil }
+func (self *CalendarController) gridDown() error  { self.c.Helpers().Calendar().MoveDay(7); return nil }
+
+func (self *CalendarController) close() error {
+	self.c.Helpers().Calendar().Close()
+	return nil
+}
+
 // GetKeybindings returns keybindings for the calendar dialog.
 func (self *CalendarController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	cal := func() *CalendarController { return self }
 	gv := "calendarGrid"
 	iv := "calendarInput"
 	nv := "calendarNotes"
 	return []*types.Binding{
 		// Grid navigation
-		{ViewName: gv, Key: 'h', Handler: self.onGridLeft},
-		{ViewName: gv, Key: 'l', Handler: self.onGridRight},
-		{ViewName: gv, Key: 'k', Handler: self.onGridUp},
-		{ViewName: gv, Key: 'j', Handler: self.onGridDown},
-		{ViewName: gv, Key: gocui.KeyArrowLeft, Handler: self.onGridLeft},
-		{ViewName: gv, Key: gocui.KeyArrowRight, Handler: self.onGridRight},
-		{ViewName: gv, Key: gocui.KeyArrowUp, Handler: self.onGridUp},
-		{ViewName: gv, Key: gocui.KeyArrowDown, Handler: self.onGridDown},
-		{ViewName: gv, Key: gocui.KeyEnter, Handler: self.onGridEnter},
-		{ViewName: gv, Key: gocui.KeyEsc, Handler: self.onEsc},
-		{ViewName: gv, Key: gocui.KeyTab, Handler: self.onTab},
-		{ViewName: gv, Key: gocui.KeyBacktab, Handler: self.onBacktab},
-		{ViewName: gv, Key: '/', Handler: self.onFocusInput},
+		{ViewName: gv, Key: 'h', Handler: cal().gridLeft},
+		{ViewName: gv, Key: 'l', Handler: cal().gridRight},
+		{ViewName: gv, Key: 'k', Handler: cal().gridUp},
+		{ViewName: gv, Key: 'j', Handler: cal().gridDown},
+		{ViewName: gv, Key: gocui.KeyArrowLeft, Handler: cal().gridLeft},
+		{ViewName: gv, Key: gocui.KeyArrowRight, Handler: cal().gridRight},
+		{ViewName: gv, Key: gocui.KeyArrowUp, Handler: cal().gridUp},
+		{ViewName: gv, Key: gocui.KeyArrowDown, Handler: cal().gridDown},
+		{ViewName: gv, Key: gocui.KeyEnter, Handler: self.c.Helpers().Calendar().GridEnter},
+		{ViewName: gv, Key: gocui.KeyEsc, Handler: cal().close},
+		{ViewName: gv, Key: gocui.KeyTab, Handler: self.c.Helpers().Calendar().Tab},
+		{ViewName: gv, Key: gocui.KeyBacktab, Handler: self.c.Helpers().Calendar().Backtab},
+		{ViewName: gv, Key: '/', Handler: self.c.Helpers().Calendar().FocusInput},
 		// Input view
-		{ViewName: iv, Key: gocui.KeyEnter, Handler: self.onInputEnter},
-		{ViewName: iv, Key: gocui.KeyEsc, Handler: self.onInputEsc},
-		{ViewName: iv, Key: gocui.KeyTab, Handler: self.onTab},
-		{ViewName: iv, Key: gocui.KeyBacktab, Handler: self.onBacktab},
+		{ViewName: iv, Key: gocui.KeyEnter, Handler: self.c.Helpers().Calendar().InputEnter},
+		{ViewName: iv, Key: gocui.KeyEsc, Handler: self.c.Helpers().Calendar().InputEsc},
+		{ViewName: iv, Key: gocui.KeyTab, Handler: self.c.Helpers().Calendar().Tab},
+		{ViewName: iv, Key: gocui.KeyBacktab, Handler: self.c.Helpers().Calendar().Backtab},
 		// Note list navigation
-		{ViewName: nv, Key: 'j', Handler: self.onNoteDown},
-		{ViewName: nv, Key: 'k', Handler: self.onNoteUp},
-		{ViewName: nv, Key: gocui.KeyArrowDown, Handler: self.onNoteDown},
-		{ViewName: nv, Key: gocui.KeyArrowUp, Handler: self.onNoteUp},
-		{ViewName: nv, Key: gocui.KeyEnter, Handler: self.onNoteEnter},
-		{ViewName: nv, Key: gocui.KeyEsc, Handler: self.onEsc},
-		{ViewName: nv, Key: gocui.KeyTab, Handler: self.onTab},
-		{ViewName: nv, Key: gocui.KeyBacktab, Handler: self.onBacktab},
-		{ViewName: nv, Key: '/', Handler: self.onFocusInput},
+		{ViewName: nv, Key: 'j', Handler: self.c.Helpers().Calendar().NoteDown},
+		{ViewName: nv, Key: 'k', Handler: self.c.Helpers().Calendar().NoteUp},
+		{ViewName: nv, Key: gocui.KeyArrowDown, Handler: self.c.Helpers().Calendar().NoteDown},
+		{ViewName: nv, Key: gocui.KeyArrowUp, Handler: self.c.Helpers().Calendar().NoteUp},
+		{ViewName: nv, Key: gocui.KeyEnter, Handler: self.c.Helpers().Calendar().NoteEnter},
+		{ViewName: nv, Key: gocui.KeyEsc, Handler: cal().close},
+		{ViewName: nv, Key: gocui.KeyTab, Handler: self.c.Helpers().Calendar().Tab},
+		{ViewName: nv, Key: gocui.KeyBacktab, Handler: self.c.Helpers().Calendar().Backtab},
+		{ViewName: nv, Key: '/', Handler: self.c.Helpers().Calendar().FocusInput},
 	}
 }
 
@@ -124,14 +90,14 @@ func (self *CalendarController) GetMouseKeybindings(opts types.KeybindingsOpts) 
 			ViewName: "calendarGrid",
 			Key:      gocui.MouseLeft,
 			Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-				return self.onGridClick()
+				return self.c.Helpers().Calendar().GridClick()
 			},
 		},
 		{
 			ViewName: "calendarInput",
 			Key:      gocui.MouseLeft,
 			Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-				return self.onInputClick()
+				return self.c.Helpers().Calendar().InputClick()
 			},
 		},
 	}

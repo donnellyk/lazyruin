@@ -4,23 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
-
-// fetchNotesForDate fetches notes created on the given date (YYYY-MM-DD format).
-func (gui *Gui) fetchNotesForDate(date string) []models.Note {
-	notes, err := gui.ruinCmd.Search.Search("created:"+date, commands.SearchOptions{
-		Sort:  "created",
-		Limit: 100,
-	})
-	if err != nil {
-		return nil
-	}
-	return notes
-}
 
 // renderDateNoteList renders a note list into a gocui view using the standard
 // 3-line format (title, snippet, date+tags) with selection highlighting.

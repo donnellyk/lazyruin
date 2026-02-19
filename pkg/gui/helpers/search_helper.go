@@ -51,8 +51,8 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 	gui.SetSearchCompletion(types.NewCompletionState())
 	gui.SetCursorEnabled(false)
 
-	gui.PreviewPushNavHistory()
-	gui.SetPreviewCards(notes, 0, " Search: "+query+" ")
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(" Search: "+query+" ", notes)
 	gui.ReplaceContextByKey("preview")
 	return true
 }
@@ -85,7 +85,7 @@ func (self *SearchHelper) FocusSearchFilter() error {
 		opts.Sort = sort
 		notes, err := self.c.RuinCmd().Search.Search(query, opts)
 		if err == nil {
-			gui.SetPreviewCards(notes, 0, " Search: "+sq+" ")
+			self.c.Helpers().Preview().ShowCardList(" Search: "+sq+" ", notes)
 		}
 		gui.PushContextByKey("searchFilter")
 	}

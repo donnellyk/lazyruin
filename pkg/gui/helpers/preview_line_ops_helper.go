@@ -176,7 +176,7 @@ func (self *PreviewLineOpsHelper) AppendDone() error {
 	}
 
 	self.c.Helpers().Preview().ReloadContent()
-	self.c.GuiCommon().RefreshTags(false)
+	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }
 
@@ -242,7 +242,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 				}
 			}
 			self.c.Helpers().Preview().ReloadContent()
-			gui.RefreshTags(false)
+			self.c.Helpers().Tags().RefreshTags(false)
 			return nil
 		},
 	})

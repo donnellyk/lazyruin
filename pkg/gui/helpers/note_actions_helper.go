@@ -19,7 +19,7 @@ func NewNoteActionsHelper(c *HelperCommon) *NoteActionsHelper {
 // AddGlobalTag opens the input popup to add a global tag to the current preview card.
 func (self *NoteActionsHelper) AddGlobalTag() error {
 	gui := self.c.GuiCommon()
-	card := gui.PreviewCurrentCard()
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -44,8 +44,8 @@ func (self *NoteActionsHelper) AddGlobalTag() error {
 				gui.ShowError(err)
 				return nil
 			}
-			gui.PreviewReloadContent()
-			gui.RefreshTags(false)
+			self.c.Helpers().Preview().ReloadContent()
+			self.c.Helpers().Tags().RefreshTags(false)
 			return nil
 		},
 	})
@@ -55,7 +55,7 @@ func (self *NoteActionsHelper) AddGlobalTag() error {
 // RemoveTag opens the input popup showing only the current card's tags for removal.
 func (self *NoteActionsHelper) RemoveTag() error {
 	gui := self.c.GuiCommon()
-	card := gui.PreviewCurrentCard()
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -84,8 +84,8 @@ func (self *NoteActionsHelper) RemoveTag() error {
 				gui.ShowError(err)
 				return nil
 			}
-			gui.PreviewReloadContent()
-			gui.RefreshTags(false)
+			self.c.Helpers().Preview().ReloadContent()
+			self.c.Helpers().Tags().RefreshTags(false)
 			return nil
 		},
 	})
@@ -95,7 +95,7 @@ func (self *NoteActionsHelper) RemoveTag() error {
 // SetParentDialog opens the input popup with > / >> parent completion.
 func (self *NoteActionsHelper) SetParentDialog() error {
 	gui := self.c.GuiCommon()
-	card := gui.PreviewCurrentCard()
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (self *NoteActionsHelper) SetParentDialog() error {
 		Seed:   ">",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{
-				{Prefix: ">", Candidates: gui.ParentCandidatesFor(gui.GetInputPopupCompletion())},
+				{Prefix: ">", Candidates: gui.ParentCandidatesFor(gui.Contexts().InputPopup.Completion)},
 			}
 		},
 		OnAccept: func(raw string, item *types.CompletionItem) error {
@@ -125,7 +125,7 @@ func (self *NoteActionsHelper) SetParentDialog() error {
 				gui.ShowError(err)
 				return nil
 			}
-			gui.PreviewReloadContent()
+			self.c.Helpers().Preview().ReloadContent()
 			return nil
 		},
 	})
@@ -135,7 +135,7 @@ func (self *NoteActionsHelper) SetParentDialog() error {
 // RemoveParent removes the parent from the current card.
 func (self *NoteActionsHelper) RemoveParent() error {
 	gui := self.c.GuiCommon()
-	card := gui.PreviewCurrentCard()
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -144,14 +144,14 @@ func (self *NoteActionsHelper) RemoveParent() error {
 		gui.ShowError(err)
 		return nil
 	}
-	gui.PreviewReloadContent()
+	self.c.Helpers().Preview().ReloadContent()
 	return nil
 }
 
 // ToggleBookmark toggles a parent bookmark for the current card.
 func (self *NoteActionsHelper) ToggleBookmark() error {
 	gui := self.c.GuiCommon()
-	card := gui.PreviewCurrentCard()
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
 		return nil
 	}
@@ -162,7 +162,7 @@ func (self *NoteActionsHelper) ToggleBookmark() error {
 			if bm.UUID == card.UUID {
 				// Remove existing bookmark
 				self.c.RuinCmd().Parent.Delete(bm.Name)
-				gui.RefreshParents(false)
+				self.c.Helpers().Queries().RefreshParents(false)
 				return nil
 			}
 		}
@@ -186,7 +186,7 @@ func (self *NoteActionsHelper) ToggleBookmark() error {
 				gui.ShowError(err)
 				return nil
 			}
-			gui.RefreshParents(false)
+			self.c.Helpers().Queries().RefreshParents(false)
 			return nil
 		},
 	})

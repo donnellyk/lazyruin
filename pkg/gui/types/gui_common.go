@@ -45,16 +45,6 @@ type IGuiCommon interface {
 	OpenInputPopup(config *InputPopupConfig)
 	ShowMenuDialog(title string, items []MenuItem)
 
-	// Refresh
-	RefreshNotes(preserve bool)
-	RefreshTags(preserve bool)
-	RefreshQueries(preserve bool)
-	RefreshParents(preserve bool)
-	RefreshAll()
-
-	// State access
-	GetInputPopupCompletion() *CompletionState
-
 	// Search
 	BuildSearchOptions() commands.SearchOptions
 	SetSearchQuery(query string)
@@ -62,15 +52,6 @@ type IGuiCommon interface {
 	SetSearchCompletion(state *CompletionState)
 	SetCursorEnabled(enabled bool)
 	AmbientDateCandidates() func(string) []CompletionItem
-
-	// Preview
-	PreviewPushNavHistory()
-	PreviewReloadContent()
-	PreviewUpdatePreviewForNotes()
-	PreviewUpdatePreviewCardList(title string, fetch func() ([]models.Note, error))
-	PreviewCurrentCard() *models.Note
-	SetPreviewCards(cards []models.Note, selectedIdx int, title string)
-	SetPreviewPickResults(results []models.PickResult, selectedIdx int, cursorLine int, scrollOffset int, title string)
 
 	// Completion candidates
 	TagCandidates(filter string) []CompletionItem

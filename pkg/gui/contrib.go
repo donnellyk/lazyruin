@@ -5,83 +5,15 @@ import (
 	"strings"
 	"time"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/models"
-
 	"github.com/jesseduffield/gocui"
 )
-
-// openContrib opens the contribution chart dialog.
-func (gui *Gui) openContrib(g *gocui.Gui, v *gocui.View) error {
-	if gui.popupActive() {
-		return nil
-	}
-
-	now := time.Now()
-	if gui.contexts.Contrib.State == nil {
-		gui.contexts.Contrib.State = &context.ContribState{
-			SelectedDate: now.Format("2006-01-02"),
-		}
-	}
-
-	gui.contribLoadData()
-	gui.contribRefreshNotes()
-	gui.pushContextByKey("contribGrid")
-	return nil
-}
-
-// closeContrib closes the contribution chart dialog.
-func (gui *Gui) closeContrib() {
-	gui.g.DeleteView(ContribGridView)
-	gui.g.DeleteView(ContribNotesView)
-	gui.popContext()
-}
-
-// contribLoadData loads note counts for the past year.
-func (gui *Gui) contribLoadData() {
-	now := time.Now()
-	start := now.AddDate(-1, 0, 0)
-	query := fmt.Sprintf("between:%s,%s", start.Format("2006-01-02"), now.Format("2006-01-02"))
-
-	notes, err := gui.ruinCmd.Search.Search(query, commands.SearchOptions{
-		Limit: 5000,
-	})
-	if err != nil {
-		gui.contexts.Contrib.State.DayCounts = make(map[string]int)
-		return
-	}
-
-	counts := make(map[string]int)
-	for _, n := range notes {
-		day := n.Created.Format("2006-01-02")
-		counts[day]++
-	}
-	gui.contexts.Contrib.State.DayCounts = counts
-}
-
-// contribRefreshNotes fetches notes for the selected date.
-func (gui *Gui) contribRefreshNotes() {
-	s := gui.contexts.Contrib.State
-	s.Notes = gui.fetchNotesForDate(s.SelectedDate)
-	s.NoteIndex = 0
-}
-
-// contribMoveDay moves the selected date by delta days.
-func (gui *Gui) contribMoveDay(delta int) {
-	s := gui.contexts.Contrib.State
-	t, _ := time.ParseInLocation("2006-01-02", s.SelectedDate, time.Local)
-	t = t.AddDate(0, 0, delta)
-	s.SelectedDate = t.Format("2006-01-02")
-	gui.contribRefreshNotes()
-}
 
 // createContribViews creates the contribution chart views.
 func (gui *Gui) createContribViews(g *gocui.Gui, maxX, maxY int) error {
 	s := gui.contexts.Contrib.State
 
 	// Calculate width based on available space
-	// Each cell is 2 chars wide (◼ + space), plus 5 for row labels, plus 2 for borders
+	// Each cell is 2 chars wide (block + space), plus 5 for row labels, plus 2 for borders
 	weekCols := (maxX - 10 - 2 - 5) / 2 // available for cells
 	if weekCols > 52 {
 		weekCols = 52
@@ -280,120 +212,4 @@ func contribChar(count int) string {
 	default:
 		return fmt.Sprintf("%s◼%s ", AnsiGreen3, AnsiReset)
 	}
-}
-
-// Contribution chart keybinding handlers
-
-func (gui *Gui) contribGridLeft(g *gocui.Gui, v *gocui.View) error {
-	gui.contribMoveDay(-7) // left = prev week (column)
-	return nil
-}
-
-func (gui *Gui) contribGridRight(g *gocui.Gui, v *gocui.View) error {
-	gui.contribMoveDay(7) // right = next week (column)
-	return nil
-}
-
-func (gui *Gui) contribGridUp(g *gocui.Gui, v *gocui.View) error {
-	gui.contribMoveDay(-1) // up = prev day (row)
-	return nil
-}
-
-func (gui *Gui) contribGridDown(g *gocui.Gui, v *gocui.View) error {
-	gui.contribMoveDay(1) // down = next day (row)
-	return nil
-}
-
-func (gui *Gui) contribGridEnter(g *gocui.Gui, v *gocui.View) error {
-	gui.contribLoadInPreview()
-	return nil
-}
-
-func (gui *Gui) contribEsc(g *gocui.Gui, v *gocui.View) error {
-	gui.closeContrib()
-	return nil
-}
-
-func (gui *Gui) contribTab(g *gocui.Gui, v *gocui.View) error {
-	s := gui.contexts.Contrib.State
-	if s.Focus == 0 {
-		s.Focus = 1
-	} else {
-		s.Focus = 0
-	}
-	return nil
-}
-
-func (gui *Gui) contribNoteDown(g *gocui.Gui, v *gocui.View) error {
-	s := gui.contexts.Contrib.State
-	if s.NoteIndex < len(s.Notes)-1 {
-		s.NoteIndex++
-	}
-	return nil
-}
-
-func (gui *Gui) contribNoteUp(g *gocui.Gui, v *gocui.View) error {
-	s := gui.contexts.Contrib.State
-	if s.NoteIndex > 0 {
-		s.NoteIndex--
-	}
-	return nil
-}
-
-func (gui *Gui) contribNoteEnter(g *gocui.Gui, v *gocui.View) error {
-	s := gui.contexts.Contrib.State
-	if len(s.Notes) == 0 {
-		return nil
-	}
-	gui.contribLoadNoteInPreview(s.NoteIndex)
-	return nil
-}
-
-// contribLoadInPreview loads all notes for the selected date into preview.
-func (gui *Gui) contribLoadInPreview() {
-	s := gui.contexts.Contrib.State
-	if len(s.Notes) == 0 {
-		gui.closeContrib()
-		return
-	}
-
-	notes, err := gui.ruinCmd.Search.Search("created:"+s.SelectedDate, commands.SearchOptions{
-		Sort:           "created",
-		Limit:          100,
-		IncludeContent: true,
-		StripTitle:     true,
-	})
-	if err != nil || len(notes) == 0 {
-		gui.closeContrib()
-		return
-	}
-
-	date := s.SelectedDate
-	gui.helpers.PreviewNav().PushNavHistory()
-	gui.closeContrib()
-	gui.helpers.Preview().ShowCardList(" Contrib: "+date+" ", notes)
-	gui.pushContextByKey("preview")
-}
-
-// contribLoadNoteInPreview loads a single note into preview.
-func (gui *Gui) contribLoadNoteInPreview(index int) {
-	s := gui.contexts.Contrib.State
-	if index >= len(s.Notes) {
-		return
-	}
-	note := s.Notes[index]
-
-	full, err := gui.ruinCmd.Search.Get(note.UUID, commands.SearchOptions{
-		IncludeContent: true,
-		StripTitle:     true,
-	})
-	if err != nil || full == nil {
-		return
-	}
-
-	title := full.Title
-	gui.helpers.PreviewNav().PushNavHistory()
-	gui.closeContrib()
-	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.pushContextByKey("preview")
 }
