@@ -588,8 +588,8 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.TitleColor = gocui.ColorGreen
 
 	// Start in Command Palette mode; typing ":" switches to Quick Open
-	if !gui.state.PaletteSeedDone {
-		gui.state.PaletteSeedDone = true
+	if !gui.contexts.Palette.SeedDone {
+		gui.contexts.Palette.SeedDone = true
 		v.Title = " Command Palette "
 		gui.filterPaletteCommands("")
 	}

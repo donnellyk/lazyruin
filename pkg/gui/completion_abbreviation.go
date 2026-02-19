@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -74,11 +75,11 @@ func extractParentPath(text string) (remaining, parentPath string) {
 	return remaining, parentPath
 }
 
-// resolveParentPath resolves a /-delimited path to a CaptureParentInfo.
+// resolveParentPath resolves a /-delimited path to a context.CaptureParentInfo.
 // The first segment matches a parent bookmark name; if no bookmark matches,
 // it falls back to searching all notes by title (for >> mode).
 // Subsequent segments drill into children by matching titles.
-func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
+func (gui *Gui) resolveParentPath(path string) *context.CaptureParentInfo {
 	segments := strings.Split(path, "/")
 	if len(segments) == 0 || segments[0] == "" {
 		return nil
@@ -137,7 +138,7 @@ func (gui *Gui) resolveParentPath(path string) *CaptureParentInfo {
 		}
 	}
 
-	return &CaptureParentInfo{
+	return &context.CaptureParentInfo{
 		UUID:  currentUUID,
 		Title: titleParts[len(titleParts)-1],
 	}
@@ -167,7 +168,7 @@ func (gui *Gui) acceptAbbreviationInCapture(v *gocui.View, state *types.Completi
 	// Resolve parent path if present
 	if parentPath != "" {
 		if info := gui.resolveParentPath(parentPath); info != nil {
-			gui.state.CaptureParent = info
+			gui.contexts.Capture.Parent = info
 		}
 	}
 

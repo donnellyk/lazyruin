@@ -9,8 +9,8 @@ import (
 
 // paletteOnlyCommands returns commands that have no controller home.
 // These are accessible only via the command palette (no keybinding).
-func (gui *Gui) paletteOnlyCommands() []PaletteCommand {
-	return []PaletteCommand{
+func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
+	return []types.PaletteCommand{
 		// Tab switching (palette-only, no keybinding)
 		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(0) }},
 		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(1) }},

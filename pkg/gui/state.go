@@ -6,34 +6,15 @@ import (
 )
 
 type GuiState struct {
-	Dialog                  *DialogState
-	ContextStack            []types.ContextKey
-	SearchQuery             string
-	SearchCompletion        *types.CompletionState
-	PaletteSeedDone         bool
-	Palette                 *PaletteState
-	Calendar                *CalendarState
-	Contrib                 *ContribState
-	Initialized             bool
-	lastWidth               int
-	lastHeight              int
-}
-
-// PaletteCommand represents a single command in the command palette.
-type PaletteCommand struct {
-	Name     string
-	Category string
-	Key      string
-	OnRun    func() error
-	Contexts []types.ContextKey // nil = always available
-}
-
-// PaletteState holds the runtime state of the command palette.
-type PaletteState struct {
-	Commands      []PaletteCommand
-	Filtered      []PaletteCommand
-	SelectedIndex int
-	FilterText    string
+	Dialog           *DialogState
+	ContextStack     []types.ContextKey
+	SearchQuery      string
+	SearchCompletion *types.CompletionState
+	Calendar         *CalendarState
+	Contrib          *ContribState
+	Initialized      bool
+	lastWidth        int
+	lastHeight       int
 }
 
 // CalendarState holds the runtime state of the calendar dialog.
@@ -58,8 +39,8 @@ type ContribState struct {
 
 func NewGuiState() *GuiState {
 	return &GuiState{
-		SearchCompletion:        types.NewCompletionState(),
-		ContextStack:            []types.ContextKey{"notes"},
+		SearchCompletion: types.NewCompletionState(),
+		ContextStack:     []types.ContextKey{"notes"},
 	}
 }
 

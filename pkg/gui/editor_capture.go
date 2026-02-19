@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 
@@ -16,7 +17,7 @@ type captureEditor struct {
 }
 
 func (e *captureEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) bool {
-	state := e.gui.state.CaptureCompletion
+	state := e.gui.contexts.Capture.Completion
 
 	if state.Active {
 		switch key {
@@ -196,7 +197,7 @@ func (gui *Gui) acceptParentCompletion(v *gocui.View, state *types.CompletionSta
 
 	item := state.Items[state.SelectedIndex]
 
-	gui.state.CaptureParent = &CaptureParentInfo{
+	gui.contexts.Capture.Parent = &context.CaptureParentInfo{
 		UUID:  item.Value,
 		Title: item.Label,
 	}

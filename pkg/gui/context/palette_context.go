@@ -2,9 +2,11 @@ package context
 
 import "kvnd/lazyruin/pkg/gui/types"
 
-// PaletteContext owns the command palette popup panel.
+// PaletteContext owns the command palette popup panel and its state.
 type PaletteContext struct {
 	BaseContext
+	SeedDone bool
+	Palette  *types.PaletteState
 }
 
 // NewPaletteContext creates a PaletteContext.
