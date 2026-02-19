@@ -170,35 +170,33 @@ func (self *GlobalController) focusSearchFilter() error {
 	return self.c.Helpers().Search().FocusSearchFilter()
 }
 
-// GetKeybindingsFn returns all global keybinding producers.
-func (self *GlobalController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return []*types.Binding{
-			// Quit (two keys, only first shown in palette)
-			{ID: "global.quit", Key: 'q', Handler: self.onQuit, Description: "Quit", Category: "Global"},
-			{Key: gocui.KeyCtrlC, Handler: self.onQuit},
+// GetKeybindings returns all global keybindings.
+func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	return []*types.Binding{
+		// Quit (two keys, only first shown in palette)
+		{ID: "global.quit", Key: 'q', Handler: self.onQuit, Description: "Quit", Category: "Global"},
+		{Key: gocui.KeyCtrlC, Handler: self.onQuit},
 
-			// Core actions
-			{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global"},
-			{ID: "global.pick", Key: 'p', Handler: self.onPick, Description: "Pick", Category: "Global"},
-			{Key: '\\', Handler: self.onPick},
-			{ID: "global.new_note", Key: 'n', Handler: self.onNewNote, Description: "New Note", Category: "Global"},
-			{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
-			{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global"},
-			{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
-			{ID: "global.calendar", Key: 'c', Handler: self.onCalendar, Description: "Calendar", Category: "Global"},
-			{ID: "global.contrib", Key: 'C', Handler: self.onContrib, Description: "Contributions", Category: "Global"},
+		// Core actions
+		{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global"},
+		{ID: "global.pick", Key: 'p', Handler: self.onPick, Description: "Pick", Category: "Global"},
+		{Key: '\\', Handler: self.onPick},
+		{ID: "global.new_note", Key: 'n', Handler: self.onNewNote, Description: "New Note", Category: "Global"},
+		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
+		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global"},
+		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
+		{ID: "global.calendar", Key: 'c', Handler: self.onCalendar, Description: "Calendar", Category: "Global"},
+		{ID: "global.contrib", Key: 'C', Handler: self.onContrib, Description: "Contributions", Category: "Global"},
 
-			// Focus shortcuts
-			{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},
-			{ID: "global.focus_queries", Key: '2', Handler: self.FocusQueries, Description: "Focus Queries", Category: "Focus"},
-			{ID: "global.focus_tags", Key: '3', Handler: self.FocusTags, Description: "Focus Tags", Category: "Focus"},
-			{ID: "global.focus_preview", Handler: self.FocusPreview, Description: "Focus Preview", Category: "Focus"},
-			{ID: "global.focus_search_filter", Key: '0', Handler: self.focusSearchFilter, Description: "Focus Search Filter", Category: "Focus"},
+		// Focus shortcuts
+		{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},
+		{ID: "global.focus_queries", Key: '2', Handler: self.FocusQueries, Description: "Focus Queries", Category: "Focus"},
+		{ID: "global.focus_tags", Key: '3', Handler: self.FocusTags, Description: "Focus Tags", Category: "Focus"},
+		{ID: "global.focus_preview", Handler: self.FocusPreview, Description: "Focus Preview", Category: "Focus"},
+		{ID: "global.focus_search_filter", Key: '0', Handler: self.focusSearchFilter, Description: "Focus Search Filter", Category: "Focus"},
 
-			// Panel navigation (no Description = not in palette)
-			{Key: gocui.KeyTab, Handler: self.NextPanel},
-			{Key: gocui.KeyBacktab, Handler: self.PrevPanel},
-		}
+		// Panel navigation (no Description = not in palette)
+		{Key: gocui.KeyTab, Handler: self.NextPanel},
+		{Key: gocui.KeyBacktab, Handler: self.PrevPanel},
 	}
 }

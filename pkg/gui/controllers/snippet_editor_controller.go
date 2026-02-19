@@ -50,38 +50,34 @@ func (self *SnippetEditorController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns keybindings for the snippet editor.
-func (self *SnippetEditorController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return []*types.Binding{
-			// Esc and Tab are the same for both views (no ViewName = all views)
-			{Key: gocui.KeyEsc, Handler: self.onEsc},
-			{Key: gocui.KeyTab, Handler: self.onTab},
-			// Enter is view-specific
-			{ViewName: "snippetName", Key: gocui.KeyEnter, Handler: self.onEnterName},
-			{ViewName: "snippetExpansion", Key: gocui.KeyEnter, Handler: self.onEnterExpansion},
-		}
+// GetKeybindings returns keybindings for the snippet editor.
+func (self *SnippetEditorController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	return []*types.Binding{
+		// Esc and Tab are the same for both views (no ViewName = all views)
+		{Key: gocui.KeyEsc, Handler: self.onEsc},
+		{Key: gocui.KeyTab, Handler: self.onTab},
+		// Enter is view-specific
+		{ViewName: "snippetName", Key: gocui.KeyEnter, Handler: self.onEnterName},
+		{ViewName: "snippetExpansion", Key: gocui.KeyEnter, Handler: self.onEnterExpansion},
 	}
 }
 
-// GetMouseKeybindingsFn returns mouse bindings for the snippet editor views.
-func (self *SnippetEditorController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-		return []*gocui.ViewMouseBinding{
-			{
-				ViewName: "snippetName",
-				Key:      gocui.MouseLeft,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onClickName()
-				},
+// GetMouseKeybindings returns mouse bindings for the snippet editor views.
+func (self *SnippetEditorController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
+	return []*gocui.ViewMouseBinding{
+		{
+			ViewName: "snippetName",
+			Key:      gocui.MouseLeft,
+			Handler: func(mopts gocui.ViewMouseBindingOpts) error {
+				return self.onClickName()
 			},
-			{
-				ViewName: "snippetExpansion",
-				Key:      gocui.MouseLeft,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onClickExpansion()
-				},
+		},
+		{
+			ViewName: "snippetExpansion",
+			Key:      gocui.MouseLeft,
+			Handler: func(mopts gocui.ViewMouseBindingOpts) error {
+				return self.onClickExpansion()
 			},
-		}
+		},
 	}
 }

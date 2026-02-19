@@ -51,103 +51,101 @@ func (self *NotesController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns the keybinding producer for notes.
-func (self *NotesController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		bindings := []*types.Binding{
-			// Actions (have Description → shown in palette)
-			{
-				ID:                "notes.view",
-				Key:               gocui.KeyEnter,
-				Handler:           self.withItem(self.viewInPreview),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "View in Preview",
-				Category:          "Notes",
-				DisplayOnScreen:   true,
-			},
-			{
-				ID:                "notes.edit",
-				Key:               'E',
-				Handler:           self.withItem(self.editNote),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Open in Editor",
-				Category:          "Notes",
-				DisplayOnScreen:   true,
-			},
-			{
-				ID:                "notes.delete",
-				Key:               'd',
-				Handler:           self.withItem(self.deleteNote),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Delete Note",
-				Category:          "Notes",
-			},
-			{
-				ID:                "notes.copy",
-				Key:               'y',
-				Handler:           self.withItem(self.copyPath),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Copy Note Path",
-				Category:          "Notes",
-			},
-			// Note actions (also bound on PreviewView)
-			{
-				ID:                "notes.addTag",
-				Key:               't',
-				Handler:           self.withItem(self.addTag),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Add Tag",
-				Category:          "Note Actions",
-			},
-			{
-				ID:                "notes.removeTag",
-				Key:               'T',
-				Handler:           self.withItem(self.removeTag),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Remove Tag",
-				Category:          "Note Actions",
-			},
-			{
-				ID:                "notes.setParent",
-				Key:               '>',
-				Handler:           self.withItem(self.setParent),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Set Parent",
-				Category:          "Note Actions",
-			},
-			{
-				ID:                "notes.removeParent",
-				Key:               'P',
-				Handler:           self.withItem(self.removeParent),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Remove Parent",
-				Category:          "Note Actions",
-			},
-			{
-				ID:                "notes.bookmark",
-				Key:               'b',
-				Handler:           self.withItem(self.toggleBookmark),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Toggle Bookmark",
-				Category:          "Note Actions",
-			},
-			{
-				ID:                "notes.info",
-				Key:               's',
-				Handler:           self.withItem(self.showInfo),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Show Info",
-				Category:          "Note Actions",
-			},
-		}
-		// Navigation bindings (no Description → excluded from palette)
-		bindings = append(bindings, self.NavBindings()...)
-		return bindings
+// GetKeybindings returns the keybindings for notes.
+func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	bindings := []*types.Binding{
+		// Actions (have Description → shown in palette)
+		{
+			ID:                "notes.view",
+			Key:               gocui.KeyEnter,
+			Handler:           self.withItem(self.viewInPreview),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "View in Preview",
+			Category:          "Notes",
+			DisplayOnScreen:   true,
+		},
+		{
+			ID:                "notes.edit",
+			Key:               'E',
+			Handler:           self.withItem(self.editNote),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Open in Editor",
+			Category:          "Notes",
+			DisplayOnScreen:   true,
+		},
+		{
+			ID:                "notes.delete",
+			Key:               'd',
+			Handler:           self.withItem(self.deleteNote),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Delete Note",
+			Category:          "Notes",
+		},
+		{
+			ID:                "notes.copy",
+			Key:               'y',
+			Handler:           self.withItem(self.copyPath),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Copy Note Path",
+			Category:          "Notes",
+		},
+		// Note actions (also bound on PreviewView)
+		{
+			ID:                "notes.addTag",
+			Key:               't',
+			Handler:           self.withItem(self.addTag),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Add Tag",
+			Category:          "Note Actions",
+		},
+		{
+			ID:                "notes.removeTag",
+			Key:               'T',
+			Handler:           self.withItem(self.removeTag),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Remove Tag",
+			Category:          "Note Actions",
+		},
+		{
+			ID:                "notes.setParent",
+			Key:               '>',
+			Handler:           self.withItem(self.setParent),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Set Parent",
+			Category:          "Note Actions",
+		},
+		{
+			ID:                "notes.removeParent",
+			Key:               'P',
+			Handler:           self.withItem(self.removeParent),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Remove Parent",
+			Category:          "Note Actions",
+		},
+		{
+			ID:                "notes.bookmark",
+			Key:               'b',
+			Handler:           self.withItem(self.toggleBookmark),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Toggle Bookmark",
+			Category:          "Note Actions",
+		},
+		{
+			ID:                "notes.info",
+			Key:               's',
+			Handler:           self.withItem(self.showInfo),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Show Info",
+			Category:          "Note Actions",
+		},
 	}
+	// Navigation bindings (no Description → excluded from palette)
+	bindings = append(bindings, self.NavBindings()...)
+	return bindings
 }
 
-// GetMouseKeybindingsFn returns mouse bindings for the notes panel.
-func (self *NotesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
+// GetMouseKeybindings returns mouse bindings for the notes panel.
+func (self *NotesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
 	return ListMouseBindings(ListMouseOpts{
 		ViewName:     "notes",
 		ClickMargin:  3,

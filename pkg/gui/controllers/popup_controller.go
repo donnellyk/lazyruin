@@ -30,9 +30,7 @@ func (self *PopupController[C]) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns the keybinding producer for this popup.
-func (self *PopupController[C]) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return self.bindings
-	}
+// GetKeybindings returns the keybindings for this popup.
+func (self *PopupController[C]) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	return self.bindings
 }

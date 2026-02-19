@@ -45,47 +45,45 @@ func (self *TagsController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns the keybinding producer for tags.
-func (self *TagsController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		bindings := []*types.Binding{
-			// Actions (have Description → shown in palette)
-			{
-				ID:                "tags.filter",
-				Key:               gocui.KeyEnter,
-				Handler:           self.withItem(self.filterByTag),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Filter by Tag",
-				Category:          "Tags",
-				DisplayOnScreen:   true,
-			},
-			{
-				ID:                "tags.rename",
-				Key:               'r',
-				Handler:           self.withItem(self.renameTag),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Rename Tag",
-				Category:          "Tags",
-				DisplayOnScreen:   true,
-			},
-			{
-				ID:                "tags.delete",
-				Key:               'd',
-				Handler:           self.withItem(self.deleteTag),
-				GetDisabledReason: self.require(self.singleItemSelected()),
-				Description:       "Delete Tag",
-				Category:          "Tags",
-				DisplayOnScreen:   true,
-			},
-		}
-		// Navigation bindings (no Description → excluded from palette)
-		bindings = append(bindings, self.NavBindings()...)
-		return bindings
+// GetKeybindings returns the keybindings for tags.
+func (self *TagsController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	bindings := []*types.Binding{
+		// Actions (have Description → shown in palette)
+		{
+			ID:                "tags.filter",
+			Key:               gocui.KeyEnter,
+			Handler:           self.withItem(self.filterByTag),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Filter by Tag",
+			Category:          "Tags",
+			DisplayOnScreen:   true,
+		},
+		{
+			ID:                "tags.rename",
+			Key:               'r',
+			Handler:           self.withItem(self.renameTag),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Rename Tag",
+			Category:          "Tags",
+			DisplayOnScreen:   true,
+		},
+		{
+			ID:                "tags.delete",
+			Key:               'd',
+			Handler:           self.withItem(self.deleteTag),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Delete Tag",
+			Category:          "Tags",
+			DisplayOnScreen:   true,
+		},
 	}
+	// Navigation bindings (no Description → excluded from palette)
+	bindings = append(bindings, self.NavBindings()...)
+	return bindings
 }
 
-// GetMouseKeybindingsFn returns mouse bindings for the tags panel.
-func (self *TagsController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
+// GetMouseKeybindings returns mouse bindings for the tags panel.
+func (self *TagsController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
 	return ListMouseBindings(ListMouseOpts{
 		ViewName:     "tags",
 		ClickMargin:  1,

@@ -1,5 +1,7 @@
 package types
 
+import "github.com/jesseduffield/gocui"
+
 // IController defines the contract for a controller that supplies
 // behavior to a context. Controllers provide producer functions
 // that the context aggregates.
@@ -8,8 +10,8 @@ type IController interface {
 	Context() Context
 
 	// Binding producers (return nil if not applicable)
-	GetKeybindingsFn() KeybindingsFn
-	GetMouseKeybindingsFn() MouseKeybindingsFn
+	GetKeybindings(opts KeybindingsOpts) []*Binding
+	GetMouseKeybindings(opts KeybindingsOpts) []*gocui.ViewMouseBinding
 
 	// Lifecycle hooks (return nil if not applicable)
 	GetOnRenderToMain() func()

@@ -61,32 +61,30 @@ func (self *ContribController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns keybindings for the contribution chart dialog.
-func (self *ContribController) GetKeybindingsFn() types.KeybindingsFn {
+// GetKeybindings returns keybindings for the contribution chart dialog.
+func (self *ContribController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	gv := "contribGrid"
 	nv := "contribNotes"
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return []*types.Binding{
-			// Grid navigation
-			{ViewName: gv, Key: 'h', Handler: self.onGridLeft},
-			{ViewName: gv, Key: 'l', Handler: self.onGridRight},
-			{ViewName: gv, Key: 'k', Handler: self.onGridUp},
-			{ViewName: gv, Key: 'j', Handler: self.onGridDown},
-			{ViewName: gv, Key: gocui.KeyArrowLeft, Handler: self.onGridLeft},
-			{ViewName: gv, Key: gocui.KeyArrowRight, Handler: self.onGridRight},
-			{ViewName: gv, Key: gocui.KeyArrowUp, Handler: self.onGridUp},
-			{ViewName: gv, Key: gocui.KeyArrowDown, Handler: self.onGridDown},
-			{ViewName: gv, Key: gocui.KeyEnter, Handler: self.onGridEnter},
-			{ViewName: gv, Key: gocui.KeyEsc, Handler: self.onEsc},
-			{ViewName: gv, Key: gocui.KeyTab, Handler: self.onTab},
-			// Note list navigation
-			{ViewName: nv, Key: 'j', Handler: self.onNoteDown},
-			{ViewName: nv, Key: 'k', Handler: self.onNoteUp},
-			{ViewName: nv, Key: gocui.KeyArrowDown, Handler: self.onNoteDown},
-			{ViewName: nv, Key: gocui.KeyArrowUp, Handler: self.onNoteUp},
-			{ViewName: nv, Key: gocui.KeyEnter, Handler: self.onNoteEnter},
-			{ViewName: nv, Key: gocui.KeyEsc, Handler: self.onEsc},
-			{ViewName: nv, Key: gocui.KeyTab, Handler: self.onTab},
-		}
+	return []*types.Binding{
+		// Grid navigation
+		{ViewName: gv, Key: 'h', Handler: self.onGridLeft},
+		{ViewName: gv, Key: 'l', Handler: self.onGridRight},
+		{ViewName: gv, Key: 'k', Handler: self.onGridUp},
+		{ViewName: gv, Key: 'j', Handler: self.onGridDown},
+		{ViewName: gv, Key: gocui.KeyArrowLeft, Handler: self.onGridLeft},
+		{ViewName: gv, Key: gocui.KeyArrowRight, Handler: self.onGridRight},
+		{ViewName: gv, Key: gocui.KeyArrowUp, Handler: self.onGridUp},
+		{ViewName: gv, Key: gocui.KeyArrowDown, Handler: self.onGridDown},
+		{ViewName: gv, Key: gocui.KeyEnter, Handler: self.onGridEnter},
+		{ViewName: gv, Key: gocui.KeyEsc, Handler: self.onEsc},
+		{ViewName: gv, Key: gocui.KeyTab, Handler: self.onTab},
+		// Note list navigation
+		{ViewName: nv, Key: 'j', Handler: self.onNoteDown},
+		{ViewName: nv, Key: 'k', Handler: self.onNoteUp},
+		{ViewName: nv, Key: gocui.KeyArrowDown, Handler: self.onNoteDown},
+		{ViewName: nv, Key: gocui.KeyArrowUp, Handler: self.onNoteUp},
+		{ViewName: nv, Key: gocui.KeyEnter, Handler: self.onNoteEnter},
+		{ViewName: nv, Key: gocui.KeyEsc, Handler: self.onEsc},
+		{ViewName: nv, Key: gocui.KeyTab, Handler: self.onTab},
 	}
 }

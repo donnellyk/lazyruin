@@ -35,39 +35,37 @@ func (self *QueriesController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns the keybinding producer for queries.
-func (self *QueriesController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return []*types.Binding{
-			// Actions
-			{
-				ID:                "queries.run",
-				Key:               gocui.KeyEnter,
-				Handler:           self.runActiveItem,
-				GetDisabledReason: self.activeItemSelected,
-				Description:       "Run Query / View Parent",
-				Category:          "Queries",
-				DisplayOnScreen:   true,
-			},
-			{
-				ID:                "queries.delete",
-				Key:               'd',
-				Handler:           self.deleteActiveItem,
-				GetDisabledReason: self.activeItemSelected,
-				Description:       "Delete Query / Parent",
-				Category:          "Queries",
-			},
-			// Navigation (no Description → excluded from palette)
-			{Key: 'j', Handler: self.nextItem},
-			{Key: 'k', Handler: self.prevItem},
-			{Key: gocui.KeyArrowDown, Handler: self.nextItem},
-			{Key: gocui.KeyArrowUp, Handler: self.prevItem},
-		}
+// GetKeybindings returns the keybindings for queries.
+func (self *QueriesController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	return []*types.Binding{
+		// Actions
+		{
+			ID:                "queries.run",
+			Key:               gocui.KeyEnter,
+			Handler:           self.runActiveItem,
+			GetDisabledReason: self.activeItemSelected,
+			Description:       "Run Query / View Parent",
+			Category:          "Queries",
+			DisplayOnScreen:   true,
+		},
+		{
+			ID:                "queries.delete",
+			Key:               'd',
+			Handler:           self.deleteActiveItem,
+			GetDisabledReason: self.activeItemSelected,
+			Description:       "Delete Query / Parent",
+			Category:          "Queries",
+		},
+		// Navigation (no Description → excluded from palette)
+		{Key: 'j', Handler: self.nextItem},
+		{Key: 'k', Handler: self.prevItem},
+		{Key: gocui.KeyArrowDown, Handler: self.nextItem},
+		{Key: gocui.KeyArrowUp, Handler: self.prevItem},
 	}
 }
 
-// GetMouseKeybindingsFn returns mouse bindings for the queries panel.
-func (self *QueriesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
+// GetMouseKeybindings returns mouse bindings for the queries panel.
+func (self *QueriesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
 	return ListMouseBindings(ListMouseOpts{
 		ViewName:    "queries",
 		ClickMargin: 2,

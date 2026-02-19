@@ -6,12 +6,8 @@ import "kvnd/lazyruin/pkg/gui/types"
 // into its context's aggregation points.
 func AttachController(ctrl types.IController) {
 	ctx := ctrl.Context()
-	if f := ctrl.GetKeybindingsFn(); f != nil {
-		ctx.AddKeybindingsFn(f)
-	}
-	if f := ctrl.GetMouseKeybindingsFn(); f != nil {
-		ctx.AddMouseKeybindingsFn(f)
-	}
+	ctx.AddKeybindingsFn(ctrl.GetKeybindings)
+	ctx.AddMouseKeybindingsFn(ctrl.GetMouseKeybindings)
 	if f := ctrl.GetOnFocus(); f != nil {
 		ctx.AddOnFocusFn(f)
 	}

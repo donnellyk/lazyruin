@@ -40,27 +40,23 @@ func (self *PaletteController) Context() types.Context {
 	return self.getContext()
 }
 
-// GetKeybindingsFn returns keybindings for the palette popup.
-func (self *PaletteController) GetKeybindingsFn() types.KeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*types.Binding {
-		return []*types.Binding{
-			{ViewName: "palette", Key: gocui.KeyEnter, Handler: self.onEnter},
-			{ViewName: "palette", Key: gocui.KeyEsc, Handler: self.onEsc},
-		}
+// GetKeybindings returns keybindings for the palette popup.
+func (self *PaletteController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+	return []*types.Binding{
+		{ViewName: "palette", Key: gocui.KeyEnter, Handler: self.onEnter},
+		{ViewName: "palette", Key: gocui.KeyEsc, Handler: self.onEsc},
 	}
 }
 
-// GetMouseKeybindingsFn returns mouse bindings for the palette list.
-func (self *PaletteController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-		return []*gocui.ViewMouseBinding{
-			{
-				ViewName: "paletteList",
-				Key:      gocui.MouseLeft,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					return self.onListClick()
-				},
+// GetMouseKeybindings returns mouse bindings for the palette list.
+func (self *PaletteController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
+	return []*gocui.ViewMouseBinding{
+		{
+			ViewName: "paletteList",
+			Key:      gocui.MouseLeft,
+			Handler: func(mopts gocui.ViewMouseBindingOpts) error {
+				return self.onListClick()
 			},
-		}
+		},
 	}
 }
