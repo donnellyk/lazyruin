@@ -88,7 +88,7 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
-		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.state.CaptureCompletion)},
+		{Prefix: ">", Candidates: gui.parentCandidatesFor(gui.contexts.Capture.Completion)},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}
 }
@@ -99,6 +99,35 @@ func (gui *Gui) pickTriggers() []types.CompletionTrigger {
 		{Prefix: "#", Candidates: gui.tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
 	}
+}
+
+// snippetExpansionTriggers returns the completion triggers for the snippet
+// expansion field. It merges search and capture triggers, excluding ! (to
+// avoid recursion) and rebinding > to use SnippetEditor's completion state.
+func (gui *Gui) snippetExpansionTriggers() []types.CompletionTrigger {
+	seen := make(map[string]bool)
+	var merged []types.CompletionTrigger
+
+	for _, t := range gui.captureTriggers() {
+		if t.Prefix == "!" {
+			continue
+		}
+		if t.Prefix == ">" {
+			t.Candidates = gui.parentCandidatesFor(gui.contexts.SnippetEditor.Completion)
+		}
+		seen[t.Prefix] = true
+		merged = append(merged, t)
+	}
+
+	for _, t := range gui.searchTriggers() {
+		if t.Prefix == "!" || seen[t.Prefix] {
+			continue
+		}
+		seen[t.Prefix] = true
+		merged = append(merged, t)
+	}
+
+	return merged
 }
 
 // extractSort removes any "sort:field:dir" token from the query, returning

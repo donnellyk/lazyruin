@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"kvnd/lazyruin/pkg/commands"
+	"kvnd/lazyruin/pkg/config"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 )
@@ -16,14 +17,16 @@ type IGuiCommon interface {
 // HelperCommon provides shared dependencies for all helpers.
 type HelperCommon struct {
 	ruinCmd   *commands.RuinCommand
+	config    *config.Config
 	guiCommon IGuiCommon
 	helpers   *Helpers
 }
 
 // NewHelperCommon creates a new HelperCommon.
-func NewHelperCommon(ruinCmd *commands.RuinCommand, guiCommon IGuiCommon) *HelperCommon {
+func NewHelperCommon(ruinCmd *commands.RuinCommand, cfg *config.Config, guiCommon IGuiCommon) *HelperCommon {
 	return &HelperCommon{
 		ruinCmd:   ruinCmd,
+		config:    cfg,
 		guiCommon: guiCommon,
 	}
 }
@@ -46,4 +49,9 @@ func (self *HelperCommon) GuiCommon() IGuiCommon {
 // Helpers returns the helpers aggregator (for cross-helper calls).
 func (self *HelperCommon) Helpers() *Helpers {
 	return self.helpers
+}
+
+// Config returns the application config.
+func (self *HelperCommon) Config() *config.Config {
+	return self.config
 }

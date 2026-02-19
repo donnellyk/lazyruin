@@ -718,14 +718,14 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	ev.Wrap = false
 	ev.Editor = &completionEditor{
 		gui:        gui,
-		state:      func() *types.CompletionState { return gui.state.SnippetEditorCompletion },
+		state:      func() *types.CompletionState { return gui.contexts.SnippetEditor.Completion },
 		triggers:   gui.snippetExpansionTriggers,
 		drillFlags: DrillParent | DrillWikiLink,
 	}
 	setRoundedCorners(ev)
 
 	// Green frame on focused view, default on other
-	if gui.state.SnippetEditorFocus == 0 {
+	if gui.contexts.SnippetEditor.Focus == 0 {
 		nv.FrameColor = gocui.ColorGreen
 		nv.TitleColor = gocui.ColorGreen
 		ev.FrameColor = gocui.ColorDefault
@@ -744,14 +744,14 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	g.SetViewOnTop(SnippetNameView)
 	g.SetViewOnTop(SnippetExpansionView)
 
-	if gui.state.SnippetEditorFocus == 0 {
+	if gui.contexts.SnippetEditor.Focus == 0 {
 		g.SetCurrentView(SnippetNameView)
 	} else {
 		g.SetCurrentView(SnippetExpansionView)
 	}
 
 	// Suggestion dropdown below expansion view
-	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.state.SnippetEditorCompletion, x0, ey1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, width); err != nil {
 		return err
 	}
 

@@ -28,9 +28,9 @@ func (gui *Gui) paletteOnlyCommands() []PaletteCommand {
 		}},
 
 		// Snippets (palette-only, no keybinding)
-		{Name: "List Snippets", Category: "Snippets", OnRun: gui.listSnippets},
-		{Name: "Create Snippet", Category: "Snippets", OnRun: gui.createSnippet},
-		{Name: "Delete Snippet", Category: "Snippets", OnRun: gui.deleteSnippet},
+		{Name: "List Snippets", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().ListSnippets() }},
+		{Name: "Create Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().CreateSnippet() }},
+		{Name: "Delete Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().DeleteSnippet() }},
 	}
 }
 

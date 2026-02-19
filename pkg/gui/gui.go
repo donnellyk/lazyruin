@@ -50,7 +50,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 		contexts: &context.ContextTree{},
 	}
 	// Wire shared helper/controller dependencies.
-	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui)
+	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui.config, gui)
 	gui.helpers = helperspkg.NewHelpers(helperCommon)
 	gui.controllerCommon = controllers.NewControllerCommon(gui, ruinCmd, gui.helpers)
 
@@ -294,14 +294,75 @@ func (gui *Gui) setupSnippetEditorContext() {
 	snippetCtx := context.NewSnippetEditorContext()
 	gui.contexts.SnippetEditor = snippetCtx
 
+	acceptExpansionCompletion := func() {
+		ctx := gui.contexts.SnippetEditor
+		ev, _ := gui.g.View(SnippetExpansionView)
+		if ev != nil {
+			if isParentCompletion(ev, ctx.Completion) {
+				gui.acceptSnippetParentCompletion(ev, ctx.Completion)
+			} else {
+				gui.acceptCompletion(ev, ctx.Completion, gui.snippetExpansionTriggers())
+			}
+			ev.RenderTextArea()
+		}
+	}
+
 	ctrl := controllers.NewSnippetEditorController(controllers.SnippetEditorControllerOpts{
-		GetContext:       func() *context.SnippetEditorContext { return gui.contexts.SnippetEditor },
-		OnEsc:            func() error { return gui.snippetEditorEsc(gui.g, nil) },
-		OnTab:            func() error { return gui.snippetEditorTab(gui.g, nil) },
-		OnEnterName:      func() error { return gui.snippetEditorTab(gui.g, nil) },
-		OnEnterExpansion: func() error { return gui.snippetEditorEnter(gui.g, nil) },
-		OnClickName:      func() error { return gui.snippetEditorClickName(nil, nil) },
-		OnClickExpansion: func() error { return gui.snippetEditorClickExpansion(nil, nil) },
+		GetContext: func() *context.SnippetEditorContext { return gui.contexts.SnippetEditor },
+		OnEsc: func() error {
+			ctx := gui.contexts.SnippetEditor
+			if ctx.Completion.Active {
+				ctx.Completion.Dismiss()
+				return nil
+			}
+			return gui.helpers.Snippet().CloseEditor()
+		},
+		OnTab: func() error {
+			ctx := gui.contexts.SnippetEditor
+			if ctx.Completion.Active && ctx.Focus == 1 {
+				acceptExpansionCompletion()
+				return nil
+			}
+			if ctx.Focus == 0 {
+				ctx.Focus = 1
+			} else {
+				ctx.Focus = 0
+			}
+			return nil
+		},
+		OnEnterName: func() error {
+			ctx := gui.contexts.SnippetEditor
+			if ctx.Completion.Active && ctx.Focus == 1 {
+				acceptExpansionCompletion()
+				return nil
+			}
+			if ctx.Focus == 0 {
+				ctx.Focus = 1
+			} else {
+				ctx.Focus = 0
+			}
+			return nil
+		},
+		OnEnterExpansion: func() error {
+			ctx := gui.contexts.SnippetEditor
+			if ctx.Completion.Active {
+				acceptExpansionCompletion()
+				return nil
+			}
+			nv, _ := gui.g.View(SnippetNameView)
+			ev, _ := gui.g.View(SnippetExpansionView)
+			if nv == nil || ev == nil {
+				return nil
+			}
+			name := strings.TrimLeft(strings.TrimSpace(nv.TextArea.GetUnwrappedContent()), "!")
+			expansion := strings.TrimSpace(ev.TextArea.GetUnwrappedContent())
+			if err := gui.helpers.Snippet().SaveSnippet(name, expansion); err != nil {
+				return err
+			}
+			return gui.helpers.Snippet().CloseEditor()
+		},
+		OnClickName:      func() error { gui.contexts.SnippetEditor.Focus = 0; return nil },
+		OnClickExpansion: func() error { gui.contexts.SnippetEditor.Focus = 1; return nil },
 	})
 	controllers.AttachController(ctrl)
 }

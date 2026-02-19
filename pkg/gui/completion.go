@@ -309,6 +309,43 @@ func completionUp(state *types.CompletionState) {
 	}
 }
 
+// acceptSnippetParentCompletion accepts a parent completion but keeps the >path
+// token in the content (unlike acceptParentCompletion which removes it).
+// Snippets store >path literally so it can be resolved when the abbreviation is expanded.
+func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *types.CompletionState) {
+	if !state.Active || len(state.Items) == 0 {
+		return
+	}
+
+	item := state.Items[state.SelectedIndex]
+	cursorPos := viewCursorBytePos(v)
+	content := v.TextArea.GetUnwrappedContent()
+
+	charsToDelete := cursorPos - state.TriggerStart
+	for range charsToDelete {
+		v.TextArea.BackSpaceChar()
+	}
+
+	prefix := ">"
+	triggerEnd := state.TriggerStart + 2
+	if triggerEnd <= len(content) && content[state.TriggerStart:triggerEnd] == ">>" {
+		prefix = ">>"
+	}
+	var path strings.Builder
+	path.WriteString(prefix)
+	for _, entry := range state.ParentDrill {
+		path.WriteString(entry.Name)
+		path.WriteByte('/')
+	}
+	path.WriteString(item.Label)
+
+	v.TextArea.TypeString(path.String() + " ")
+
+	state.Dismiss()
+
+	v.RenderTextArea()
+}
+
 // captureTab handles Tab in the capture popup, accepting the active completion.
 func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	state := gui.contexts.Capture.Completion
