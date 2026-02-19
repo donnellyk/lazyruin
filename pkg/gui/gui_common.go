@@ -163,25 +163,10 @@ func (gui *Gui) PreviewCurrentCard() *models.Note {
 	return gui.helpers.Preview().CurrentPreviewCard()
 }
 func (gui *Gui) SetPreviewCards(cards []models.Note, selectedIdx int, title string) {
-	gui.contexts.Preview.Mode = PreviewModeCardList
-	gui.contexts.Preview.Cards = cards
-	gui.contexts.Preview.SelectedCardIndex = selectedIdx
-	gui.contexts.Preview.ScrollOffset = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = title
-	}
-	gui.renderPreview()
+	gui.helpers.Preview().ShowCardList(title, cards)
 }
 func (gui *Gui) SetPreviewPickResults(results []models.PickResult, selectedIdx int, cursorLine int, scrollOffset int, title string) {
-	gui.contexts.Preview.Mode = PreviewModePickResults
-	gui.contexts.Preview.PickResults = results
-	gui.contexts.Preview.SelectedCardIndex = selectedIdx
-	gui.contexts.Preview.CursorLine = cursorLine
-	gui.contexts.Preview.ScrollOffset = scrollOffset
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = title
-	}
-	gui.renderPreview()
+	gui.helpers.Preview().ShowPickResults(title, results)
 }
 
 // Completion candidates

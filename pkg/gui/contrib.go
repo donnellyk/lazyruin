@@ -368,16 +368,9 @@ func (gui *Gui) contribLoadInPreview() {
 
 	date := s.SelectedDate
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Cards = notes
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.ScrollOffset = 0
-	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeContrib()
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Contrib: " + date + " "
-	}
+	gui.helpers.Preview().ShowCardList(" Contrib: "+date+" ", notes)
 	gui.setContext(PreviewContext)
-	gui.renderPreview()
 }
 
 // contribLoadNoteInPreview loads a single note into preview.
@@ -398,14 +391,7 @@ func (gui *Gui) contribLoadNoteInPreview(index int) {
 
 	title := full.Title
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Cards = []models.Note{*full}
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.ScrollOffset = 0
-	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeContrib()
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " " + title + " "
-	}
+	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
 	gui.setContext(PreviewContext)
-	gui.renderPreview()
 }

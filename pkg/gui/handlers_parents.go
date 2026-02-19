@@ -50,11 +50,7 @@ func (gui *Gui) runQuery(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Mode = PreviewModeCardList
-	gui.contexts.Preview.Cards = notes
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.views.Preview.Title = " Query: " + query.Name + " "
-	gui.renderPreview()
+	gui.helpers.Preview().ShowCardList(" Query: "+query.Name+" ", notes)
 	gui.setContext(PreviewContext)
 
 	return nil
@@ -154,12 +150,5 @@ func (gui *Gui) updatePreviewForParents() {
 // showComposedNote puts a single composed note into the preview as a one-card card list.
 func (gui *Gui) showComposedNote(note models.Note, label string) {
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Mode = PreviewModeCardList
-	gui.contexts.Preview.Cards = []models.Note{note}
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.ScrollOffset = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Parent: " + label + " "
-		gui.renderPreview()
-	}
+	gui.helpers.Preview().ShowCardList(" Parent: "+label+" ", []models.Note{note})
 }

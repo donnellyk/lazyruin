@@ -60,13 +60,7 @@ func (gui *Gui) focusSearchFilter(g *gocui.Gui, v *gocui.View) error {
 		opts.Sort = sort
 		notes, err := gui.ruinCmd.Search.Search(query, opts)
 		if err == nil {
-			gui.contexts.Preview.Mode = PreviewModeCardList
-			gui.contexts.Preview.Cards = notes
-			gui.contexts.Preview.SelectedCardIndex = 0
-			if gui.views.Preview != nil {
-				gui.views.Preview.Title = " Search: " + gui.state.SearchQuery + " "
-			}
-			gui.renderPreview()
+			gui.helpers.Preview().ShowCardList(" Search: "+gui.state.SearchQuery+" ", notes)
 		}
 		gui.setContext(SearchFilterContext)
 	}
@@ -118,15 +112,9 @@ func (gui *Gui) executeSearch(g *gocui.Gui, v *gocui.View) error {
 	gui.state.SearchCompletion = NewCompletionState()
 	g.Cursor = false
 
-	// Display results in Preview pane (like tags)
+	// Display results in Preview pane
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Mode = PreviewModeCardList
-	gui.contexts.Preview.Cards = notes
-	gui.contexts.Preview.SelectedCardIndex = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Search: " + query + " "
-	}
-	gui.renderPreview()
+	gui.helpers.Preview().ShowCardList(" Search: "+query+" ", notes)
 
 	gui.replaceContext(PreviewContext)
 

@@ -100,39 +100,22 @@ func (self *TagsContext) Selected() *models.Tag {
 }
 
 // TabIndex returns the current tab index.
-func (self *TagsContext) TabIndex() int {
-	switch self.CurrentTab {
-	case TagsTabGlobal:
-		return 1
-	case TagsTabInline:
-		return 2
-	default:
-		return 0
-	}
-}
+func (self *TagsContext) TabIndex() int { return TabIndexOf(TagsTabs, self.CurrentTab) }
 
 // GetList returns the IList adapter for this context.
 func (self *TagsContext) GetList() types.IList {
-	return &tagsListAdapter{ctx: self}
+	return NewListAdapter(
+		self.list.Len,
+		self.list.GetSelectedItemId,
+		self.list.FindIndexById,
+		func() *ListContextTrait { return self.ListContextTrait },
+	)
 }
 
 // GetSelectedItemId returns the stable ID of the selected item.
 func (self *TagsContext) GetSelectedItemId() string {
 	return self.list.GetSelectedItemId()
 }
-
-// tagsListAdapter wraps TagsContext to implement types.IList.
-type tagsListAdapter struct {
-	ctx *TagsContext
-}
-
-func (a *tagsListAdapter) Len() int                    { return a.ctx.list.Len() }
-func (a *tagsListAdapter) GetSelectedItemId() string   { return a.ctx.list.GetSelectedItemId() }
-func (a *tagsListAdapter) FindIndexById(id string) int { return a.ctx.list.FindIndexById(id) }
-func (a *tagsListAdapter) GetSelectedLineIdx() int     { return a.ctx.GetSelectedLineIdx() }
-func (a *tagsListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.SetSelectedLineIdx(idx) }
-func (a *tagsListAdapter) MoveSelectedLine(delta int)  { a.ctx.MoveSelectedLine(delta) }
-func (a *tagsListAdapter) ClampSelection()             { a.ctx.ClampSelection() }
 
 func filterTagsByScope(tags []models.Tag, scope string) []models.Tag {
 	var out []models.Tag

@@ -101,24 +101,13 @@ func (self *NotesHelper) DeleteNote(note *models.Note) error {
 	if note == nil {
 		return nil
 	}
-	gui := self.c.GuiCommon()
-
-	title := note.Title
-	if title == "" {
-		title = note.Path
+	displayName := note.Title
+	if displayName == "" {
+		displayName = note.Path
 	}
-	if len(title) > 30 {
-		title = title[:30] + "..."
-	}
-
-	gui.ShowConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
-		err := self.c.RuinCmd().Note.Delete(note.UUID)
-		if err != nil {
-			gui.ShowError(err)
-			return nil
-		}
-		gui.RefreshNotes(false)
-		return nil
-	})
+	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
+		func() error { return self.c.RuinCmd().Note.Delete(note.UUID) },
+		func() { self.c.GuiCommon().RefreshNotes(false) },
+	)
 	return nil
 }

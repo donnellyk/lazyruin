@@ -3,7 +3,6 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
-	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -50,10 +49,6 @@ func NewNotesController(opts NotesControllerOpts) *NotesController {
 // Context returns the context this controller is attached to.
 func (self *NotesController) Context() types.Context {
 	return self.getContext()
-}
-
-func (self *NotesController) h() *helpers.Helpers {
-	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // GetKeybindingsFn returns the keybinding producer for notes.
@@ -153,49 +148,14 @@ func (self *NotesController) GetKeybindingsFn() types.KeybindingsFn {
 
 // GetMouseKeybindingsFn returns mouse bindings for the notes panel.
 func (self *NotesController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-		return []*gocui.ViewMouseBinding{
-			{
-				ViewName: "notes",
-				Key:      gocui.MouseLeft,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("notes")
-					if v == nil {
-						return nil
-					}
-					ctx := self.getContext()
-					idx := helpers.ListClickIndex(v, 3)
-					if idx >= 0 && idx < len(ctx.Items) {
-						ctx.SetSelectedLineIdx(idx)
-					}
-					self.c.GuiCommon().PushContext(ctx, types.OnFocusOpts{})
-					return nil
-				},
-			},
-			{
-				ViewName: "notes",
-				Key:      gocui.MouseWheelDown,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("notes")
-					if v != nil {
-						helpers.ScrollViewport(v, 3)
-					}
-					return nil
-				},
-			},
-			{
-				ViewName: "notes",
-				Key:      gocui.MouseWheelUp,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("notes")
-					if v != nil {
-						helpers.ScrollViewport(v, -3)
-					}
-					return nil
-				},
-			},
-		}
-	}
+	return ListMouseBindings(ListMouseOpts{
+		ViewName:     "notes",
+		ClickMargin:  3,
+		ItemCount:    func() int { return len(self.getContext().Items) },
+		SetSelection: func(idx int) { self.getContext().SetSelectedLineIdx(idx) },
+		GetContext:   func() types.Context { return self.getContext() },
+		GuiCommon:    func() IGuiCommon { return self.c.GuiCommon() },
+	})
 }
 
 // Action handlers — call helpers directly.
@@ -209,35 +169,35 @@ func (self *NotesController) viewInPreview(note models.Note) error {
 }
 
 func (self *NotesController) editNote(note models.Note) error {
-	return self.h().Editor().OpenInEditor(note.Path)
+	return self.c.H().Editor().OpenInEditor(note.Path)
 }
 
 func (self *NotesController) deleteNote(note models.Note) error {
-	return self.h().Notes().DeleteNote(&note)
+	return self.c.H().Notes().DeleteNote(&note)
 }
 
 func (self *NotesController) copyPath(note models.Note) error {
-	return self.h().Clipboard().CopyToClipboard(note.Path)
+	return self.c.H().Clipboard().CopyToClipboard(note.Path)
 }
 
 func (self *NotesController) addTag(_ models.Note) error {
-	return self.h().NoteActions().AddGlobalTag()
+	return self.c.H().NoteActions().AddGlobalTag()
 }
 
 func (self *NotesController) removeTag(_ models.Note) error {
-	return self.h().NoteActions().RemoveTag()
+	return self.c.H().NoteActions().RemoveTag()
 }
 
 func (self *NotesController) setParent(_ models.Note) error {
-	return self.h().NoteActions().SetParentDialog()
+	return self.c.H().NoteActions().SetParentDialog()
 }
 
 func (self *NotesController) removeParent(_ models.Note) error {
-	return self.h().NoteActions().RemoveParent()
+	return self.c.H().NoteActions().RemoveParent()
 }
 
 func (self *NotesController) toggleBookmark(_ models.Note) error {
-	return self.h().NoteActions().ToggleBookmark()
+	return self.c.H().NoteActions().ToggleBookmark()
 }
 
 func (self *NotesController) showInfo(note models.Note) error {

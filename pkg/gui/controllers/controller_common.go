@@ -68,3 +68,9 @@ func (self *ControllerCommon) RuinCmd() *commands.RuinCommand {
 func (self *ControllerCommon) Helpers() IHelpers {
 	return self.helpers
 }
+
+// H returns the concrete *Helpers, avoiding the type assertion boilerplate
+// that every controller previously duplicated in a local h() method.
+func (self *ControllerCommon) H() *helpers.Helpers {
+	return self.helpers.(*helpers.Helpers)
+}

@@ -48,11 +48,7 @@ func (gui *Gui) filterByTagSearch(tag *models.Tag) error {
 	}
 
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Mode = PreviewModeCardList
-	gui.contexts.Preview.Cards = notes
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.views.Preview.Title = " Tag: #" + tag.Name + " "
-	gui.renderPreview()
+	gui.helpers.Preview().ShowCardList(" Tag: #"+tag.Name+" ", notes)
 	gui.setContext(PreviewContext)
 	return nil
 }
@@ -64,13 +60,7 @@ func (gui *Gui) filterByTagPick(tag *models.Tag) error {
 		return nil
 	}
 
-	gui.contexts.Preview.Mode = PreviewModePickResults
-	gui.contexts.Preview.PickResults = results
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.CursorLine = 1
-	gui.contexts.Preview.ScrollOffset = 0
-	gui.views.Preview.Title = " Pick: #" + tag.Name + " "
-	gui.renderPreview()
+	gui.helpers.Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
 	gui.setContext(PreviewContext)
 	return nil
 }
@@ -139,13 +129,5 @@ func (gui *Gui) updatePreviewPickResults(tag *models.Tag) {
 		return
 	}
 
-	gui.contexts.Preview.Mode = PreviewModePickResults
-	gui.contexts.Preview.PickResults = results
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.CursorLine = 1
-	gui.contexts.Preview.ScrollOffset = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Pick: #" + tag.Name + " "
-	}
-	gui.renderPreview()
+	gui.helpers.Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
 }

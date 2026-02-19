@@ -450,16 +450,9 @@ func (gui *Gui) calendarLoadInPreview() {
 
 	date := gui.calendarSelectedDate()
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Cards = notes
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.ScrollOffset = 0
-	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeCalendar()
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Calendar: " + date + " "
-	}
+	gui.helpers.Preview().ShowCardList(" Calendar: "+date+" ", notes)
 	gui.setContext(PreviewContext)
-	gui.renderPreview()
 }
 
 // calendarLoadNoteInPreview loads a single note into the preview.
@@ -480,14 +473,7 @@ func (gui *Gui) calendarLoadNoteInPreview(index int) {
 
 	title := full.Title
 	gui.helpers.Preview().PushNavHistory()
-	gui.contexts.Preview.Cards = []models.Note{*full}
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.ScrollOffset = 0
-	gui.contexts.Preview.Mode = PreviewModeCardList
 	gui.closeCalendar()
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " " + title + " "
-	}
+	gui.helpers.Preview().ShowCardList(" "+title+" ", []models.Note{*full})
 	gui.setContext(PreviewContext)
-	gui.renderPreview()
 }

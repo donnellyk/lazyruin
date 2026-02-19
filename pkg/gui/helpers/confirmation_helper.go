@@ -31,3 +31,26 @@ func (self *ConfirmationHelper) ShowError(err error) {
 func (self *ConfirmationHelper) OpenInputPopup(config *types.InputPopupConfig) {
 	self.c.GuiCommon().OpenInputPopup(config)
 }
+
+// ConfirmDelete shows a confirmation dialog and executes deleteFn on confirm.
+// displayName is truncated to 30 characters. On success, onSuccess is called.
+func (self *ConfirmationHelper) ConfirmDelete(
+	entityType string,
+	displayName string,
+	deleteFn func() error,
+	onSuccess func(),
+) {
+	name := displayName
+	if len(name) > 30 {
+		name = name[:30] + "..."
+	}
+	gui := self.c.GuiCommon()
+	gui.ShowConfirm("Delete "+entityType, "Delete \""+name+"\"?", func() error {
+		if err := deleteFn(); err != nil {
+			gui.ShowError(err)
+			return nil
+		}
+		onSuccess()
+		return nil
+	})
+}

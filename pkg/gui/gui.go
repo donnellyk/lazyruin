@@ -8,6 +8,7 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/controllers"
 	helperspkg "kvnd/lazyruin/pkg/gui/helpers"
+	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -129,80 +130,88 @@ func (gui *Gui) setupPreviewContext() {
 	controllers.AttachController(gui.previewController)
 }
 
-// setupSearchContext initializes the SearchContext and SearchController.
+// setupSearchContext initializes the SearchContext and its popup controller.
 func (gui *Gui) setupSearchContext() {
 	searchCtx := context.NewSearchContext()
 	gui.contexts.Search = searchCtx
 
 	searchState := func() *CompletionState { return gui.state.SearchCompletion }
-	ctrl := controllers.NewSearchController(controllers.SearchControllerOpts{
-		GetContext: func() *context.SearchContext { return gui.contexts.Search },
-		OnEnter: func() error {
-			return gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)(gui.g, gui.views.Search)
+	ctrl := controllers.NewPopupController(
+		func() *context.SearchContext { return gui.contexts.Search },
+		[]*types.Binding{
+			{Key: gocui.KeyEnter, Handler: func() error {
+				return gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)(gui.g, gui.views.Search)
+			}},
+			{Key: gocui.KeyEsc, Handler: func() error {
+				return gui.completionEsc(searchState, gui.cancelSearch)(gui.g, gui.views.Search)
+			}},
+			{Key: gocui.KeyTab, Handler: func() error {
+				return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
+			}},
 		},
-		OnEsc: func() error {
-			return gui.completionEsc(searchState, gui.cancelSearch)(gui.g, gui.views.Search)
-		},
-		OnTab: func() error {
-			return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
-		},
-	})
+	)
 	controllers.AttachController(ctrl)
 }
 
-// setupCaptureContext initializes the CaptureContext and CaptureController.
+// setupCaptureContext initializes the CaptureContext and its popup controller.
 func (gui *Gui) setupCaptureContext() {
 	captureCtx := context.NewCaptureContext()
 	gui.contexts.Capture = captureCtx
 
-	ctrl := controllers.NewCaptureController(controllers.CaptureControllerOpts{
-		GetContext: func() *context.CaptureContext { return gui.contexts.Capture },
-		OnSubmit:   func() error { return gui.submitCapture(gui.g, gui.views.Capture) },
-		OnEsc:      func() error { return gui.cancelCapture(gui.g, gui.views.Capture) },
-		OnTab:      func() error { return gui.captureTab(gui.g, gui.views.Capture) },
-	})
+	ctrl := controllers.NewPopupController(
+		func() *context.CaptureContext { return gui.contexts.Capture },
+		[]*types.Binding{
+			{Key: gocui.KeyCtrlS, Handler: func() error { return gui.submitCapture(gui.g, gui.views.Capture) }},
+			{Key: gocui.KeyEsc, Handler: func() error { return gui.cancelCapture(gui.g, gui.views.Capture) }},
+			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
+		},
+	)
 	controllers.AttachController(ctrl)
 }
 
-// setupPickContext initializes the PickContext and PickController.
+// setupPickContext initializes the PickContext and its popup controller.
 func (gui *Gui) setupPickContext() {
 	pickCtx := context.NewPickContext()
 	gui.contexts.Pick = pickCtx
 
 	pickState := func() *CompletionState { return gui.state.PickCompletion }
-	ctrl := controllers.NewPickController(controllers.PickControllerOpts{
-		GetContext: func() *context.PickContext { return gui.contexts.Pick },
-		OnEnter: func() error {
-			return gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)(gui.g, gui.views.Pick)
+	ctrl := controllers.NewPopupController(
+		func() *context.PickContext { return gui.contexts.Pick },
+		[]*types.Binding{
+			{Key: gocui.KeyEnter, Handler: func() error {
+				return gui.completionEnter(pickState, gui.pickTriggers, gui.executePick)(gui.g, gui.views.Pick)
+			}},
+			{Key: gocui.KeyEsc, Handler: func() error {
+				return gui.completionEsc(pickState, gui.cancelPick)(gui.g, gui.views.Pick)
+			}},
+			{Key: gocui.KeyTab, Handler: func() error {
+				return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
+			}},
+			{Key: gocui.KeyCtrlA, Handler: func() error { return gui.togglePickAny(gui.g, gui.views.Pick) }},
 		},
-		OnEsc: func() error {
-			return gui.completionEsc(pickState, gui.cancelPick)(gui.g, gui.views.Pick)
-		},
-		OnTab: func() error {
-			return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
-		},
-		OnToggleAny: func() error { return gui.togglePickAny(gui.g, gui.views.Pick) },
-	})
+	)
 	controllers.AttachController(ctrl)
 }
 
-// setupInputPopupContext initializes the InputPopupContext and InputPopupController.
+// setupInputPopupContext initializes the InputPopupContext and its popup controller.
 func (gui *Gui) setupInputPopupContext() {
 	inputPopupCtx := context.NewInputPopupContext()
 	gui.contexts.InputPopup = inputPopupCtx
 
-	ctrl := controllers.NewInputPopupController(controllers.InputPopupControllerOpts{
-		GetContext: func() *context.InputPopupContext { return gui.contexts.InputPopup },
-		OnEnter: func() error {
-			v, _ := gui.g.View(InputPopupView)
-			return gui.inputPopupEnter(gui.g, v)
+	ctrl := controllers.NewPopupController(
+		func() *context.InputPopupContext { return gui.contexts.InputPopup },
+		[]*types.Binding{
+			{Key: gocui.KeyEnter, Handler: func() error {
+				v, _ := gui.g.View(InputPopupView)
+				return gui.inputPopupEnter(gui.g, v)
+			}},
+			{Key: gocui.KeyEsc, Handler: func() error { return gui.inputPopupEsc(gui.g, nil) }},
+			{Key: gocui.KeyTab, Handler: func() error {
+				v, _ := gui.g.View(InputPopupView)
+				return gui.inputPopupTab(gui.g, v)
+			}},
 		},
-		OnEsc: func() error { return gui.inputPopupEsc(gui.g, nil) },
-		OnTab: func() error {
-			v, _ := gui.g.View(InputPopupView)
-			return gui.inputPopupTab(gui.g, v)
-		},
-	})
+	)
 	controllers.AttachController(ctrl)
 }
 

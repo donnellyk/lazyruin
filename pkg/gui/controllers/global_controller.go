@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -60,10 +59,6 @@ func (self *GlobalController) Context() types.Context {
 	return self.getContext()
 }
 
-func (self *GlobalController) h() *helpers.Helpers {
-	return self.c.Helpers().(*helpers.Helpers)
-}
-
 // NextPanel implements Tab panel cycling.
 func (self *GlobalController) NextPanel() error {
 	gc := self.c.GuiCommon()
@@ -118,7 +113,7 @@ func (self *GlobalController) PrevPanel() error {
 func (self *GlobalController) FocusNotes() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "notes" {
-		self.h().Notes().CycleNotesTab()
+		self.c.H().Notes().CycleNotesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("notes"); ctx != nil {
@@ -131,7 +126,7 @@ func (self *GlobalController) FocusNotes() error {
 func (self *GlobalController) FocusQueries() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "queries" {
-		self.h().Queries().CycleQueriesTab()
+		self.c.H().Queries().CycleQueriesTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("queries"); ctx != nil {
@@ -144,7 +139,7 @@ func (self *GlobalController) FocusQueries() error {
 func (self *GlobalController) FocusTags() error {
 	gc := self.c.GuiCommon()
 	if gc.CurrentContextKey() == "tags" {
-		self.h().Tags().CycleTagsTab()
+		self.c.H().Tags().CycleTagsTab()
 		return nil
 	}
 	if ctx := gc.ContextByKey("tags"); ctx != nil {
@@ -163,7 +158,7 @@ func (self *GlobalController) FocusPreview() error {
 }
 
 func (self *GlobalController) openSearch() error {
-	return self.h().Search().OpenSearch()
+	return self.c.H().Search().OpenSearch()
 }
 
 func (self *GlobalController) refresh() error {
@@ -172,7 +167,7 @@ func (self *GlobalController) refresh() error {
 }
 
 func (self *GlobalController) focusSearchFilter() error {
-	return self.h().Search().FocusSearchFilter()
+	return self.c.H().Search().FocusSearchFilter()
 }
 
 // GetKeybindingsFn returns all global keybinding producers.

@@ -3,7 +3,6 @@ package controllers
 import (
 	"github.com/jesseduffield/gocui"
 	"kvnd/lazyruin/pkg/gui/context"
-	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -44,10 +43,6 @@ func NewTagsController(opts TagsControllerOpts) *TagsController {
 // Context returns the context this controller is attached to.
 func (self *TagsController) Context() types.Context {
 	return self.getContext()
-}
-
-func (self *TagsController) h() *helpers.Helpers {
-	return self.c.Helpers().(*helpers.Helpers)
 }
 
 // GetKeybindingsFn returns the keybinding producer for tags.
@@ -91,62 +86,26 @@ func (self *TagsController) GetKeybindingsFn() types.KeybindingsFn {
 
 // GetMouseKeybindingsFn returns mouse bindings for the tags panel.
 func (self *TagsController) GetMouseKeybindingsFn() types.MouseKeybindingsFn {
-	return func(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-		return []*gocui.ViewMouseBinding{
-			{
-				ViewName: "tags",
-				Key:      gocui.MouseLeft,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("tags")
-					if v == nil {
-						return nil
-					}
-					ctx := self.getContext()
-					items := ctx.FilteredItems()
-					idx := helpers.ListClickIndex(v, 1)
-					if idx >= 0 && idx < len(items) {
-						ctx.SetSelectedLineIdx(idx)
-					}
-					self.c.GuiCommon().PushContext(ctx, types.OnFocusOpts{})
-					return nil
-				},
-			},
-			{
-				ViewName: "tags",
-				Key:      gocui.MouseWheelDown,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("tags")
-					if v != nil {
-						helpers.ScrollViewport(v, 3)
-					}
-					return nil
-				},
-			},
-			{
-				ViewName: "tags",
-				Key:      gocui.MouseWheelUp,
-				Handler: func(mopts gocui.ViewMouseBindingOpts) error {
-					v := self.c.GuiCommon().GetView("tags")
-					if v != nil {
-						helpers.ScrollViewport(v, -3)
-					}
-					return nil
-				},
-			},
-		}
-	}
+	return ListMouseBindings(ListMouseOpts{
+		ViewName:     "tags",
+		ClickMargin:  1,
+		ItemCount:    func() int { return len(self.getContext().FilteredItems()) },
+		SetSelection: func(idx int) { self.getContext().SetSelectedLineIdx(idx) },
+		GetContext:   func() types.Context { return self.getContext() },
+		GuiCommon:    func() IGuiCommon { return self.c.GuiCommon() },
+	})
 }
 
 // Action handlers — call helpers directly.
 
 func (self *TagsController) filterByTag(tag models.Tag) error {
-	return self.h().Tags().FilterByTag(&tag)
+	return self.c.H().Tags().FilterByTag(&tag)
 }
 
 func (self *TagsController) renameTag(tag models.Tag) error {
-	return self.h().Tags().RenameTag(&tag)
+	return self.c.H().Tags().RenameTag(&tag)
 }
 
 func (self *TagsController) deleteTag(tag models.Tag) error {
-	return self.h().Tags().DeleteTag(&tag)
+	return self.c.H().Tags().DeleteTag(&tag)
 }

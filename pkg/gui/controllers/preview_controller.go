@@ -30,20 +30,18 @@ func (self *PreviewController) Context() types.Context {
 	return self.getContext()
 }
 
-func (self *PreviewController) h() *helpers.Helpers {
-	return self.c.Helpers().(*helpers.Helpers)
-}
-
 func (self *PreviewController) p() *helpers.PreviewHelper {
-	return self.h().Preview()
+	return self.c.H().Preview()
 }
 
 // Note action wrappers — call helpers directly.
-func (self *PreviewController) addTag() error         { return self.h().NoteActions().AddGlobalTag() }
-func (self *PreviewController) removeTag() error      { return self.h().NoteActions().RemoveTag() }
-func (self *PreviewController) setParent() error      { return self.h().NoteActions().SetParentDialog() }
-func (self *PreviewController) removeParent() error   { return self.h().NoteActions().RemoveParent() }
-func (self *PreviewController) toggleBookmark() error { return self.h().NoteActions().ToggleBookmark() }
+func (self *PreviewController) addTag() error       { return self.c.H().NoteActions().AddGlobalTag() }
+func (self *PreviewController) removeTag() error    { return self.c.H().NoteActions().RemoveTag() }
+func (self *PreviewController) setParent() error    { return self.c.H().NoteActions().SetParentDialog() }
+func (self *PreviewController) removeParent() error { return self.c.H().NoteActions().RemoveParent() }
+func (self *PreviewController) toggleBookmark() error {
+	return self.c.H().NoteActions().ToggleBookmark()
+}
 
 // GetKeybindingsFn returns the keybinding producer for preview.
 // Bindings with Key == nil are palette-only (no keybinding registered).

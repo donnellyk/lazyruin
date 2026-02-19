@@ -85,37 +85,22 @@ func (self *NotesContext) Selected() *models.Note {
 }
 
 // TabIndex returns the current tab index.
-func (self *NotesContext) TabIndex() int {
-	for i, tab := range NotesTabs {
-		if tab == self.CurrentTab {
-			return i
-		}
-	}
-	return 0
-}
+func (self *NotesContext) TabIndex() int { return TabIndexOf(NotesTabs, self.CurrentTab) }
 
 // GetList returns the IList adapter for this context.
 func (self *NotesContext) GetList() types.IList {
-	return &notesListAdapter{ctx: self}
+	return NewListAdapter(
+		self.list.Len,
+		self.list.GetSelectedItemId,
+		self.list.FindIndexById,
+		func() *ListContextTrait { return self.ListContextTrait },
+	)
 }
 
 // GetSelectedItemId returns the stable ID of the selected item.
 func (self *NotesContext) GetSelectedItemId() string {
 	return self.list.GetSelectedItemId()
 }
-
-// notesListAdapter wraps NotesContext to implement types.IList.
-type notesListAdapter struct {
-	ctx *NotesContext
-}
-
-func (a *notesListAdapter) Len() int                    { return a.ctx.list.Len() }
-func (a *notesListAdapter) GetSelectedItemId() string   { return a.ctx.list.GetSelectedItemId() }
-func (a *notesListAdapter) FindIndexById(id string) int { return a.ctx.list.FindIndexById(id) }
-func (a *notesListAdapter) GetSelectedLineIdx() int     { return a.ctx.GetSelectedLineIdx() }
-func (a *notesListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.SetSelectedLineIdx(idx) }
-func (a *notesListAdapter) MoveSelectedLine(delta int)  { a.ctx.MoveSelectedLine(delta) }
-func (a *notesListAdapter) ClampSelection()             { a.ctx.ClampSelection() }
 
 // Verify interface compliance at compile time.
 var _ types.IListContext = &NotesContext{}

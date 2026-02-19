@@ -158,12 +158,7 @@ func (self *QueriesContext) SelectedParent() *models.ParentBookmark {
 }
 
 // TabIndex returns the current tab index.
-func (self *QueriesContext) TabIndex() int {
-	if self.CurrentTab == QueriesTabParents {
-		return 1
-	}
-	return 0
-}
+func (self *QueriesContext) TabIndex() int { return TabIndexOf(QueriesTabs, self.CurrentTab) }
 
 // ActiveItemCount returns the number of items in the active tab.
 func (self *QueriesContext) ActiveItemCount() int {
@@ -176,19 +171,29 @@ func (self *QueriesContext) ActiveItemCount() int {
 // GetList returns the IList adapter for the active tab.
 func (self *QueriesContext) GetList() types.IList {
 	if self.CurrentTab == QueriesTabParents {
-		return &parentsListAdapter{ctx: self}
+		return self.GetParentsList()
 	}
-	return &queriesListAdapter{ctx: self}
+	return self.GetQueriesList()
 }
 
 // GetQueriesList returns the IList adapter for the queries tab (regardless of active tab).
 func (self *QueriesContext) GetQueriesList() types.IList {
-	return &queriesListAdapter{ctx: self}
+	return NewListAdapter(
+		self.queriesList.Len,
+		self.queriesList.GetSelectedItemId,
+		self.queriesList.FindIndexById,
+		func() *ListContextTrait { return self.queriesTrait },
+	)
 }
 
 // GetParentsList returns the IList adapter for the parents tab (regardless of active tab).
 func (self *QueriesContext) GetParentsList() types.IList {
-	return &parentsListAdapter{ctx: self}
+	return NewListAdapter(
+		self.parentsList.Len,
+		self.parentsList.GetSelectedItemId,
+		self.parentsList.FindIndexById,
+		func() *ListContextTrait { return self.parentsTrait },
+	)
 }
 
 // GetSelectedItemId returns the stable ID for the currently selected item.
@@ -205,32 +210,6 @@ func (self *QueriesContext) GetSelectedLineIdx() int    { return self.ActiveTrai
 func (self *QueriesContext) SetSelectedLineIdx(idx int) { self.ActiveTrait().SetSelectedLineIdx(idx) }
 func (self *QueriesContext) MoveSelectedLine(delta int) { self.ActiveTrait().MoveSelectedLine(delta) }
 func (self *QueriesContext) ClampSelection()            { self.ActiveTrait().ClampSelection() }
-
-// queriesListAdapter wraps QueriesContext to implement types.IList for queries tab.
-type queriesListAdapter struct {
-	ctx *QueriesContext
-}
-
-func (a *queriesListAdapter) Len() int                    { return a.ctx.queriesList.Len() }
-func (a *queriesListAdapter) GetSelectedItemId() string   { return a.ctx.queriesList.GetSelectedItemId() }
-func (a *queriesListAdapter) FindIndexById(id string) int { return a.ctx.queriesList.FindIndexById(id) }
-func (a *queriesListAdapter) GetSelectedLineIdx() int     { return a.ctx.queriesTrait.GetSelectedLineIdx() }
-func (a *queriesListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.queriesTrait.SetSelectedLineIdx(idx) }
-func (a *queriesListAdapter) MoveSelectedLine(delta int)  { a.ctx.queriesTrait.MoveSelectedLine(delta) }
-func (a *queriesListAdapter) ClampSelection()             { a.ctx.queriesTrait.ClampSelection() }
-
-// parentsListAdapter wraps QueriesContext to implement types.IList for parents tab.
-type parentsListAdapter struct {
-	ctx *QueriesContext
-}
-
-func (a *parentsListAdapter) Len() int                    { return a.ctx.parentsList.Len() }
-func (a *parentsListAdapter) GetSelectedItemId() string   { return a.ctx.parentsList.GetSelectedItemId() }
-func (a *parentsListAdapter) FindIndexById(id string) int { return a.ctx.parentsList.FindIndexById(id) }
-func (a *parentsListAdapter) GetSelectedLineIdx() int     { return a.ctx.parentsTrait.GetSelectedLineIdx() }
-func (a *parentsListAdapter) SetSelectedLineIdx(idx int)  { a.ctx.parentsTrait.SetSelectedLineIdx(idx) }
-func (a *parentsListAdapter) MoveSelectedLine(delta int)  { a.ctx.parentsTrait.MoveSelectedLine(delta) }
-func (a *parentsListAdapter) ClampSelection()             { a.ctx.parentsTrait.ClampSelection() }
 
 // Verify interface compliance at compile time.
 var _ types.IListContext = &QueriesContext{}

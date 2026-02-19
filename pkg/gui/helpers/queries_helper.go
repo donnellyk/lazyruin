@@ -139,15 +139,10 @@ func (self *QueriesHelper) DeleteQuery() error {
 		return nil
 	}
 
-	gui.ShowConfirm("Delete Query", "Delete query \""+query.Name+"\"?", func() error {
-		err := self.c.RuinCmd().Queries.Delete(query.Name)
-		if err != nil {
-			gui.ShowError(err)
-			return nil
-		}
-		gui.RefreshQueries(false)
-		return nil
-	})
+	self.c.Helpers().Confirmation().ConfirmDelete("Query", query.Name,
+		func() error { return self.c.RuinCmd().Queries.Delete(query.Name) },
+		func() { gui.RefreshQueries(false) },
+	)
 	return nil
 }
 
@@ -178,15 +173,10 @@ func (self *QueriesHelper) DeleteParent() error {
 		return nil
 	}
 
-	gui.ShowConfirm("Delete Parent", "Delete parent bookmark \""+parent.Name+"\"?", func() error {
-		err := self.c.RuinCmd().Parent.Delete(parent.Name)
-		if err != nil {
-			gui.ShowError(err)
-			return nil
-		}
-		gui.RefreshParents(false)
-		return nil
-	})
+	self.c.Helpers().Confirmation().ConfirmDelete("Parent", parent.Name,
+		func() error { return self.c.RuinCmd().Parent.Delete(parent.Name) },
+		func() { gui.RefreshParents(false) },
+	)
 	return nil
 }
 

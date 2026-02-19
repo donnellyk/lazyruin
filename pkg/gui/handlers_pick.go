@@ -56,15 +56,7 @@ func (gui *Gui) executePick(g *gocui.Gui, v *gocui.View) error {
 		results = nil
 	}
 
-	gui.contexts.Preview.Mode = PreviewModePickResults
-	gui.contexts.Preview.PickResults = results
-	gui.contexts.Preview.SelectedCardIndex = 0
-	gui.contexts.Preview.CursorLine = 1
-	gui.contexts.Preview.ScrollOffset = 0
-	if gui.views.Preview != nil {
-		gui.views.Preview.Title = " Pick: " + raw + " "
-	}
-	gui.renderPreview()
+	gui.helpers.Preview().ShowPickResults(" Pick: "+raw+" ", results)
 
 	gui.replaceContext(PreviewContext)
 	return nil

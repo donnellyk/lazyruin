@@ -57,8 +57,7 @@ func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
 
 // UpdatePreviewForNotes updates the preview pane to show the selected note.
 func (self *PreviewHelper) UpdatePreviewForNotes() {
-	gui := self.c.GuiCommon()
-	notes := gui.Contexts().Notes
+	notes := self.c.GuiCommon().Contexts().Notes
 	if len(notes.Items) == 0 {
 		return
 	}
@@ -68,17 +67,7 @@ func (self *PreviewHelper) UpdatePreviewForNotes() {
 	}
 	note := notes.Items[idx]
 	self.PushNavHistory()
-	pc := self.ctx()
-	pc.Mode = context.PreviewModeCardList
-	pc.Cards = []models.Note{note}
-	pc.SelectedCardIndex = 0
-	pc.CursorLine = 1
-	pc.ScrollOffset = 0
-	v := self.view()
-	if v != nil {
-		v.Title = " " + note.Title + " "
-		gui.RenderPreview()
-	}
+	self.ShowCardList(" "+note.Title+" ", []models.Note{note})
 }
 
 // UpdatePreviewCardList loads a card list into the preview.
@@ -88,17 +77,38 @@ func (self *PreviewHelper) UpdatePreviewCardList(title string, loadFn func() ([]
 		return
 	}
 	self.PushNavHistory()
+	self.ShowCardList(title, notes)
+}
+
+// ShowCardList sets the preview to card-list mode with the given cards and title,
+// then renders. Does NOT push nav history or change context focus — callers
+// that need those should call PushNavHistory / PushContextByKey separately.
+func (self *PreviewHelper) ShowCardList(title string, cards []models.Note) {
 	pc := self.ctx()
 	pc.Mode = context.PreviewModeCardList
-	pc.Cards = notes
+	pc.Cards = cards
 	pc.SelectedCardIndex = 0
 	pc.CursorLine = 1
 	pc.ScrollOffset = 0
-	v := self.view()
-	if v != nil {
+	if v := self.view(); v != nil {
 		v.Title = title
-		self.c.GuiCommon().RenderPreview()
 	}
+	self.c.GuiCommon().RenderPreview()
+}
+
+// ShowPickResults sets the preview to pick-results mode with the given results
+// and title, then renders. Does NOT push nav history or change context focus.
+func (self *PreviewHelper) ShowPickResults(title string, results []models.PickResult) {
+	pc := self.ctx()
+	pc.Mode = context.PreviewModePickResults
+	pc.PickResults = results
+	pc.SelectedCardIndex = 0
+	pc.CursorLine = 1
+	pc.ScrollOffset = 0
+	if v := self.view(); v != nil {
+		v.Title = title
+	}
+	self.c.GuiCommon().RenderPreview()
 }
 
 // --- nav history ---
@@ -236,17 +246,8 @@ func (self *PreviewHelper) OpenNoteByUUID(uuid string) error {
 		return nil
 	}
 	self.PushNavHistory()
-	pc := self.ctx()
-	pc.Mode = context.PreviewModeCardList
-	pc.Cards = []models.Note{*note}
-	pc.SelectedCardIndex = 0
-	pc.CursorLine = 1
-	pc.ScrollOffset = 0
-	if v := self.view(); v != nil {
-		v.Title = " " + note.Title + " "
-	}
+	self.ShowCardList(" "+note.Title+" ", []models.Note{*note})
 	self.c.GuiCommon().PushContextByKey("preview")
-	self.c.GuiCommon().RenderPreview()
 	return nil
 }
 
@@ -730,30 +731,24 @@ func (self *PreviewHelper) DeleteCard() error {
 	}
 
 	card := pc.Cards[pc.SelectedCardIndex]
-	title := card.Title
-	if title == "" {
-		title = card.Path
-	}
-	if len(title) > 30 {
-		title = title[:30] + "..."
+	displayName := card.Title
+	if displayName == "" {
+		displayName = card.Path
 	}
 
 	gui := self.c.GuiCommon()
-	gui.ShowConfirm("Delete Note", "Delete \""+title+"\"?", func() error {
-		err := self.c.RuinCmd().Note.Delete(card.UUID)
-		if err != nil {
-			gui.ShowError(err)
-			return nil
-		}
-		idx := pc.SelectedCardIndex
-		pc.Cards = append(pc.Cards[:idx], pc.Cards[idx+1:]...)
-		if pc.SelectedCardIndex >= len(pc.Cards) && pc.SelectedCardIndex > 0 {
-			pc.SelectedCardIndex--
-		}
-		gui.RefreshNotes(false)
-		gui.RenderPreview()
-		return nil
-	})
+	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
+		func() error { return self.c.RuinCmd().Note.Delete(card.UUID) },
+		func() {
+			idx := pc.SelectedCardIndex
+			pc.Cards = append(pc.Cards[:idx], pc.Cards[idx+1:]...)
+			if pc.SelectedCardIndex >= len(pc.Cards) && pc.SelectedCardIndex > 0 {
+				pc.SelectedCardIndex--
+			}
+			gui.RefreshNotes(false)
+			gui.RenderPreview()
+		},
+	)
 	return nil
 }
 
