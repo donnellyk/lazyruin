@@ -56,7 +56,10 @@ func (gui *Gui) setupKeybindings() error {
 	}
 
 	// Clear Search binding (SearchFilterView-specific, no controller home yet)
-	if err := gui.g.SetKeybinding(SearchFilterView, 'x', gocui.ModNone, gui.clearSearch); err != nil {
+	if err := gui.g.SetKeybinding(SearchFilterView, 'x', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		gui.helpers.Search().ClearSearch()
+		return nil
+	}); err != nil {
 		return err
 	}
 
@@ -70,13 +73,19 @@ func (gui *Gui) setupKeybindings() error {
 	}
 
 	// Tab click bindings (different signature, can't be registered via controllers)
-	if err := gui.g.SetTabClickBinding(NotesView, gui.suppressTabClickDuringDialog(gui.switchNotesTabByIndex)); err != nil {
+	if err := gui.g.SetTabClickBinding(NotesView, gui.suppressTabClickDuringDialog(
+		func(idx int) error { return gui.helpers.Notes().SwitchNotesTabByIndex(idx) },
+	)); err != nil {
 		return err
 	}
-	if err := gui.g.SetTabClickBinding(QueriesView, gui.suppressTabClickDuringDialog(gui.switchQueriesTabByIndex)); err != nil {
+	if err := gui.g.SetTabClickBinding(QueriesView, gui.suppressTabClickDuringDialog(
+		func(idx int) error { return gui.helpers.Queries().SwitchQueriesTabByIndex(idx) },
+	)); err != nil {
 		return err
 	}
-	if err := gui.g.SetTabClickBinding(TagsView, gui.suppressTabClickDuringDialog(gui.switchTagsTabByIndex)); err != nil {
+	if err := gui.g.SetTabClickBinding(TagsView, gui.suppressTabClickDuringDialog(
+		func(idx int) error { return gui.helpers.Tags().SwitchTagsTabByIndex(idx) },
+	)); err != nil {
 		return err
 	}
 

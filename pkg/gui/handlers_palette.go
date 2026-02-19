@@ -276,8 +276,8 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabQueries
 				gui.contexts.Queries.QueriesTrait().SetSelectedLineIdx(idx)
 				gui.setContext(QueriesContext)
-				gui.renderQueries()
-				return gui.runQuery(nil, nil)
+				gui.RenderQueries()
+				return gui.helpers.Queries().RunQuery()
 			},
 		})
 	}
@@ -292,8 +292,8 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				gui.contexts.Queries.CurrentTab = context.QueriesTabParents
 				gui.contexts.Queries.ParentsTrait().SetSelectedLineIdx(idx)
 				gui.setContext(QueriesContext)
-				gui.renderQueries()
-				return gui.viewParent(nil, nil)
+				gui.RenderQueries()
+				return gui.helpers.Queries().ViewParent()
 			},
 		})
 	}
@@ -308,7 +308,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Category: "Tag",
 				OnRun: func() error {
 					gui.setContext(TagsContext)
-					return gui.filterByTagPick(&tag)
+					return gui.helpers.Tags().FilterByTagPick(&tag)
 				},
 			})
 		} else {
@@ -317,7 +317,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 				Category: "Tag",
 				OnRun: func() error {
 					gui.setContext(TagsContext)
-					return gui.filterByTagSearch(&tag)
+					return gui.helpers.Tags().FilterByTagSearch(&tag)
 				},
 			})
 		}
@@ -337,7 +337,7 @@ func (gui *Gui) quickOpenItems() []PaletteCommand {
 			OnRun: func() error {
 				gui.contexts.Notes.SetSelectedLineIdx(idx)
 				gui.setContext(NotesContext)
-				gui.renderNotes()
+				gui.RenderNotes()
 				gui.helpers.Preview().UpdatePreviewForNotes()
 				return nil
 			},

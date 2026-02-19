@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"time"
 
 	"kvnd/lazyruin/pkg/commands"
@@ -87,7 +88,7 @@ func (gui *Gui) setupNotesContext() {
 
 // setupTagsContext initializes the new TagsContext and TagsController.
 func (gui *Gui) setupTagsContext() {
-	tagsCtx := context.NewTagsContext(gui.renderTags, gui.updatePreviewForTags)
+	tagsCtx := context.NewTagsContext(gui.renderTags, func() { gui.helpers.Tags().UpdatePreviewForTags() })
 
 	gui.contexts.Tags = tagsCtx
 
@@ -103,8 +104,8 @@ func (gui *Gui) setupTagsContext() {
 // setupQueriesContext initializes the QueriesContext and QueriesController.
 func (gui *Gui) setupQueriesContext() {
 	queriesCtx := context.NewQueriesContext(
-		gui.renderQueries, gui.updatePreviewForQueries,
-		gui.renderQueries, gui.updatePreviewForParents,
+		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForQueries() },
+		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForParents() },
 	)
 	// CurrentTab defaults to QueriesTabQueries from context constructor
 	gui.contexts.Queries = queriesCtx
@@ -136,14 +137,24 @@ func (gui *Gui) setupSearchContext() {
 	gui.contexts.Search = searchCtx
 
 	searchState := func() *CompletionState { return gui.state.SearchCompletion }
+	searchHelper := func() *helperspkg.SearchHelper { return gui.helpers.Search() }
 	ctrl := controllers.NewPopupController(
 		func() *context.SearchContext { return gui.contexts.Search },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Handler: func() error {
-				return gui.completionEnter(searchState, gui.searchTriggers, gui.executeSearch)(gui.g, gui.views.Search)
+				return gui.completionEnter(searchState, gui.searchTriggers, func(g *gocui.Gui, v *gocui.View) error {
+					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+					if !searchHelper().ExecuteSearch(raw) {
+						searchHelper().CancelSearch()
+					}
+					return nil
+				})(gui.g, gui.views.Search)
 			}},
 			{Key: gocui.KeyEsc, Handler: func() error {
-				return gui.completionEsc(searchState, gui.cancelSearch)(gui.g, gui.views.Search)
+				return gui.completionEsc(searchState, func(g *gocui.Gui, v *gocui.View) error {
+					searchHelper().CancelSearch()
+					return nil
+				})(gui.g, gui.views.Search)
 			}},
 			{Key: gocui.KeyTab, Handler: func() error {
 				return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
@@ -420,14 +431,14 @@ func (gui *Gui) activateContext(ctx ContextKey) {
 	case QueriesContext:
 		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
 			gui.RefreshParents(true)
-			gui.updatePreviewForParents()
+			gui.helpers.Queries().UpdatePreviewForParents()
 		} else {
 			gui.RefreshQueries(true)
-			gui.updatePreviewForQueries()
+			gui.helpers.Queries().UpdatePreviewForQueries()
 		}
 	case TagsContext:
 		gui.RefreshTags(true)
-		gui.updatePreviewForTags()
+		gui.helpers.Tags().UpdatePreviewForTags()
 	case PreviewContext:
 		gui.renderPreview()
 	}

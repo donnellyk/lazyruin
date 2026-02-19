@@ -11,18 +11,19 @@ import (
 func (gui *Gui) paletteOnlyCommands() []PaletteCommand {
 	return []PaletteCommand{
 		// Tab switching (palette-only, no keybinding)
-		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(0) }},
-		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(1) }},
-		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.switchNotesTabByIndex(2) }},
-		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(0) }},
-		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.switchQueriesTabByIndex(1) }},
-		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(0) }},
-		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(1) }},
-		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.switchTagsTabByIndex(2) }},
+		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(0) }},
+		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(1) }},
+		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(2) }},
+		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(0) }},
+		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(1) }},
+		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(0) }},
+		{Name: "Tags: Global", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(1) }},
+		{Name: "Tags: Inline", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(2) }},
 
 		// Search filter (palette-only; keybinding registered in setupKeybindings)
 		{Name: "Clear Search", Category: "Search", Key: "x", Contexts: []ContextKey{SearchFilterContext}, OnRun: func() error {
-			return gui.clearSearch(gui.g, nil)
+			gui.helpers.Search().ClearSearch()
+			return nil
 		}},
 
 		// Snippets (palette-only, no keybinding)
