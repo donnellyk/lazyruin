@@ -75,6 +75,11 @@ func (gui *Gui) setupNotesContext() {
 	notesCtx := context.NewNotesContext(gui.renderNotes, func() { gui.helpers.Preview().UpdatePreviewForNotes() })
 	gui.contexts.Notes = notesCtx
 
+	notesCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.RefreshNotes(true)
+		gui.helpers.Preview().UpdatePreviewForNotes()
+	})
+
 	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
@@ -92,12 +97,16 @@ func (gui *Gui) setupTagsContext() {
 
 	gui.contexts.Tags = tagsCtx
 
+	tagsCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.RefreshTags(true)
+		gui.helpers.Tags().UpdatePreviewForTags()
+	})
+
 	gui.tagsController = controllers.NewTagsController(controllers.TagsControllerOpts{
 		Common:     gui.controllerCommon,
 		GetContext: func() *context.TagsContext { return gui.contexts.Tags },
 	})
 
-	// Attach controller to context
 	controllers.AttachController(gui.tagsController)
 }
 
@@ -107,8 +116,17 @@ func (gui *Gui) setupQueriesContext() {
 		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForQueries() },
 		gui.renderQueries, func() { gui.helpers.Queries().UpdatePreviewForParents() },
 	)
-	// CurrentTab defaults to QueriesTabQueries from context constructor
 	gui.contexts.Queries = queriesCtx
+
+	queriesCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
+			gui.RefreshParents(true)
+			gui.helpers.Queries().UpdatePreviewForParents()
+		} else {
+			gui.RefreshQueries(true)
+			gui.helpers.Queries().UpdatePreviewForQueries()
+		}
+	})
 
 	gui.queriesController = controllers.NewQueriesController(controllers.QueriesControllerOpts{
 		Common:     gui.controllerCommon,
@@ -122,6 +140,10 @@ func (gui *Gui) setupQueriesContext() {
 func (gui *Gui) setupPreviewContext() {
 	previewCtx := context.NewPreviewContext()
 	gui.contexts.Preview = previewCtx
+
+	previewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.renderPreview()
+	})
 
 	gui.previewController = controllers.NewPreviewController(
 		gui.controllerCommon,
@@ -503,7 +525,8 @@ func (gui *Gui) backgroundRefreshData() {
 	gui.updateStatusBar()
 }
 
-// activateContext sets focus and refreshes data for the given context.
+// activateContext sets focus and re-renders lists for the given context.
+// Per-context refresh/preview logic is handled by HandleFocus hooks.
 func (gui *Gui) activateContext(ctx types.ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
@@ -512,26 +535,6 @@ func (gui *Gui) activateContext(ctx types.ContextKey) {
 	gui.renderNotes()
 	gui.renderQueries()
 	gui.renderTags()
-
-	// Refresh data (preserving selections) and update preview based on new context
-	switch ctx {
-	case "notes":
-		gui.RefreshNotes(true)
-		gui.helpers.Preview().UpdatePreviewForNotes()
-	case "queries":
-		if gui.contexts.Queries.CurrentTab == context.QueriesTabParents {
-			gui.RefreshParents(true)
-			gui.helpers.Queries().UpdatePreviewForParents()
-		} else {
-			gui.RefreshQueries(true)
-			gui.helpers.Queries().UpdatePreviewForQueries()
-		}
-	case "tags":
-		gui.RefreshTags(true)
-		gui.helpers.Tags().UpdatePreviewForTags()
-	case "preview":
-		gui.renderPreview()
-	}
 
 	gui.updateStatusBar()
 }
