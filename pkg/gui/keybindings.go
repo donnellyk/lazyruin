@@ -71,10 +71,13 @@ func (gui *Gui) registerContextBindings() error {
 				if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
 					return nil
 				}
-				// Active-context guard: when multiple contexts share a view
-				// (cardList, pickResults, compose all use "preview"), only
-				// fire bindings for the currently active context.
-				if context.IsPreviewContextKey(ctxKey) && gui.contextMgr.Current() != ctxKey {
+				// Active-context guard: cardList, pickResults, compose all
+				// share the "preview" view and register overlapping nav
+				// bindings. gocui keeps only the last handler per (view,key),
+				// so we use a relaxed guard: fire if ANY preview context is
+				// active. Shared nav helpers dispatch via activeCtx().
+				// CardList-specific bindings guard themselves internally.
+				if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 					return nil
 				}
 				if binding.GetDisabledReason != nil {
@@ -112,7 +115,7 @@ func (gui *Gui) registerContextBindings() error {
 					if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
 						return nil
 					}
-					if context.IsPreviewContextKey(ctxKey) && gui.contextMgr.Current() != ctxKey {
+					if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 						return nil
 					}
 					return mouseBind.Handler(gocui.ViewMouseBindingOpts{})

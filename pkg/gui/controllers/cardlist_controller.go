@@ -38,6 +38,20 @@ func (self *CardListController) info() *helpers.PreviewInfoHelper {
 	return self.c.Helpers().PreviewInfo()
 }
 
+// requireCardList wraps a handler so it only fires when the current context
+// is cardList. This prevents CardList-specific bindings (mutations, line-ops)
+// from executing in pickResults or compose, since the relaxed preview-context
+// guard in keybindings.go allows any preview context to activate bindings
+// registered on the shared "preview" view.
+func (self *CardListController) requireCardList(fn func() error) func() error {
+	return func() error {
+		if self.c.GuiCommon().CurrentContextKey() != "cardList" {
+			return nil
+		}
+		return fn()
+	}
+}
+
 func (self *CardListController) addTag() error { return self.c.Helpers().NoteActions().AddGlobalTag() }
 func (self *CardListController) removeTag() error {
 	return self.c.Helpers().NoteActions().RemoveTag()
@@ -57,67 +71,67 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 	bindings = append(bindings,
 		&types.Binding{
 			ID: "cardList.delete", Key: 'd',
-			Handler: self.mutations().DeleteCard, Description: "Delete Card", Category: "Preview",
+			Handler: self.requireCardList(self.mutations().DeleteCard), Description: "Delete Card", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.open_editor", Key: 'E',
-			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview", DisplayOnScreen: true,
+			Handler: self.requireCardList(self.nav().OpenInEditor), Description: "Open in Editor", Category: "Preview", DisplayOnScreen: true,
 		},
 		&types.Binding{
 			ID: "cardList.append_done", Key: 'D',
-			Handler: self.lineOps().AppendDone, Description: "Toggle #done", Category: "Preview",
+			Handler: self.requireCardList(self.lineOps().AppendDone), Description: "Toggle #done", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.move_card", Key: 'm',
-			Handler: self.mutations().MoveCardDialog, Description: "Move Card", Category: "Preview",
+			Handler: self.requireCardList(self.mutations().MoveCardDialog), Description: "Move Card", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.merge_card", Key: 'M',
-			Handler: self.mutations().MergeCardDialog, Description: "Merge Notes", Category: "Preview",
+			Handler: self.requireCardList(self.mutations().MergeCardDialog), Description: "Merge Notes", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_inline_tag", Key: gocui.KeyCtrlT,
-			Handler: self.lineOps().ToggleInlineTag, Description: "Toggle Inline Tag", Category: "Preview",
+			Handler: self.requireCardList(self.lineOps().ToggleInlineTag), Description: "Toggle Inline Tag", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_inline_date", Key: gocui.KeyCtrlD,
-			Handler: self.lineOps().ToggleInlineDate, Description: "Toggle Inline Date", Category: "Preview",
+			Handler: self.requireCardList(self.lineOps().ToggleInlineDate), Description: "Toggle Inline Date", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_todo", Key: 'x',
-			Handler: self.lineOps().ToggleTodo, Description: "Toggle Todo", Category: "Preview",
+			Handler: self.requireCardList(self.lineOps().ToggleTodo), Description: "Toggle Todo", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.focus_note", Key: gocui.KeyEnter,
-			Handler: self.nav().FocusNote, Description: "Focus Note from Preview", Category: "Preview", DisplayOnScreen: true,
+			Handler: self.requireCardList(self.nav().FocusNote), Description: "Focus Note from Preview", Category: "Preview", DisplayOnScreen: true,
 		},
 		&types.Binding{
 			ID: "cardList.add_tag", Key: 't',
-			Handler: self.addTag, Description: "Add Tag", Category: "Note Actions", DisplayOnScreen: true,
+			Handler: self.requireCardList(self.addTag), Description: "Add Tag", Category: "Note Actions", DisplayOnScreen: true,
 		},
 		&types.Binding{
 			ID: "cardList.remove_tag", Key: 'T',
-			Handler: self.removeTag, Description: "Remove Tag", Category: "Note Actions",
+			Handler: self.requireCardList(self.removeTag), Description: "Remove Tag", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID: "cardList.set_parent", Key: '>',
-			Handler: self.setParent, Description: "Set Parent", Category: "Note Actions",
+			Handler: self.requireCardList(self.setParent), Description: "Set Parent", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID: "cardList.remove_parent", Key: 'P',
-			Handler: self.removeParent, Description: "Remove Parent", Category: "Note Actions",
+			Handler: self.requireCardList(self.removeParent), Description: "Remove Parent", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_bookmark", Key: 'b',
-			Handler: self.toggleBookmark, Description: "Toggle Bookmark", Category: "Note Actions",
+			Handler: self.requireCardList(self.toggleBookmark), Description: "Toggle Bookmark", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID: "cardList.show_info", Key: 's',
-			Handler: self.info().ShowInfoDialog, Description: "Show Info", Category: "Note Actions",
+			Handler: self.requireCardList(self.info().ShowInfoDialog), Description: "Show Info", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID:      "cardList.order_cards",
-			Handler: self.mutations().OrderCards, Description: "Order Cards", Category: "Preview",
+			Handler: self.requireCardList(self.mutations().OrderCards), Description: "Order Cards", Category: "Preview",
 		},
 	)
 	return bindings
