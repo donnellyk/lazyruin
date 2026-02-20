@@ -47,6 +47,15 @@ func JoinDot(parts ...string) string {
 	return strings.Join(nonEmpty, " · ")
 }
 
+// SourceMapEntry maps a line range in composed output back to its source child note.
+type SourceMapEntry struct {
+	UUID      string `json:"uuid"`
+	Path      string `json:"path"`
+	Title     string `json:"title"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+}
+
 func (n *Note) GlobalTagsString() string {
 	result := ""
 	for i, tag := range n.Tags {

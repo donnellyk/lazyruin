@@ -21,5 +21,8 @@ type NavEntry struct {
 	ScrollOffset      int
 	Title             string
 	PickResults       []models.PickResult
-	ContextKey        types.ContextKey // which context key to restore ("cardList", "pickResults", "compose")
+	ContextKey        types.ContextKey        // which context key to restore ("cardList", "pickResults", "compose")
+	SourceMap         []models.SourceMapEntry // compose source map
+	ParentUUID        string                  // compose parent UUID
+	ParentTitle       string                  // compose parent title
 }

@@ -9,8 +9,11 @@ import (
 type ComposeState struct {
 	PreviewNavState
 	PreviewDisplayState
-	Note            models.Note // single composed note
-	SelectedCardIdx int         // always 0
+	Note            models.Note             // single composed note
+	SelectedCardIdx int                     // always 0
+	SourceMap       []models.SourceMapEntry // maps composed line ranges to source children
+	ParentUUID      string                  // for reload after mutations
+	ParentTitle     string                  // for reload after mutations
 }
 
 // ComposeContext owns the compose preview mode (parent composition via `ruin compose`).

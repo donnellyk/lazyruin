@@ -154,13 +154,13 @@ func (self *QueriesHelper) ViewParent() error {
 		return nil
 	}
 
-	composed, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
+	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
 	if err != nil {
 		gui.ShowError(err)
 		return nil
 	}
 
-	self.ShowComposedNote(composed, parent.Name)
+	self.ShowComposedNote(composed, sourceMap, parent)
 	gui.PushContextByKey("compose")
 	return nil
 }
@@ -206,16 +206,16 @@ func (self *QueriesHelper) UpdatePreviewForParents() {
 		return
 	}
 
-	composed, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
+	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
 	if err != nil {
 		return
 	}
 
-	self.ShowComposedNote(composed, parent.Name)
+	self.ShowComposedNote(composed, sourceMap, parent)
 }
 
 // ShowComposedNote puts a single composed note into the preview as a compose view.
-func (self *QueriesHelper) ShowComposedNote(note models.Note, label string) {
+func (self *QueriesHelper) ShowComposedNote(note models.Note, sourceMap []models.SourceMapEntry, parent *models.ParentBookmark) {
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCompose(" Parent: "+label+" ", note)
+	self.c.Helpers().Preview().ShowCompose(" Parent: "+parent.Name+" ", note, sourceMap, parent.UUID, parent.Title)
 }

@@ -8,6 +8,7 @@ import (
 
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/reflow/wordwrap"
@@ -53,6 +54,8 @@ func (self *PreviewLineOpsHelper) resolveTarget() *lineTarget {
 		return self.resolveCardListTarget()
 	case "pickResults":
 		return self.ResolvePickTarget()
+	case "compose":
+		return self.resolveComposeTarget()
 	default:
 		return nil
 	}
@@ -123,6 +126,126 @@ func (self *PreviewLineOpsHelper) resolveCardListTarget() *lineTarget {
 		}
 	}
 	return nil
+}
+
+// resolveComposeTarget maps the current visual cursor position to a lineTarget
+// in compose mode by using the source_map to identify which child note the
+// cursor line belongs to, then finding the exact line in that child's source file.
+func (self *PreviewLineOpsHelper) resolveComposeTarget() *lineTarget {
+	v := self.view()
+	if v == nil {
+		return nil
+	}
+	gui := self.c.GuiCommon()
+	comp := gui.Contexts().Compose
+	if len(comp.SourceMap) == 0 {
+		return nil
+	}
+	ns := comp.NavState()
+	ranges := ns.CardLineRanges
+	if len(ranges) == 0 {
+		return nil
+	}
+
+	// Get the visual cursor offset within the compose card
+	cardStart := ranges[0][0]
+	lineOffset := ns.CursorLine - cardStart - 1
+	if lineOffset < 0 {
+		return nil
+	}
+
+	// Get the rendered line text
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+	contentWidth := max(width-2, 10)
+	cardLines := gui.BuildCardContent(comp.Note, contentWidth)
+	if lineOffset >= len(cardLines) {
+		return nil
+	}
+	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
+	if visibleLine == "" {
+		return nil
+	}
+
+	// Step 1: Match visibleLine against composed_content lines to find the
+	// composed line number, then look up the source_map entry.
+	composedLines := strings.Split(comp.Note.Content, "\n")
+	composedLineNum := -1
+	bestDist := -1
+	for i, cl := range composedLines {
+		if strings.TrimSpace(cl) == visibleLine {
+			dist := abs(i - lineOffset)
+			if bestDist < 0 || dist < bestDist {
+				composedLineNum = i + 1 // 1-indexed
+				bestDist = dist
+			}
+		}
+	}
+	if composedLineNum < 0 {
+		return nil
+	}
+
+	// Find source_map entry containing this composed line
+	var entry *models.SourceMapEntry
+	for idx := range comp.SourceMap {
+		e := &comp.SourceMap[idx]
+		if composedLineNum >= e.StartLine && composedLineNum <= e.EndLine {
+			entry = e
+			break
+		}
+	}
+	if entry == nil {
+		return nil
+	}
+
+	// Step 2: Read the child's source file and find the exact line
+	data, err := os.ReadFile(entry.Path)
+	if err != nil {
+		// Fallback: use source_map formula
+		return &lineTarget{
+			UUID:    entry.UUID,
+			LineNum: composedLineNum - entry.StartLine + 1,
+			Path:    entry.Path,
+		}
+	}
+	fileLines := strings.Split(string(data), "\n")
+
+	// Skip frontmatter
+	contentStart := 0
+	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
+		for i := 1; i < len(fileLines); i++ {
+			if strings.TrimSpace(fileLines[i]) == "---" {
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+
+	for i := contentStart; i < len(fileLines); i++ {
+		if strings.TrimSpace(fileLines[i]) == visibleLine {
+			return &lineTarget{
+				UUID:    entry.UUID,
+				LineNum: i - contentStart + 1,
+				Path:    entry.Path,
+			}
+		}
+	}
+
+	// Fallback: use source_map offset formula
+	return &lineTarget{
+		UUID:    entry.UUID,
+		LineNum: composedLineNum - entry.StartLine + 1,
+		Path:    entry.Path,
+	}
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // ResolvePickTarget maps the current visual cursor position to a lineTarget

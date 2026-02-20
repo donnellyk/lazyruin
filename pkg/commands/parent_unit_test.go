@@ -43,22 +43,39 @@ func TestParentCommand_List_Empty_Unit(t *testing.T) {
 
 func TestParentCommand_ComposeFlat_Unit(t *testing.T) {
 	result := struct {
-		UUID    string `json:"uuid"`
-		Title   string `json:"title"`
-		Path    string `json:"path"`
-		Content string `json:"content"`
+		UUID            string `json:"uuid"`
+		Title           string `json:"title"`
+		Path            string `json:"path"`
+		ComposedContent string `json:"composed_content"`
+		SourceMap       []struct {
+			UUID      string `json:"uuid"`
+			Path      string `json:"path"`
+			Title     string `json:"title"`
+			StartLine int    `json:"start_line"`
+			EndLine   int    `json:"end_line"`
+		} `json:"source_map"`
 	}{
-		UUID:    "root-1",
-		Title:   "Root Note",
-		Path:    "/vault/root.md",
-		Content: "Root content\n\n## Child A\n\nChild A content\n\n## Child B\n\nChild B content",
+		UUID:            "root-1",
+		Title:           "Root Note",
+		Path:            "/vault/root.md",
+		ComposedContent: "Root content\n\n## Child A\n\nChild A content\n\n## Child B\n\nChild B content",
+		SourceMap: []struct {
+			UUID      string `json:"uuid"`
+			Path      string `json:"path"`
+			Title     string `json:"title"`
+			StartLine int    `json:"start_line"`
+			EndLine   int    `json:"end_line"`
+		}{
+			{UUID: "child-a", Path: "/vault/child-a.md", Title: "Child A", StartLine: 1, EndLine: 5},
+			{UUID: "child-b", Path: "/vault/child-b.md", Title: "Child B", StartLine: 7, EndLine: 9},
+		},
 	}
 
 	data, _ := json.Marshal(result)
 	mock := NewMockExecutor().WithCompose(data)
 
 	ruin := NewRuinCommandWithExecutor(mock, mock.VaultPath())
-	note, err := ruin.Parent.ComposeFlat("root-1", "My Bookmark")
+	note, sourceMap, err := ruin.Parent.ComposeFlat("root-1", "My Bookmark")
 	if err != nil {
 		t.Fatalf("ComposeFlat() error: %v", err)
 	}
@@ -71,6 +88,12 @@ func TestParentCommand_ComposeFlat_Unit(t *testing.T) {
 	}
 	if note.Content == "" {
 		t.Error("Content is empty")
+	}
+	if len(sourceMap) != 2 {
+		t.Errorf("SourceMap length = %d, want 2", len(sourceMap))
+	}
+	if len(sourceMap) > 0 && sourceMap[0].UUID != "child-a" {
+		t.Errorf("SourceMap[0].UUID = %q, want %q", sourceMap[0].UUID, "child-a")
 	}
 }
 

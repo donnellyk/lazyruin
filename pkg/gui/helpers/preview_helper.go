@@ -121,10 +121,13 @@ func (self *PreviewHelper) ShowPickResults(title string, results []models.PickRe
 
 // ShowCompose sets the preview to compose mode with the given note and title,
 // then renders. Does NOT push nav history or change context focus.
-func (self *PreviewHelper) ShowCompose(title string, note models.Note) {
+func (self *PreviewHelper) ShowCompose(title string, note models.Note, sourceMap []models.SourceMapEntry, parentUUID, parentTitle string) {
 	contexts := self.c.GuiCommon().Contexts()
 	comp := contexts.Compose
 	comp.Note = note
+	comp.SourceMap = sourceMap
+	comp.ParentUUID = parentUUID
+	comp.ParentTitle = parentTitle
 	comp.SelectedCardIdx = 0
 	ns := comp.NavState()
 	ns.CursorLine = 1
@@ -145,7 +148,17 @@ func (self *PreviewHelper) ReloadActivePreview() {
 	case "pickResults":
 		self.ReloadPickResults()
 	case "compose":
-		self.c.GuiCommon().RenderPreview()
+		gui := self.c.GuiCommon()
+		comp := gui.Contexts().Compose
+		if comp.ParentUUID != "" {
+			composed, sm, err := self.c.RuinCmd().Parent.ComposeFlat(comp.ParentUUID, comp.ParentTitle)
+			if err == nil {
+				comp.Note = composed
+				comp.SourceMap = sm
+			}
+		}
+		self.c.Helpers().Notes().FetchNotesForCurrentTab(true)
+		gui.RenderPreview()
 	default:
 		self.ReloadContent()
 	}
@@ -239,7 +252,7 @@ func (self *PreviewHelper) reloadPreviewCards() {
 		if queriesCtx.CurrentTab == "parents" {
 			if len(queriesCtx.Parents) > 0 {
 				parent := queriesCtx.Parents[queriesCtx.ParentsTrait().GetSelectedLineIdx()]
-				composed, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
+				composed, _, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
 				if err == nil {
 					cl.Cards = []models.Note{composed}
 				}

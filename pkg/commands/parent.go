@@ -20,30 +20,32 @@ func (p *ParentCommand) List() ([]models.ParentBookmark, error) {
 }
 
 type composeResult struct {
-	UUID    string `json:"uuid"`
-	Title   string `json:"title"`
-	Path    string `json:"path"`
-	Content string `json:"content"`
+	UUID            string                  `json:"uuid"`
+	Title           string                  `json:"title"`
+	Path            string                  `json:"path"`
+	ComposedContent string                  `json:"composed_content"`
+	SourceMap       []models.SourceMapEntry `json:"source_map"`
 }
 
-// ComposeFlat runs compose and returns the fully-assembled document as a single Note.
-func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, error) {
-	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--content", "--normalize-headers", "--sort", "created:desc")
+// ComposeFlat runs compose and returns the fully-assembled document as a single Note
+// plus a source map that maps composed line ranges back to their source child notes.
+func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, []models.SourceMapEntry, error) {
+	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--normalize-headers", "--sort", "created:desc")
 	if err != nil {
-		return models.Note{}, err
+		return models.Note{}, nil, err
 	}
 
 	root, err := unmarshalJSON[composeResult](output)
 	if err != nil {
-		return models.Note{}, err
+		return models.Note{}, nil, err
 	}
 
 	return models.Note{
 		UUID:    root.UUID,
 		Title:   title,
 		Path:    root.Path,
-		Content: root.Content,
-	}, nil
+		Content: root.ComposedContent,
+	}, root.SourceMap, nil
 }
 
 // Save creates a parent bookmark via `parent save <name> <note>`.

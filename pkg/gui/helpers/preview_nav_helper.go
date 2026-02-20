@@ -80,6 +80,9 @@ func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
 	case "compose":
 		comp := contexts.Compose
 		entry.Cards = []models.Note{comp.Note}
+		entry.SourceMap = append([]models.SourceMapEntry(nil), comp.SourceMap...)
+		entry.ParentUUID = comp.ParentUUID
+		entry.ParentTitle = comp.ParentTitle
 	default:
 		cl := contexts.CardList
 		entry.Cards = append([]models.Note(nil), cl.Cards...)
@@ -110,6 +113,9 @@ func (self *PreviewNavHelper) restoreNavEntry(entry context.NavEntry) {
 		if len(entry.Cards) > 0 {
 			comp.Note = entry.Cards[0]
 		}
+		comp.SourceMap = append([]models.SourceMapEntry(nil), entry.SourceMap...)
+		comp.ParentUUID = entry.ParentUUID
+		comp.ParentTitle = entry.ParentTitle
 		comp.SelectedCardIdx = entry.SelectedCardIndex
 		ns := comp.NavState()
 		ns.CursorLine = entry.CursorLine
