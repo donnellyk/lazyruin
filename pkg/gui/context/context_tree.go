@@ -23,14 +23,15 @@ type ContextTree struct {
 }
 
 // ViewNameForKey returns the primary view name for a context key,
-// derived from the context's own metadata. Falls back to "notes".
+// derived from the context's own metadata. For lightweight contexts not
+// in the tree (e.g. "searchFilter"), the key itself is the view name.
 func (self *ContextTree) ViewNameForKey(key types.ContextKey) string {
 	for _, ctx := range self.All() {
 		if ctx.GetKey() == key {
 			return ctx.GetPrimaryViewName()
 		}
 	}
-	return "notes"
+	return string(key)
 }
 
 // All returns all contexts in the tree for iteration.
