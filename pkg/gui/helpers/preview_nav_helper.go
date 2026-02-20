@@ -21,8 +21,8 @@ func NewPreviewNavHelper(c *HelperCommon) *PreviewNavHelper {
 	return &PreviewNavHelper{c: c}
 }
 
-func (self *PreviewNavHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewNavHelper) activeCtx() context.IPreviewContext {
+	return self.c.GuiCommon().Contexts().ActivePreview()
 }
 
 func (self *PreviewNavHelper) view() *gocui.View {
@@ -33,120 +33,172 @@ func (self *PreviewNavHelper) view() *gocui.View {
 
 // PushNavHistory captures the current preview state onto the nav history stack.
 func (self *PreviewNavHelper) PushNavHistory() {
-	pc := self.ctx()
-	if len(pc.Cards) == 0 && len(pc.PickResults) == 0 {
+	ctx := self.activeCtx()
+	if ctx.CardCount() == 0 {
 		return
 	}
 
 	entry := self.captureCurrentNavEntry()
+	nh := ctx.NavHistory()
 
 	// Truncate any forward entries
-	if pc.NavIndex >= 0 && pc.NavIndex < len(pc.NavHistory)-1 {
-		pc.NavHistory = pc.NavHistory[:pc.NavIndex+1]
+	if nh.Index >= 0 && nh.Index < len(nh.Entries)-1 {
+		nh.Entries = nh.Entries[:nh.Index+1]
 	}
 
-	pc.NavHistory = append(pc.NavHistory, entry)
-	pc.NavIndex = len(pc.NavHistory) - 1
+	nh.Entries = append(nh.Entries, entry)
+	nh.Index = len(nh.Entries) - 1
 
 	// Cap at 50 entries
-	if len(pc.NavHistory) > 50 {
-		pc.NavHistory = pc.NavHistory[len(pc.NavHistory)-50:]
-		pc.NavIndex = len(pc.NavHistory) - 1
+	if len(nh.Entries) > 50 {
+		nh.Entries = nh.Entries[len(nh.Entries)-50:]
+		nh.Index = len(nh.Entries) - 1
 	}
 }
 
 func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
-	pc := self.ctx()
+	contexts := self.c.GuiCommon().Contexts()
 	title := ""
 	if v := self.view(); v != nil {
 		title = v.Title
 	}
-	return context.NavEntry{
-		Cards:             append([]models.Note(nil), pc.Cards...),
-		SelectedCardIndex: pc.SelectedCardIndex,
-		CursorLine:        pc.CursorLine,
-		ScrollOffset:      pc.ScrollOffset,
-		Mode:              pc.Mode,
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+
+	entry := context.NavEntry{
+		SelectedCardIndex: ctx.SelectedCardIndex(),
+		CursorLine:        ns.CursorLine,
+		ScrollOffset:      ns.ScrollOffset,
 		Title:             title,
-		PickResults:       append([]models.PickResult(nil), pc.PickResults...),
+		ContextKey:        contexts.ActivePreviewKey,
 	}
+
+	switch contexts.ActivePreviewKey {
+	case "pickResults":
+		pr := contexts.PickResults
+		entry.PickResults = append([]models.PickResult(nil), pr.Results...)
+	case "compose":
+		comp := contexts.Compose
+		entry.Cards = []models.Note{comp.Note}
+	default:
+		cl := contexts.CardList
+		entry.Cards = append([]models.Note(nil), cl.Cards...)
+	}
+
+	return entry
 }
 
 func (self *PreviewNavHelper) restoreNavEntry(entry context.NavEntry) {
-	pc := self.ctx()
-	pc.Mode = entry.Mode
-	pc.Cards = append([]models.Note(nil), entry.Cards...)
-	pc.PickResults = append([]models.PickResult(nil), entry.PickResults...)
-	pc.SelectedCardIndex = entry.SelectedCardIndex
-	pc.CursorLine = entry.CursorLine
-	pc.ScrollOffset = entry.ScrollOffset
+	contexts := self.c.GuiCommon().Contexts()
+	gui := self.c.GuiCommon()
+
+	targetKey := entry.ContextKey
+	if targetKey == "" {
+		targetKey = "cardList"
+	}
+
+	switch targetKey {
+	case "pickResults":
+		pr := contexts.PickResults
+		pr.Results = append([]models.PickResult(nil), entry.PickResults...)
+		pr.SelectedCardIdx = entry.SelectedCardIndex
+		ns := pr.NavState()
+		ns.CursorLine = entry.CursorLine
+		ns.ScrollOffset = entry.ScrollOffset
+	case "compose":
+		comp := contexts.Compose
+		if len(entry.Cards) > 0 {
+			comp.Note = entry.Cards[0]
+		}
+		comp.SelectedCardIdx = entry.SelectedCardIndex
+		ns := comp.NavState()
+		ns.CursorLine = entry.CursorLine
+		ns.ScrollOffset = entry.ScrollOffset
+	default:
+		cl := contexts.CardList
+		cl.Cards = append([]models.Note(nil), entry.Cards...)
+		cl.SelectedCardIdx = entry.SelectedCardIndex
+		ns := cl.NavState()
+		ns.CursorLine = entry.CursorLine
+		ns.ScrollOffset = entry.ScrollOffset
+	}
+
+	contexts.ActivePreviewKey = targetKey
+
 	if v := self.view(); v != nil {
 		v.Title = entry.Title
 		v.SetOrigin(0, entry.ScrollOffset)
 	}
-	self.c.GuiCommon().RenderPreview()
+
+	// Switch to the correct preview context for the restored entry
+	if context.IsPreviewContextKey(targetKey) {
+		if gui.CurrentContextKey() != targetKey {
+			gui.ReplaceContextByKey(targetKey)
+		}
+	}
+	gui.RenderPreview()
 }
 
 // NavBack navigates backward in history.
 func (self *PreviewNavHelper) NavBack() error {
-	pc := self.ctx()
-	if pc.NavIndex < 0 || len(pc.NavHistory) == 0 {
+	nh := self.activeCtx().NavHistory()
+	if nh.Index < 0 || len(nh.Entries) == 0 {
 		return nil
 	}
 
-	pc.NavHistory[pc.NavIndex] = self.captureCurrentNavEntry()
+	nh.Entries[nh.Index] = self.captureCurrentNavEntry()
 
-	if pc.NavIndex == len(pc.NavHistory)-1 {
-		pc.NavHistory = append(pc.NavHistory, self.captureCurrentNavEntry())
+	if nh.Index == len(nh.Entries)-1 {
+		nh.Entries = append(nh.Entries, self.captureCurrentNavEntry())
 	}
 
-	if pc.NavIndex <= 0 {
+	if nh.Index <= 0 {
 		return nil
 	}
 
-	pc.NavIndex--
-	self.restoreNavEntry(pc.NavHistory[pc.NavIndex])
+	nh.Index--
+	self.restoreNavEntry(nh.Entries[nh.Index])
 	return nil
 }
 
 // NavForward navigates forward in history.
 func (self *PreviewNavHelper) NavForward() error {
-	pc := self.ctx()
-	if pc.NavIndex >= len(pc.NavHistory)-1 {
+	nh := self.activeCtx().NavHistory()
+	if nh.Index >= len(nh.Entries)-1 {
 		return nil
 	}
 
-	pc.NavHistory[pc.NavIndex] = self.captureCurrentNavEntry()
+	nh.Entries[nh.Index] = self.captureCurrentNavEntry()
 
-	pc.NavIndex++
-	self.restoreNavEntry(pc.NavHistory[pc.NavIndex])
+	nh.Index++
+	self.restoreNavEntry(nh.Entries[nh.Index])
 	return nil
 }
 
 // ShowNavHistory shows the navigation history stack in a menu dialog.
 func (self *PreviewNavHelper) ShowNavHistory() error {
-	pc := self.ctx()
-	if len(pc.NavHistory) == 0 {
+	nh := self.activeCtx().NavHistory()
+	if len(nh.Entries) == 0 {
 		return nil
 	}
 
 	var items []types.MenuItem
-	for i := len(pc.NavHistory) - 1; i >= 0; i-- {
-		entry := pc.NavHistory[i]
+	for i := len(nh.Entries) - 1; i >= 0; i-- {
+		entry := nh.Entries[i]
 		label := strings.TrimSpace(entry.Title)
 		if label == "" {
 			label = "(untitled)"
 		}
-		if i == pc.NavIndex {
+		if i == nh.Index {
 			label = "> " + label
 		}
 		idx := i
 		items = append(items, types.MenuItem{
 			Label: label,
 			OnRun: func() error {
-				pc.NavHistory[pc.NavIndex] = self.captureCurrentNavEntry()
-				pc.NavIndex = idx
-				self.restoreNavEntry(pc.NavHistory[idx])
+				nh.Entries[nh.Index] = self.captureCurrentNavEntry()
+				nh.Index = idx
+				self.restoreNavEntry(nh.Entries[idx])
 				return nil
 			},
 		})
@@ -165,26 +217,15 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 	}
 	self.PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
-	self.c.GuiCommon().PushContextByKey("preview")
+	self.c.GuiCommon().PushContextByKey("cardList")
 	return nil
 }
 
 // --- cursor movement ---
 
-func (self *PreviewNavHelper) multiCardCount() int {
-	pc := self.ctx()
-	switch pc.Mode {
-	case context.PreviewModeCardList:
-		return len(pc.Cards)
-	case context.PreviewModePickResults:
-		return len(pc.PickResults)
-	default:
-		return 0
-	}
-}
-
 func (self *PreviewNavHelper) isContentLine(lineNum int) bool {
-	for _, r := range self.ctx().CardLineRanges {
+	ns := self.activeCtx().NavState()
+	for _, r := range ns.CardLineRanges {
 		if lineNum > r[0] && lineNum < r[1]-1 {
 			return true
 		}
@@ -194,18 +235,19 @@ func (self *PreviewNavHelper) isContentLine(lineNum int) bool {
 
 // SyncCardIndexFromCursor updates SelectedCardIndex based on CursorLine.
 func (self *PreviewNavHelper) SyncCardIndexFromCursor() {
-	pc := self.ctx()
-	ranges := pc.CardLineRanges
-	cursor := pc.CursorLine
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+	ranges := ns.CardLineRanges
+	cursor := ns.CursorLine
 	for i, r := range ranges {
 		if cursor >= r[0] && cursor < r[1] {
-			pc.SelectedCardIndex = i
+			ctx.SetSelectedCardIndex(i)
 			return
 		}
 	}
 	for i := 0; i < len(ranges)-1; i++ {
 		if cursor >= ranges[i][1] && cursor < ranges[i+1][0] {
-			pc.SelectedCardIndex = i + 1
+			ctx.SetSelectedCardIndex(i + 1)
 			return
 		}
 	}
@@ -213,19 +255,20 @@ func (self *PreviewNavHelper) SyncCardIndexFromCursor() {
 
 // MoveDown moves the cursor to the next content line.
 func (self *PreviewNavHelper) MoveDown() error {
-	pc := self.ctx()
-	ranges := pc.CardLineRanges
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+	ranges := ns.CardLineRanges
 	if len(ranges) > 0 {
 		maxLine := ranges[len(ranges)-1][1] - 1
-		cursor := pc.CursorLine
+		cursor := ns.CursorLine
 		for cursor < maxLine {
 			cursor++
 			if self.isContentLine(cursor) {
 				break
 			}
 		}
-		if self.isContentLine(cursor) && cursor != pc.CursorLine {
-			pc.CursorLine = cursor
+		if self.isContentLine(cursor) && cursor != ns.CursorLine {
+			ns.CursorLine = cursor
 			self.SyncCardIndexFromCursor()
 			self.c.GuiCommon().RenderPreview()
 		}
@@ -235,16 +278,16 @@ func (self *PreviewNavHelper) MoveDown() error {
 
 // MoveUp moves the cursor to the previous content line.
 func (self *PreviewNavHelper) MoveUp() error {
-	pc := self.ctx()
-	cursor := pc.CursorLine
+	ns := self.activeCtx().NavState()
+	cursor := ns.CursorLine
 	for cursor > 0 {
 		cursor--
 		if self.isContentLine(cursor) {
 			break
 		}
 	}
-	if self.isContentLine(cursor) && cursor != pc.CursorLine {
-		pc.CursorLine = cursor
+	if self.isContentLine(cursor) && cursor != ns.CursorLine {
+		ns.CursorLine = cursor
 		self.SyncCardIndexFromCursor()
 		self.c.GuiCommon().RenderPreview()
 	}
@@ -253,17 +296,18 @@ func (self *PreviewNavHelper) MoveUp() error {
 
 // CardDown jumps to the next card.
 func (self *PreviewNavHelper) CardDown() error {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
-	count := self.multiCardCount()
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+	idx := ctx.SelectedCardIndex()
+	count := ctx.CardCount()
 	next := idx + 1
 	if next >= count {
 		return nil
 	}
-	pc.SelectedCardIndex = next
-	ranges := pc.CardLineRanges
+	ctx.SetSelectedCardIndex(next)
+	ranges := ns.CardLineRanges
 	if next < len(ranges) {
-		pc.CursorLine = ranges[next][0] + 1
+		ns.CursorLine = ranges[next][0] + 1
 	}
 	self.c.GuiCommon().RenderPreview()
 	return nil
@@ -271,16 +315,17 @@ func (self *PreviewNavHelper) CardDown() error {
 
 // CardUp jumps to the previous card.
 func (self *PreviewNavHelper) CardUp() error {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+	idx := ctx.SelectedCardIndex()
 	prev := idx - 1
 	if prev < 0 {
 		return nil
 	}
-	pc.SelectedCardIndex = prev
-	ranges := pc.CardLineRanges
+	ctx.SetSelectedCardIndex(prev)
+	ranges := ns.CardLineRanges
 	if prev < len(ranges) {
-		pc.CursorLine = ranges[prev][0] + 1
+		ns.CursorLine = ranges[prev][0] + 1
 	}
 	self.c.GuiCommon().RenderPreview()
 	return nil
@@ -288,11 +333,11 @@ func (self *PreviewNavHelper) CardUp() error {
 
 // NextHeader jumps to the next markdown header.
 func (self *PreviewNavHelper) NextHeader() error {
-	pc := self.ctx()
-	cursor := pc.CursorLine
-	for _, h := range pc.HeaderLines {
+	ns := self.activeCtx().NavState()
+	cursor := ns.CursorLine
+	for _, h := range ns.HeaderLines {
 		if h > cursor {
-			pc.CursorLine = h
+			ns.CursorLine = h
 			self.SyncCardIndexFromCursor()
 			self.c.GuiCommon().RenderPreview()
 			return nil
@@ -303,11 +348,11 @@ func (self *PreviewNavHelper) NextHeader() error {
 
 // PrevHeader jumps to the previous markdown header.
 func (self *PreviewNavHelper) PrevHeader() error {
-	pc := self.ctx()
-	cursor := pc.CursorLine
-	for i := len(pc.HeaderLines) - 1; i >= 0; i-- {
-		if pc.HeaderLines[i] < cursor {
-			pc.CursorLine = pc.HeaderLines[i]
+	ns := self.activeCtx().NavState()
+	cursor := ns.CursorLine
+	for i := len(ns.HeaderLines) - 1; i >= 0; i-- {
+		if ns.HeaderLines[i] < cursor {
+			ns.CursorLine = ns.HeaderLines[i]
 			self.SyncCardIndexFromCursor()
 			self.c.GuiCommon().RenderPreview()
 			return nil
@@ -331,9 +376,9 @@ func (self *PreviewNavHelper) ScrollDown() error {
 	if v == nil || v.Name() != "preview" {
 		return nil
 	}
-	pc := self.ctx()
-	pc.ScrollOffset += 3
-	v.SetOrigin(0, pc.ScrollOffset)
+	ns := self.activeCtx().NavState()
+	ns.ScrollOffset += 3
+	v.SetOrigin(0, ns.ScrollOffset)
 	return nil
 }
 
@@ -350,12 +395,12 @@ func (self *PreviewNavHelper) ScrollUp() error {
 	if v == nil || v.Name() != "preview" {
 		return nil
 	}
-	pc := self.ctx()
-	pc.ScrollOffset -= 3
-	if pc.ScrollOffset < 0 {
-		pc.ScrollOffset = 0
+	ns := self.activeCtx().NavState()
+	ns.ScrollOffset -= 3
+	if ns.ScrollOffset < 0 {
+		ns.ScrollOffset = 0
 	}
-	v.SetOrigin(0, pc.ScrollOffset)
+	v.SetOrigin(0, ns.ScrollOffset)
 	return nil
 }
 
@@ -374,27 +419,29 @@ func (self *PreviewNavHelper) Click() error {
 
 	links := self.c.Helpers().PreviewLinks()
 	links.ExtractLinks()
-	pc := self.ctx()
-	for _, link := range pc.Links {
+	ns := self.activeCtx().NavState()
+	for _, link := range ns.Links {
 		if link.Line == absY && absX >= link.Col && absX < link.Col+link.Len {
 			return links.FollowLink(link)
 		}
 	}
 
 	clickLine := absY
-	for i, lr := range pc.CardLineRanges {
+	for i, lr := range ns.CardLineRanges {
 		if absY >= lr[0] && absY < lr[1] {
-			pc.SelectedCardIndex = i
+			self.activeCtx().SetSelectedCardIndex(i)
 			if !self.isContentLine(clickLine) {
 				clickLine = lr[0] + 1
 			}
 			break
 		}
 	}
-	pc.CursorLine = clickLine
+	ns.CursorLine = clickLine
 
-	self.c.GuiCommon().PushContextByKey("preview")
-	self.c.GuiCommon().RenderPreview()
+	// Push the appropriate preview context based on ActivePreviewKey
+	gui := self.c.GuiCommon()
+	gui.PushContextByKey(gui.Contexts().ActivePreviewKey)
+	gui.RenderPreview()
 	return nil
 }
 
@@ -406,11 +453,11 @@ func (self *PreviewNavHelper) Back() error {
 
 // FocusNote focuses the notes panel on the currently previewed card.
 func (self *PreviewNavHelper) FocusNote() error {
-	pc := self.ctx()
-	if len(pc.Cards) == 0 {
+	cl := self.c.GuiCommon().Contexts().CardList
+	if len(cl.Cards) == 0 {
 		return nil
 	}
-	card := pc.Cards[pc.SelectedCardIndex]
+	card := cl.Cards[cl.SelectedCardIdx]
 	gui := self.c.GuiCommon()
 	notes := gui.Contexts().Notes
 	for i, note := range notes.Items {

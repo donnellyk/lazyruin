@@ -136,10 +136,10 @@ func (self *GlobalController) FocusTags() error {
 	return nil
 }
 
-// FocusPreview focuses the Preview panel.
+// FocusPreview focuses the Preview panel (pushes the CardList context).
 func (self *GlobalController) FocusPreview() error {
 	gc := self.c.GuiCommon()
-	if ctx := gc.ContextByKey("preview"); ctx != nil {
+	if ctx := gc.ContextByKey("cardList"); ctx != nil {
 		gc.PushContext(ctx, types.OnFocusOpts{})
 	}
 	return nil

@@ -22,17 +22,21 @@ func NewPreviewHelper(c *HelperCommon) *PreviewHelper {
 	return &PreviewHelper{c: c}
 }
 
-func (self *PreviewHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewHelper) activeCtx() context.IPreviewContext {
+	return self.c.GuiCommon().Contexts().ActivePreview()
+}
+
+func (self *PreviewHelper) cardList() *context.CardListContext {
+	return self.c.GuiCommon().Contexts().CardList
 }
 
 // BuildSearchOptions returns SearchOptions based on current preview toggle state.
 func (self *PreviewHelper) BuildSearchOptions() commands.SearchOptions {
-	pc := self.ctx()
+	ds := self.activeCtx().DisplayState()
 	return commands.SearchOptions{
 		IncludeContent:  true,
-		StripGlobalTags: !pc.ShowGlobalTags,
-		StripTitle:      !pc.ShowTitle,
+		StripGlobalTags: !ds.ShowGlobalTags,
+		StripTitle:      !ds.ShowTitle,
 	}
 }
 
@@ -41,13 +45,19 @@ func (self *PreviewHelper) view() *gocui.View {
 }
 
 // CurrentPreviewCard returns the currently selected card, or nil if none.
+// Returns nil when in pickResults or compose mode since card mutations
+// don't apply to those modes.
 func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
-	if idx >= len(pc.Cards) {
+	contexts := self.c.GuiCommon().Contexts()
+	if contexts.ActivePreviewKey == "pickResults" || contexts.ActivePreviewKey == "compose" {
 		return nil
 	}
-	return &pc.Cards[idx]
+	cl := contexts.CardList
+	idx := cl.SelectedCardIdx
+	if idx >= len(cl.Cards) {
+		return nil
+	}
+	return &cl.Cards[idx]
 }
 
 // UpdatePreviewForNotes updates the preview pane to show the selected note.
@@ -78,12 +88,14 @@ func (self *PreviewHelper) UpdatePreviewCardList(title string, loadFn func() ([]
 // ShowCardList sets the preview to card-list mode with the given cards and title,
 // then renders. Does NOT push nav history or change context focus.
 func (self *PreviewHelper) ShowCardList(title string, cards []models.Note) {
-	pc := self.ctx()
-	pc.Mode = context.PreviewModeCardList
-	pc.Cards = cards
-	pc.SelectedCardIndex = 0
-	pc.CursorLine = 1
-	pc.ScrollOffset = 0
+	contexts := self.c.GuiCommon().Contexts()
+	cl := contexts.CardList
+	cl.Cards = cards
+	cl.SelectedCardIdx = 0
+	ns := cl.NavState()
+	ns.CursorLine = 1
+	ns.ScrollOffset = 0
+	contexts.ActivePreviewKey = "cardList"
 	if v := self.view(); v != nil {
 		v.Title = title
 	}
@@ -93,12 +105,31 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note) {
 // ShowPickResults sets the preview to pick-results mode with the given results
 // and title, then renders. Does NOT push nav history or change context focus.
 func (self *PreviewHelper) ShowPickResults(title string, results []models.PickResult) {
-	pc := self.ctx()
-	pc.Mode = context.PreviewModePickResults
-	pc.PickResults = results
-	pc.SelectedCardIndex = 0
-	pc.CursorLine = 1
-	pc.ScrollOffset = 0
+	contexts := self.c.GuiCommon().Contexts()
+	pr := contexts.PickResults
+	pr.Results = results
+	pr.SelectedCardIdx = 0
+	ns := pr.NavState()
+	ns.CursorLine = 1
+	ns.ScrollOffset = 0
+	contexts.ActivePreviewKey = "pickResults"
+	if v := self.view(); v != nil {
+		v.Title = title
+	}
+	self.c.GuiCommon().RenderPreview()
+}
+
+// ShowCompose sets the preview to compose mode with the given note and title,
+// then renders. Does NOT push nav history or change context focus.
+func (self *PreviewHelper) ShowCompose(title string, note models.Note) {
+	contexts := self.c.GuiCommon().Contexts()
+	comp := contexts.Compose
+	comp.Note = note
+	comp.SelectedCardIdx = 0
+	ns := comp.NavState()
+	ns.CursorLine = 1
+	ns.ScrollOffset = 0
+	contexts.ActivePreviewKey = "compose"
 	if v := self.view(); v != nil {
 		v.Title = title
 	}
@@ -112,12 +143,12 @@ func (self *PreviewHelper) ReloadContent() {
 	gui := self.c.GuiCommon()
 	self.c.Helpers().Notes().FetchNotesForCurrentTab(true)
 
-	pc := self.ctx()
-	if len(pc.Cards) > 0 {
-		savedCardIdx := pc.SelectedCardIndex
+	cl := self.cardList()
+	if len(cl.Cards) > 0 {
+		savedCardIdx := cl.SelectedCardIdx
 		self.reloadPreviewCards()
-		if savedCardIdx < len(pc.Cards) {
-			pc.SelectedCardIndex = savedCardIdx
+		if savedCardIdx < len(cl.Cards) {
+			cl.SelectedCardIdx = savedCardIdx
 		}
 	}
 	gui.RenderPreview()
@@ -125,15 +156,15 @@ func (self *PreviewHelper) ReloadContent() {
 
 func (self *PreviewHelper) reloadPreviewCards() {
 	gui := self.c.GuiCommon()
-	pc := self.ctx()
-	pc.TemporarilyMoved = nil
+	cl := self.cardList()
+	cl.TemporarilyMoved = nil
 	opts := self.BuildSearchOptions()
 
 	searchQuery := gui.Contexts().Search.Query
 	if searchQuery != "" {
 		notes, err := self.c.RuinCmd().Search.Search(searchQuery, opts)
 		if err == nil {
-			pc.Cards = notes
+			cl.Cards = notes
 		}
 		gui.RenderPreview()
 		return
@@ -148,7 +179,7 @@ func (self *PreviewHelper) reloadPreviewCards() {
 			tag := tagsCtx.Items[tagsCtx.GetSelectedLineIdx()]
 			notes, err := self.c.RuinCmd().Search.Search(tag.Name, opts)
 			if err == nil {
-				pc.Cards = notes
+				cl.Cards = notes
 			}
 		}
 	case "queries":
@@ -158,14 +189,14 @@ func (self *PreviewHelper) reloadPreviewCards() {
 				parent := queriesCtx.Parents[queriesCtx.ParentsTrait().GetSelectedLineIdx()]
 				composed, err := self.c.RuinCmd().Parent.ComposeFlat(parent.UUID, parent.Title)
 				if err == nil {
-					pc.Cards = []models.Note{composed}
+					cl.Cards = []models.Note{composed}
 				}
 			}
 		} else if len(queriesCtx.Queries) > 0 {
 			query := queriesCtx.Queries[queriesCtx.QueriesTrait().GetSelectedLineIdx()]
 			notes, err := self.c.RuinCmd().Queries.Run(query.Name, opts)
 			if err == nil {
-				pc.Cards = notes
+				cl.Cards = notes
 			}
 		}
 	default:
@@ -176,10 +207,10 @@ func (self *PreviewHelper) reloadPreviewCards() {
 }
 
 func (self *PreviewHelper) reloadPreviewCardsFromNotes() {
-	pc := self.ctx()
+	cl := self.cardList()
 	opts := self.BuildSearchOptions()
-	updated := make([]models.Note, 0, len(pc.Cards))
-	for _, card := range pc.Cards {
+	updated := make([]models.Note, 0, len(cl.Cards))
+	for _, card := range cl.Cards {
 		fresh, err := self.c.RuinCmd().Search.Get(card.UUID, opts)
 		if err == nil && fresh != nil {
 			if len(fresh.InlineTags) == 0 && len(card.InlineTags) > 0 {
@@ -191,56 +222,60 @@ func (self *PreviewHelper) reloadPreviewCardsFromNotes() {
 			updated = append(updated, card)
 		}
 	}
-	pc.Cards = updated
+	cl.Cards = updated
 }
 
 // --- display toggles ---
 
 // ToggleMarkdown toggles markdown rendering.
 func (self *PreviewHelper) ToggleMarkdown() error {
-	self.ctx().RenderMarkdown = !self.ctx().RenderMarkdown
+	ds := self.activeCtx().DisplayState()
+	ds.RenderMarkdown = !ds.RenderMarkdown
 	self.c.GuiCommon().RenderPreview()
 	return nil
 }
 
 // ToggleFrontmatter toggles frontmatter display.
 func (self *PreviewHelper) ToggleFrontmatter() error {
-	self.ctx().ShowFrontmatter = !self.ctx().ShowFrontmatter
+	ds := self.activeCtx().DisplayState()
+	ds.ShowFrontmatter = !ds.ShowFrontmatter
 	self.c.GuiCommon().RenderPreview()
 	return nil
 }
 
 // ToggleTitle toggles title display.
 func (self *PreviewHelper) ToggleTitle() error {
-	self.ctx().ShowTitle = !self.ctx().ShowTitle
+	ds := self.activeCtx().DisplayState()
+	ds.ShowTitle = !ds.ShowTitle
 	self.ReloadContent()
 	return nil
 }
 
 // ToggleGlobalTags toggles global tags display.
 func (self *PreviewHelper) ToggleGlobalTags() error {
-	self.ctx().ShowGlobalTags = !self.ctx().ShowGlobalTags
+	ds := self.activeCtx().DisplayState()
+	ds.ShowGlobalTags = !ds.ShowGlobalTags
 	self.ReloadContent()
 	return nil
 }
 
 // ViewOptionsDialog shows the view options menu.
 func (self *PreviewHelper) ViewOptionsDialog() error {
-	pc := self.ctx()
+	ds := self.activeCtx().DisplayState()
 	fmLabel := "Show frontmatter"
-	if pc.ShowFrontmatter {
+	if ds.ShowFrontmatter {
 		fmLabel = "Hide frontmatter"
 	}
 	titleLabel := "Show title"
-	if pc.ShowTitle {
+	if ds.ShowTitle {
 		titleLabel = "Hide title"
 	}
 	tagsLabel := "Show global tags"
-	if pc.ShowGlobalTags {
+	if ds.ShowGlobalTags {
 		tagsLabel = "Hide global tags"
 	}
 	mdLabel := "Render markdown"
-	if pc.RenderMarkdown {
+	if ds.RenderMarkdown {
 		mdLabel = "Raw markdown"
 	}
 

@@ -123,7 +123,7 @@ func (self *QueriesHelper) RunQuery() error {
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList(" Query: "+query.Name+" ", notes)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 	return nil
 }
 
@@ -161,7 +161,7 @@ func (self *QueriesHelper) ViewParent() error {
 	}
 
 	self.ShowComposedNote(composed, parent.Name)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("compose")
 	return nil
 }
 
@@ -214,8 +214,8 @@ func (self *QueriesHelper) UpdatePreviewForParents() {
 	self.ShowComposedNote(composed, parent.Name)
 }
 
-// ShowComposedNote puts a single composed note into the preview as a one-card card list.
+// ShowComposedNote puts a single composed note into the preview as a compose view.
 func (self *QueriesHelper) ShowComposedNote(note models.Note, label string) {
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(" Parent: "+label+" ", []models.Note{note})
+	self.c.Helpers().Preview().ShowCompose(" Parent: "+label+" ", note)
 }

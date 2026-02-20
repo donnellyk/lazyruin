@@ -31,7 +31,6 @@ type Gui struct {
 	notesController   *controllers.NotesController
 	tagsController    *controllers.TagsController
 	queriesController *controllers.QueriesController
-	previewController *controllers.PreviewController
 	globalController  *controllers.GlobalController
 
 	// Shared helper/controller dependencies
@@ -131,15 +130,16 @@ func (gui *Gui) backgroundRefresh() {
 // backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
 func (gui *Gui) backgroundRefreshData() {
 	// Preserve selections
-	cardIdx := gui.contexts.Preview.SelectedCardIndex
+	cl := gui.contexts.CardList
+	cardIdx := cl.SelectedCardIdx
 
 	gui.RefreshNotes(true)
 	gui.RefreshTags(true)
 	gui.RefreshQueries(true)
 	gui.RefreshParents(true)
 
-	if gui.contexts.Preview.SelectedCardIndex != cardIdx && cardIdx < len(gui.contexts.Preview.Cards) {
-		gui.contexts.Preview.SelectedCardIndex = cardIdx
+	if cl.SelectedCardIdx != cardIdx && cardIdx < len(cl.Cards) {
+		cl.SelectedCardIdx = cardIdx
 	}
 
 	gui.RenderPreview()

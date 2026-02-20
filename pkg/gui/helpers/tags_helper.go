@@ -92,7 +92,7 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList(" Tag: #"+tag.Name+" ", notes)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 	return nil
 }
 
@@ -106,7 +106,7 @@ func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 	}
 
 	self.c.Helpers().Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("pickResults")
 	return nil
 }
 

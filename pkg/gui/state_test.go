@@ -5,7 +5,6 @@ import (
 
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 )
 
 func TestNewGuiState_Defaults(t *testing.T) {
@@ -34,34 +33,6 @@ func TestNewContextMgr_Defaults(t *testing.T) {
 	}
 }
 
-func TestNewPreviewContext_Initialized(t *testing.T) {
-	pc := context.NewPreviewContext()
-
-	if pc.PreviewState == nil {
-		t.Error("context.PreviewState should not be nil")
-	}
-	if pc.NavIndex != -1 {
-		t.Errorf("NavIndex = %d, want -1", pc.NavIndex)
-	}
-}
-
-func TestPreviewContext_StateDefaults(t *testing.T) {
-	pc := context.NewPreviewContext()
-
-	if pc.Mode != context.PreviewModeCardList {
-		t.Errorf("Preview.Mode = %v, want context.PreviewModeCardList", pc.Mode)
-	}
-	if pc.SelectedCardIndex != 0 {
-		t.Errorf("Preview.SelectedCardIndex = %d, want 0", pc.SelectedCardIndex)
-	}
-	if pc.ScrollOffset != 0 {
-		t.Errorf("Preview.ScrollOffset = %d, want 0", pc.ScrollOffset)
-	}
-	if pc.ShowFrontmatter != false {
-		t.Error("Preview.ShowFrontmatter should default to false")
-	}
-}
-
 func TestContextKey_Values(t *testing.T) {
 	tests := []struct {
 		ctx      types.ContextKey
@@ -70,7 +41,7 @@ func TestContextKey_Values(t *testing.T) {
 		{"notes", "notes"},
 		{"queries", "queries"},
 		{"tags", "tags"},
-		{"preview", "preview"},
+		{"cardList", "cardList"},
 		{"search", "search"},
 	}
 
@@ -78,15 +49,6 @@ func TestContextKey_Values(t *testing.T) {
 		if string(tc.ctx) != tc.expected {
 			t.Errorf("types.ContextKey %v = %q, want %q", tc.ctx, string(tc.ctx), tc.expected)
 		}
-	}
-}
-
-func TestPreviewMode_Values(t *testing.T) {
-	if context.PreviewModeCardList != 0 {
-		t.Errorf("context.PreviewModeCardList = %d, want 0", context.PreviewModeCardList)
-	}
-	if context.PreviewModePickResults != 1 {
-		t.Errorf("context.PreviewModePickResults = %d, want 1", context.PreviewModePickResults)
 	}
 }
 
@@ -104,20 +66,20 @@ func TestContextMgr_ContextTracking(t *testing.T) {
 	}
 
 	// Switch again
-	mgr.Push("preview")
+	mgr.Push("cardList")
 
 	if mgr.Previous() != "tags" {
 		t.Errorf("Previous() = %v, want tags", mgr.Previous())
 	}
-	if mgr.Current() != "preview" {
-		t.Errorf("Current() = %v, want preview", mgr.Current())
+	if mgr.Current() != "cardList" {
+		t.Errorf("Current() = %v, want cardList", mgr.Current())
 	}
 }
 
 func TestContextMgr_Pop(t *testing.T) {
 	mgr := NewContextMgr()
 	mgr.Push("tags")
-	mgr.Push("preview")
+	mgr.Push("cardList")
 
 	mgr.Pop()
 	if mgr.Current() != "tags" {
@@ -161,51 +123,44 @@ func TestContextMgr_SetStack(t *testing.T) {
 	}
 }
 
-func TestPreviewState_ModeSwitch(t *testing.T) {
-	pc := context.NewPreviewContext()
+func TestCardListContext_Defaults(t *testing.T) {
+	navHistory := context.NewSharedNavHistory()
+	cl := context.NewCardListContext(navHistory)
 
-	// Default is card list mode
-	if pc.Mode != context.PreviewModeCardList {
-		t.Errorf("Initial mode = %v, want context.PreviewModeCardList", pc.Mode)
+	if cl.SelectedCardIdx != 0 {
+		t.Errorf("SelectedCardIdx = %d, want 0", cl.SelectedCardIdx)
 	}
 
-	// Set up card list
-	pc.Cards = []models.Note{
-		{UUID: "1", Title: "Card 1"},
-		{UUID: "2", Title: "Card 2"},
-	}
-	pc.SelectedCardIndex = 0
-
-	if len(pc.Cards) != 2 {
-		t.Errorf("Cards length = %d, want 2", len(pc.Cards))
+	ns := cl.NavState()
+	if ns.ScrollOffset != 0 {
+		t.Errorf("ScrollOffset = %d, want 0", ns.ScrollOffset)
 	}
 
-	// Switch to pick results mode
-	pc.Mode = context.PreviewModePickResults
-	pc.ScrollOffset = 5
-
-	if pc.Mode != context.PreviewModePickResults {
-		t.Errorf("Mode = %v, want context.PreviewModePickResults", pc.Mode)
+	ds := cl.DisplayState()
+	if ds.ShowFrontmatter {
+		t.Error("ShowFrontmatter should default to false")
 	}
-	if pc.ScrollOffset != 5 {
-		t.Errorf("ScrollOffset = %d, want 5", pc.ScrollOffset)
+	if !ds.RenderMarkdown {
+		t.Error("RenderMarkdown should default to true")
 	}
 }
 
-func TestPreviewState_FrontmatterToggle(t *testing.T) {
-	pc := context.NewPreviewContext()
+func TestDisplayState_FrontmatterToggle(t *testing.T) {
+	navHistory := context.NewSharedNavHistory()
+	cl := context.NewCardListContext(navHistory)
+	ds := cl.DisplayState()
 
-	if pc.ShowFrontmatter {
+	if ds.ShowFrontmatter {
 		t.Error("ShowFrontmatter should default to false")
 	}
 
-	pc.ShowFrontmatter = true
-	if !pc.ShowFrontmatter {
+	ds.ShowFrontmatter = true
+	if !ds.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be true after toggle")
 	}
 
-	pc.ShowFrontmatter = false
-	if pc.ShowFrontmatter {
+	ds.ShowFrontmatter = false
+	if ds.ShowFrontmatter {
 		t.Error("ShowFrontmatter should be false after toggle")
 	}
 }

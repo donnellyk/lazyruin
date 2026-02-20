@@ -22,8 +22,8 @@ func NewPreviewLinksHelper(c *HelperCommon) *PreviewLinksHelper {
 	return &PreviewLinksHelper{c: c}
 }
 
-func (self *PreviewLinksHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewLinksHelper) activeCtx() context.IPreviewContext {
+	return self.c.GuiCommon().Contexts().ActivePreview()
 }
 
 func (self *PreviewLinksHelper) view() *gocui.View {
@@ -32,8 +32,8 @@ func (self *PreviewLinksHelper) view() *gocui.View {
 
 // ExtractLinks parses the preview content for wiki-links and URLs.
 func (self *PreviewLinksHelper) ExtractLinks() {
-	pc := self.ctx()
-	pc.Links = nil
+	ns := self.activeCtx().NavState()
+	ns.Links = nil
 	v := self.view()
 	if v == nil {
 		return
@@ -47,13 +47,13 @@ func (self *PreviewLinksHelper) ExtractLinks() {
 		plain := stripAnsi(line)
 		for _, match := range wikiRe.FindAllStringIndex(plain, -1) {
 			text := plain[match[0]:match[1]]
-			pc.Links = append(pc.Links, context.PreviewLink{
+			ns.Links = append(ns.Links, context.PreviewLink{
 				Text: text, Line: lineNum, Col: match[0], Len: match[1] - match[0],
 			})
 		}
 		for _, match := range urlRe.FindAllStringIndex(plain, -1) {
 			text := plain[match[0]:match[1]]
-			pc.Links = append(pc.Links, context.PreviewLink{
+			ns.Links = append(ns.Links, context.PreviewLink{
 				Text: text, Line: lineNum, Col: match[0], Len: match[1] - match[0],
 			})
 		}
@@ -63,18 +63,18 @@ func (self *PreviewLinksHelper) ExtractLinks() {
 // HighlightNextLink cycles to the next link.
 func (self *PreviewLinksHelper) HighlightNextLink() error {
 	self.ExtractLinks()
-	pc := self.ctx()
-	links := pc.Links
+	ns := self.activeCtx().NavState()
+	links := ns.Links
 	if len(links) == 0 {
 		return nil
 	}
-	cur := pc.RenderedLink
+	cur := ns.RenderedLink
 	next := cur + 1
 	if next >= len(links) {
 		next = 0
 	}
-	pc.HighlightedLink = next
-	pc.CursorLine = links[next].Line
+	ns.HighlightedLink = next
+	ns.CursorLine = links[next].Line
 	self.c.Helpers().PreviewNav().SyncCardIndexFromCursor()
 	self.c.GuiCommon().RenderPreview()
 	return nil
@@ -83,18 +83,18 @@ func (self *PreviewLinksHelper) HighlightNextLink() error {
 // HighlightPrevLink cycles to the previous link.
 func (self *PreviewLinksHelper) HighlightPrevLink() error {
 	self.ExtractLinks()
-	pc := self.ctx()
-	links := pc.Links
+	ns := self.activeCtx().NavState()
+	links := ns.Links
 	if len(links) == 0 {
 		return nil
 	}
-	cur := pc.RenderedLink
+	cur := ns.RenderedLink
 	prev := cur - 1
 	if prev < 0 {
 		prev = len(links) - 1
 	}
-	pc.HighlightedLink = prev
-	pc.CursorLine = links[prev].Line
+	ns.HighlightedLink = prev
+	ns.CursorLine = links[prev].Line
 	self.c.Helpers().PreviewNav().SyncCardIndexFromCursor()
 	self.c.GuiCommon().RenderPreview()
 	return nil
@@ -102,9 +102,9 @@ func (self *PreviewLinksHelper) HighlightPrevLink() error {
 
 // OpenLink opens the currently highlighted link.
 func (self *PreviewLinksHelper) OpenLink() error {
-	pc := self.ctx()
-	links := pc.Links
-	hl := pc.RenderedLink
+	ns := self.activeCtx().NavState()
+	links := ns.Links
+	hl := ns.RenderedLink
 	if hl < 0 || hl >= len(links) {
 		return nil
 	}
@@ -130,12 +130,15 @@ func (self *PreviewLinksHelper) FollowLink(link context.PreviewLink) error {
 		}
 		nav := self.c.Helpers().PreviewNav()
 		nav.PushNavHistory()
-		pc := self.ctx()
-		pc.Mode = context.PreviewModeCardList
-		pc.Cards = []models.Note{*note}
-		pc.SelectedCardIndex = 0
-		pc.CursorLine = 1
-		pc.ScrollOffset = 0
+		// Wiki-links always open as a card list
+		contexts := self.c.GuiCommon().Contexts()
+		cl := contexts.CardList
+		cl.Cards = []models.Note{*note}
+		cl.SelectedCardIdx = 0
+		ns := cl.NavState()
+		ns.CursorLine = 1
+		ns.ScrollOffset = 0
+		contexts.ActivePreviewKey = "cardList"
 		if v := self.view(); v != nil {
 			v.Title = " " + note.Title + " "
 		}

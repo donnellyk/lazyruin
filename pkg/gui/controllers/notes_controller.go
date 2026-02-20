@@ -162,7 +162,7 @@ func (self *NotesController) viewInPreview(note models.Note) error {
 	if len(self.getContext().Items) == 0 {
 		return nil
 	}
-	self.c.GuiCommon().PushContextByKey("preview")
+	self.c.GuiCommon().PushContextByKey("cardList")
 	return nil
 }
 

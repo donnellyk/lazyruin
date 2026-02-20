@@ -108,5 +108,11 @@ func (gui *Gui) PreviousContextKey() types.ContextKey {
 	return gui.contextMgr.Previous()
 }
 
+// isPreviewActive returns true if any preview context (cardList, pickResults,
+// compose) is the active context.
+func (gui *Gui) isPreviewActive() bool {
+	return context.IsPreviewContextKey(gui.contextMgr.Current())
+}
+
 // Compile-time assertion that *Gui satisfies types.IGuiCommon.
 var _ types.IGuiCommon = &Gui{}

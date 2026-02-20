@@ -3,21 +3,23 @@ package context
 import "kvnd/lazyruin/pkg/gui/types"
 
 // ContextTree provides typed access to all context instances.
-// During the hybrid migration, only migrated contexts are present here.
 type ContextTree struct {
-	Global        *GlobalContext
-	Notes         *NotesContext
-	Tags          *TagsContext
-	Queries       *QueriesContext
-	Preview       *PreviewContext
-	Search        *SearchContext
-	Capture       *CaptureContext
-	Pick          *PickContext
-	InputPopup    *InputPopupContext
-	Palette       *PaletteContext
-	SnippetEditor *SnippetEditorContext
-	Calendar      *CalendarContext
-	Contrib       *ContribContext
+	Global           *GlobalContext
+	Notes            *NotesContext
+	Tags             *TagsContext
+	Queries          *QueriesContext
+	CardList         *CardListContext
+	PickResults      *PickResultsContext
+	Compose          *ComposeContext
+	Search           *SearchContext
+	Capture          *CaptureContext
+	Pick             *PickContext
+	InputPopup       *InputPopupContext
+	Palette          *PaletteContext
+	SnippetEditor    *SnippetEditorContext
+	Calendar         *CalendarContext
+	Contrib          *ContribContext
+	ActivePreviewKey types.ContextKey // "cardList", "pickResults", or "compose"
 }
 
 // ViewNameForKey returns the primary view name for a context key,
@@ -32,7 +34,6 @@ func (self *ContextTree) ViewNameForKey(key types.ContextKey) string {
 }
 
 // All returns all contexts in the tree for iteration.
-// During the hybrid migration, this only includes migrated contexts.
 func (self *ContextTree) All() []types.Context {
 	var all []types.Context
 	if self.Global != nil {
@@ -47,8 +48,14 @@ func (self *ContextTree) All() []types.Context {
 	if self.Queries != nil {
 		all = append(all, self.Queries)
 	}
-	if self.Preview != nil {
-		all = append(all, self.Preview)
+	if self.CardList != nil {
+		all = append(all, self.CardList)
+	}
+	if self.PickResults != nil {
+		all = append(all, self.PickResults)
+	}
+	if self.Compose != nil {
+		all = append(all, self.Compose)
 	}
 	if self.Search != nil {
 		all = append(all, self.Search)
@@ -75,4 +82,28 @@ func (self *ContextTree) All() []types.Context {
 		all = append(all, self.Contrib)
 	}
 	return all
+}
+
+// ActivePreview returns the IPreviewContext for the current ActivePreviewKey.
+// Defaults to CardList if ActivePreviewKey is unset.
+func (self *ContextTree) ActivePreview() IPreviewContext {
+	switch self.ActivePreviewKey {
+	case "pickResults":
+		return self.PickResults
+	case "compose":
+		return self.Compose
+	default:
+		return self.CardList
+	}
+}
+
+// IsPreviewContextKey returns true if the key belongs to one of the three
+// preview contexts.
+func IsPreviewContextKey(key types.ContextKey) bool {
+	switch key {
+	case "cardList", "pickResults", "compose":
+		return true
+	default:
+		return false
+	}
 }

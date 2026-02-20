@@ -15,6 +15,30 @@ type contextHintDef struct {
 	statusBar []contextHint // if set, overrides hints for the status bar (shorter list)
 }
 
+// previewNavHints returns navigation hints shared by all preview contexts.
+func previewNavHints() []contextHint {
+	return []contextHint{
+		{"j/k", "Scroll line-by-line"},
+		{"J/K", "Jump between cards"},
+		{"]/[", "Next/prev header"},
+		{"l/L", "Next/prev link"},
+		{"o", "Open link"},
+		{"f", "Toggle frontmatter"},
+		{"v", "View options"},
+		{"esc", "Back"},
+	}
+}
+
+// previewNavStatusBar returns status bar hints shared by all preview contexts.
+func previewNavStatusBar() []contextHint {
+	return []contextHint{
+		{"j/k", "Scroll"},
+		{"v", "View"},
+		{"esc", "Back"},
+		{"?", "Keys"},
+	}
+}
+
 // contextHintDefs returns the hint definitions for the current context.
 // This is the single source of truth consumed by both updateStatusBar() and showHelp().
 func (gui *Gui) contextHintDefs() contextHintDef {
@@ -96,33 +120,27 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"?", "Keybindings"},
 			},
 		}
-	case "preview":
+	case "cardList":
+		hints := previewNavHints()
+		hints = append(hints,
+			contextHint{"x", "Toggle todo"},
+			contextHint{"d", "Delete card"},
+			contextHint{"D", "Append #done"},
+			contextHint{"E", "Open in editor"},
+			contextHint{"m", "Move card"},
+			contextHint{"M", "Merge notes"},
+			contextHint{"t", "Add tag"},
+			contextHint{"T", "Remove tag"},
+			contextHint{"<c-t>", "Toggle inline tag"},
+			contextHint{">", "Set parent"},
+			contextHint{"P", "Remove parent"},
+			contextHint{"b", "Toggle bookmark"},
+			contextHint{"s", "Show info"},
+			contextHint{"enter", "Focus note"},
+		)
 		return contextHintDef{
 			header: "Preview",
-			hints: []contextHint{
-				{"j/k", "Scroll line-by-line"},
-				{"J/K", "Jump between cards"},
-				{"]/[", "Next/prev header"},
-				{"l/L", "Next/prev link"},
-				{"x", "Toggle todo"},
-				{"d", "Delete card"},
-				{"D", "Append #done"},
-				{"E", "Open in editor"},
-				{"m", "Move card"},
-				{"M", "Merge notes"},
-				{"t", "Add tag"},
-				{"T", "Remove tag"},
-				{"<c-t>", "Toggle inline tag"},
-				{">", "Set parent"},
-				{"P", "Remove parent"},
-				{"b", "Toggle bookmark"},
-				{"s", "Show info"},
-				{"o", "Open link"},
-				{"f", "Toggle frontmatter"},
-				{"v", "View options"},
-				{"enter", "Focus note"},
-				{"esc", "Back"},
-			},
+			hints:  hints,
 			statusBar: []contextHint{
 				{"j/k", "Scroll"},
 				{"x", "Todo"},
@@ -134,6 +152,20 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Back"},
 				{"?", "Keys"},
 			},
+		}
+	case "pickResults":
+		hints := previewNavHints()
+		return contextHintDef{
+			header:    "Pick Results",
+			hints:     hints,
+			statusBar: previewNavStatusBar(),
+		}
+	case "compose":
+		hints := previewNavHints()
+		return contextHintDef{
+			header:    "Compose",
+			hints:     hints,
+			statusBar: previewNavStatusBar(),
 		}
 	case "search":
 		return contextHintDef{
@@ -199,13 +231,12 @@ func (gui *Gui) navigationHints() []contextHint {
 			{"g", "Go to top"},
 			{"G", "Go to bottom"},
 		}
-	case "preview":
+	case "cardList", "pickResults", "compose":
 		return []contextHint{
 			{"j/k", "Scroll line-by-line"},
 			{"J/K", "Jump between cards"},
 			{"]/[", "Next/prev header"},
 			{"l/L", "Next/prev link"},
-			{"x", "Toggle todo"},
 		}
 	default:
 		return nil

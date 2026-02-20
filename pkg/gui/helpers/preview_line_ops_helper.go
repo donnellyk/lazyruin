@@ -28,8 +28,8 @@ func NewPreviewLineOpsHelper(c *HelperCommon) *PreviewLineOpsHelper {
 	return &PreviewLineOpsHelper{c: c}
 }
 
-func (self *PreviewLineOpsHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewLineOpsHelper) ctx() *context.CardListContext {
+	return self.c.GuiCommon().Contexts().CardList
 }
 
 func (self *PreviewLineOpsHelper) view() *gocui.View {
@@ -47,15 +47,16 @@ func (self *PreviewLineOpsHelper) resolveSourceLine() int {
 	if card == nil {
 		return -1
 	}
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
-	ranges := pc.CardLineRanges
+	cl := self.ctx()
+	idx := cl.SelectedCardIdx
+	ns := cl.NavState()
+	ranges := ns.CardLineRanges
 	if idx >= len(ranges) {
 		return -1
 	}
 
 	cardStart := ranges[idx][0]
-	lineOffset := pc.CursorLine - cardStart - 1
+	lineOffset := ns.CursorLine - cardStart - 1
 	if lineOffset < 0 {
 		return -1
 	}
@@ -139,7 +140,7 @@ func (self *PreviewLineOpsHelper) ToggleTodo() error {
 		return nil
 	}
 
-	self.ctx().Cards[self.ctx().SelectedCardIndex].Content = ""
+	self.ctx().Cards[self.ctx().SelectedCardIdx].Content = ""
 	self.c.Helpers().Preview().ReloadContent()
 	return nil
 }

@@ -157,7 +157,7 @@ func (self *ContribHelper) LoadInPreview() {
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
 	self.c.Helpers().Preview().ShowCardList(" Contrib: "+date+" ", notes)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 }
 
 // LoadNoteInPreview loads a single note into preview.
@@ -181,7 +181,7 @@ func (self *ContribHelper) LoadNoteInPreview(index int) {
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
 	self.c.Helpers().Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 }
 
 // fetchNotesForDate fetches notes created on the given date (YYYY-MM-DD format).

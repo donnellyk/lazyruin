@@ -58,7 +58,7 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList(" Search: "+query+" ", notes)
-	gui.ReplaceContextByKey("preview")
+	gui.ReplaceContextByKey("cardList")
 	return true
 }
 

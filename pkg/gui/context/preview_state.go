@@ -1,13 +1,8 @@
 package context
 
-import "kvnd/lazyruin/pkg/models"
-
-// PreviewMode selects between card-list and pick-results display.
-type PreviewMode int
-
-const (
-	PreviewModeCardList PreviewMode = iota
-	PreviewModePickResults
+import (
+	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
 )
 
 // PreviewLink represents a detected link in the preview content.
@@ -24,27 +19,7 @@ type NavEntry struct {
 	SelectedCardIndex int
 	CursorLine        int
 	ScrollOffset      int
-	Mode              PreviewMode
 	Title             string
 	PickResults       []models.PickResult
-}
-
-// PreviewState holds all mutable state for the preview panel.
-type PreviewState struct {
-	Mode              PreviewMode
-	Cards             []models.Note
-	SelectedCardIndex int
-	ScrollOffset      int
-	CursorLine        int // highlighted line in multi-card modes (-1 = no cursor)
-	ShowFrontmatter   bool
-	ShowTitle         bool
-	ShowGlobalTags    bool
-	CardLineRanges    [][2]int // [startLine, endLine) for each card
-	HeaderLines       []int    // absolute line numbers containing markdown headers
-	RenderMarkdown    bool     // true to render markdown with glamour
-	PickResults       []models.PickResult
-	Links             []PreviewLink // detected links in current render
-	HighlightedLink   int           // index into Links; -1 = none, auto-cleared each render
-	RenderedLink      int           // snapshot of HighlightedLink used during current render
-	TemporarilyMoved  map[int]bool  // card indices temporarily moved
+	ContextKey        types.ContextKey // which context key to restore ("cardList", "pickResults", "compose")
 }
