@@ -21,8 +21,8 @@ func NewPreviewInfoHelper(c *HelperCommon) *PreviewInfoHelper {
 	return &PreviewInfoHelper{c: c}
 }
 
-func (self *PreviewInfoHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewInfoHelper) activeCtx() context.IPreviewContext {
+	return self.c.GuiCommon().Contexts().ActivePreview()
 }
 
 func (self *PreviewInfoHelper) view() *gocui.View {
@@ -87,12 +87,13 @@ func (self *PreviewInfoHelper) appendTreeItems(items []types.MenuItem, children 
 }
 
 func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
-	if idx >= len(pc.CardLineRanges) {
+	ctx := self.activeCtx()
+	ns := ctx.NavState()
+	idx := ctx.SelectedCardIndex()
+	if idx >= len(ns.CardLineRanges) {
 		return nil
 	}
-	ranges := pc.CardLineRanges[idx]
+	ranges := ns.CardLineRanges[idx]
 
 	var viewLines []string
 	if v := self.view(); v != nil {
@@ -106,7 +107,7 @@ func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
 	}
 	var headers []header
 
-	for _, hLine := range pc.HeaderLines {
+	for _, hLine := range ns.HeaderLines {
 		if hLine < ranges[0] || hLine >= ranges[1] {
 			continue
 		}
@@ -144,7 +145,7 @@ func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
 		items = append(items, types.MenuItem{
 			Label: indent + "* " + h.title,
 			OnRun: func() error {
-				pc.CursorLine = targetLine
+				ns.CursorLine = targetLine
 				self.c.GuiCommon().RenderPreview()
 				return nil
 			},

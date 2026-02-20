@@ -15,18 +15,18 @@ func NewPreviewMutationsHelper(c *HelperCommon) *PreviewMutationsHelper {
 	return &PreviewMutationsHelper{c: c}
 }
 
-func (self *PreviewMutationsHelper) ctx() *context.PreviewContext {
-	return self.c.GuiCommon().Contexts().Preview
+func (self *PreviewMutationsHelper) ctx() *context.CardListContext {
+	return self.c.GuiCommon().Contexts().CardList
 }
 
 // DeleteCard deletes the currently selected card.
 func (self *PreviewMutationsHelper) DeleteCard() error {
-	pc := self.ctx()
-	if len(pc.Cards) == 0 {
+	cl := self.ctx()
+	if len(cl.Cards) == 0 {
 		return nil
 	}
 
-	card := pc.Cards[pc.SelectedCardIndex]
+	card := cl.Cards[cl.SelectedCardIdx]
 	displayName := card.Title
 	if displayName == "" {
 		displayName = card.Path
@@ -36,10 +36,10 @@ func (self *PreviewMutationsHelper) DeleteCard() error {
 	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
 		func() error { return self.c.RuinCmd().Note.Delete(card.UUID) },
 		func() {
-			idx := pc.SelectedCardIndex
-			pc.Cards = append(pc.Cards[:idx], pc.Cards[idx+1:]...)
-			if pc.SelectedCardIndex >= len(pc.Cards) && pc.SelectedCardIndex > 0 {
-				pc.SelectedCardIndex--
+			idx := cl.SelectedCardIdx
+			cl.Cards = append(cl.Cards[:idx], cl.Cards[idx+1:]...)
+			if cl.SelectedCardIdx >= len(cl.Cards) && cl.SelectedCardIdx > 0 {
+				cl.SelectedCardIdx--
 			}
 			self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
 			gui.RenderPreview()
@@ -50,8 +50,8 @@ func (self *PreviewMutationsHelper) DeleteCard() error {
 
 // MoveCardDialog shows the move direction menu.
 func (self *PreviewMutationsHelper) MoveCardDialog() error {
-	pc := self.ctx()
-	if len(pc.Cards) <= 1 {
+	cl := self.ctx()
+	if len(cl.Cards) <= 1 {
 		return nil
 	}
 	self.c.GuiCommon().ShowMenuDialog("Move", []types.MenuItem{
@@ -62,32 +62,33 @@ func (self *PreviewMutationsHelper) MoveCardDialog() error {
 }
 
 func (self *PreviewMutationsHelper) moveCard(direction string) error {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
+	cl := self.ctx()
+	idx := cl.SelectedCardIdx
 	if direction == "up" {
 		if idx <= 0 {
 			return nil
 		}
-		pc.Cards[idx], pc.Cards[idx-1] = pc.Cards[idx-1], pc.Cards[idx]
-		pc.SelectedCardIndex--
+		cl.Cards[idx], cl.Cards[idx-1] = cl.Cards[idx-1], cl.Cards[idx]
+		cl.SelectedCardIdx--
 	} else {
-		if idx >= len(pc.Cards)-1 {
+		if idx >= len(cl.Cards)-1 {
 			return nil
 		}
-		pc.Cards[idx], pc.Cards[idx+1] = pc.Cards[idx+1], pc.Cards[idx]
-		pc.SelectedCardIndex++
+		cl.Cards[idx], cl.Cards[idx+1] = cl.Cards[idx+1], cl.Cards[idx]
+		cl.SelectedCardIdx++
 	}
 
-	if pc.TemporarilyMoved == nil {
-		pc.TemporarilyMoved = make(map[int]bool)
+	if cl.TemporarilyMoved == nil {
+		cl.TemporarilyMoved = make(map[int]bool)
 	}
-	pc.TemporarilyMoved[pc.SelectedCardIndex] = true
+	cl.TemporarilyMoved[cl.SelectedCardIdx] = true
 
 	gui := self.c.GuiCommon()
 	gui.RenderPreview()
-	newIdx := pc.SelectedCardIndex
-	if newIdx < len(pc.CardLineRanges) {
-		pc.CursorLine = pc.CardLineRanges[newIdx][0] + 1
+	ns := cl.NavState()
+	newIdx := cl.SelectedCardIdx
+	if newIdx < len(ns.CardLineRanges) {
+		ns.CursorLine = ns.CardLineRanges[newIdx][0] + 1
 	}
 	gui.RenderPreview()
 	return nil
@@ -95,8 +96,8 @@ func (self *PreviewMutationsHelper) moveCard(direction string) error {
 
 // MergeCardDialog shows the merge direction menu.
 func (self *PreviewMutationsHelper) MergeCardDialog() error {
-	pc := self.ctx()
-	if len(pc.Cards) <= 1 {
+	cl := self.ctx()
+	if len(cl.Cards) <= 1 {
 		return nil
 	}
 	self.c.GuiCommon().ShowMenuDialog("Merge", []types.MenuItem{
@@ -107,11 +108,11 @@ func (self *PreviewMutationsHelper) MergeCardDialog() error {
 }
 
 func (self *PreviewMutationsHelper) executeMerge(direction string) error {
-	pc := self.ctx()
-	idx := pc.SelectedCardIndex
+	cl := self.ctx()
+	idx := cl.SelectedCardIdx
 	var targetIdx, sourceIdx int
 	if direction == "down" {
-		if idx >= len(pc.Cards)-1 {
+		if idx >= len(cl.Cards)-1 {
 			return nil
 		}
 		targetIdx = idx
@@ -124,8 +125,8 @@ func (self *PreviewMutationsHelper) executeMerge(direction string) error {
 		sourceIdx = idx - 1
 	}
 
-	target := pc.Cards[targetIdx]
-	source := pc.Cards[sourceIdx]
+	target := cl.Cards[targetIdx]
+	source := cl.Cards[sourceIdx]
 
 	result, err := self.c.RuinCmd().Note.Merge(target.UUID, source.UUID, true, false)
 	if err != nil {
@@ -133,17 +134,17 @@ func (self *PreviewMutationsHelper) executeMerge(direction string) error {
 		return nil
 	}
 
-	pc.Cards[targetIdx].Content = ""
+	cl.Cards[targetIdx].Content = ""
 	if len(result.TagsMerged) > 0 {
-		pc.Cards[targetIdx].Tags = result.TagsMerged
+		cl.Cards[targetIdx].Tags = result.TagsMerged
 	}
 
-	pc.Cards = append(pc.Cards[:sourceIdx], pc.Cards[sourceIdx+1:]...)
-	if pc.SelectedCardIndex >= len(pc.Cards) {
-		pc.SelectedCardIndex = len(pc.Cards) - 1
+	cl.Cards = append(cl.Cards[:sourceIdx], cl.Cards[sourceIdx+1:]...)
+	if cl.SelectedCardIdx >= len(cl.Cards) {
+		cl.SelectedCardIdx = len(cl.Cards) - 1
 	}
-	if pc.SelectedCardIndex < 0 {
-		pc.SelectedCardIndex = 0
+	if cl.SelectedCardIdx < 0 {
+		cl.SelectedCardIdx = 0
 	}
 
 	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
@@ -153,14 +154,14 @@ func (self *PreviewMutationsHelper) executeMerge(direction string) error {
 
 // OrderCards persists the current card order to frontmatter order fields.
 func (self *PreviewMutationsHelper) OrderCards() error {
-	pc := self.ctx()
-	for i, card := range pc.Cards {
+	cl := self.ctx()
+	for i, card := range cl.Cards {
 		if err := self.c.RuinCmd().Note.SetOrder(card.UUID, i+1); err != nil {
 			self.c.GuiCommon().ShowError(err)
 			return nil
 		}
 	}
-	pc.TemporarilyMoved = nil
+	cl.TemporarilyMoved = nil
 	self.c.Helpers().Preview().ReloadContent()
 	return nil
 }

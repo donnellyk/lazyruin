@@ -275,7 +275,7 @@ func (self *CalendarHelper) LoadInPreview() {
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
 	self.c.Helpers().Preview().ShowCardList(" Calendar: "+date+" ", notes)
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 }
 
 // LoadNoteInPreview loads a single note into the preview.
@@ -299,7 +299,7 @@ func (self *CalendarHelper) LoadNoteInPreview(index int) {
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
 	self.c.Helpers().Preview().ShowCardList(" "+title+" ", []models.Note{*full})
-	gui.PushContextByKey("preview")
+	gui.PushContextByKey("cardList")
 }
 
 // fetchNotesForDate fetches notes created on the given date (YYYY-MM-DD format).

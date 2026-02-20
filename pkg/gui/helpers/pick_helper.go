@@ -64,7 +64,7 @@ func (self *PickHelper) ExecutePick(raw string) error {
 	}
 
 	self.c.Helpers().Preview().ShowPickResults(" Pick: "+raw+" ", results)
-	gui.ReplaceContextByKey("preview")
+	gui.ReplaceContextByKey("pickResults")
 	return nil
 }
 

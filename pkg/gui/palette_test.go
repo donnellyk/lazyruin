@@ -422,12 +422,12 @@ func TestPaletteEnter_ClosesBeforeExecuting(t *testing.T) {
 	tg.gui.contexts.Palette.Palette.SelectedIndex = idx
 	tg.gui.paletteEnter(tg.g, nil)
 
-	// Palette should be closed and we should be in Preview context
+	// Palette should be closed and we should be in CardList context
 	if tg.gui.popupActive() {
 		t.Error("popupActive() should be false after palette execution")
 	}
-	if tg.gui.contextMgr.Current() != "preview" {
-		t.Errorf("currentContext() = %v, want preview", tg.gui.contextMgr.Current())
+	if tg.gui.contextMgr.Current() != "cardList" {
+		t.Errorf("currentContext() = %v, want cardList", tg.gui.contextMgr.Current())
 	}
 }
 

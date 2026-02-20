@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -56,6 +57,7 @@ func (gui *Gui) registerContextBindings() error {
 	for _, ctx := range gui.contexts.All() {
 		viewNames := ctx.GetViewNames()
 		kind := ctx.GetKind()
+		ctxKey := ctx.GetKey()
 
 		for _, b := range ctx.GetKeybindings(opts) {
 			binding := b
@@ -67,6 +69,15 @@ func (gui *Gui) registerContextBindings() error {
 				// Suppress main/side panel bindings during popups, but allow
 				// popup contexts to handle their own keybindings.
 				if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
+					return nil
+				}
+				// Active-context guard: cardList, pickResults, compose all
+				// share the "preview" view and register overlapping nav
+				// bindings. gocui keeps only the last handler per (view,key),
+				// so we use a relaxed guard: fire if ANY preview context is
+				// active. Shared nav helpers dispatch via activeCtx().
+				// CardList-specific bindings guard themselves internally.
+				if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 					return nil
 				}
 				if binding.GetDisabledReason != nil {
@@ -102,6 +113,9 @@ func (gui *Gui) registerContextBindings() error {
 			for _, viewName := range mouseViews {
 				handler := func(g *gocui.Gui, v *gocui.View) error {
 					if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
+						return nil
+					}
+					if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 						return nil
 					}
 					return mouseBind.Handler(gocui.ViewMouseBindingOpts{})

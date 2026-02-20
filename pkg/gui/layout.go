@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 
@@ -170,7 +169,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		gui.contexts.Preview.ScrollOffset = 0
+		gui.contexts.ActivePreview().NavState().ScrollOffset = 0
 		gocui.Screen.Clear()
 		gui.RenderAll()
 	}
@@ -191,7 +190,7 @@ func (gui *Gui) createSearchFilterView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.SearchFilter = v
 	v.Title = "[0]-Search"
-	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.Preview.Cards))
+	v.Footer = fmt.Sprintf("%d results", len(gui.contexts.CardList.Cards))
 	setRoundedCorners(v)
 
 	if gui.contextMgr.Current() == "searchFilter" {
@@ -297,19 +296,30 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	setRoundedCorners(v)
 
 	// Set title with card count for multi-card/pick mode
-	switch {
-	case gui.contexts.Preview.Mode == context.PreviewModeCardList && len(gui.contexts.Preview.Cards) > 0:
-		v.Title = "Preview"
-		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.Cards))
-	case gui.contexts.Preview.Mode == context.PreviewModePickResults && len(gui.contexts.Preview.PickResults) > 0:
-		v.Title = " Pick: " + gui.contexts.Pick.Query + " "
-		v.Footer = fmt.Sprintf("%d of %d", gui.contexts.Preview.SelectedCardIndex+1, len(gui.contexts.Preview.PickResults))
-	default:
+	switch gui.contexts.ActivePreviewKey {
+	case "pickResults":
+		pr := gui.contexts.PickResults
+		if len(pr.Results) > 0 {
+			v.Title = " Pick: " + gui.contexts.Pick.Query + " "
+			v.Footer = fmt.Sprintf("%d of %d", pr.SelectedCardIdx+1, len(pr.Results))
+		} else {
+			v.Footer = ""
+			v.Title = " Preview "
+		}
+	case "compose":
 		v.Footer = ""
-		v.Title = " Preview "
+	default:
+		cl := gui.contexts.CardList
+		if len(cl.Cards) > 0 {
+			v.Title = "Preview"
+			v.Footer = fmt.Sprintf("%d of %d", cl.SelectedCardIdx+1, len(cl.Cards))
+		} else {
+			v.Footer = ""
+			v.Title = " Preview "
+		}
 	}
 
-	if gui.contextMgr.Current() == "preview" {
+	if gui.isPreviewActive() {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
 	} else {

@@ -81,22 +81,52 @@ func (gui *Gui) setupQueriesContext() {
 	controllers.AttachController(gui.queriesController)
 }
 
-// setupPreviewContext initializes the "preview" and PreviewController.
+// setupPreviewContext initializes the three preview contexts (cardList,
+// pickResults, compose) that share a single nav history.
 func (gui *Gui) setupPreviewContext() {
-	previewCtx := context.NewPreviewContext()
-	gui.contexts.Preview = previewCtx
-	gui.contextMgr.Register(previewCtx)
+	gui.contexts.ActivePreviewKey = "cardList"
 
-	previewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+	// Shared nav history across all three preview contexts
+	navHistory := context.NewSharedNavHistory()
+
+	// CardList context
+	cardListCtx := context.NewCardListContext(navHistory)
+	gui.contexts.CardList = cardListCtx
+	gui.contextMgr.Register(cardListCtx)
+	cardListCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		gui.RenderPreview()
 	})
-
-	gui.previewController = controllers.NewPreviewController(
+	cardListCtrl := controllers.NewCardListController(
 		gui.controllerCommon,
-		func() *context.PreviewContext { return gui.contexts.Preview },
+		func() *context.CardListContext { return gui.contexts.CardList },
 	)
+	controllers.AttachController(cardListCtrl)
 
-	controllers.AttachController(gui.previewController)
+	// PickResults context
+	pickResultsCtx := context.NewPickResultsContext(navHistory)
+	gui.contexts.PickResults = pickResultsCtx
+	gui.contextMgr.Register(pickResultsCtx)
+	pickResultsCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.RenderPreview()
+	})
+	pickResultsCtrl := controllers.NewPickResultsController(
+		gui.controllerCommon,
+		func() *context.PickResultsContext { return gui.contexts.PickResults },
+	)
+	controllers.AttachController(pickResultsCtrl)
+
+	// Compose context
+	composeCtx := context.NewComposeContext(navHistory)
+	gui.contexts.Compose = composeCtx
+	gui.contextMgr.Register(composeCtx)
+	composeCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.RenderPreview()
+	})
+	composeCtrl := controllers.NewComposeController(
+		gui.controllerCommon,
+		func() *context.ComposeContext { return gui.contexts.Compose },
+	)
+	controllers.AttachController(composeCtrl)
 }
 
 // setupSearchContext initializes the "search" and its popup controller.
