@@ -208,6 +208,18 @@ func (self *PreviewNavHelper) ShowNavHistory() error {
 	return nil
 }
 
+// PreviewEnter dispatches Enter based on the active preview context.
+func (self *PreviewNavHelper) PreviewEnter() error {
+	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
+	case "pickResults":
+		return self.OpenPickResult()
+	case "cardList":
+		return self.FocusNote()
+	default:
+		return nil
+	}
+}
+
 // OpenNoteByUUID loads a note by UUID and displays it in the preview.
 func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
@@ -219,6 +231,74 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
 	self.c.GuiCommon().PushContextByKey("cardList")
 	return nil
+}
+
+// OpenPickResult opens the currently selected pick result as a full note in
+// card-list view, with the cursor pre-positioned on the matched line.
+func (self *PreviewNavHelper) OpenPickResult() error {
+	gui := self.c.GuiCommon()
+	pr := gui.Contexts().PickResults
+	if len(pr.Results) == 0 {
+		return nil
+	}
+	idx := pr.SelectedCardIdx
+	if idx >= len(pr.Results) {
+		return nil
+	}
+	result := pr.Results[idx]
+
+	// Resolve the pick target line (nil if cursor is on a separator)
+	lineTarget := self.c.Helpers().PreviewLineOps().ResolvePickTarget()
+
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
+	note, err := self.c.RuinCmd().Search.Get(result.UUID, opts)
+	if err != nil || note == nil {
+		return nil
+	}
+
+	self.PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
+	gui.PushContextByKey("cardList")
+
+	if lineTarget != nil {
+		self.positionCursorAtContentLine(note, lineTarget.LineNum)
+	}
+	return nil
+}
+
+// positionCursorAtContentLine repositions the card-list cursor to the visual
+// line corresponding to the given 1-indexed content line number.
+func (self *PreviewNavHelper) positionCursorAtContentLine(note *models.Note, contentLineNum int) {
+	gui := self.c.GuiCommon()
+	v := self.view()
+	if v == nil {
+		return
+	}
+
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+	contentWidth := max(width-2, 10)
+
+	cardLines := gui.BuildCardContent(*note, contentWidth)
+	srcLine, _, _ := readSourceLine(note.Path, contentLineNum)
+	srcLine = strings.TrimSpace(srcLine)
+	if srcLine == "" {
+		return
+	}
+
+	for i, line := range cardLines {
+		if strings.TrimSpace(stripAnsi(line)) == srcLine {
+			ns := gui.Contexts().CardList.NavState()
+			ranges := ns.CardLineRanges
+			if len(ranges) > 0 {
+				ns.CursorLine = ranges[0][0] + 1 + i
+				gui.RenderPreview()
+			}
+			return
+		}
+	}
 }
 
 // --- cursor movement ---

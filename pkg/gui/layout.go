@@ -299,12 +299,16 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	switch gui.contexts.ActivePreviewKey {
 	case "pickResults":
 		pr := gui.contexts.PickResults
+		query := gui.contexts.Pick.Query
+		if query != "" {
+			v.Title = " Pick: " + query + " "
+		} else {
+			v.Title = " Pick "
+		}
 		if len(pr.Results) > 0 {
-			v.Title = " Pick: " + gui.contexts.Pick.Query + " "
 			v.Footer = fmt.Sprintf("%d of %d", pr.SelectedCardIdx+1, len(pr.Results))
 		} else {
 			v.Footer = ""
-			v.Title = " Preview "
 		}
 	case "compose":
 		v.Footer = ""

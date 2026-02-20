@@ -79,7 +79,7 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		},
 		&types.Binding{
 			ID: "cardList.append_done", Key: 'D',
-			Handler: self.requireCardList(self.lineOps().AppendDone), Description: "Toggle #done", Category: "Preview",
+			Handler: self.lineOps().AppendDone, Description: "Toggle #done", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.move_card", Key: 'm',
@@ -91,19 +91,15 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		},
 		&types.Binding{
 			ID: "cardList.toggle_inline_tag", Key: gocui.KeyCtrlT,
-			Handler: self.requireCardList(self.lineOps().ToggleInlineTag), Description: "Toggle Inline Tag", Category: "Preview",
+			Handler: self.lineOps().ToggleInlineTag, Description: "Toggle Inline Tag", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_inline_date", Key: gocui.KeyCtrlD,
-			Handler: self.requireCardList(self.lineOps().ToggleInlineDate), Description: "Toggle Inline Date", Category: "Preview",
+			Handler: self.lineOps().ToggleInlineDate, Description: "Toggle Inline Date", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.toggle_todo", Key: 'x',
-			Handler: self.requireCardList(self.lineOps().ToggleTodo), Description: "Toggle Todo", Category: "Preview",
-		},
-		&types.Binding{
-			ID: "cardList.focus_note", Key: gocui.KeyEnter,
-			Handler: self.requireCardList(self.nav().FocusNote), Description: "Focus Note from Preview", Category: "Preview", DisplayOnScreen: true,
+			Handler: self.lineOps().ToggleTodo, Description: "Toggle Todo", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.add_tag", Key: 't',

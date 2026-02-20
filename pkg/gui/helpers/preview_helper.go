@@ -138,6 +138,58 @@ func (self *PreviewHelper) ShowCompose(title string, note models.Note) {
 
 // --- content reload ---
 
+// ReloadActivePreview dispatches to the appropriate reload method based on
+// the current ActivePreviewKey.
+func (self *PreviewHelper) ReloadActivePreview() {
+	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
+	case "pickResults":
+		self.ReloadPickResults()
+	case "compose":
+		self.c.GuiCommon().RenderPreview()
+	default:
+		self.ReloadContent()
+	}
+}
+
+// ReloadPickResults re-runs the pick query and refreshes the results,
+// preserving the selected card index.
+func (self *PreviewHelper) ReloadPickResults() {
+	gui := self.c.GuiCommon()
+	pr := gui.Contexts().PickResults
+	pickCtx := gui.Contexts().Pick
+
+	tags, filter := ParsePickQuery(pickCtx.Query)
+	results, err := self.c.RuinCmd().Pick.Pick(tags, pickCtx.AnyMode, filter)
+	if err != nil {
+		results = nil
+	}
+
+	savedIdx := pr.SelectedCardIdx
+	pr.Results = results
+	if savedIdx >= len(pr.Results) {
+		if len(pr.Results) > 0 {
+			pr.SelectedCardIdx = len(pr.Results) - 1
+		} else {
+			pr.SelectedCardIdx = 0
+		}
+	}
+
+	// Re-render first to rebuild CardLineRanges, then clamp cursor to the
+	// selected card's content range so it doesn't point past the new layout.
+	self.c.Helpers().Notes().FetchNotesForCurrentTab(true)
+	gui.RenderPreview()
+
+	ns := pr.NavState()
+	idx := pr.SelectedCardIdx
+	if idx < len(ns.CardLineRanges) {
+		r := ns.CardLineRanges[idx]
+		if ns.CursorLine < r[0]+1 || ns.CursorLine >= r[1]-1 {
+			ns.CursorLine = r[0] + 1
+			gui.RenderPreview()
+		}
+	}
+}
+
 // ReloadContent reloads notes and preview cards with current toggle settings.
 func (self *PreviewHelper) ReloadContent() {
 	gui := self.c.GuiCommon()

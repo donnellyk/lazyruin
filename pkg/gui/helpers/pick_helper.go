@@ -29,17 +29,8 @@ func (self *PickHelper) OpenPick() error {
 	return nil
 }
 
-// ExecutePick parses the raw input, runs the pick command, and shows results.
-func (self *PickHelper) ExecutePick(raw string) error {
-	gui := self.c.GuiCommon()
-	ctx := gui.Contexts().Pick
-
-	if raw == "" {
-		return self.CancelPick()
-	}
-
-	// Parse tags and @date filters from input
-	var tags []string
+// ParsePickQuery splits raw pick input into tags and a filter string.
+func ParsePickQuery(raw string) (tags []string, filter string) {
 	var filters []string
 	for _, token := range strings.Fields(raw) {
 		if strings.HasPrefix(token, "@") {
@@ -51,8 +42,20 @@ func (self *PickHelper) ExecutePick(raw string) error {
 			tags = append(tags, token)
 		}
 	}
+	return tags, strings.Join(filters, " ")
+}
 
-	results, err := self.c.RuinCmd().Pick.Pick(tags, ctx.AnyMode, strings.Join(filters, " "))
+// ExecutePick parses the raw input, runs the pick command, and shows results.
+func (self *PickHelper) ExecutePick(raw string) error {
+	gui := self.c.GuiCommon()
+	ctx := gui.Contexts().Pick
+
+	if raw == "" {
+		return self.CancelPick()
+	}
+
+	tags, filter := ParsePickQuery(raw)
+	results, err := self.c.RuinCmd().Pick.Pick(tags, ctx.AnyMode, filter)
 
 	// Always close the pick dialog
 	ctx.Query = raw

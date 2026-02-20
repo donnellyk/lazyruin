@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 // regex patterns for line operations
@@ -16,6 +18,13 @@ var (
 	inlineTagRe  = regexp.MustCompile(`#[\w-]+`)
 	inlineDateRe = regexp.MustCompile(`@\d{4}-\d{2}-\d{2}`)
 )
+
+// lineTarget identifies a specific content line in a note file.
+type lineTarget struct {
+	UUID    string
+	LineNum int // 1-indexed content line (after frontmatter)
+	Path    string
+}
 
 // PreviewLineOpsHelper handles line-level operations: todo toggling,
 // done tagging, inline tag/date toggling.
@@ -36,29 +45,42 @@ func (self *PreviewLineOpsHelper) view() *gocui.View {
 	return self.c.GuiCommon().GetView("preview")
 }
 
-// resolveSourceLine maps the current visual cursor position to a 1-indexed
-// content line number in the raw source file (after frontmatter).
-func (self *PreviewLineOpsHelper) resolveSourceLine() int {
+// resolveTarget dispatches to the appropriate target resolver based on
+// ActivePreviewKey.
+func (self *PreviewLineOpsHelper) resolveTarget() *lineTarget {
+	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
+	case "cardList":
+		return self.resolveCardListTarget()
+	case "pickResults":
+		return self.ResolvePickTarget()
+	default:
+		return nil
+	}
+}
+
+// resolveCardListTarget maps the current visual cursor position to a lineTarget
+// in card-list mode.
+func (self *PreviewLineOpsHelper) resolveCardListTarget() *lineTarget {
 	v := self.view()
 	if v == nil {
-		return -1
+		return nil
 	}
 	card := self.c.Helpers().Preview().CurrentPreviewCard()
 	if card == nil {
-		return -1
+		return nil
 	}
 	cl := self.ctx()
 	idx := cl.SelectedCardIdx
 	ns := cl.NavState()
 	ranges := ns.CardLineRanges
 	if idx >= len(ranges) {
-		return -1
+		return nil
 	}
 
 	cardStart := ranges[idx][0]
 	lineOffset := ns.CursorLine - cardStart - 1
 	if lineOffset < 0 {
-		return -1
+		return nil
 	}
 
 	width, _ := v.InnerSize()
@@ -68,16 +90,16 @@ func (self *PreviewLineOpsHelper) resolveSourceLine() int {
 	contentWidth := max(width-2, 10)
 	cardLines := self.c.GuiCommon().BuildCardContent(*card, contentWidth)
 	if lineOffset >= len(cardLines) {
-		return -1
+		return nil
 	}
 	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
 	if visibleLine == "" {
-		return -1
+		return nil
 	}
 
 	data, err := os.ReadFile(card.Path)
 	if err != nil {
-		return -1
+		return nil
 	}
 	fileLines := strings.Split(string(data), "\n")
 
@@ -93,10 +115,68 @@ func (self *PreviewLineOpsHelper) resolveSourceLine() int {
 
 	for i := contentStart; i < len(fileLines); i++ {
 		if strings.TrimSpace(fileLines[i]) == visibleLine {
-			return i - contentStart + 1
+			return &lineTarget{
+				UUID:    card.UUID,
+				LineNum: i - contentStart + 1,
+				Path:    card.Path,
+			}
 		}
 	}
-	return -1
+	return nil
+}
+
+// ResolvePickTarget maps the current visual cursor position to a lineTarget
+// in pick-results mode, using the same word-wrap logic as renderPickResults.
+func (self *PreviewLineOpsHelper) ResolvePickTarget() *lineTarget {
+	v := self.view()
+	if v == nil {
+		return nil
+	}
+	pr := self.c.GuiCommon().Contexts().PickResults
+	idx := pr.SelectedCardIdx
+	if idx >= len(pr.Results) {
+		return nil
+	}
+	result := pr.Results[idx]
+	ns := pr.NavState()
+	ranges := ns.CardLineRanges
+	if idx >= len(ranges) {
+		return nil
+	}
+
+	// lineOffset is relative to the card group start; skip the upper separator
+	cardStart := ranges[idx][0]
+	lineOffset := ns.CursorLine - cardStart - 1
+	if lineOffset < 0 {
+		return nil
+	}
+
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+	contentWidth := max(width-2, 10)
+
+	// Walk matches counting rendered lines per match, same as renderPickResults
+	renderedLine := 0
+	for _, match := range result.Matches {
+		lineNum := fmt.Sprintf("%02d", match.Line)
+		prefix := fmt.Sprintf("  L%s: ", lineNum)
+		prefixLen := len(prefix)
+		wrapped := wordwrap.String(match.Content, contentWidth-prefixLen)
+		lines := strings.Split(strings.TrimRight(wrapped, "\n"), "\n")
+		lineCount := len(lines)
+
+		if lineOffset >= renderedLine && lineOffset < renderedLine+lineCount {
+			return &lineTarget{
+				UUID:    result.UUID,
+				LineNum: match.Line,
+				Path:    result.File,
+			}
+		}
+		renderedLine += lineCount
+	}
+	return nil
 }
 
 // readSourceLine reads the raw source file and returns the content line at
@@ -125,38 +205,33 @@ func readSourceLine(path string, lineNum int) (string, []string, int) {
 
 // ToggleTodo toggles a todo checkbox on the current line.
 func (self *PreviewLineOpsHelper) ToggleTodo() error {
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil {
-		return nil
-	}
-	lineNum := self.resolveSourceLine()
-	if lineNum < 1 {
+	target := self.resolveTarget()
+	if target == nil {
 		return nil
 	}
 
-	err := self.c.RuinCmd().Note.ToggleTodo(card.UUID, lineNum)
+	err := self.c.RuinCmd().Note.ToggleTodo(target.UUID, target.LineNum)
 	if err != nil {
 		self.c.GuiCommon().ShowError(err)
 		return nil
 	}
 
-	self.ctx().Cards[self.ctx().SelectedCardIdx].Content = ""
-	self.c.Helpers().Preview().ReloadContent()
+	if self.c.GuiCommon().Contexts().ActivePreviewKey == "cardList" {
+		cl := self.ctx()
+		cl.Cards[cl.SelectedCardIdx].Content = ""
+	}
+	self.c.Helpers().Preview().ReloadActivePreview()
 	return nil
 }
 
 // AppendDone toggles #done on the current line.
 func (self *PreviewLineOpsHelper) AppendDone() error {
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil {
-		return nil
-	}
-	lineNum := self.resolveSourceLine()
-	if lineNum < 1 {
+	target := self.resolveTarget()
+	if target == nil {
 		return nil
 	}
 
-	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
 	hasDone := false
 	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
 		if strings.EqualFold(m, "#done") {
@@ -167,38 +242,35 @@ func (self *PreviewLineOpsHelper) AppendDone() error {
 
 	var err error
 	if hasDone {
-		err = self.c.RuinCmd().Note.RemoveTagFromLine(card.UUID, "#done", lineNum)
+		err = self.c.RuinCmd().Note.RemoveTagFromLine(target.UUID, "#done", target.LineNum)
 	} else {
-		err = self.c.RuinCmd().Note.AddTagToLine(card.UUID, "#done", lineNum)
+		err = self.c.RuinCmd().Note.AddTagToLine(target.UUID, "#done", target.LineNum)
 	}
 	if err != nil {
 		self.c.GuiCommon().ShowError(err)
 		return nil
 	}
 
-	self.c.Helpers().Preview().ReloadContent()
+	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }
 
 // ToggleInlineTag opens the input popup to toggle an inline tag on the cursor line.
 func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil {
-		return nil
-	}
-	lineNum := self.resolveSourceLine()
-	if lineNum < 1 {
+	target := self.resolveTarget()
+	if target == nil {
 		return nil
 	}
 
-	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
 	existingTags := make(map[string]bool)
 	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
 		existingTags[strings.ToLower(m)] = true
 	}
 
-	uuid := card.UUID
+	uuid := target.UUID
+	lineNum := target.LineNum
 	gui := self.c.GuiCommon()
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Toggle Inline Tag",
@@ -242,7 +314,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 					return nil
 				}
 			}
-			self.c.Helpers().Preview().ReloadContent()
+			self.c.Helpers().Preview().ReloadActivePreview()
 			self.c.Helpers().Tags().RefreshTags(false)
 			return nil
 		},
@@ -252,22 +324,19 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 
 // ToggleInlineDate opens the input popup to toggle an inline date on the cursor line.
 func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil {
-		return nil
-	}
-	lineNum := self.resolveSourceLine()
-	if lineNum < 1 {
+	target := self.resolveTarget()
+	if target == nil {
 		return nil
 	}
 
-	srcLine, _, _ := readSourceLine(card.Path, lineNum)
+	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
 	existingDates := make(map[string]bool)
 	for _, m := range inlineDateRe.FindAllString(srcLine, -1) {
 		existingDates[m] = true
 	}
 
-	uuid := card.UUID
+	uuid := target.UUID
+	lineNum := target.LineNum
 	gui := self.c.GuiCommon()
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Toggle Inline Date",
@@ -305,7 +374,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
 					return nil
 				}
 			}
-			self.c.Helpers().Preview().ReloadContent()
+			self.c.Helpers().Preview().ReloadActivePreview()
 			return nil
 		},
 	})

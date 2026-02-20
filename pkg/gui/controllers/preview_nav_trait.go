@@ -57,6 +57,15 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Description: "View Options",
 			Category:    "Preview",
 		},
+		// Enter (dispatches per active preview mode)
+		{
+			ID:              "preview.enter",
+			Key:             gocui.KeyEnter,
+			Handler:         t.nav().PreviewEnter,
+			Description:     "Enter",
+			Category:        "Preview",
+			DisplayOnScreen: true,
+		},
 		// Back / forward / history
 		{
 			ID:      "preview.back",

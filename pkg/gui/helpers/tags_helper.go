@@ -105,7 +105,12 @@ func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 		return nil
 	}
 
-	self.c.Helpers().Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
+	// Store query so ReloadPickResults can re-run it after line edits.
+	pickCtx := gui.Contexts().Pick
+	pickCtx.Query = tag.Name
+	pickCtx.AnyMode = false
+
+	self.c.Helpers().Preview().ShowPickResults(" Pick: "+tag.Name+" ", results)
 	gui.PushContextByKey("pickResults")
 	return nil
 }
@@ -174,10 +179,16 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 
 // UpdatePreviewPickResults runs a pick for the given tag and shows results in preview.
 func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
+	gui := self.c.GuiCommon()
 	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, false, "")
 	if err != nil {
 		return
 	}
 
-	self.c.Helpers().Preview().ShowPickResults(" Pick: #"+tag.Name+" ", results)
+	// Store query so ReloadPickResults can re-run it after line edits.
+	pickCtx := gui.Contexts().Pick
+	pickCtx.Query = tag.Name
+	pickCtx.AnyMode = false
+
+	self.c.Helpers().Preview().ShowPickResults(" Pick: "+tag.Name+" ", results)
 }
