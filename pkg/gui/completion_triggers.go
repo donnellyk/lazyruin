@@ -94,9 +94,14 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 }
 
 // pickTriggers returns the completion triggers for the pick popup.
+// In dialog mode, tag suggestions are scoped to inline tags in the underlying document.
 func (gui *Gui) pickTriggers() []types.CompletionTrigger {
+	tagCandidates := gui.TagCandidates
+	if gui.contexts.Pick.DialogMode {
+		tagCandidates = gui.ScopedInlineTagCandidates
+	}
 	return []types.CompletionTrigger{
-		{Prefix: "#", Candidates: gui.TagCandidates},
+		{Prefix: "#", Candidates: tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
 	}
 }

@@ -19,6 +19,7 @@ type ContextTree struct {
 	SnippetEditor    *SnippetEditorContext
 	Calendar         *CalendarContext
 	Contrib          *ContribContext
+	PickDialog       *PickResultsContext
 	ActivePreviewKey types.ContextKey // "cardList", "pickResults", or "compose"
 }
 
@@ -81,6 +82,9 @@ func (self *ContextTree) All() []types.Context {
 	}
 	if self.Contrib != nil {
 		all = append(all, self.Contrib)
+	}
+	if self.PickDialog != nil {
+		all = append(all, self.PickDialog)
 	}
 	return all
 }

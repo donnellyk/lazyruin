@@ -31,9 +31,6 @@ func (self *CardListController) Context() types.Context { return self.getContext
 func (self *CardListController) mutations() *helpers.PreviewMutationsHelper {
 	return self.c.Helpers().PreviewMutations()
 }
-func (self *CardListController) lineOps() *helpers.PreviewLineOpsHelper {
-	return self.c.Helpers().PreviewLineOps()
-}
 func (self *CardListController) info() *helpers.PreviewInfoHelper {
 	return self.c.Helpers().PreviewInfo()
 }
@@ -78,28 +75,12 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			Handler: self.requireCardList(self.nav().OpenInEditor), Description: "Open in Editor", Category: "Preview", DisplayOnScreen: true,
 		},
 		&types.Binding{
-			ID: "cardList.append_done", Key: 'D',
-			Handler: self.lineOps().AppendDone, Description: "Toggle #done", Category: "Preview",
-		},
-		&types.Binding{
 			ID: "cardList.move_card", Key: 'm',
 			Handler: self.requireCardList(self.mutations().MoveCardDialog), Description: "Move Card", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.merge_card", Key: 'M',
 			Handler: self.requireCardList(self.mutations().MergeCardDialog), Description: "Merge Notes", Category: "Preview",
-		},
-		&types.Binding{
-			ID: "cardList.toggle_inline_tag", Key: gocui.KeyCtrlT,
-			Handler: self.lineOps().ToggleInlineTag, Description: "Toggle Inline Tag", Category: "Preview",
-		},
-		&types.Binding{
-			ID: "cardList.toggle_inline_date", Key: gocui.KeyCtrlD,
-			Handler: self.lineOps().ToggleInlineDate, Description: "Toggle Inline Date", Category: "Preview",
-		},
-		&types.Binding{
-			ID: "cardList.toggle_todo", Key: 'x',
-			Handler: self.lineOps().ToggleTodo, Description: "Toggle Todo", Category: "Preview",
 		},
 		&types.Binding{
 			ID: "cardList.add_tag", Key: 't',
@@ -130,6 +111,7 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			Handler: self.requireCardList(self.mutations().OrderCards), Description: "Order Cards", Category: "Preview",
 		},
 	)
+	bindings = append(bindings, self.LineOpsBindings("cardList")...)
 	return bindings
 }
 

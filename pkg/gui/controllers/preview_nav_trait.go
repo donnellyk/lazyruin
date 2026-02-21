@@ -111,6 +111,39 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Description: "View History",
 			Category:    "Preview",
 		},
+		// Pick dialog (inline pick without leaving preview)
+		{
+			ID:          "preview.pick_dialog",
+			Key:         gocui.KeyCtrlP,
+			Handler:     func() error { return t.c.Helpers().Pick().OpenPickDialog() },
+			Description: "Pick (Dialog)",
+			Category:    "Preview",
+		},
+	}
+}
+
+// LineOpsBindings returns the 4 standard line-level operation bindings
+// (toggle todo, toggle #done, toggle inline tag, toggle inline date),
+// parameterized by prefix for unique binding IDs.
+func (t *PreviewNavTrait) LineOpsBindings(prefix string) []*types.Binding {
+	lo := t.c.Helpers().PreviewLineOps()
+	return []*types.Binding{
+		{
+			ID: prefix + ".toggle_todo", Key: 'x',
+			Handler: lo.ToggleTodo, Description: "Toggle Todo", Category: "Preview",
+		},
+		{
+			ID: prefix + ".append_done", Key: 'D',
+			Handler: lo.AppendDone, Description: "Toggle #done", Category: "Preview",
+		},
+		{
+			ID: prefix + ".toggle_inline_tag", Key: gocui.KeyCtrlT,
+			Handler: lo.ToggleInlineTag, Description: "Toggle Inline Tag", Category: "Preview",
+		},
+		{
+			ID: prefix + ".toggle_inline_date", Key: gocui.KeyCtrlD,
+			Handler: lo.ToggleInlineDate, Description: "Toggle Inline Date", Category: "Preview",
+		},
 	}
 }
 

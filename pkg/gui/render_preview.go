@@ -36,7 +36,8 @@ func (gui *Gui) RenderPreview() {
 
 	switch gui.contexts.ActivePreviewKey {
 	case "pickResults":
-		gui.renderPickResults(v, gui.contexts.PickResults.Results, ns)
+		pr := gui.contexts.PickResults
+		gui.renderPickResults(v, pr.Results, ns, pr.SelectedCardIdx, gui.isPreviewActive())
 	case "compose":
 		gui.renderSeparatorCards(v, []models.Note{gui.contexts.Compose.Note}, ns, nil)
 	default:
@@ -365,21 +366,21 @@ func (gui *Gui) resolveParentLabel(uuid string) string {
 	return uuid
 }
 
-// renderPickResults renders line-level pick results grouped by note title
-func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns *context.PreviewNavState) {
+// renderPickResults renders line-level pick results grouped by note title.
+// selectedCardIdx and isActive are passed explicitly so both the main preview
+// and the pick dialog overlay can share this rendering logic.
+func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns *context.PreviewNavState, selectedCardIdx int, isActive bool) {
 	if len(results) == 0 {
 		fmt.Fprintln(v, "No matching lines.")
 		return
 	}
 
-	ctx := gui.contexts.ActivePreview()
 	width, _ := v.InnerSize()
 	if width < 10 {
 		width = 40
 	}
 	contentWidth := max(width-2, 10)
 
-	isActive := gui.isPreviewActive()
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
@@ -387,7 +388,7 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 	ns.HeaderLines = ns.HeaderLines[:0]
 
 	for i, result := range results {
-		selected := isActive && i == ctx.SelectedCardIndex()
+		selected := isActive && i == selectedCardIdx
 		ns.CardLineRanges[i][0] = currentLine
 
 		if selected {

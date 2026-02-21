@@ -21,6 +21,11 @@ func (gui *Gui) CurrentCardTagCandidates(filter string) []types.CompletionItem {
 	return gui.helpers.Completion().CurrentCardTagCandidates(filter)
 }
 
+// ScopedInlineTagCandidates delegates to CompletionHelper.
+func (gui *Gui) ScopedInlineTagCandidates(filter string) []types.CompletionItem {
+	return gui.helpers.Completion().ScopedInlineTagCandidates(filter)
+}
+
 // dateLiterals are the date keywords supported natively by ruin's date filters.
 var dateLiterals = []struct {
 	value  string

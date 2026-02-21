@@ -8,6 +8,8 @@ type PickContext struct {
 	Query      string
 	AnyMode    bool
 	SeedHash   bool
+	DialogMode bool   // when true, ExecutePick shows results in a dialog overlay
+	ScopeTitle string // contextual title set when DialogMode is true
 	Completion *types.CompletionState
 }
 

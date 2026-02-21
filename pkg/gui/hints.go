@@ -201,6 +201,22 @@ func (gui *Gui) contextHintDefs() contextHintDef {
 				{"esc", "Cancel"},
 			},
 		}
+	case "pickDialog":
+		return contextHintDef{
+			header: "Pick Results",
+			hints: []contextHint{
+				{"j/k", "Scroll"},
+				{"J/K", "Jump between results"},
+				{"enter", "Open note"},
+				{"esc", "Close"},
+			},
+			statusBar: []contextHint{
+				{"j/k", "Scroll"},
+				{"enter", "Open"},
+				{"esc", "Close"},
+				{"?", "Keys"},
+			},
+		}
 	case "searchFilter":
 		return contextHintDef{
 			header: "Search Filter",

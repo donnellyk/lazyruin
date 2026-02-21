@@ -56,6 +56,7 @@ type IGuiCommon interface {
 
 	// Preview rendering
 	BuildCardContent(note models.Note, width int) []string
+	RenderPickDialog()
 
 	// Context state
 	PreviousContextKey() ContextKey

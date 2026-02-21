@@ -381,6 +381,18 @@ func (gui *Gui) setupCalendarContext() {
 	controllers.AttachController(ctrl)
 }
 
+// setupPickDialogContext initializes the pick dialog context and controller.
+func (gui *Gui) setupPickDialogContext() {
+	pdCtx := context.NewPickDialogContext()
+	gui.contexts.PickDialog = pdCtx
+	gui.contextMgr.Register(pdCtx)
+
+	ctrl := controllers.NewPickDialogController(gui.controllerCommon, func() *context.PickResultsContext {
+		return gui.contexts.PickDialog
+	})
+	controllers.AttachController(ctrl)
+}
+
 // setupContribContext initializes the ContribContext and ContribController.
 func (gui *Gui) setupContribContext() {
 	contribCtx := context.NewContribContext()

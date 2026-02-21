@@ -114,5 +114,18 @@ func (gui *Gui) isPreviewActive() bool {
 	return context.IsPreviewContextKey(gui.contextMgr.Current())
 }
 
+// RenderPickDialog renders the pick dialog overlay contents.
+func (gui *Gui) RenderPickDialog() {
+	v, err := gui.g.View(PickDialogView)
+	if err != nil || v == nil {
+		return
+	}
+	v.Clear()
+	pd := gui.contexts.PickDialog
+	ns := pd.NavState()
+	ns.HighlightedLink = -1
+	gui.renderPickResults(v, pd.Results, ns, pd.SelectedCardIdx, true)
+}
+
 // Compile-time assertion that *Gui satisfies types.IGuiCommon.
 var _ types.IGuiCommon = &Gui{}

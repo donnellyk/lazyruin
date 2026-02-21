@@ -66,6 +66,7 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupSnippetEditorContext()
 	gui.setupCalendarContext()
 	gui.setupContribContext()
+	gui.setupPickDialogContext()
 	return gui
 }
 

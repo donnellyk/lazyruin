@@ -108,6 +108,10 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		if err := gui.createContribViews(g, maxX, maxY); err != nil {
 			return err
 		}
+	case "pickDialog":
+		if err := gui.createPickDialog(g, maxX, maxY); err != nil {
+			return err
+		}
 	}
 	// Delete views for inactive overlays
 	ctx := gui.contextMgr.Current()
@@ -148,6 +152,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	if ctx != "contribGrid" {
 		g.DeleteView(ContribGridView)
 		g.DeleteView(ContribNotesView)
+	}
+	if ctx != "pickDialog" {
+		g.DeleteView(PickDialogView)
 	}
 
 	// Render any active dialogs
@@ -535,7 +542,11 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	gui.views.Pick = v
-	v.Title = " Pick "
+	if gui.contexts.Pick.ScopeTitle != "" {
+		v.Title = " Pick from " + gui.contexts.Pick.ScopeTitle + " "
+	} else {
+		v.Title = " Pick "
+	}
 	v.Footer = gui.pickFooter()
 	v.Editable = true
 	v.Wrap = false
@@ -769,5 +780,44 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 		return err
 	}
 
+	return nil
+}
+
+func (gui *Gui) createPickDialog(g *gocui.Gui, maxX, maxY int) error {
+	width := maxX * 85 / 100
+	if width < 40 {
+		width = min(maxX-4, 40)
+	}
+	height := maxY * 75 / 100
+	if height < 10 {
+		height = min(maxY-4, 10)
+	}
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY - height) / 2
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(PickDialogView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	pd := gui.contexts.PickDialog
+	title := " Pick: " + pd.Query + " "
+	if pd.ScopeTitle != "" {
+		title = " Pick from " + pd.ScopeTitle + " "
+	}
+	v.Title = title
+	v.Wrap = false
+	v.Frame = true
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+
+	g.SetViewOnTop(PickDialogView)
+	g.SetCurrentView(PickDialogView)
+
+	gui.RenderPickDialog()
 	return nil
 }

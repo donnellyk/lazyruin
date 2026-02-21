@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"kvnd/lazyruin/pkg/commands"
@@ -51,6 +52,57 @@ func (self *CompletionHelper) CurrentCardTagCandidates(filter string) []types.Co
 	var items []types.CompletionItem
 	allTags := append(card.Tags, card.InlineTags...)
 	for _, tag := range allTags {
+		name := tag
+		if !strings.HasPrefix(name, "#") {
+			name = "#" + name
+		}
+		nameWithoutHash := strings.TrimPrefix(name, "#")
+		if filter != "" && !strings.Contains(strings.ToLower(nameWithoutHash), filter) {
+			continue
+		}
+		items = append(items, types.CompletionItem{
+			Label:      name,
+			InsertText: name,
+		})
+	}
+	return items
+}
+
+// inlineTagPattern matches #tag tokens in note content.
+var inlineTagPattern = regexp.MustCompile(`#[\w-]+`)
+
+// ScopedInlineTagCandidates returns tag completion items limited to inline tags
+// found in the underlying preview document (compose note or cardList card).
+func (self *CompletionHelper) ScopedInlineTagCandidates(filter string) []types.CompletionItem {
+	gui := self.c.GuiCommon()
+	var content string
+	switch gui.Contexts().ActivePreviewKey {
+	case "compose":
+		content = gui.Contexts().Compose.Note.Content
+	case "cardList":
+		cl := gui.Contexts().CardList
+		if cl.SelectedCardIdx < len(cl.Cards) {
+			content = cl.Cards[cl.SelectedCardIdx].Content
+		}
+	}
+	if content == "" {
+		return self.TagCandidates(filter)
+	}
+
+	// Extract unique inline tags from content
+	seen := make(map[string]bool)
+	var tags []string
+	for _, m := range inlineTagPattern.FindAllString(content, -1) {
+		lower := strings.ToLower(m)
+		if !seen[lower] {
+			seen[lower] = true
+			tags = append(tags, m)
+		}
+	}
+
+	filter = strings.ToLower(filter)
+	var items []types.CompletionItem
+	for _, tag := range tags {
 		name := tag
 		if !strings.HasPrefix(name, "#") {
 			name = "#" + name

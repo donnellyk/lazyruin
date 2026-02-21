@@ -29,6 +29,7 @@ const (
 	CalendarNotesView     = "calendarNotes"
 	ContribGridView       = "contribGrid"
 	ContribNotesView      = "contribNotes"
+	PickDialogView        = "pickDialog"
 )
 
 // Views holds references to all views.

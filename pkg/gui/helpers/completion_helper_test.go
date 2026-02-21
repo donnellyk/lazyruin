@@ -50,6 +50,7 @@ func (m *mockGuiCommon) Resume() error                                { return n
 func (m *mockGuiCommon) GetView(string) *gocui.View                   { return nil }
 func (m *mockGuiCommon) DeleteView(string)                            {}
 func (m *mockGuiCommon) BuildCardContent(models.Note, int) []string   { return nil }
+func (m *mockGuiCommon) RenderPickDialog()                            {}
 func (m *mockGuiCommon) PreviousContextKey() types.ContextKey         { return "" }
 
 func newTestCompletionHelper(mock *testutil.MockExecutor, gui *mockGuiCommon) *CompletionHelper {

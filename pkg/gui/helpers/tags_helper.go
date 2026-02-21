@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -99,7 +100,7 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 // FilterByTagPick runs a pick query for the given tag.
 func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 	gui := self.c.GuiCommon()
-	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, false, "")
+	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, commands.PickOpts{})
 	if err != nil {
 		gui.ShowError(err)
 		return nil
@@ -180,7 +181,7 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 // UpdatePreviewPickResults runs a pick for the given tag and shows results in preview.
 func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
 	gui := self.c.GuiCommon()
-	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, false, "")
+	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, commands.PickOpts{})
 	if err != nil {
 		return
 	}

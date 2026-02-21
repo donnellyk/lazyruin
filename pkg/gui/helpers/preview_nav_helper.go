@@ -22,11 +22,23 @@ func NewPreviewNavHelper(c *HelperCommon) *PreviewNavHelper {
 }
 
 func (self *PreviewNavHelper) activeCtx() context.IPreviewContext {
+	if self.c.GuiCommon().CurrentContextKey() == "pickDialog" {
+		return self.c.GuiCommon().Contexts().PickDialog
+	}
 	return self.c.GuiCommon().Contexts().ActivePreview()
 }
 
 func (self *PreviewNavHelper) view() *gocui.View {
 	return self.c.GuiCommon().GetView("preview")
+}
+
+func (self *PreviewNavHelper) renderActive() {
+	gui := self.c.GuiCommon()
+	if gui.CurrentContextKey() == "pickDialog" {
+		gui.RenderPickDialog()
+	} else {
+		gui.RenderPreview()
+	}
 }
 
 // --- nav history ---
@@ -239,22 +251,19 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 	return nil
 }
 
-// OpenPickResult opens the currently selected pick result as a full note in
-// card-list view, with the cursor pre-positioned on the matched line.
-func (self *PreviewNavHelper) OpenPickResult() error {
-	gui := self.c.GuiCommon()
-	pr := gui.Contexts().PickResults
-	if len(pr.Results) == 0 {
+// openPickResultFrom is the shared implementation for opening a pick result
+// from any context that holds pick results (PickResults or PickDialog).
+// It resolves the cursor target line, fetches the full note, optionally runs
+// beforeNav (e.g. to close a dialog), then navigates to card-list view with
+// cursor pre-positioned on the matched line.
+func (self *PreviewNavHelper) openPickResultFrom(viewName string, results []models.PickResult, ctx context.IPreviewContext, beforeNav func()) error {
+	idx := ctx.SelectedCardIndex()
+	if idx >= len(results) {
 		return nil
 	}
-	idx := pr.SelectedCardIdx
-	if idx >= len(pr.Results) {
-		return nil
-	}
-	result := pr.Results[idx]
+	result := results[idx]
 
-	// Resolve the pick target line (nil if cursor is on a separator)
-	lineTarget := self.c.Helpers().PreviewLineOps().ResolvePickTarget()
+	lineTarget := self.c.Helpers().PreviewLineOps().ResolvePickResultsTarget(viewName, results, ctx)
 
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	note, err := self.c.RuinCmd().Search.Get(result.UUID, opts)
@@ -262,14 +271,39 @@ func (self *PreviewNavHelper) OpenPickResult() error {
 		return nil
 	}
 
+	if beforeNav != nil {
+		beforeNav()
+	}
 	self.PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
-	gui.PushContextByKey("cardList")
+	self.c.GuiCommon().PushContextByKey("cardList")
 
 	if lineTarget != nil {
 		self.positionCursorAtContentLine(note, lineTarget.LineNum)
 	}
 	return nil
+}
+
+// OpenPickResult opens the currently selected pick result as a full note in
+// card-list view, with the cursor pre-positioned on the matched line.
+func (self *PreviewNavHelper) OpenPickResult() error {
+	pr := self.c.GuiCommon().Contexts().PickResults
+	if len(pr.Results) == 0 {
+		return nil
+	}
+	return self.openPickResultFrom("preview", pr.Results, pr, nil)
+}
+
+// OpenPickDialogResult opens the selected pick dialog result as a full note,
+// closing the dialog first. Cursor is pre-positioned on the matched line.
+func (self *PreviewNavHelper) OpenPickDialogResult() error {
+	pd := self.c.GuiCommon().Contexts().PickDialog
+	if len(pd.Results) == 0 {
+		return nil
+	}
+	return self.openPickResultFrom("pickDialog", pd.Results, pd, func() {
+		self.c.Helpers().Pick().ClosePickDialog()
+	})
 }
 
 // positionCursorAtContentLine repositions the card-list cursor to the visual
@@ -356,7 +390,7 @@ func (self *PreviewNavHelper) MoveDown() error {
 		if self.isContentLine(cursor) && cursor != ns.CursorLine {
 			ns.CursorLine = cursor
 			self.SyncCardIndexFromCursor()
-			self.c.GuiCommon().RenderPreview()
+			self.renderActive()
 		}
 	}
 	return nil
@@ -375,7 +409,7 @@ func (self *PreviewNavHelper) MoveUp() error {
 	if self.isContentLine(cursor) && cursor != ns.CursorLine {
 		ns.CursorLine = cursor
 		self.SyncCardIndexFromCursor()
-		self.c.GuiCommon().RenderPreview()
+		self.renderActive()
 	}
 	return nil
 }
@@ -395,7 +429,7 @@ func (self *PreviewNavHelper) CardDown() error {
 	if next < len(ranges) {
 		ns.CursorLine = ranges[next][0] + 1
 	}
-	self.c.GuiCommon().RenderPreview()
+	self.renderActive()
 	return nil
 }
 
@@ -413,7 +447,7 @@ func (self *PreviewNavHelper) CardUp() error {
 	if prev < len(ranges) {
 		ns.CursorLine = ranges[prev][0] + 1
 	}
-	self.c.GuiCommon().RenderPreview()
+	self.renderActive()
 	return nil
 }
 
@@ -425,7 +459,7 @@ func (self *PreviewNavHelper) NextHeader() error {
 		if h > cursor {
 			ns.CursorLine = h
 			self.SyncCardIndexFromCursor()
-			self.c.GuiCommon().RenderPreview()
+			self.renderActive()
 			return nil
 		}
 	}
@@ -440,7 +474,7 @@ func (self *PreviewNavHelper) PrevHeader() error {
 		if ns.HeaderLines[i] < cursor {
 			ns.CursorLine = ns.HeaderLines[i]
 			self.SyncCardIndexFromCursor()
-			self.c.GuiCommon().RenderPreview()
+			self.renderActive()
 			return nil
 		}
 	}

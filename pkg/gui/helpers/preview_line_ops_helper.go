@@ -47,13 +47,19 @@ func (self *PreviewLineOpsHelper) view() *gocui.View {
 }
 
 // resolveTarget dispatches to the appropriate target resolver based on
-// ActivePreviewKey.
+// the current context (pickDialog overlay takes priority) or ActivePreviewKey.
 func (self *PreviewLineOpsHelper) resolveTarget() *lineTarget {
-	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
+	gui := self.c.GuiCommon()
+	if gui.CurrentContextKey() == "pickDialog" {
+		pd := gui.Contexts().PickDialog
+		return self.ResolvePickResultsTarget("pickDialog", pd.Results, pd)
+	}
+	switch gui.Contexts().ActivePreviewKey {
 	case "cardList":
 		return self.resolveCardListTarget()
 	case "pickResults":
-		return self.ResolvePickTarget()
+		pr := gui.Contexts().PickResults
+		return self.ResolvePickResultsTarget("preview", pr.Results, pr)
 	case "compose":
 		return self.resolveComposeTarget()
 	default:
@@ -251,23 +257,28 @@ func abs(x int) int {
 // ResolvePickTarget maps the current visual cursor position to a lineTarget
 // in pick-results mode, using the same word-wrap logic as renderPickResults.
 func (self *PreviewLineOpsHelper) ResolvePickTarget() *lineTarget {
-	v := self.view()
+	pr := self.c.GuiCommon().Contexts().PickResults
+	return self.ResolvePickResultsTarget("preview", pr.Results, pr)
+}
+
+// ResolvePickResultsTarget maps the cursor position to a lineTarget for
+// any context that holds pick results (PickResults or PickDialog).
+func (self *PreviewLineOpsHelper) ResolvePickResultsTarget(viewName string, results []models.PickResult, ctx context.IPreviewContext) *lineTarget {
+	v := self.c.GuiCommon().GetView(viewName)
 	if v == nil {
 		return nil
 	}
-	pr := self.c.GuiCommon().Contexts().PickResults
-	idx := pr.SelectedCardIdx
-	if idx >= len(pr.Results) {
+	idx := ctx.SelectedCardIndex()
+	if idx >= len(results) {
 		return nil
 	}
-	result := pr.Results[idx]
-	ns := pr.NavState()
+	result := results[idx]
+	ns := ctx.NavState()
 	ranges := ns.CardLineRanges
 	if idx >= len(ranges) {
 		return nil
 	}
 
-	// lineOffset is relative to the card group start; skip the upper separator
 	cardStart := ranges[idx][0]
 	lineOffset := ns.CursorLine - cardStart - 1
 	if lineOffset < 0 {
@@ -280,7 +291,6 @@ func (self *PreviewLineOpsHelper) ResolvePickTarget() *lineTarget {
 	}
 	contentWidth := max(width-2, 10)
 
-	// Walk matches counting rendered lines per match, same as renderPickResults
 	renderedLine := 0
 	for _, match := range result.Matches {
 		lineNum := fmt.Sprintf("%02d", match.Line)
@@ -344,6 +354,7 @@ func (self *PreviewLineOpsHelper) ToggleTodo() error {
 		cl.Cards[cl.SelectedCardIdx].Content = ""
 	}
 	self.c.Helpers().Preview().ReloadActivePreview()
+	self.reloadPickDialogIfActive()
 	return nil
 }
 
@@ -376,7 +387,16 @@ func (self *PreviewLineOpsHelper) AppendDone() error {
 
 	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
+	self.reloadPickDialogIfActive()
 	return nil
+}
+
+// reloadPickDialogIfActive reloads the pick dialog overlay if it is currently
+// the active context. Called after line-level mutations to keep results fresh.
+func (self *PreviewLineOpsHelper) reloadPickDialogIfActive() {
+	if self.c.GuiCommon().CurrentContextKey() == "pickDialog" {
+		self.c.Helpers().Pick().ReloadPickDialog()
+	}
 }
 
 // ToggleInlineTag opens the input popup to toggle an inline tag on the cursor line.
@@ -439,6 +459,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 			}
 			self.c.Helpers().Preview().ReloadActivePreview()
 			self.c.Helpers().Tags().RefreshTags(false)
+			self.reloadPickDialogIfActive()
 			return nil
 		},
 	})
@@ -498,6 +519,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
 				}
 			}
 			self.c.Helpers().Preview().ReloadActivePreview()
+			self.reloadPickDialogIfActive()
 			return nil
 		},
 	})

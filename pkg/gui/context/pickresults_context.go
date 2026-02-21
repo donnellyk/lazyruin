@@ -11,6 +11,8 @@ type PickResultsState struct {
 	PreviewDisplayState
 	Results         []models.PickResult
 	SelectedCardIdx int
+	Query           string // dialog mode: for title display
+	ScopeTitle      string // dialog mode: scoped context name
 }
 
 // PickResultsContext owns the pick-results preview mode (inline tag pick,
@@ -47,6 +49,23 @@ func (self *PickResultsContext) SelectedCardIndex() int             { return sel
 func (self *PickResultsContext) SetSelectedCardIndex(idx int)       { self.SelectedCardIdx = idx }
 func (self *PickResultsContext) CardCount() int                     { return len(self.Results) }
 func (self *PickResultsContext) NavHistory() *SharedNavHistory      { return self.navHistory }
+
+var pickDialogNavHistory = &SharedNavHistory{Index: -1}
+
+// NewPickDialogContext creates a PickResultsContext configured as a dialog overlay.
+func NewPickDialogContext() *PickResultsContext {
+	return &PickResultsContext{
+		BaseContext: NewBaseContext(NewBaseContextOpts{
+			Kind:      types.TEMPORARY_POPUP,
+			Key:       "pickDialog",
+			ViewName:  "pickDialog",
+			Focusable: true,
+			Title:     "Pick Dialog",
+		}),
+		PickResultsState: &PickResultsState{},
+		navHistory:       pickDialogNavHistory,
+	}
+}
 
 var _ types.Context = &PickResultsContext{}
 var _ IPreviewContext = &PickResultsContext{}
