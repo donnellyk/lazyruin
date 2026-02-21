@@ -17,10 +17,10 @@ func (n *NoteCommand) Delete(noteRef string) error {
 	return err
 }
 
-// ToggleTodo toggles a todo checkbox and sinks completed items via `note set --toggle-todo -sink`.
+// ToggleTodo toggles a todo checkbox and sinks completed items via `note set --toggle-todo --sink`.
 func (n *NoteCommand) ToggleTodo(noteRef string, line int) error {
 	_, err := n.ruin.Execute("note", "set", noteRef,
-		"--toggle-todo", "--line", fmt.Sprintf("%d", line), "-sink", "-f")
+		"--toggle-todo", "--line", fmt.Sprintf("%d", line), "--sink", "-f")
 	return err
 }
 
