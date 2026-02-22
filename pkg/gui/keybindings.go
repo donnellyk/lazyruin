@@ -51,6 +51,10 @@ func (gui *Gui) setupKeybindings() error {
 
 // registerContextBindings registers keybindings from all migrated contexts.
 // This bridges the new controller/context system into gocui's keybinding API.
+//
+// Preview contexts (cardList, pickResults, compose) share the "preview" view and
+// are skipped here; their bindings are dynamically registered via
+// reregisterPreviewBindings whenever the active preview context changes.
 func (gui *Gui) registerContextBindings() error {
 	opts := types.KeybindingsOpts{}
 
@@ -58,6 +62,11 @@ func (gui *Gui) registerContextBindings() error {
 		viewNames := ctx.GetViewNames()
 		kind := ctx.GetKind()
 		ctxKey := ctx.GetKey()
+
+		// Preview contexts are registered dynamically — skip them here.
+		if context.IsPreviewContextKey(ctxKey) {
+			continue
+		}
 
 		for _, b := range ctx.GetKeybindings(opts) {
 			binding := b
@@ -69,16 +78,6 @@ func (gui *Gui) registerContextBindings() error {
 				// Suppress main/side panel bindings during popups, but allow
 				// popup contexts to handle their own keybindings.
 				if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
-					return nil
-				}
-				// Active-context guard: cardList, pickResults, compose all
-				// share the "preview" view and register overlapping nav
-				// bindings. gocui fires the first matching handler per
-				// (view,key), so we use a relaxed guard: fire if ANY
-				// preview context is active. Shared nav helpers dispatch
-				// via activeCtx(). CardList-specific bindings guard
-				// themselves internally via requireCardList.
-				if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 					return nil
 				}
 				if binding.GetDisabledReason != nil {
@@ -116,9 +115,6 @@ func (gui *Gui) registerContextBindings() error {
 					if gui.overlayActive() && kind != types.PERSISTENT_POPUP && kind != types.TEMPORARY_POPUP {
 						return nil
 					}
-					if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
-						return nil
-					}
 					return mouseBind.Handler(gocui.ViewMouseBindingOpts{})
 				}
 				if err := gui.g.SetKeybinding(viewName, mouseBind.Key, gocui.ModNone, handler); err != nil {
@@ -127,7 +123,53 @@ func (gui *Gui) registerContextBindings() error {
 			}
 		}
 	}
+
+	// Set up bindings for the initial active preview context.
+	gui.reregisterPreviewBindings()
 	return nil
+}
+
+// reregisterPreviewBindings clears all keybindings on "preview" and registers
+// only the active preview context's bindings. Called at startup and whenever
+// the active preview context changes.
+func (gui *Gui) reregisterPreviewBindings() {
+	gui.g.DeleteViewKeybindings("preview")
+
+	ctx := gui.contextMgr.ContextByKey(gui.contexts.ActivePreviewKey)
+	if ctx == nil {
+		return
+	}
+
+	opts := types.KeybindingsOpts{}
+	for _, b := range ctx.GetKeybindings(opts) {
+		binding := b
+		if binding.Key == nil {
+			continue
+		}
+		handler := func(g *gocui.Gui, v *gocui.View) error {
+			if gui.overlayActive() {
+				return nil
+			}
+			if binding.GetDisabledReason != nil {
+				if reason := binding.GetDisabledReason(); reason != nil {
+					return nil
+				}
+			}
+			return binding.Handler()
+		}
+		gui.g.SetKeybinding("preview", binding.Key, binding.Mod, handler)
+	}
+
+	for _, mb := range ctx.GetMouseKeybindings(opts) {
+		mouseBind := mb
+		handler := func(g *gocui.Gui, v *gocui.View) error {
+			if gui.overlayActive() {
+				return nil
+			}
+			return mouseBind.Handler(gocui.ViewMouseBindingOpts{})
+		}
+		gui.g.SetKeybinding("preview", mouseBind.Key, gocui.ModNone, handler)
+	}
 }
 
 // DumpBindings returns a stable sorted list of all registered controller bindings

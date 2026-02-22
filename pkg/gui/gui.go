@@ -153,6 +153,12 @@ func (gui *Gui) activateContext(ctx types.ContextKey) {
 	viewName := gui.contextToView(ctx)
 	gui.g.SetCurrentView(viewName)
 
+	// When switching to a preview context, re-register only that context's
+	// keybindings on the shared "preview" view.
+	if context.IsPreviewContextKey(ctx) {
+		gui.reregisterPreviewBindings()
+	}
+
 	// Re-render lists to update highlight visibility
 	gui.RenderNotes()
 	gui.RenderQueries()
