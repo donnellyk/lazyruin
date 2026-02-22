@@ -42,6 +42,14 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Description: "Open Link",
 			Category:    "Preview",
 		},
+		// Info
+		{
+			ID:          "preview.show_info",
+			Key:         's',
+			Handler:     t.c.Helpers().PreviewInfo().ShowInfoDialog,
+			Description: "Show Info",
+			Category:    "Note Actions",
+		},
 		// Display toggles
 		{
 			ID:          "preview.toggle_frontmatter",

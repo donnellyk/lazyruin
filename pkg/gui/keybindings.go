@@ -73,10 +73,11 @@ func (gui *Gui) registerContextBindings() error {
 				}
 				// Active-context guard: cardList, pickResults, compose all
 				// share the "preview" view and register overlapping nav
-				// bindings. gocui keeps only the last handler per (view,key),
-				// so we use a relaxed guard: fire if ANY preview context is
-				// active. Shared nav helpers dispatch via activeCtx().
-				// CardList-specific bindings guard themselves internally.
+				// bindings. gocui fires the first matching handler per
+				// (view,key), so we use a relaxed guard: fire if ANY
+				// preview context is active. Shared nav helpers dispatch
+				// via activeCtx(). CardList-specific bindings guard
+				// themselves internally via requireCardList.
 				if context.IsPreviewContextKey(ctxKey) && !context.IsPreviewContextKey(gui.contextMgr.Current()) {
 					return nil
 				}

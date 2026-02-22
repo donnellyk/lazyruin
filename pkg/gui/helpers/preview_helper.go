@@ -45,19 +45,22 @@ func (self *PreviewHelper) view() *gocui.View {
 }
 
 // CurrentPreviewCard returns the currently selected card, or nil if none.
-// Returns nil when in pickResults or compose mode since card mutations
-// don't apply to those modes.
+// Returns nil in pickResults mode since those are transient results.
 func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
 	contexts := self.c.GuiCommon().Contexts()
-	if contexts.ActivePreviewKey == "pickResults" || contexts.ActivePreviewKey == "compose" {
+	switch contexts.ActivePreviewKey {
+	case "compose":
+		return &contexts.Compose.Note
+	case "pickResults":
 		return nil
+	default:
+		cl := contexts.CardList
+		idx := cl.SelectedCardIdx
+		if idx >= len(cl.Cards) {
+			return nil
+		}
+		return &cl.Cards[idx]
 	}
-	cl := contexts.CardList
-	idx := cl.SelectedCardIdx
-	if idx >= len(cl.Cards) {
-		return nil
-	}
-	return &cl.Cards[idx]
 }
 
 // UpdatePreviewForNotes updates the preview pane to show the selected note.

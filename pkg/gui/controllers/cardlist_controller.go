@@ -31,9 +31,6 @@ func (self *CardListController) Context() types.Context { return self.getContext
 func (self *CardListController) mutations() *helpers.PreviewMutationsHelper {
 	return self.c.Helpers().PreviewMutations()
 }
-func (self *CardListController) info() *helpers.PreviewInfoHelper {
-	return self.c.Helpers().PreviewInfo()
-}
 
 // requireCardList wraps a handler so it only fires when the current context
 // is cardList. This prevents CardList-specific bindings (mutations, line-ops)
@@ -101,10 +98,6 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		&types.Binding{
 			ID: "cardList.toggle_bookmark", Key: 'b',
 			Handler: self.requireCardList(self.toggleBookmark), Description: "Toggle Bookmark", Category: "Note Actions",
-		},
-		&types.Binding{
-			ID: "cardList.show_info", Key: 's',
-			Handler: self.requireCardList(self.info().ShowInfoDialog), Description: "Show Info", Category: "Note Actions",
 		},
 		&types.Binding{
 			ID:      "cardList.order_cards",
