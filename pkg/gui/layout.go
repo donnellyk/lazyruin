@@ -74,6 +74,14 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
+	// Push capture context before overlay creation so the view exists on the
+	// first layout call (SetStack after the switch was too late — the capture
+	// popup wouldn't be created until a second event-triggered layout).
+	if !gui.state.Initialized && gui.QuickCapture {
+		gui.contexts.Capture.Completion = types.NewCompletionState()
+		gui.contextMgr.Push(gui.contexts.Capture.GetKey())
+	}
+
 	// Manage overlay views based on the current context
 	switch gui.contextMgr.Current() {
 	case "search":
@@ -166,13 +174,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.Initialized = true
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		g.SetCurrentView(NotesView)
+		if !gui.QuickCapture {
+			g.SetCurrentView(NotesView)
+		}
 		gui.RefreshAll()
 		gui.helpers.Preview().UpdatePreviewForNotes()
-		if gui.QuickCapture {
-			gui.contexts.Capture.Completion = types.NewCompletionState()
-			gui.contextMgr.SetStack([]types.ContextKey{"notes", "capture"})
-		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
