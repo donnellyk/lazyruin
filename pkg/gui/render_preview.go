@@ -70,6 +70,31 @@ func visibleWidth(s string) int {
 	return len([]rune(stripAnsi(s)))
 }
 
+// splitLeadingChar splits a string into its first visible character (plus any
+// leading ANSI escapes) and the remainder.  If the string is empty or has no
+// visible characters, it returns ("", line).
+func splitLeadingChar(line string) (string, string) {
+	runes := []rune(line)
+	i := 0
+	for i < len(runes) {
+		if runes[i] == '\x1b' {
+			// skip ANSI escape sequence
+			i++
+			for i < len(runes) {
+				r := runes[i]
+				i++
+				if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+					break
+				}
+			}
+			continue
+		}
+		// First visible character — split after it
+		return string(runes[:i+1]), string(runes[i+1:])
+	}
+	return "", line
+}
+
 // isHeaderLine checks whether a rendered line is a markdown header.
 func isHeaderLine(line string) bool {
 	trimmed := strings.TrimLeft(stripAnsi(line), " ")
@@ -96,16 +121,23 @@ func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highl
 		}
 	}
 
-	// Full-line highlight
+	// Full-line highlight — inset the background by 1 on each side so it
+	// does not overlap the view frame border.  Peel the first visible
+	// character off the line so it renders before the background starts,
+	// keeping the text at its original position.
 	width, _ := v.InnerSize()
-	pad := width - visibleWidth(line)
+	leading, hlLine := splitLeadingChar(line)
+	pad := width - visibleWidth(line) - 1 // -1 for trailing inset
 	if pad < 0 {
 		pad = 0
 	}
 	// Re-apply background after every ANSI reset so chroma formatting
 	// doesn't clear our highlight mid-line.
-	patched := strings.ReplaceAll(line, AnsiReset, AnsiReset+AnsiDimBg)
-	fmt.Fprintf(v, "%s%s%s%s\n", AnsiDimBg, patched, strings.Repeat(" ", pad), AnsiReset)
+	patched := strings.ReplaceAll(hlLine, AnsiReset, AnsiReset+AnsiDimBg)
+	// Use AnsiBgReset (not AnsiReset) so we only clear the background we
+	// added.  A full reset would wipe foreground colors that chroma leaves
+	// active across line boundaries, causing subsequent lines to lose color.
+	fmt.Fprintf(v, "%s%s%s%s%s\n", leading, AnsiDimBg, patched, strings.Repeat(" ", pad), AnsiBgReset)
 }
 
 // highlightSpan applies AnsiDimBg to a span of visible characters in an ANSI-decorated
