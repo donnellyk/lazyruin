@@ -20,19 +20,15 @@ func (t *PreviewNavTrait) preview() *helpers.PreviewHelper    { return t.c.Helpe
 // NavBindings returns the shared navigation keybindings.
 func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 	return []*types.Binding{
-		// Line navigation (no Description -> excluded from palette)
-		{Key: 'j', Handler: t.nav().MoveDown},
+		{Key: 'j', Handler: t.nav().MoveDown, KeyDisplay: "j/k", Description: "Scroll line-by-line", Category: "Navigation"},
 		{Key: gocui.KeyArrowDown, Handler: t.nav().MoveDown},
 		{Key: 'k', Handler: t.nav().MoveUp},
 		{Key: gocui.KeyArrowUp, Handler: t.nav().MoveUp},
-		// Card navigation
-		{Key: 'J', Handler: t.nav().CardDown},
+		{Key: 'J', Handler: t.nav().CardDown, KeyDisplay: "J/K", Description: "Jump between cards", Category: "Navigation"},
 		{Key: 'K', Handler: t.nav().CardUp},
-		// Header navigation
-		{Key: '}', Handler: t.nav().NextHeader},
+		{Key: '}', Handler: t.nav().NextHeader, KeyDisplay: "]/[", Description: "Next/prev header", Category: "Navigation"},
 		{Key: '{', Handler: t.nav().PrevHeader},
-		// Link navigation
-		{Key: 'l', Handler: t.links().HighlightNextLink},
+		{Key: 'l', Handler: t.links().HighlightNextLink, KeyDisplay: "l/L", Description: "Next/prev link", Category: "Navigation"},
 		{Key: 'L', Handler: t.links().HighlightPrevLink},
 		// Link actions
 		{
@@ -59,11 +55,13 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Category:    "Preview",
 		},
 		{
-			ID:          "preview.view_options",
-			Key:         'v',
-			Handler:     t.preview().ViewOptionsDialog,
-			Description: "View Options",
-			Category:    "Preview",
+			ID:              "preview.view_options",
+			Key:             'v',
+			Handler:         t.preview().ViewOptionsDialog,
+			Description:     "View Options",
+			Category:        "Preview",
+			DisplayOnScreen: true,
+			StatusBarLabel:  "View",
 		},
 		// Enter (dispatches per active preview mode)
 		{
@@ -73,12 +71,17 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Description:     "Enter",
 			Category:        "Preview",
 			DisplayOnScreen: true,
+			StatusBarLabel:  "Focus",
 		},
 		// Back / forward / history
 		{
-			ID:      "preview.back",
-			Key:     gocui.KeyEsc,
-			Handler: t.nav().Back,
+			ID:              "preview.back",
+			Key:             gocui.KeyEsc,
+			Handler:         t.nav().Back,
+			Description:     "Back",
+			Category:        "Preview",
+			DisplayOnScreen: true,
+			StatusBarLabel:  "Back",
 		},
 		{
 			ID:          "preview.nav_back",
@@ -139,6 +142,7 @@ func (t *PreviewNavTrait) LineOpsBindings(prefix string) []*types.Binding {
 		{
 			ID: prefix + ".toggle_todo", Key: 'x',
 			Handler: lo.ToggleTodo, Description: "Toggle Todo", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Todo",
 		},
 		{
 			ID: prefix + ".append_done", Key: 'D',

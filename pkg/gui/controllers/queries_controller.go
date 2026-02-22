@@ -47,6 +47,7 @@ func (self *QueriesController) GetKeybindings(opts types.KeybindingsOpts) []*typ
 			Description:       "Run Query / View Parent",
 			Category:          "Queries",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "Run",
 		},
 		{
 			ID:                "queries.delete",

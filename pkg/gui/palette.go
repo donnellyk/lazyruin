@@ -24,10 +24,14 @@ func (gui *Gui) paletteCommands() []types.PaletteCommand {
 	opts := types.KeybindingsOpts{}
 	for _, ctx := range gui.contexts.All() {
 		ctxKey := ctx.GetKey()
-		isGlobal := ctx.GetKind() == types.GLOBAL_CONTEXT
+		kind := ctx.GetKind()
+		isGlobal := kind == types.GLOBAL_CONTEXT
+		if kind == types.PERSISTENT_POPUP || kind == types.TEMPORARY_POPUP {
+			continue
+		}
 		for _, b := range ctx.GetKeybindings(opts) {
-			if b.Description == "" {
-				continue // nav-only, skip
+			if b.Description == "" || b.Category == "Navigation" {
+				continue
 			}
 			keyHint := ""
 			if b.Key != nil {

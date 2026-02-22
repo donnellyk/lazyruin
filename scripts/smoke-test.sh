@@ -134,35 +134,35 @@ assert_contains "notes panel"     "[1]"
 assert_contains "queries panel"   "[2]"
 assert_contains "tags panel"      "[3]"
 assert_contains "preview panel"   "Preview"
-# Notes has initial focus (Tab: 1 hint)
-assert_status "notes focused" "Tab: 1"
+# Notes has initial focus
+assert_status "notes focused" "View: enter"
 
 # =============================================
 # 2. Panel focus cycling (Tab)
 # =============================================
 echo "[2] Panel cycling"
 send Tab
-assert_status "queries focused" "Tab: 2"
+assert_status "queries focused" "Run: enter"
 send Tab
-assert_status "tags focused" "Tab: 3"
+assert_status "tags focused" "Filter: enter"
 send Tab
-assert_status "back to notes" "Tab: 1"
+assert_status "back to notes" "View: enter"
 
 # =============================================
 # 3. Quick-focus keys (1/2/3/p)
 # =============================================
 echo "[3] Quick focus"
 send 2
-assert_status "2 -> queries" "Tab: 2"
+assert_status "2 -> queries" "Run: enter"
 send 3
-assert_status "3 -> tags" "Tab: 3"
+assert_status "3 -> tags" "Filter: enter"
 send p
 assert_contains "p -> pick" "Pick"
 send Escape
 settle
 send Escape
 send 1
-assert_status "1 -> notes" "Tab: 1"
+assert_status "1 -> notes" "View: enter"
 
 # =============================================
 # 4. Notes tab headers
@@ -187,7 +187,7 @@ echo "[6] Notes -> Preview -> Back"
 send Enter
 assert_status "in preview" "Back: esc"
 send Escape
-assert_status "back to notes" "Tab: 1"
+assert_status "back to notes" "View: enter"
 
 # =============================================
 # 7. Search flow

@@ -57,6 +57,7 @@ func (self *TagsController) GetKeybindings(opts types.KeybindingsOpts) []*types.
 			Description:       "Filter by Tag",
 			Category:          "Tags",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "Filter",
 		},
 		{
 			ID:                "tags.rename",
@@ -66,6 +67,7 @@ func (self *TagsController) GetKeybindings(opts types.KeybindingsOpts) []*types.
 			Description:       "Rename Tag",
 			Category:          "Tags",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "Rename",
 		},
 		{
 			ID:                "tags.delete",
@@ -75,6 +77,7 @@ func (self *TagsController) GetKeybindings(opts types.KeybindingsOpts) []*types.
 			Description:       "Delete Tag",
 			Category:          "Tags",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "Delete",
 		},
 	}
 	// Navigation bindings (no Description → excluded from palette)

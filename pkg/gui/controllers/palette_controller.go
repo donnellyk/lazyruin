@@ -43,8 +43,8 @@ func (self *PaletteController) Context() types.Context {
 // GetKeybindings returns keybindings for the palette popup.
 func (self *PaletteController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	return []*types.Binding{
-		{ViewName: "palette", Key: gocui.KeyEnter, Handler: self.onEnter},
-		{ViewName: "palette", Key: gocui.KeyEsc, Handler: self.onEsc},
+		{ViewName: "palette", Key: gocui.KeyEnter, Handler: self.onEnter, Description: "Execute"},
+		{ViewName: "palette", Key: gocui.KeyEsc, Handler: self.onEsc, Description: "Cancel"},
 	}
 }
 

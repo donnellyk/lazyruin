@@ -33,19 +33,11 @@ func (gui *Gui) UpdateStatusBar() {
 
 	gui.views.Status.Clear()
 
-	def := gui.contextHintDefs()
-	hints := def.statusBar
-	if hints == nil {
-		hints = def.hints
-	}
-
-	cyan := AnsiCyan
-	reset := AnsiReset
-	for i, h := range hints {
+	for i, h := range gui.statusBarHints() {
 		if i > 0 {
 			fmt.Fprint(gui.views.Status, " | ")
 		}
-		fmt.Fprintf(gui.views.Status, "%s: %s%s%s", h.action, cyan, h.key, reset)
+		fmt.Fprintf(gui.views.Status, "%s: %s%s%s", h.action, AnsiCyan, h.key, AnsiReset)
 	}
 }
 

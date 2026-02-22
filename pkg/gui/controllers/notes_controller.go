@@ -63,6 +63,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			Description:       "View in Preview",
 			Category:          "Notes",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "View",
 		},
 		{
 			ID:                "notes.edit",
@@ -72,6 +73,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			Description:       "Open in Editor",
 			Category:          "Notes",
 			DisplayOnScreen:   true,
+			StatusBarLabel:    "Editor",
 		},
 		{
 			ID:                "notes.delete",
@@ -80,6 +82,8 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Delete Note",
 			Category:          "Notes",
+			DisplayOnScreen:   true,
+			StatusBarLabel:    "Delete",
 		},
 		{
 			ID:                "notes.copy",
@@ -89,7 +93,6 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			Description:       "Copy Note Path",
 			Category:          "Notes",
 		},
-		// Note actions (also bound on PreviewView)
 		{
 			ID:                "notes.addTag",
 			Key:               't',
@@ -97,6 +100,8 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Add Tag",
 			Category:          "Note Actions",
+			DisplayOnScreen:   true,
+			StatusBarLabel:    "Tag",
 		},
 		{
 			ID:                "notes.removeTag",
@@ -129,6 +134,8 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Toggle Bookmark",
 			Category:          "Note Actions",
+			DisplayOnScreen:   true,
+			StatusBarLabel:    "Bookmark",
 		},
 		{
 			ID:                "notes.info",

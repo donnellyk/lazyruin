@@ -52,14 +52,17 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		&types.Binding{
 			ID: "cardList.delete", Key: 'd',
 			Handler: self.mutations().DeleteCard, Description: "Delete Card", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Del",
 		},
 		&types.Binding{
 			ID: "cardList.open_editor", Key: 'E',
-			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview", DisplayOnScreen: true,
+			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Editor",
 		},
 		&types.Binding{
 			ID: "cardList.move_card", Key: 'm',
 			Handler: self.mutations().MoveCardDialog, Description: "Move Card", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Move",
 		},
 		&types.Binding{
 			ID: "cardList.merge_card", Key: 'M',
@@ -67,7 +70,8 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		},
 		&types.Binding{
 			ID: "cardList.add_tag", Key: 't',
-			Handler: self.addTag, Description: "Add Tag", Category: "Note Actions", DisplayOnScreen: true,
+			Handler: self.addTag, Description: "Add Tag", Category: "Note Actions",
+			DisplayOnScreen: true, StatusBarLabel: "Tag",
 		},
 		&types.Binding{
 			ID: "cardList.remove_tag", Key: 'T',

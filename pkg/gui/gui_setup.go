@@ -140,7 +140,7 @@ func (gui *Gui) setupSearchContext() {
 	ctrl := controllers.NewPopupController(
 		func() *context.SearchContext { return gui.contexts.Search },
 		[]*types.Binding{
-			{Key: gocui.KeyEnter, Handler: func() error {
+			{Key: gocui.KeyEnter, Description: "Search", Handler: func() error {
 				return gui.completionEnter(searchState, gui.searchTriggers, func(g *gocui.Gui, v *gocui.View) error {
 					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 					if !searchHelper().ExecuteSearch(raw) {
@@ -149,13 +149,13 @@ func (gui *Gui) setupSearchContext() {
 					return nil
 				})(gui.g, gui.views.Search)
 			}},
-			{Key: gocui.KeyEsc, Handler: func() error {
+			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error {
 				return gui.completionEsc(searchState, func(g *gocui.Gui, v *gocui.View) error {
 					searchHelper().CancelSearch()
 					return nil
 				})(gui.g, gui.views.Search)
 			}},
-			{Key: gocui.KeyTab, Handler: func() error {
+			{Key: gocui.KeyTab, Description: "Complete", Handler: func() error {
 				return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
 			}},
 		},
@@ -172,11 +172,11 @@ func (gui *Gui) setupCaptureContext() {
 	ctrl := controllers.NewPopupController(
 		func() *context.CaptureContext { return gui.contexts.Capture },
 		[]*types.Binding{
-			{Key: gocui.KeyCtrlS, Handler: func() error {
+			{Key: gocui.KeyCtrlS, Description: "Save", Handler: func() error {
 				content := strings.TrimSpace(gui.views.Capture.TextArea.GetUnwrappedContent())
 				return gui.helpers.Capture().SubmitCapture(content, gui.QuickCapture)
 			}},
-			{Key: gocui.KeyEsc, Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},
+			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},
 			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
 		},
 	)
@@ -193,23 +193,23 @@ func (gui *Gui) setupPickContext() {
 	ctrl := controllers.NewPopupController(
 		func() *context.PickContext { return gui.contexts.Pick },
 		[]*types.Binding{
-			{Key: gocui.KeyEnter, Handler: func() error {
+			{Key: gocui.KeyEnter, Description: "Pick", Handler: func() error {
 				executePick := func(g *gocui.Gui, v *gocui.View) error {
 					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 					return gui.helpers.Pick().ExecutePick(raw)
 				}
 				return gui.completionEnter(pickState, gui.pickTriggers, executePick)(gui.g, gui.views.Pick)
 			}},
-			{Key: gocui.KeyEsc, Handler: func() error {
+			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error {
 				cancelPick := func(g *gocui.Gui, v *gocui.View) error {
 					return gui.helpers.Pick().CancelPick()
 				}
 				return gui.completionEsc(pickState, cancelPick)(gui.g, gui.views.Pick)
 			}},
-			{Key: gocui.KeyTab, Handler: func() error {
+			{Key: gocui.KeyTab, Description: "Complete", Handler: func() error {
 				return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
 			}},
-			{Key: gocui.KeyCtrlA, Handler: func() error {
+			{Key: gocui.KeyCtrlA, Description: "Toggle --any", Handler: func() error {
 				gui.helpers.Pick().TogglePickAny()
 				if gui.views.Pick != nil {
 					gui.views.Pick.Footer = gui.pickFooter()

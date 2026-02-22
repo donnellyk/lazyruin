@@ -182,12 +182,12 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{Key: gocui.KeyCtrlC, Handler: self.onQuit},
 
 		// Core actions
-		{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global"},
+		{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Search"},
 		{ID: "global.pick", Key: 'p', Handler: self.openPick, Description: "Pick", Category: "Global"},
 		{Key: '\\', Handler: self.openPick},
 		{ID: "global.new_note", Key: 'n', Handler: self.newNote, Description: "New Note", Category: "Global"},
 		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
-		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global"},
+		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Keys"},
 		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
 		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
 		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},

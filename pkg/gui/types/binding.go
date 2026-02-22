@@ -13,7 +13,9 @@ type Binding struct {
 	Tooltip           string
 	Category          string // palette grouping
 	GetDisabledReason func() *DisabledReason
-	DisplayOnScreen   bool // show in status bar hints
+	DisplayOnScreen   bool   // show in status bar hints
+	KeyDisplay        string // override key display (e.g. "j/k"); empty = derive from Key
+	StatusBarLabel    string // short status bar label (e.g. "Tag"); empty = use Description
 }
 
 // DisabledReason explains why a binding is currently disabled.

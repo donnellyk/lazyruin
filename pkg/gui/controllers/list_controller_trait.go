@@ -113,12 +113,11 @@ func (self *ListControllerTrait[T]) goBottom() error {
 }
 
 // NavBindings returns the standard j/k/g/G/arrow navigation bindings.
-// These have no Description so they're excluded from the palette.
 func (self *ListControllerTrait[T]) NavBindings() []*types.Binding {
 	return []*types.Binding{
-		{Key: 'j', Handler: self.nextItem},
+		{Key: 'j', Handler: self.nextItem, KeyDisplay: "j/k", Description: "Move down/up", Category: "Navigation"},
 		{Key: 'k', Handler: self.prevItem},
-		{Key: 'g', Handler: self.goTop},
+		{Key: 'g', Handler: self.goTop, KeyDisplay: "g/G", Description: "Go to top/bottom", Category: "Navigation"},
 		{Key: 'G', Handler: self.goBottom},
 		{Key: gocui.KeyArrowDown, Handler: self.nextItem},
 		{Key: gocui.KeyArrowUp, Handler: self.prevItem},
