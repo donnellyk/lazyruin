@@ -80,7 +80,7 @@ Standard navigation within Notes, Queries, and Tags panels.
 | `r` | Rename tag |
 | `d` | Delete tag |
 
-## Preview
+## Preview (Card List)
 
 The preview panel displays either a single note or a card list (from search/tag/query).
 
@@ -125,6 +125,42 @@ The preview panel displays either a single note or a card list (from search/tag/
 | Toggle Global Tags | Show/hide global tags in cards |
 | Toggle Markdown | Raw/rendered markdown |
 | Order Cards | Persist current card order to `order` frontmatter |
+
+## Date Preview
+
+Shown on startup (today's date), or when selecting a date from Calendar/Contributions. Displays three sections: Inline Tags, Todos, and Notes.
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Scroll line-by-line |
+| `J` / `K` | Jump between cards |
+| `)` / `(` | Jump to next/prev section |
+| `}` / `{` | Next/prev header |
+| `]` / `[` | Go forward/back in nav history |
+| `l` / `L` | Highlight next/prev link |
+
+### Actions
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Open selected card (pick results open at line, notes focus in Notes panel) |
+| `Esc` | Back to previous panel |
+| `E` | Open in editor |
+| `d` | Delete card |
+| `D` | Append #done to current line |
+| `t` | Add global tag |
+| `T` | Remove tag |
+| `<c-t>` | Toggle inline tag on current line |
+| `>` | Set parent |
+| `P` | Remove parent |
+| `b` | Toggle bookmark |
+| `s` | Show info |
+| `o` | Open highlighted link |
+| `x` | Toggle todo checkbox |
+| `f` | Toggle frontmatter |
+| `v` | View options |
 
 ## Search
 

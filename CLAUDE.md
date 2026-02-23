@@ -13,9 +13,8 @@ LazyRuin is a TUI (Terminal User Interface) for the `ruin` notes CLI, heavily in
 ## Key Documentation
 
 - `docs/ARCHITECTURE.md` - Layer architecture, package structure, data flow
-- `docs/UI_MOCKUPS.md` - Visual mockups and responsive layouts
+- `docs/ABSTRACTIONS.md` - Reusable abstraction patterns
 - `docs/KEYBINDINGS.md` - Complete keybinding reference
-- `docs/PROJECT_PLAN.md` - Phased implementation plan
 
 ## Module
 
@@ -102,10 +101,13 @@ tmux kill-session -t test             # cleanup
 
 ## Smoke Test
 
-`scripts/smoke-test.sh` runs an automated TUI regression check via tmux (45 assertions across 18 categories). Keep this script up to date when adding/changing UI flows, keybindings, panel titles, status bar hints, or popup dialogs.
+`scripts/smoke-test.sh` runs an automated TUI regression check via tmux (60 assertions across 24 sections). Keep this script up to date when adding/changing UI flows, keybindings, panel titles, status bar hints, or popup dialogs.
+
+`scripts/keybinding-test.sh` runs a comprehensive keyboard shortcut smoke test (90 assertions across 69 sections covering all TUI contexts). Keep this script up to date when adding/changing keybindings.
 
 ```bash
 go build -o /tmp/lazyruin-test ./main.go && ./scripts/smoke-test.sh
+go build -o /tmp/lazyruin-test ./main.go && ./scripts/keybinding-test.sh
 ```
 
 ## Coding Guidelines

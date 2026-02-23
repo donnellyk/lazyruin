@@ -31,7 +31,7 @@ LazyRuin provides a terminal-based visual interface for managing markdown notes 
                                │
 ┌──────────────────────────────▼──────────────────────────────────┐
 │                        Models Layer                              │
-│  Data structures: Note, Tag, Query, ParentBookmark               │
+│  Data structures: Note, Tag, Query, ParentBookmark, PickResult    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -57,7 +57,8 @@ lazyruin/
 │   │   ├── note.go                  # Note with frontmatter fields
 │   │   ├── tag.go                   # Tag with count and scope
 │   │   ├── query.go                 # Saved query
-│   │   └── parent.go                # Parent bookmark
+│   │   ├── parent.go                # Parent bookmark
+│   │   └── pick.go                  # PickMatch + PickResult (tag intersection results)
 │   │
 │   ├── config/
 │   │   └── config.go                # Configuration loading (vault path, snippets)
@@ -79,12 +80,14 @@ lazyruin/
 │   │   │   ├── base_context.go      # BaseContext (aggregates controller bindings, focus hooks)
 │   │   │   ├── list_cursor.go       # ListCursor implementing IListCursor
 │   │   │   ├── list_context_trait.go # Shared list selection + render/preview callbacks
+│   │   │   ├── preview_common.go    # PreviewNavState, PreviewDisplayState, IPreviewContext, SharedNavHistory
 │   │   │   ├── global_context.go    # GlobalContext (GLOBAL_CONTEXT kind, view="")
 │   │   │   ├── notes_context.go     # Owns Items []Note, cursor, CurrentTab
 │   │   │   ├── tags_context.go      # Owns Items []Tag, cursor, CurrentTab
 │   │   │   ├── queries_context.go   # Owns Queries + Parents, cursor, CurrentTab
 │   │   │   ├── preview_context.go   # Embeds *PreviewState, owns NavHistory
 │   │   │   ├── preview_state.go     # PreviewState, PreviewLink, NavEntry, PreviewMode
+│   │   │   ├── datepreview_context.go # MAIN_CONTEXT — date preview with 3 sections (tags, todos, notes)
 │   │   │   ├── search_context.go    # PERSISTENT_POPUP — search completion state
 │   │   │   ├── capture_context.go   # PERSISTENT_POPUP — capture state + completion
 │   │   │   ├── pick_context.go      # TEMPORARY_POPUP — pick state + completion
@@ -93,7 +96,7 @@ lazyruin/
 │   │   │   ├── snippet_editor_context.go # TEMPORARY_POPUP — snippet editor state + completion
 │   │   │   ├── calendar_context.go  # TEMPORARY_POPUP — calendar state (year/month/day/notes)
 │   │   │   ├── contrib_context.go   # TEMPORARY_POPUP — contribution chart state
-│   │   │   └── context_tree.go      # ContextTree: typed accessors + All()
+│   │   │   └── context_tree.go      # ContextTree: typed accessors + All() + ActivePreviewKey
 │   │   │
 │   │   ├── controllers/             # Controller implementations (own keybindings)
 │   │   │   ├── base_controller.go   # Null object (all methods return nil)
@@ -112,7 +115,8 @@ lazyruin/
 │   │   │   ├── palette_controller.go # enter/esc; mouse click on list
 │   │   │   ├── snippet_editor_controller.go # esc/tab; enter dispatched per view
 │   │   │   ├── calendar_controller.go # grid h/j/k/l, input enter/esc, notes j/k
-│   │   │   └── contrib_controller.go # grid h/j/k/l/enter, notes j/k
+│   │   │   ├── contrib_controller.go # grid h/j/k/l/enter, notes j/k
+│   │   │   └── datepreview_controller.go # section nav )/( + PreviewNavTrait (card/line/header)
 │   │   │
 │   │   ├── helpers/                 # Domain operation helpers
 │   │   │   ├── helpers.go           # Helpers aggregator struct + accessors
@@ -132,6 +136,8 @@ lazyruin/
 │   │   │   ├── pick_helper.go       # OpenPick, ExecutePick, TogglePickAny
 │   │   │   ├── input_popup_helper.go # OpenInputPopup, HandleEnter, HandleEsc
 │   │   │   ├── snippet_helper.go    # ListSnippets, CreateSnippet, DeleteSnippet, SaveSnippet
+│   │   │   ├── datepreview_helper.go # LoadDatePreview, ReloadDatePreview, date/pick utilities
+│   │   │   ├── preview_nav_helper.go # Shared preview nav: card/line/header/section, Enter, links
 │   │   │   └── view_helper.go       # ListClickIndex, ScrollViewport (used by controllers)
 │   │   │
 │   │   ├── gui.go                   # Gui struct, Run, context stack, setup*Context()
@@ -158,13 +164,13 @@ lazyruin/
 │   └── testutil/                    # Shared test helpers (MockExecutor)
 │
 ├── scripts/
-│   └── smoke-test.sh                # Automated TUI regression via tmux
+│   ├── smoke-test.sh                # Automated TUI regression via tmux (60 assertions, 24 sections)
+│   └── keybinding-test.sh           # Keyboard shortcut smoke test (90 assertions, 69 sections)
 │
 └── docs/
     ├── ARCHITECTURE.md              # This file
     ├── ABSTRACTIONS.md              # Reusable abstraction patterns
-    ├── KEYBINDINGS.md               # Complete keybinding reference
-    └── UI_MOCKUPS.md                # Visual mockups and responsive layouts
+    └── KEYBINDINGS.md               # Complete keybinding reference
 ```
 
 ## Core Components
@@ -175,7 +181,7 @@ Each panel has a **Context** that owns its state and view identity. Contexts imp
 
 **Context kinds** (`types.ContextKind`):
 - `SIDE_CONTEXT` — Notes, Tags, Queries panels
-- `MAIN_CONTEXT` — Preview panel
+- `MAIN_CONTEXT` — Preview, DatePreview panels
 - `PERSISTENT_POPUP` — Search, Capture (can return to previous context)
 - `TEMPORARY_POPUP` — Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib (ephemeral overlays)
 - `GLOBAL_CONTEXT` — Bindings that fire in any view (view name `""`)
@@ -198,7 +204,18 @@ type CalendarContext struct {
     BaseContext
     State *CalendarState  // Year, Month, SelectedDay, Focus, Notes, NoteIndex
 }
+
+// DatePreviewContext implements IPreviewContext for date-based preview
+type DatePreviewContext struct {
+    BaseContext
+    TargetDate string
+    TagPicks   []PickResult     // Inline tag matches (done sorted last)
+    TodoPicks  []PickResult     // Checkbox matches
+    Notes      []Note           // Created + updated (deduplicated)
+}
 ```
+
+**Multiple preview contexts**: Preview and DatePreview both share the `preview` view and implement `IPreviewContext`. The active context is tracked by `ActivePreviewKey` in `ContextTree`. Both share `PreviewNavState` for scroll/cursor/links and `SharedNavHistory` for back/forward navigation.
 
 ### 2. Controller System
 
@@ -238,6 +255,8 @@ Helpers encapsulate domain operations. They access the GUI through an `IGuiCommo
 | `TagsHelper` | `RefreshTags`, tab switching |
 | `QueriesHelper` | `RefreshQueries`, `RefreshParents` |
 | `PreviewHelper` | Nav history, content reload, card navigation, card mutations (delete/move/merge/order), display toggles, line operations (todo/done/inline tag/date), link handling, info dialog, scroll |
+| `PreviewNavHelper` | Shared preview navigation: card/line/header/section jump, Enter handler, link highlight — works across Preview and DatePreview via `IPreviewContext` |
+| `DatePreviewHelper` | `LoadDatePreview`, `ReloadDatePreview`, date utilities (`CurrentWeekday`, `ISOWeekday`), `DeduplicateNotes`, `filterOutTodoLines`, `sortDonePicksLast` |
 | `EditorHelper` | Suspend and edit in `$EDITOR` |
 | `SearchHelper` | `ExecuteSearch`, `SaveQuery` |
 | `ConfirmationHelper` | Confirm/menu/prompt dialog wrappers |
@@ -281,6 +300,7 @@ All panel-specific and popup-specific state lives in the respective context stru
 - Tags items/cursor/tab → `TagsContext`
 - Queries/Parents items/cursor/tab → `QueriesContext`
 - Preview cards/mode/cursor/scroll/links/nav history → `PreviewContext`
+- Date preview target date/tag picks/todo picks/notes/section ranges → `DatePreviewContext`
 - Capture parent/completion → `CaptureContext`
 - Pick query/anyMode/completion → `PickContext`
 - Input popup config/completion → `InputPopupContext`
@@ -289,7 +309,25 @@ All panel-specific and popup-specific state lives in the respective context stru
 - Calendar year/month/day/notes → `CalendarContext`
 - Contribution chart dayCounts/selectedDate/notes → `ContribContext`
 
-### 7. Interface Boundaries
+### 7. Preview Interface
+
+`IPreviewContext` (`context/preview_common.go`) is the shared interface for all preview-mode contexts. It allows `PreviewNavHelper` and rendering code to work generically across `PreviewContext` (card list, pick results, compose) and `DatePreviewContext` (date-based view).
+
+```go
+type IPreviewContext interface {
+    types.Context
+    NavState() *PreviewNavState
+    DisplayState() *PreviewDisplayState
+    SelectedCardIndex() int
+    SetSelectedCardIndex(int)
+    CardCount() int
+    NavHistory() *SharedNavHistory
+}
+```
+
+`ActivePreviewKey` in `ContextTree` tracks which preview context currently owns the `preview` view. Rendering dispatches based on this key.
+
+### 8. Interface Boundaries
 
 `types.IGuiCommon` is the authoritative interface for GUI operations. Both controllers and helpers use it:
 
@@ -303,7 +341,7 @@ Controllers ──→ IHelpers ──→ Helpers ──→ helpers.IGuiCommon �
      └──→ types.IGuiCommon ──────────────────────────────────────┘
 ```
 
-### 8. Commands Layer
+### 9. Commands Layer
 
 Wraps ruin CLI with typed Go interfaces. All commands use `--json` output:
 
@@ -338,6 +376,22 @@ Parse JSON → []models.Note → PreviewContext.Cards
 RenderPreview() → replaceContext(PreviewContext)
 ```
 
+### Date Preview Flow
+
+```
+Calendar/Contrib Enter → LoadDatePreview(date)
+         │
+ruinCmd.Pick.Pick(@date, all=true) → tagPicks (filterOutTodoLines, sortDonePicksLast)
+ruinCmd.Pick.Pick(@date, todo=true) → todoPicks
+ruinCmd.Search.Search(created:date) + Search(updated:date) → DeduplicateNotes → notes
+         │
+DatePreviewContext ← { TargetDate, TagPicks, TodoPicks, Notes }
+         │
+renderDatePreview() → three sections with headers, card line ranges, section ranges
+         │
+pushContext("datePreview")
+```
+
 ### Selection Preservation on Refresh
 
 ```
@@ -361,6 +415,7 @@ if newIdx >= 0 → tagsCtx.SetSelectedLineIdx(newIdx)
 ## Testing
 
 - `go test ./...` — unit tests across all packages
-- `scripts/smoke-test.sh` — tmux-driven TUI assertions (build with `go build -o /tmp/lazyruin-test`)
+- `scripts/smoke-test.sh` — tmux-driven TUI regression (60 assertions, 24 sections)
+- `scripts/keybinding-test.sh` — keyboard shortcut smoke test (90 assertions, 69 sections covering all contexts)
 - `./lazyruin --debug-bindings` — dump all registered controller bindings for regression diffing
 - `testutil.MockExecutor` — fluent mock for CLI command testing without a real `ruin` binary

@@ -81,7 +81,7 @@ The command palette aggregates from two sources:
 
 **Files:** `gui.go`, `state.go` (`ContextKey`)
 
-`ContextKey` enum (Notes, Queries, Tags, Preview, Search, SearchFilter, Capture, Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions. `ContextStack` tracks the navigation path for back-navigation.
+`ContextKey` enum (Notes, Queries, Tags, Preview, DatePreview, Search, SearchFilter, Capture, Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions. `ContextStack` tracks the navigation path for back-navigation.
 
 ## 10. Hint Definitions
 
@@ -107,4 +107,40 @@ Controllers access helpers through the `IHelpers` interface, which provides type
 
 **Files:** `helpers/preview_helper.go`, `context/preview_state.go`
 
-The preview pane maintains a navigation history stack (`NavHistory []NavEntry`) in `PreviewContext`. Each entry captures the full preview state (cards, mode, cursor, scroll, title). `PushNavHistory()` snapshots before navigating, `NavBack()`/`NavForward()` restore entries. The history caps at 50 entries and supports `ShowNavHistory()` to jump to any entry via a menu dialog.
+The preview pane maintains a navigation history stack (`NavHistory []NavEntry`) in a `SharedNavHistory` struct shared across all preview contexts. Each entry captures the full preview state (cards, mode, cursor, scroll, title, and for date preview: target date, tag picks, todo picks, notes). `PushNavHistory()` snapshots before navigating, `NavBack()`/`NavForward()` restore entries. The history caps at 50 entries and supports `ShowNavHistory()` to jump to any entry via a menu dialog.
+
+## 14. IPreviewContext Interface
+
+**Files:** `context/preview_common.go`
+
+`IPreviewContext` is the shared interface for all preview-mode contexts, enabling `PreviewNavHelper` and rendering code to work generically across `PreviewContext` (card list, pick results, compose) and `DatePreviewContext` (date-based view).
+
+```go
+type IPreviewContext interface {
+    types.Context
+    NavState() *PreviewNavState
+    DisplayState() *PreviewDisplayState
+    SelectedCardIndex() int
+    SetSelectedCardIndex(int)
+    CardCount() int
+    NavHistory() *SharedNavHistory
+}
+```
+
+Both preview contexts share `PreviewNavState` (scroll, cursor, card line ranges, header lines, links) and `PreviewDisplayState` (frontmatter, title, global tags, markdown toggles). `ActivePreviewKey` in `ContextTree` tracks which context currently owns the `preview` view.
+
+## 15. Preview Navigation Trait
+
+**Files:** `controllers/datepreview_controller.go`, `helpers/preview_nav_helper.go`
+
+`PreviewNavTrait` provides shared preview keybindings (card jump J/K, line scroll j/k, header jump {/}, nav history [/], link highlight l/L, line operations) that work across preview contexts via `IPreviewContext`. Concrete controllers embed the trait and add context-specific bindings — e.g., `DatePreviewController` adds section jump `)` / `(`.
+
+`PreviewNavHelper` provides the underlying navigation logic: `MoveDown`/`MoveUp`, `NextCard`/`PrevCard`, `NextHeader`/`PrevHeader`, `NextSection`/`PrevSection`, `PreviewEnter`, and all line operation handlers (todo toggle, done, inline tag, date, delete card, etc.).
+
+## 16. Section-Based Card Layout (Date Preview)
+
+**Files:** `context/datepreview_context.go`, `render_preview.go`
+
+`DatePreviewContext` organizes cards into three sections: Inline Tags (pick results without todos, done items last), Todos (checkbox pick results), and Notes (created + updated, deduplicated). The context tracks `SectionRanges` (card index ranges per section) and `SectionLineRanges` (line number ranges per section), populated during rendering.
+
+Helper methods `SectionForCard(idx)`, `SectionForLine(line)`, and `LocalCardIdx(globalIdx)` enable section-aware navigation. `filterOutTodoLines()` removes checkbox lines from tag picks, and `sortDonePicksLast()` splits mixed active/done pick results into separate groups with done groups appended after all active groups.
