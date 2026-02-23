@@ -1,13 +1,9 @@
 package types
 
 import (
-	"fmt"
-	"strings"
-
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
-	"github.com/muesli/reflow/wordwrap"
 )
 
 // SourceLine is the atomic unit of rendered preview content. It pairs the
@@ -28,17 +24,6 @@ func PreviewContentWidth(v *gocui.View) int {
 		width = 40
 	}
 	return max(width-2, 10)
-}
-
-// PickMatchVisualLines returns the number of visual lines a pick match
-// occupies when rendered at the given content width. Used by both the
-// renderer and the resolver to ensure identical line counts.
-func PickMatchVisualLines(match models.PickMatch, contentWidth int) int {
-	lineNum := fmt.Sprintf("%02d", match.Line)
-	prefix := fmt.Sprintf("  L%s: ", lineNum)
-	prefixLen := len(prefix)
-	wrapped := wordwrap.String(match.Content, contentWidth-prefixLen)
-	return len(strings.Split(strings.TrimRight(wrapped, "\n"), "\n"))
 }
 
 // IGuiCommon is the authoritative interface for GUI operations.

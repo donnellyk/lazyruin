@@ -10,7 +10,6 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/jesseduffield/gocui"
-	"github.com/muesli/reflow/wordwrap"
 )
 
 // highlightMarkdown applies chroma syntax highlighting to markdown content
@@ -52,12 +51,6 @@ func (gui *Gui) highlightMarkdown(content string) string {
 	}
 
 	return strings.TrimRight(buf.String(), "\n")
-}
-
-func (gui *Gui) renderMarkdown(content string, width int) string {
-	highlighted := gui.highlightMarkdown(content)
-	wrapped := wordwrap.String(highlighted, width)
-	return strings.TrimRight(wrapped, "\n")
 }
 
 // highlightWikilinks post-processes chroma tokens to style [[wikilinks]] as links.
