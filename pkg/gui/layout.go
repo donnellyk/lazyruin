@@ -174,11 +174,10 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.Initialized = true
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		if !gui.QuickCapture {
-			g.SetCurrentView(NotesView)
-		}
 		gui.RefreshAll()
-		gui.helpers.Preview().UpdatePreviewForNotes()
+		if !gui.QuickCapture {
+			gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
+		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
@@ -347,6 +346,14 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		}
 	case "compose":
 		v.Footer = ""
+	case "datePreview":
+		dp := gui.contexts.DatePreview
+		total := dp.CardCount()
+		if total > 0 {
+			v.Footer = fmt.Sprintf("%d of %d", dp.SelectedCardIdx+1, total)
+		} else {
+			v.Footer = ""
+		}
 	default:
 		cl := gui.contexts.CardList
 		if len(cl.Cards) > 0 {

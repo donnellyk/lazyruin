@@ -20,7 +20,8 @@ type ContextTree struct {
 	Calendar         *CalendarContext
 	Contrib          *ContribContext
 	PickDialog       *PickResultsContext
-	ActivePreviewKey types.ContextKey // "cardList", "pickResults", or "compose"
+	DatePreview      *DatePreviewContext
+	ActivePreviewKey types.ContextKey // "cardList", "pickResults", "compose", or "datePreview"
 }
 
 // ViewNameForKey returns the primary view name for a context key,
@@ -86,6 +87,9 @@ func (self *ContextTree) All() []types.Context {
 	if self.PickDialog != nil {
 		all = append(all, self.PickDialog)
 	}
+	if self.DatePreview != nil {
+		all = append(all, self.DatePreview)
+	}
 	return all
 }
 
@@ -97,6 +101,8 @@ func (self *ContextTree) ActivePreview() IPreviewContext {
 		return self.PickResults
 	case "compose":
 		return self.Compose
+	case "datePreview":
+		return self.DatePreview
 	default:
 		return self.CardList
 	}
@@ -106,7 +112,7 @@ func (self *ContextTree) ActivePreview() IPreviewContext {
 // preview contexts.
 func IsPreviewContextKey(key types.ContextKey) bool {
 	switch key {
-	case "cardList", "pickResults", "compose":
+	case "cardList", "pickResults", "compose", "datePreview":
 		return true
 	default:
 		return false

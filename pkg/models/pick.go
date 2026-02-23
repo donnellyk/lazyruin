@@ -4,6 +4,7 @@ type PickMatch struct {
 	Line    int      `json:"line"`
 	Content string   `json:"content"`
 	Tags    []string `json:"tags"`
+	Done    bool     `json:"done"`
 }
 
 type PickResult struct {

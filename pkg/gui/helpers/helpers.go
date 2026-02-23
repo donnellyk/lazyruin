@@ -24,6 +24,7 @@ type Helpers struct {
 	calendar         *CalendarHelper
 	contrib          *ContribHelper
 	completion       *CompletionHelper
+	datePreview      *DatePreviewHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -51,6 +52,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		calendar:         NewCalendarHelper(common),
 		contrib:          NewContribHelper(common),
 		completion:       NewCompletionHelper(common),
+		datePreview:      NewDatePreviewHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -80,3 +82,4 @@ func (h *Helpers) Snippet() *SnippetHelper                   { return h.snippet 
 func (h *Helpers) Calendar() *CalendarHelper                 { return h.calendar }
 func (h *Helpers) Contrib() *ContribHelper                   { return h.contrib }
 func (h *Helpers) Completion() *CompletionHelper             { return h.completion }
+func (h *Helpers) DatePreview() *DatePreviewHelper           { return h.datePreview }

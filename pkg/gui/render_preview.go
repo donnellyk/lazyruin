@@ -49,6 +49,9 @@ func (gui *Gui) RenderPreview() {
 		gui.renderPickResults(v, pr.Results, ns, pr.SelectedCardIdx, gui.isPreviewActive())
 	case "compose":
 		gui.renderSeparatorCards(v, []models.Note{gui.contexts.Compose.Note}, ns, nil)
+	case "datePreview":
+		dp := gui.contexts.DatePreview
+		gui.renderDatePreview(v, dp, ns, gui.isPreviewActive())
 	default:
 		gui.renderSeparatorCards(v, gui.contexts.CardList.Cards, ns, gui.contexts.CardList.TemporarilyMoved)
 	}
@@ -403,6 +406,103 @@ func stripHeaderPrefix(s string) string {
 	return strings.TrimLeft(s[i:], " ")
 }
 
+// renderCardInto renders a single note card (upper separator, body, lower separator)
+// and fills in ns.CardLineRanges[cardIdx]. Appends SourceLines to ns.Lines.
+// Returns the updated currentLine.
+func (gui *Gui) renderCardInto(v *gocui.View, note models.Note, cardIdx int,
+	ns *context.PreviewNavState, currentLine int, isActive bool,
+	selectedIdx int, temporarilyMoved map[int]bool, width int, contentWidth int) int {
+
+	selected := isActive && cardIdx == selectedIdx
+	ns.CardLineRanges[cardIdx][0] = currentLine
+
+	emit := func(text string, sl types.SourceLine) {
+		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
+		sl.Text = text
+		ns.Lines = append(ns.Lines, sl)
+		currentLine++
+	}
+
+	title := note.Title
+	if title == "" {
+		title = "Untitled"
+	}
+	upperRight := ""
+	if temporarilyMoved != nil && temporarilyMoved[cardIdx] {
+		upperRight = " Temporarily Moved "
+	}
+	emit(gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), types.SourceLine{})
+
+	for _, sl := range gui.BuildCardContent(note, contentWidth) {
+		if isHeaderLine(sl.Text) {
+			ns.HeaderLines = append(ns.HeaderLines, currentLine)
+		}
+		emit(sl.Text, sl)
+	}
+
+	var parentLabel string
+	if note.Parent != "" {
+		parentLabel = gui.resolveParentLabel(note.Parent)
+	}
+	rightText := ""
+	if meta := models.JoinDot(note.ShortDate(), note.GlobalTagsString(), parentLabel); meta != "" {
+		rightText = " " + meta + " "
+	}
+	emit(gui.buildSeparatorLine(false, "", rightText, width, selected), types.SourceLine{})
+
+	ns.CardLineRanges[cardIdx][1] = currentLine
+	return currentLine
+}
+
+// renderPickGroupInto renders a single pick result group (upper separator, matches, lower separator)
+// and fills in ns.CardLineRanges[cardIdx]. Appends SourceLines to ns.Lines.
+// Returns the updated currentLine.
+func (gui *Gui) renderPickGroupInto(v *gocui.View, result models.PickResult, cardIdx int,
+	ns *context.PreviewNavState, currentLine int, isActive bool,
+	selectedIdx int, width int, contentWidth int) int {
+
+	selected := isActive && cardIdx == selectedIdx
+	ns.CardLineRanges[cardIdx][0] = currentLine
+
+	emit := func(text string, sl types.SourceLine) {
+		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
+		sl.Text = text
+		ns.Lines = append(ns.Lines, sl)
+		currentLine++
+	}
+
+	title := result.Title
+	if title == "" {
+		title = "Untitled"
+	}
+	emit(gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), types.SourceLine{})
+
+	for _, match := range result.Matches {
+		lineNum := fmt.Sprintf("%02d", match.Line)
+		prefix := fmt.Sprintf("  L%s: ", lineNum)
+		prefixLen := len(prefix)
+		highlighted := gui.highlightMarkdown(match.Content)
+		wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
+		indent := strings.Repeat(" ", prefixLen)
+		src := types.SourceLine{UUID: result.UUID, LineNum: match.Line, Path: result.File}
+		for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
+			var formatted string
+			if j == 0 {
+				formatted = fmt.Sprintf("  %sL%s:%s %s", AnsiDim, lineNum, AnsiReset, line)
+			} else {
+				formatted = indent + line
+			}
+			emit(formatted, src)
+		}
+	}
+
+	matchCount := fmt.Sprintf(" %d matches ", len(result.Matches))
+	emit(gui.buildSeparatorLine(false, "", matchCount, width, selected), types.SourceLine{})
+
+	ns.CardLineRanges[cardIdx][1] = currentLine
+	return currentLine
+}
+
 // renderSeparatorCards renders cards using separator lines instead of frames
 func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *context.PreviewNavState, temporarilyMoved map[int]bool) {
 	if len(cards) == 0 {
@@ -418,86 +518,35 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 	contentWidth := types.PreviewContentWidth(v)
 
 	isActive := gui.isPreviewActive()
-	selectedStartLine := 0
-	selectedEndLine := 0
 	currentLine := 0
 	ns.CardLineRanges = make([][2]int, len(cards))
 	ns.HeaderLines = ns.HeaderLines[:0]
 	ns.Lines = ns.Lines[:0]
 
-	emitLine := func(text string, sl types.SourceLine) {
-		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
-		sl.Text = text
-		ns.Lines = append(ns.Lines, sl)
-		currentLine++
-	}
-
 	for i, note := range cards {
-		selected := isActive && i == ctx.SelectedCardIndex()
-		ns.CardLineRanges[i][0] = currentLine
-
-		if selected {
-			selectedStartLine = currentLine
-		}
-
-		// Upper separator with title (and "Temporarily Moved" badge for multi-card)
-		title := note.Title
-		if title == "" {
-			title = "Untitled"
-		}
-		upperRight := ""
-		if temporarilyMoved[i] && len(cards) > 1 {
-			upperRight = " Temporarily Moved "
-		}
-		emitLine(gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), types.SourceLine{})
-
-		// Card body content
-		for _, sl := range gui.BuildCardContent(note, contentWidth) {
-			if isHeaderLine(sl.Text) {
-				ns.HeaderLines = append(ns.HeaderLines, currentLine)
-			}
-			emitLine(sl.Text, sl)
-		}
-
-		// Lower separator with date, global tags, and parent (if set)
-		var parentLabel string
-		if note.Parent != "" {
-			parentLabel = gui.resolveParentLabel(note.Parent)
-		}
-		rightText := ""
-		if meta := models.JoinDot(note.ShortDate(), note.GlobalTagsString(), parentLabel); meta != "" {
-			rightText = " " + meta + " "
-		}
-		emitLine(gui.buildSeparatorLine(false, "", rightText, width, selected), types.SourceLine{})
-
-		ns.CardLineRanges[i][1] = currentLine
-		if selected {
-			selectedEndLine = currentLine
-		}
-
-		// Blank line between cards (except last)
+		currentLine = gui.renderCardInto(v, note, i, ns, currentLine, isActive, ctx.SelectedCardIndex(), temporarilyMoved, width, contentWidth)
 		if i < len(cards)-1 {
-			emitLine("", types.SourceLine{})
-
+			gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+			ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+			currentLine++
 		}
 	}
 
-	// Scroll to keep cursor/card visible, including borders when at card edges
+	// Scroll to keep cursor/card visible
 	_, viewHeight := v.InnerSize()
 	originY := ns.ScrollOffset
 	if isActive {
 		cl := ns.CursorLine
 		idx := ctx.SelectedCardIndex()
-		// If cursor is on the first content line of a card, show the upper separator too
 		showFrom := cl
 		showTo := cl
 		if idx < len(ns.CardLineRanges) {
 			r := ns.CardLineRanges[idx]
 			if cl == r[0]+1 {
-				showFrom = r[0] // include upper separator
+				showFrom = r[0]
 			}
 			if cl == r[1]-2 {
-				showTo = r[1] - 1 // include lower separator
+				showTo = r[1] - 1
 			}
 		}
 		if showFrom < originY {
@@ -506,10 +555,160 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 			originY = showTo - viewHeight + 1
 		}
 	} else {
-		if selectedStartLine < originY {
-			originY = selectedStartLine
-		} else if selectedEndLine > originY+viewHeight {
-			originY = selectedEndLine - viewHeight
+		idx := ctx.SelectedCardIndex()
+		if idx < len(ns.CardLineRanges) {
+			r := ns.CardLineRanges[idx]
+			if r[0] < originY {
+				originY = r[0]
+			} else if r[1] > originY+viewHeight {
+				originY = r[1] - viewHeight
+			}
+		}
+	}
+	ns.ScrollOffset = originY
+	v.SetOrigin(0, originY)
+}
+
+// renderSectionHeader renders a section divider and a blank spacer line.
+// Records the divider's line number in dp.SectionHeaderLines.
+// Returns the updated currentLine.
+func (gui *Gui) renderSectionHeader(v *gocui.View, label string, width int,
+	currentLine int, ns *context.PreviewNavState, dp *context.DatePreviewState, isActive bool) int {
+
+	dp.SectionHeaderLines = append(dp.SectionHeaderLines, currentLine)
+	line := gui.buildStraightSeparator(" "+label+" ", width)
+	gui.fprintPreviewLine(v, line, currentLine, isActive, ns)
+	ns.Lines = append(ns.Lines, types.SourceLine{Text: line})
+	currentLine++
+	gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+	ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+	currentLine++
+	return currentLine
+}
+
+// renderDatePreview renders three sections (inline tags, todos, notes) into a unified line space.
+func (gui *Gui) renderDatePreview(v *gocui.View, dp *context.DatePreviewContext, ns *context.PreviewNavState, isActive bool) {
+	width, _ := v.InnerSize()
+	if width < 10 {
+		width = 40
+	}
+	contentWidth := types.PreviewContentWidth(v)
+
+	totalCards := len(dp.TagPicks) + len(dp.TodoPicks) + len(dp.Notes)
+	if totalCards == 0 {
+		fmt.Fprintln(v, " "+AnsiDim+"No activity on "+dp.TargetDate+AnsiReset)
+		ns.CardLineRanges = nil
+		ns.Lines = []types.SourceLine{{Text: "No activity on " + dp.TargetDate}}
+		return
+	}
+
+	currentLine := 0
+	ns.CardLineRanges = make([][2]int, totalCards)
+	ns.HeaderLines = ns.HeaderLines[:0]
+	ns.Lines = ns.Lines[:0]
+	dp.SectionHeaderLines = dp.SectionHeaderLines[:0]
+
+	cardIdx := 0
+
+	// --- Section 1: Inline Tags ---
+	sectionLineStart := currentLine
+	currentLine = gui.renderSectionHeader(v, "Inline Tags", width, currentLine, ns, dp.DatePreviewState, isActive)
+	tagStart := cardIdx
+	if len(dp.TagPicks) == 0 {
+		gui.fprintPreviewLine(v, " "+AnsiDim+"No tagged lines"+AnsiReset, currentLine, isActive, ns)
+		ns.Lines = append(ns.Lines, types.SourceLine{Text: " No tagged lines"})
+		currentLine++
+	} else {
+		for i, result := range dp.TagPicks {
+			currentLine = gui.renderPickGroupInto(v, result, cardIdx, ns, currentLine, isActive, dp.SelectedCardIdx, width, contentWidth)
+			if i < len(dp.TagPicks)-1 {
+				gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+				ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+				currentLine++
+			}
+			cardIdx++
+		}
+	}
+	dp.SectionRanges[0] = [2]int{tagStart, cardIdx}
+	// Blank line after section
+	gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+	ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+	currentLine++
+	dp.SectionLineRanges[0] = [2]int{sectionLineStart, currentLine}
+
+	// --- Section 2: Todos ---
+	sectionLineStart = currentLine
+	currentLine = gui.renderSectionHeader(v, "Todos", width, currentLine, ns, dp.DatePreviewState, isActive)
+	todoStart := cardIdx
+	if len(dp.TodoPicks) == 0 {
+		gui.fprintPreviewLine(v, " "+AnsiDim+"No todos"+AnsiReset, currentLine, isActive, ns)
+		ns.Lines = append(ns.Lines, types.SourceLine{Text: " No todos"})
+		currentLine++
+	} else {
+		for i, result := range dp.TodoPicks {
+			currentLine = gui.renderPickGroupInto(v, result, cardIdx, ns, currentLine, isActive, dp.SelectedCardIdx, width, contentWidth)
+			if i < len(dp.TodoPicks)-1 {
+				gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+				ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+				currentLine++
+			}
+			cardIdx++
+		}
+	}
+	dp.SectionRanges[1] = [2]int{todoStart, cardIdx}
+	gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+	ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+	currentLine++
+	dp.SectionLineRanges[1] = [2]int{sectionLineStart, currentLine}
+
+	// --- Section 3: Notes ---
+	sectionLineStart = currentLine
+	currentLine = gui.renderSectionHeader(v, "Notes", width, currentLine, ns, dp.DatePreviewState, isActive)
+	noteStart := cardIdx
+	if len(dp.Notes) == 0 {
+		gui.fprintPreviewLine(v, " "+AnsiDim+"No notes"+AnsiReset, currentLine, isActive, ns)
+		ns.Lines = append(ns.Lines, types.SourceLine{Text: " No notes"})
+		currentLine++
+	} else {
+		for i, note := range dp.Notes {
+			currentLine = gui.renderCardInto(v, note, cardIdx, ns, currentLine, isActive, dp.SelectedCardIdx, nil, width, contentWidth)
+			if i < len(dp.Notes)-1 {
+				gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+				ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+				currentLine++
+			}
+			cardIdx++
+		}
+	}
+	dp.SectionRanges[2] = [2]int{noteStart, cardIdx}
+	dp.SectionLineRanges[2] = [2]int{sectionLineStart, currentLine}
+
+	// Scroll management
+	_, viewHeight := v.InnerSize()
+	originY := ns.ScrollOffset
+	if isActive {
+		cl := ns.CursorLine
+		idx := dp.SelectedCardIdx
+		showFrom, showTo := cl, cl
+		if idx < len(ns.CardLineRanges) {
+			r := ns.CardLineRanges[idx]
+			if cl == r[0]+1 {
+				showFrom = r[0]
+			}
+			if cl == r[1]-2 {
+				showTo = r[1] - 1
+			}
+		}
+		if showFrom < originY {
+			originY = showFrom
+		} else if showTo >= originY+viewHeight {
+			originY = showTo - viewHeight + 1
+		}
+	} else {
+		if len(ns.CardLineRanges) > 0 {
+			if ns.CardLineRanges[0][0] < originY {
+				originY = 0
+			}
 		}
 	}
 	ns.ScrollOffset = originY
@@ -517,6 +716,25 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 }
 
 // buildSeparatorLine creates a separator line with optional left and right text
+func (gui *Gui) buildStraightSeparator(label string, width int) string {
+	sep := "─"
+	labelLen := len([]rune(label))
+	fillLen := width - labelLen - 2
+	if fillLen < 0 {
+		fillLen = 0
+	}
+	var sb strings.Builder
+	sb.WriteString(AnsiDim)
+	sb.WriteString(sep)
+	sb.WriteString(label)
+	for i := 0; i < fillLen; i++ {
+		sb.WriteString(sep)
+	}
+	sb.WriteString(sep)
+	sb.WriteString(AnsiReset)
+	return sb.String()
+}
+
 func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width int, highlight bool) string {
 	dim := AnsiDim
 	green := AnsiGreen
@@ -594,67 +812,17 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 	}
 	contentWidth := types.PreviewContentWidth(v)
 
-	selectedStartLine := 0
-	selectedEndLine := 0
 	currentLine := 0
 	ns.CardLineRanges = make([][2]int, len(results))
 	ns.HeaderLines = ns.HeaderLines[:0]
 	ns.Lines = ns.Lines[:0]
 
-	emitLine := func(text string, sl types.SourceLine) {
-		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
-		sl.Text = text
-		ns.Lines = append(ns.Lines, sl)
-		currentLine++
-	}
-
 	for i, result := range results {
-		selected := isActive && i == selectedCardIdx
-		ns.CardLineRanges[i][0] = currentLine
-
-		if selected {
-			selectedStartLine = currentLine
-		}
-
-		// Separator header with note title
-		title := result.Title
-		if title == "" {
-			title = "Untitled"
-		}
-		emitLine(gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), types.SourceLine{})
-
-		// Render each match line
-		for _, match := range result.Matches {
-			lineNum := fmt.Sprintf("%02d", match.Line)
-			prefix := fmt.Sprintf("  L%s: ", lineNum)
-			prefixLen := len(prefix)
-			highlighted := gui.highlightMarkdown(match.Content)
-			wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
-			indent := strings.Repeat(" ", prefixLen)
-			src := types.SourceLine{UUID: result.UUID, LineNum: match.Line, Path: result.File}
-			for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
-				var formatted string
-				if j == 0 {
-					formatted = fmt.Sprintf("  %sL%s:%s %s", AnsiDim, lineNum, AnsiReset, line)
-				} else {
-					formatted = indent + line
-				}
-				emitLine(formatted, src)
-			}
-		}
-
-		// Lower separator
-		matchCount := fmt.Sprintf(" %d matches ", len(result.Matches))
-		emitLine(gui.buildSeparatorLine(false, "", matchCount, width, selected), types.SourceLine{})
-
-		ns.CardLineRanges[i][1] = currentLine
-		if selected {
-			selectedEndLine = currentLine
-		}
-
-		// Blank line between groups (except last)
+		currentLine = gui.renderPickGroupInto(v, result, i, ns, currentLine, isActive, selectedCardIdx, width, contentWidth)
 		if i < len(results)-1 {
-			emitLine("", types.SourceLine{})
+			gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
+			ns.Lines = append(ns.Lines, types.SourceLine{Text: ""})
+			currentLine++
 		}
 	}
 
@@ -669,10 +837,13 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 			originY = cl - viewHeight + 1
 		}
 	} else {
-		if selectedStartLine < originY {
-			originY = selectedStartLine
-		} else if selectedEndLine > originY+viewHeight {
-			originY = selectedEndLine - viewHeight
+		if selectedCardIdx < len(ns.CardLineRanges) {
+			r := ns.CardLineRanges[selectedCardIdx]
+			if r[0] < originY {
+				originY = r[0]
+			} else if r[1] > originY+viewHeight {
+				originY = r[1] - viewHeight
+			}
 		}
 	}
 	ns.ScrollOffset = originY

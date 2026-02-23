@@ -33,6 +33,7 @@ type IHelpers interface {
 	Calendar() *helpers.CalendarHelper
 	Contrib() *helpers.ContribHelper
 	Completion() *helpers.CompletionHelper
+	DatePreview() *helpers.DatePreviewHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.

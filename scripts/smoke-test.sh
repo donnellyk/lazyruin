@@ -105,6 +105,22 @@ assert_status() {
   echo "  PASS: $desc"
 }
 
+# Assert the footer counter shows "N of M" (polls until found or timeout).
+assert_footer() {
+  TOTAL=$((TOTAL + 1))
+  local desc="$1" needle="$2" i=0
+  while ! cap | grep -qF "$needle"; do
+    i=$((i + 1))
+    if [ "$i" -ge "$POLL_MAX" ]; then
+      echo "  FAIL: $desc (footer missing '$needle')"
+      FAILURES=$((FAILURES + 1))
+      return
+    fi
+    sleep "$POLL_INTERVAL"
+  done
+  echo "  PASS: $desc"
+}
+
 # --- preflight ---
 
 [ -f "$BIN" ]              || die "binary not found: $BIN (run: go build -o $BIN ./main.go)"
@@ -124,23 +140,57 @@ START_TIME=$SECONDS
 
 tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
   "$BIN --vault $VAULT" 2>/dev/null
-wait_for "Preview" 200 || die "app did not start within 10s"  # 200 * 0.05 = 10s
+wait_for "Inline Tags" 200 || die "app did not start within 10s"  # 200 * 0.05 = 10s
 
 # =============================================
-# 1. Startup — three sidebar panels rendered
+# 1. Startup — Date Preview is the default view
 # =============================================
 echo "[1] Startup"
 assert_contains "notes panel"     "[1]"
 assert_contains "queries panel"   "[2]"
 assert_contains "tags panel"      "[3]"
-assert_contains "preview panel"   "Preview"
-# Notes has initial focus
-assert_status "notes focused" "View: enter"
+assert_contains "date title"      "2026"
+# DatePreview has initial focus
+assert_status "datePreview focused" "View: v"
 
 # =============================================
-# 2. Panel focus cycling (Tab)
+# 2. Date Preview — section headers rendered
 # =============================================
-echo "[2] Panel cycling"
+echo "[2] Date Preview sections"
+assert_contains "inline tags section"  "Inline Tags"
+assert_contains "todos section"        "Todos"
+assert_contains "notes section"        "Notes"
+
+# =============================================
+# 3. Date Preview — card navigation (J/K)
+# =============================================
+echo "[3] Date Preview card navigation"
+assert_footer "initial card" "1 of"
+send J
+assert_footer "next card" "2 of"
+send K
+assert_footer "prev card" "1 of"
+
+# =============================================
+# 4. Date Preview — Enter opens note, Esc returns
+# =============================================
+echo "[4] Date Preview Enter/Esc"
+send Enter
+assert_footer "opened single note" "1 of 1"
+send Escape
+assert_status "back to datePreview" "View: v"
+
+# =============================================
+# 5. Date Preview — Esc returns to notes panel
+# =============================================
+echo "[5] Date Preview -> Notes"
+send Escape
+assert_status "notes from datePreview" "View: enter"
+
+# =============================================
+# 6. Panel focus cycling (Tab)
+# =============================================
+echo "[6] Panel cycling"
 send Tab
 assert_status "queries focused" "Run: enter"
 send Tab
@@ -149,9 +199,9 @@ send Tab
 assert_status "back to notes" "View: enter"
 
 # =============================================
-# 3. Quick-focus keys (1/2/3/p)
+# 7. Quick-focus keys (1/2/3/p)
 # =============================================
-echo "[3] Quick focus"
+echo "[7] Quick focus"
 send 2
 assert_status "2 -> queries" "Run: enter"
 send 3
@@ -165,15 +215,15 @@ send 1
 assert_status "1 -> notes" "View: enter"
 
 # =============================================
-# 4. Notes tab headers
+# 8. Notes tab headers
 # =============================================
-echo "[4] Notes tabs"
+echo "[8] Notes tabs"
 assert_contains "tab headers" "All - Today - Recent"
 
 # =============================================
-# 5. j/k navigation in notes
+# 9. j/k navigation in notes
 # =============================================
-echo "[5] List navigation"
+echo "[9] List navigation"
 send j
 send j
 TOTAL=$((TOTAL + 1))
@@ -181,18 +231,18 @@ echo "  PASS: j/k navigation (no crash)"
 send g  # back to top
 
 # =============================================
-# 6. Enter to preview, Esc back
+# 10. Enter to preview, Esc back
 # =============================================
-echo "[6] Notes -> Preview -> Back"
+echo "[10] Notes -> Preview -> Back"
 send Enter
 assert_status "in preview" "Back: esc"
 send Escape
 assert_status "back to notes" "View: enter"
 
 # =============================================
-# 7. Search flow
+# 11. Search flow
 # =============================================
-echo "[7] Search"
+echo "[11] Search"
 send /
 assert_contains "search popup open" "Search"
 assert_status "search hints" "Complete: tab"
@@ -211,9 +261,9 @@ send x
 assert_not_contains "search filter gone" "[0]-Search"
 
 # =============================================
-# 8. Pick flow
+# 12. Pick flow
 # =============================================
-echo "[8] Pick"
+echo "[12] Pick"
 send 1
 send '\'
 assert_contains "pick popup open" "Pick"
@@ -223,9 +273,9 @@ send Escape  # close pick dialog
 assert_not_contains "pick closed" "Pick tags"
 
 # =============================================
-# 9. Command palette
+# 13. Command palette
 # =============================================
-echo "[9] Palette"
+echo "[13] Palette"
 send 1  # ensure notes focus
 settle
 send :
@@ -237,18 +287,18 @@ send Escape
 assert_not_contains "palette closed" "Command Palette"
 
 # =============================================
-# 10. Help dialog
+# 14. Help dialog
 # =============================================
-echo "[10] Help"
+echo "[14] Help"
 send ?
 assert_contains "help visible" "Keybindings"
 send Escape
 settle
 
 # =============================================
-# 11. Note actions from Notes panel (shared keys)
+# 15. Note actions from Notes panel (shared keys)
 # =============================================
-echo "[11] Note actions (Notes)"
+echo "[15] Note actions (Notes)"
 send 1
 settle
 send s  # Show Info
@@ -256,9 +306,9 @@ assert_contains "info dialog" "Info"
 send Escape
 
 # =============================================
-# 12. Note actions from Preview (shared keys)
+# 16. Note actions from Preview (shared keys)
 # =============================================
-echo "[12] Note actions (Preview)"
+echo "[16] Note actions (Preview)"
 send Enter  # view in preview
 wait_for "Back: esc" || true
 send s  # Show Info from preview
@@ -268,9 +318,9 @@ settle
 send Escape  # back to notes
 
 # =============================================
-# 13. Add Tag (input popup with completion)
+# 17. Add Tag (input popup with completion)
 # =============================================
-echo "[13] Add Tag"
+echo "[17] Add Tag"
 send 1
 settle
 send t  # Add Tag
@@ -283,9 +333,9 @@ send Escape  # close popup
 assert_not_contains "tag popup closed" "Add Tag"
 
 # =============================================
-# 14. Set Parent (input popup with completion)
+# 18. Set Parent (input popup with completion)
 # =============================================
-echo "[14] Set Parent"
+echo "[18] Set Parent"
 send 1
 settle
 send '>'  # Set Parent
@@ -297,9 +347,9 @@ send Escape  # close popup
 assert_not_contains "parent popup closed" "Set Parent"
 
 # =============================================
-# 15. Run query
+# 19. Run query
 # =============================================
-echo "[15] Queries"
+echo "[19] Queries"
 send 2
 settle
 send Enter  # run first query
@@ -307,9 +357,9 @@ assert_status "preview after query" "Back: esc"
 send 1
 
 # =============================================
-# 16. Filter by tag
+# 20. Filter by tag
 # =============================================
-echo "[16] Tags"
+echo "[20] Tags"
 send 3
 settle
 send Enter  # filter by tag
@@ -317,9 +367,9 @@ assert_status "preview after tag filter" "Back: esc"
 send 1
 
 # =============================================
-# 17. New note capture
+# 21. New note capture
 # =============================================
-echo "[17] Capture"
+echo "[21] Capture"
 send n
 assert_contains "capture popup" "New Note"
 assert_contains "save hint" "<c-s> to save"
@@ -327,31 +377,35 @@ send Escape
 assert_not_contains "capture closed" "New Note"
 
 # =============================================
-# 18. Calendar dialog
+# 22. Calendar → Date Preview
 # =============================================
-echo "[18] Calendar"
+echo "[22] Calendar -> Date Preview"
 send 1
 settle
 send c
 assert_contains "calendar open" "Su Mo Tu We Th Fr Sa"
-send Escape
-assert_not_contains "calendar closed" "Su Mo Tu We Th Fr Sa"
+send Enter  # select date
+assert_status "datePreview after calendar" "View: v"
+assert_contains "section headers after calendar" "Inline Tags"
+send Escape  # back to notes
 
 # =============================================
-# 19. Contributions dialog
+# 23. Contributions → Date Preview
 # =============================================
-echo "[19] Contributions"
+echo "[23] Contributions -> Date Preview"
 send 1
 settle
 send C
 assert_contains "contrib open" "Contributions"
-send Escape
-assert_not_contains "contrib closed" "Contributions"
+send Enter  # select date
+assert_status "datePreview after contrib" "View: v"
+assert_contains "section headers after contrib" "Inline Tags"
+send Escape  # back to notes
 
 # =============================================
-# 20. Resize handling
+# 24. Resize handling
 # =============================================
-echo "[20] Resize"
+echo "[24] Resize"
 tmux resize-pane -t "$SESSION" -x 80 -y 24
 sleep 0.15  # allow resize event to propagate
 TOTAL=$((TOTAL + 1))

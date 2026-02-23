@@ -44,8 +44,8 @@ func TestHeadlessGui_Initializes(t *testing.T) {
 	if !tg.gui.state.Initialized {
 		t.Error("GUI should be initialized after layout")
 	}
-	if tg.gui.contextMgr.Current() != "notes" {
-		t.Errorf("CurrentContext = %v, want notes", tg.gui.contextMgr.Current())
+	if tg.gui.contextMgr.Current() != "datePreview" {
+		t.Errorf("CurrentContext = %v, want datePreview", tg.gui.contextMgr.Current())
 	}
 }
 
@@ -238,7 +238,8 @@ func TestNextPanel_CyclesThroughContexts(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	// Start at "notes"
+	// Start at "datePreview", switch to "notes" for panel cycling
+	tg.gui.globalController.FocusNotes()
 	if tg.gui.contextMgr.Current() != "notes" {
 		t.Fatalf("initial context = %v, want notes", tg.gui.contextMgr.Current())
 	}
@@ -266,6 +267,8 @@ func TestPrevPanel_CyclesBackward(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
+	// Switch to "notes" first (startup is datePreview)
+	tg.gui.globalController.FocusNotes()
 	// BackTab from "notes" → "tags" (wraps backward)
 	tg.gui.globalController.PrevPanel()
 	if tg.gui.contextMgr.Current() != "tags" {
@@ -325,8 +328,8 @@ func TestContextSwitch_TracksPrevious(t *testing.T) {
 	defer tg.Close()
 
 	tg.gui.globalController.FocusTags()
-	if tg.gui.contextMgr.Previous() != "notes" {
-		t.Errorf("previousContext() = %v, want notes", tg.gui.contextMgr.Previous())
+	if tg.gui.contextMgr.Previous() != "datePreview" {
+		t.Errorf("previousContext() = %v, want datePreview", tg.gui.contextMgr.Previous())
 	}
 
 	tg.gui.globalController.FocusPreview()
@@ -443,10 +446,13 @@ func TestNotesDown_UpdatesPreview(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
+	// Switch to notes and update preview to cardList mode
+	tg.gui.globalController.FocusNotes()
+	tg.gui.helpers.Preview().UpdatePreviewForNotes()
+
 	// Move down to select Note Two
 	testNotesDown(tg)
 
-	// Preview should be in card list mode showing the selected note
 	if tg.gui.contexts.ActivePreviewKey != "cardList" {
 		t.Errorf("ActivePreviewKey = %v, want cardList", tg.gui.contexts.ActivePreviewKey)
 	}
@@ -596,12 +602,10 @@ func TestPreviewDown_CardMode_MovesCursor(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	// Set up card list mode — set CardLineRanges AFTER setContext since
-	// setContext("cardList") calls renderPreview which rebuilds them.
 	cl := tg.gui.contexts.CardList
 	cl.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.ActivePreviewKey = "cardList"
 	tg.gui.contextMgr.Push("cardList")
-	// Override with known ranges after any render
 	ns := cl.NavState()
 	ns.CursorLine = 1
 	ns.CardLineRanges = [][2]int{{0, 5}, {6, 11}}
@@ -619,6 +623,7 @@ func TestPreviewUp_CardMode_MovesCursor(t *testing.T) {
 
 	cl := tg.gui.contexts.CardList
 	cl.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.ActivePreviewKey = "cardList"
 	tg.gui.contextMgr.Push("cardList")
 	ns := cl.NavState()
 	ns.CursorLine = 3
@@ -637,6 +642,7 @@ func TestPreviewUp_CardMode_ClampsAtTop(t *testing.T) {
 
 	cl := tg.gui.contexts.CardList
 	cl.Cards = tg.gui.contexts.Notes.Items
+	tg.gui.contexts.ActivePreviewKey = "cardList"
 	tg.gui.contextMgr.Push("cardList")
 	ns := cl.NavState()
 	ns.CursorLine = 1
@@ -727,7 +733,8 @@ func TestFocusNotes_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	// Already on "notes", pressing 1 again cycles tab
+	// Startup context is datePreview; first FocusNotes switches to notes
+	tg.gui.globalController.FocusNotes()
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
 		t.Fatalf("initial tab = %v, want All", tg.gui.contexts.Notes.CurrentTab)
 	}

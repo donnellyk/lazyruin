@@ -133,31 +133,12 @@ func (self *ContribHelper) GridEnter() error {
 	return nil
 }
 
-// LoadInPreview loads all notes for the selected date into preview.
+// LoadInPreview loads the Date Preview for the selected date.
 func (self *ContribHelper) LoadInPreview() {
-	s := self.state()
-	if len(s.Notes) == 0 {
-		self.Close()
-		return
-	}
-
-	notes, err := self.c.RuinCmd().Search.Search("created:"+s.SelectedDate, commands.SearchOptions{
-		Sort:           "created",
-		Limit:          100,
-		IncludeContent: true,
-		StripTitle:     true,
-	})
-	if err != nil || len(notes) == 0 {
-		self.Close()
-		return
-	}
-
-	date := s.SelectedDate
-	gui := self.c.GuiCommon()
+	date := self.state().SelectedDate
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
-	self.c.Helpers().Preview().ShowCardList(" Contrib: "+date+" ", notes)
-	gui.PushContextByKey("cardList")
+	self.c.Helpers().DatePreview().LoadDatePreview(date)
 }
 
 // LoadNoteInPreview loads a single note into preview.
@@ -184,14 +165,10 @@ func (self *ContribHelper) LoadNoteInPreview(index int) {
 	gui.PushContextByKey("cardList")
 }
 
-// fetchNotesForDate fetches notes created on the given date (YYYY-MM-DD format).
+// fetchNotesForDate fetches notes created or updated on the given date (YYYY-MM-DD format).
 func (self *ContribHelper) fetchNotesForDate(date string) []models.Note {
-	notes, err := self.c.RuinCmd().Search.Search("created:"+date, commands.SearchOptions{
-		Sort:  "created",
-		Limit: 100,
-	})
-	if err != nil {
-		return nil
-	}
-	return notes
+	opts := commands.SearchOptions{Sort: "created", Limit: 100}
+	created, _ := self.c.RuinCmd().Search.Search("created:"+date, opts)
+	updated, _ := self.c.RuinCmd().Search.Search("updated:"+date, opts)
+	return DeduplicateNotes(created, updated)
 }

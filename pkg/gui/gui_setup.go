@@ -127,6 +127,19 @@ func (gui *Gui) setupPreviewContext() {
 		func() *context.ComposeContext { return gui.contexts.Compose },
 	)
 	controllers.AttachController(composeCtrl)
+
+	// DatePreview context
+	datePreviewCtx := context.NewDatePreviewContext(navHistory)
+	gui.contexts.DatePreview = datePreviewCtx
+	gui.contextMgr.Register(datePreviewCtx)
+	datePreviewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.RenderPreview()
+	})
+	datePreviewCtrl := controllers.NewDatePreviewController(
+		gui.controllerCommon,
+		func() *context.DatePreviewContext { return gui.contexts.DatePreview },
+	)
+	controllers.AttachController(datePreviewCtrl)
 }
 
 // setupSearchContext initializes the "search" and its popup controller.

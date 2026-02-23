@@ -150,6 +150,8 @@ func (self *PreviewHelper) ReloadActivePreview() {
 	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
 	case "pickResults":
 		self.ReloadPickResults()
+	case "datePreview":
+		self.c.Helpers().DatePreview().ReloadDatePreview()
 	case "compose":
 		gui := self.c.GuiCommon()
 		comp := gui.Contexts().Compose

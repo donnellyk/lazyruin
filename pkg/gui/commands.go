@@ -2,6 +2,9 @@ package gui
 
 import (
 	"fmt"
+	"time"
+
+	helpers "kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -10,6 +13,9 @@ import (
 // paletteOnlyCommands returns commands that have no controller home.
 // These are accessible only via the command palette (no keybinding).
 func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
+	dp := func(date string) func() error {
+		return func() error { return gui.helpers.DatePreview().LoadDatePreview(date) }
+	}
 	return []types.PaletteCommand{
 		// Tab switching (palette-only, no keybinding)
 		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(0) }},
@@ -31,6 +37,18 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 		{Name: "List Snippets", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().ListSnippets() }},
 		{Name: "Create Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().CreateSnippet() }},
 		{Name: "Delete Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().DeleteSnippet() }},
+
+		// Date preview (palette-only)
+		{Name: "Today", Category: "Date", OnRun: dp(time.Now().Format("2006-01-02"))},
+		{Name: "Yesterday", Category: "Date", OnRun: dp(time.Now().AddDate(0, 0, -1).Format("2006-01-02"))},
+		{Name: "Tomorrow", Category: "Date", OnRun: dp(time.Now().AddDate(0, 0, 1).Format("2006-01-02"))},
+		{Name: "Monday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Monday))},
+		{Name: "Tuesday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Tuesday))},
+		{Name: "Wednesday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Wednesday))},
+		{Name: "Thursday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Thursday))},
+		{Name: "Friday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Friday))},
+		{Name: "Saturday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Saturday))},
+		{Name: "Sunday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Sunday))},
 	}
 }
 

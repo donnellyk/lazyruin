@@ -95,6 +95,12 @@ func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
 		entry.SourceMap = append([]models.SourceMapEntry(nil), comp.SourceMap...)
 		entry.ParentUUID = comp.ParentUUID
 		entry.ParentTitle = comp.ParentTitle
+	case "datePreview":
+		dp := contexts.DatePreview
+		entry.DateTargetDate = dp.TargetDate
+		entry.DateTagPicks = append([]models.PickResult(nil), dp.TagPicks...)
+		entry.DateTodoPicks = append([]models.PickResult(nil), dp.TodoPicks...)
+		entry.DateNotes = append([]models.Note(nil), dp.Notes...)
 	default:
 		cl := contexts.CardList
 		entry.Cards = append([]models.Note(nil), cl.Cards...)
@@ -130,6 +136,16 @@ func (self *PreviewNavHelper) restoreNavEntry(entry context.NavEntry) {
 		comp.ParentTitle = entry.ParentTitle
 		comp.SelectedCardIdx = entry.SelectedCardIndex
 		ns := comp.NavState()
+		ns.CursorLine = entry.CursorLine
+		ns.ScrollOffset = entry.ScrollOffset
+	case "datePreview":
+		dp := contexts.DatePreview
+		dp.TargetDate = entry.DateTargetDate
+		dp.TagPicks = append([]models.PickResult(nil), entry.DateTagPicks...)
+		dp.TodoPicks = append([]models.PickResult(nil), entry.DateTodoPicks...)
+		dp.Notes = append([]models.Note(nil), entry.DateNotes...)
+		dp.SelectedCardIdx = entry.SelectedCardIndex
+		ns := dp.NavState()
 		ns.CursorLine = entry.CursorLine
 		ns.ScrollOffset = entry.ScrollOffset
 	default:
@@ -231,11 +247,51 @@ func (self *PreviewNavHelper) PreviewEnter() error {
 	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
 	case "pickResults":
 		return self.OpenPickResult()
+	case "datePreview":
+		return self.OpenDatePreviewResult()
 	case "cardList":
 		return self.FocusNote()
 	default:
 		return nil
 	}
+}
+
+// OpenDatePreviewResult opens the currently selected item in the date preview.
+// For pick sections, it opens the note with cursor on the matched line.
+// For note sections, it focuses the note in the notes panel.
+func (self *PreviewNavHelper) OpenDatePreviewResult() error {
+	gui := self.c.GuiCommon()
+	dp := gui.Contexts().DatePreview
+	idx := dp.SelectedCardIdx
+	section := dp.SectionForCard(idx)
+
+	switch section {
+	case context.SectionTagPicks:
+		localIdx := dp.LocalCardIdx(idx)
+		if localIdx < len(dp.TagPicks) {
+			dp.SetSelectedCardIndex(localIdx)
+			err := self.openPickResultFrom(dp.TagPicks, dp, nil)
+			dp.SetSelectedCardIndex(idx)
+			return err
+		}
+	case context.SectionTodoPicks:
+		localIdx := dp.LocalCardIdx(idx)
+		if localIdx < len(dp.TodoPicks) {
+			dp.SetSelectedCardIndex(localIdx)
+			err := self.openPickResultFrom(dp.TodoPicks, dp, nil)
+			dp.SetSelectedCardIndex(idx)
+			return err
+		}
+	case context.SectionNotes:
+		localIdx := dp.LocalCardIdx(idx)
+		if localIdx < len(dp.Notes) {
+			note := dp.Notes[localIdx]
+			self.PushNavHistory()
+			self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{note})
+			gui.PushContextByKey("cardList")
+		}
+	}
+	return nil
 }
 
 // OpenNoteByUUID loads a note by UUID and displays it in the preview.
@@ -441,13 +497,40 @@ func (self *PreviewNavHelper) CardUp() error {
 	return nil
 }
 
-// NextHeader jumps to the next markdown header.
-func (self *PreviewNavHelper) NextHeader() error {
+func (self *PreviewNavHelper) allHeaders() []int {
 	ns := self.activeCtx().NavState()
-	cursor := ns.CursorLine
-	for _, h := range ns.HeaderLines {
+	headers := ns.HeaderLines
+	gui := self.c.GuiCommon()
+	if gui.Contexts().ActivePreviewKey == "datePreview" {
+		dp := gui.Contexts().DatePreview
+		headers = mergeSorted(headers, dp.SectionHeaderLines)
+	}
+	return headers
+}
+
+func mergeSorted(a, b []int) []int {
+	result := make([]int, 0, len(a)+len(b))
+	i, j := 0, 0
+	for i < len(a) && j < len(b) {
+		if a[i] <= b[j] {
+			result = append(result, a[i])
+			i++
+		} else {
+			result = append(result, b[j])
+			j++
+		}
+	}
+	result = append(result, a[i:]...)
+	result = append(result, b[j:]...)
+	return result
+}
+
+// NextHeader jumps to the next markdown header (or section header in datePreview).
+func (self *PreviewNavHelper) NextHeader() error {
+	cursor := self.activeCtx().NavState().CursorLine
+	for _, h := range self.allHeaders() {
 		if h > cursor {
-			ns.CursorLine = h
+			self.activeCtx().NavState().CursorLine = h
 			self.SyncCardIndexFromCursor()
 			self.renderActive()
 			return nil
@@ -456,13 +539,61 @@ func (self *PreviewNavHelper) NextHeader() error {
 	return nil
 }
 
-// PrevHeader jumps to the previous markdown header.
+// PrevHeader jumps to the previous markdown header (or section header in datePreview).
 func (self *PreviewNavHelper) PrevHeader() error {
-	ns := self.activeCtx().NavState()
-	cursor := ns.CursorLine
-	for i := len(ns.HeaderLines) - 1; i >= 0; i-- {
-		if ns.HeaderLines[i] < cursor {
-			ns.CursorLine = ns.HeaderLines[i]
+	cursor := self.activeCtx().NavState().CursorLine
+	headers := self.allHeaders()
+	for i := len(headers) - 1; i >= 0; i-- {
+		if headers[i] < cursor {
+			self.activeCtx().NavState().CursorLine = headers[i]
+			self.SyncCardIndexFromCursor()
+			self.renderActive()
+			return nil
+		}
+	}
+	return nil
+}
+
+// NextSection jumps to the next section header (datePreview only).
+func (self *PreviewNavHelper) NextSection() error {
+	gui := self.c.GuiCommon()
+	if gui.Contexts().ActivePreviewKey != "datePreview" {
+		return nil
+	}
+	dp := gui.Contexts().DatePreview
+	cursor := dp.NavState().CursorLine
+	for _, h := range dp.SectionHeaderLines {
+		if h > cursor {
+			target := h + 2 // skip header + blank spacer
+			if self.isContentLine(target) {
+				dp.NavState().CursorLine = target
+			} else {
+				dp.NavState().CursorLine = h
+			}
+			self.SyncCardIndexFromCursor()
+			self.renderActive()
+			return nil
+		}
+	}
+	return nil
+}
+
+// PrevSection jumps to the previous section header (datePreview only).
+func (self *PreviewNavHelper) PrevSection() error {
+	gui := self.c.GuiCommon()
+	if gui.Contexts().ActivePreviewKey != "datePreview" {
+		return nil
+	}
+	dp := gui.Contexts().DatePreview
+	cursor := dp.NavState().CursorLine
+	for i := len(dp.SectionHeaderLines) - 1; i >= 0; i-- {
+		if dp.SectionHeaderLines[i] < cursor {
+			target := dp.SectionHeaderLines[i] + 2
+			if self.isContentLine(target) {
+				dp.NavState().CursorLine = target
+			} else {
+				dp.NavState().CursorLine = dp.SectionHeaderLines[i]
+			}
 			self.SyncCardIndexFromCursor()
 			self.renderActive()
 			return nil

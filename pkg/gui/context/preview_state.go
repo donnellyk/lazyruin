@@ -25,4 +25,8 @@ type NavEntry struct {
 	SourceMap         []models.SourceMapEntry // compose source map
 	ParentUUID        string                  // compose parent UUID
 	ParentTitle       string                  // compose parent title
+	DateTargetDate    string                  // datePreview target date
+	DateTagPicks      []models.PickResult     // datePreview tag picks
+	DateTodoPicks     []models.PickResult     // datePreview todo picks
+	DateNotes         []models.Note           // datePreview notes
 }
