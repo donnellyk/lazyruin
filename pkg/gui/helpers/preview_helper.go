@@ -53,6 +53,28 @@ func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
 		return &contexts.Compose.Note
 	case "pickResults":
 		return nil
+	case "datePreview":
+		dp := contexts.DatePreview
+		idx := dp.SelectedCardIdx
+		section := dp.SectionForCard(idx)
+		localIdx := dp.LocalCardIdx(idx)
+		switch section {
+		case context.SectionTagPicks:
+			if localIdx < len(dp.TagPicks) {
+				r := dp.TagPicks[localIdx]
+				return &models.Note{UUID: r.UUID, Path: r.File, Title: r.Title}
+			}
+		case context.SectionTodoPicks:
+			if localIdx < len(dp.TodoPicks) {
+				r := dp.TodoPicks[localIdx]
+				return &models.Note{UUID: r.UUID, Path: r.File, Title: r.Title}
+			}
+		case context.SectionNotes:
+			if localIdx < len(dp.Notes) {
+				return &dp.Notes[localIdx]
+			}
+		}
+		return nil
 	default:
 		cl := contexts.CardList
 		idx := cl.SelectedCardIdx

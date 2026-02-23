@@ -270,16 +270,18 @@ func (self *PreviewNavHelper) OpenDatePreviewResult() error {
 		localIdx := dp.LocalCardIdx(idx)
 		if localIdx < len(dp.TagPicks) {
 			dp.SetSelectedCardIndex(localIdx)
-			err := self.openPickResultFrom(dp.TagPicks, dp, nil)
-			dp.SetSelectedCardIndex(idx)
+			err := self.openPickResultFrom(dp.TagPicks, dp, func() {
+				dp.SetSelectedCardIndex(idx) // restore global index before nav history snapshot
+			})
 			return err
 		}
 	case context.SectionTodoPicks:
 		localIdx := dp.LocalCardIdx(idx)
 		if localIdx < len(dp.TodoPicks) {
 			dp.SetSelectedCardIndex(localIdx)
-			err := self.openPickResultFrom(dp.TodoPicks, dp, nil)
-			dp.SetSelectedCardIndex(idx)
+			err := self.openPickResultFrom(dp.TodoPicks, dp, func() {
+				dp.SetSelectedCardIndex(idx) // restore global index before nav history snapshot
+			})
 			return err
 		}
 	case context.SectionNotes:
