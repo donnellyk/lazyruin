@@ -182,9 +182,31 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
-		gui.contexts.ActivePreview().NavState().ScrollOffset = 0
+		ns := gui.contexts.ActivePreview().NavState()
+
+		// Save cursor identity before re-render (Lines will be rebuilt with new width)
+		var savedUUID string
+		var savedLineNum int
+		if ns.CursorLine >= 0 && ns.CursorLine < len(ns.Lines) {
+			src := ns.Lines[ns.CursorLine]
+			savedUUID = src.UUID
+			savedLineNum = src.LineNum
+		}
+
+		ns.ScrollOffset = 0
 		gocui.Screen.Clear()
 		gui.RenderAll()
+
+		// Restore cursor to the same source line after re-render
+		if savedUUID != "" && savedLineNum > 0 {
+			for i, sl := range ns.Lines {
+				if sl.UUID == savedUUID && sl.LineNum == savedLineNum {
+					ns.CursorLine = i
+					gui.RenderPreview()
+					break
+				}
+			}
+		}
 	}
 
 	return nil

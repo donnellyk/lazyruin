@@ -256,14 +256,14 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 // It resolves the cursor target line, fetches the full note, optionally runs
 // beforeNav (e.g. to close a dialog), then navigates to card-list view with
 // cursor pre-positioned on the matched line.
-func (self *PreviewNavHelper) openPickResultFrom(viewName string, results []models.PickResult, ctx context.IPreviewContext, beforeNav func()) error {
+func (self *PreviewNavHelper) openPickResultFrom(results []models.PickResult, ctx context.IPreviewContext, beforeNav func()) error {
 	idx := ctx.SelectedCardIndex()
 	if idx >= len(results) {
 		return nil
 	}
 	result := results[idx]
 
-	lineTarget := self.c.Helpers().PreviewLineOps().ResolvePickResultsTarget(viewName, results, ctx)
+	lineTarget := self.c.Helpers().PreviewLineOps().ResolveTarget()
 
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	note, err := self.c.RuinCmd().Search.Get(result.UUID, opts)
@@ -291,7 +291,7 @@ func (self *PreviewNavHelper) OpenPickResult() error {
 	if len(pr.Results) == 0 {
 		return nil
 	}
-	return self.openPickResultFrom("preview", pr.Results, pr, nil)
+	return self.openPickResultFrom(pr.Results, pr, nil)
 }
 
 // OpenPickDialogResult opens the selected pick dialog result as a full note,
@@ -301,35 +301,25 @@ func (self *PreviewNavHelper) OpenPickDialogResult() error {
 	if len(pd.Results) == 0 {
 		return nil
 	}
-	return self.openPickResultFrom("pickDialog", pd.Results, pd, func() {
+	return self.openPickResultFrom(pd.Results, pd, func() {
 		self.c.Helpers().Pick().ClosePickDialog()
 	})
 }
 
 // positionCursorAtContentLine repositions the card-list cursor to the visual
 // line corresponding to the given 1-indexed content line number.
+// Uses deterministic UUID + LineNum matching against BuildCardContent output.
 func (self *PreviewNavHelper) positionCursorAtContentLine(note *models.Note, contentLineNum int) {
-	gui := self.c.GuiCommon()
 	v := self.view()
 	if v == nil {
 		return
 	}
-
-	width, _ := v.InnerSize()
-	if width < 10 {
-		width = 40
-	}
-	contentWidth := max(width-2, 10)
-
+	gui := self.c.GuiCommon()
+	contentWidth := types.PreviewContentWidth(v)
 	cardLines := gui.BuildCardContent(*note, contentWidth)
-	srcLine, _, _ := readSourceLine(note.Path, contentLineNum)
-	srcLine = strings.TrimSpace(srcLine)
-	if srcLine == "" {
-		return
-	}
 
-	for i, line := range cardLines {
-		if strings.TrimSpace(stripAnsi(line)) == srcLine {
+	for i, sl := range cardLines {
+		if sl.UUID == note.UUID && sl.LineNum == contentLineNum {
 			ns := gui.Contexts().CardList.NavState()
 			ranges := ns.CardLineRanges
 			if len(ranges) > 0 {

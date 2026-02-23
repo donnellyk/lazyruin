@@ -1,17 +1,14 @@
 package helpers
 
 import (
-	"fmt"
 	"os"
 	"regexp"
 	"strings"
 
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
-	"github.com/muesli/reflow/wordwrap"
 )
 
 // regex patterns for line operations
@@ -46,270 +43,30 @@ func (self *PreviewLineOpsHelper) view() *gocui.View {
 	return self.c.GuiCommon().GetView("preview")
 }
 
-// resolveTarget dispatches to the appropriate target resolver based on
-// the current context (pickDialog overlay takes priority) or ActivePreviewKey.
+// resolveTarget uses the Lines[] lookup to map the current cursor position
+// to a source file line. Works for all preview contexts (cardList, pickResults,
+// compose) and the pickDialog overlay.
 func (self *PreviewLineOpsHelper) resolveTarget() *lineTarget {
 	gui := self.c.GuiCommon()
+	var ns *context.PreviewNavState
 	if gui.CurrentContextKey() == "pickDialog" {
-		pd := gui.Contexts().PickDialog
-		return self.ResolvePickResultsTarget("pickDialog", pd.Results, pd)
+		ns = gui.Contexts().PickDialog.NavState()
+	} else {
+		ns = gui.Contexts().ActivePreview().NavState()
 	}
-	switch gui.Contexts().ActivePreviewKey {
-	case "cardList":
-		return self.resolveCardListTarget()
-	case "pickResults":
-		pr := gui.Contexts().PickResults
-		return self.ResolvePickResultsTarget("preview", pr.Results, pr)
-	case "compose":
-		return self.resolveComposeTarget()
-	default:
+	if ns.CursorLine < 0 || ns.CursorLine >= len(ns.Lines) {
 		return nil
 	}
+	src := ns.Lines[ns.CursorLine]
+	if src.UUID == "" || src.LineNum == 0 {
+		return nil // separator, blank, or frontmatter display line
+	}
+	return &lineTarget{UUID: src.UUID, LineNum: src.LineNum, Path: src.Path}
 }
 
-// resolveCardListTarget maps the current visual cursor position to a lineTarget
-// in card-list mode.
-func (self *PreviewLineOpsHelper) resolveCardListTarget() *lineTarget {
-	v := self.view()
-	if v == nil {
-		return nil
-	}
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil {
-		return nil
-	}
-	cl := self.ctx()
-	idx := cl.SelectedCardIdx
-	ns := cl.NavState()
-	ranges := ns.CardLineRanges
-	if idx >= len(ranges) {
-		return nil
-	}
-
-	cardStart := ranges[idx][0]
-	lineOffset := ns.CursorLine - cardStart - 1
-	if lineOffset < 0 {
-		return nil
-	}
-
-	width, _ := v.InnerSize()
-	if width < 10 {
-		width = 40
-	}
-	contentWidth := max(width-2, 10)
-	cardLines := self.c.GuiCommon().BuildCardContent(*card, contentWidth)
-	if lineOffset >= len(cardLines) {
-		return nil
-	}
-	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
-	if visibleLine == "" {
-		return nil
-	}
-
-	data, err := os.ReadFile(card.Path)
-	if err != nil {
-		return nil
-	}
-	fileLines := strings.Split(string(data), "\n")
-
-	contentStart := 0
-	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
-		for i := 1; i < len(fileLines); i++ {
-			if strings.TrimSpace(fileLines[i]) == "---" {
-				contentStart = i + 1
-				break
-			}
-		}
-	}
-
-	for i := contentStart; i < len(fileLines); i++ {
-		if strings.TrimSpace(fileLines[i]) == visibleLine {
-			return &lineTarget{
-				UUID:    card.UUID,
-				LineNum: i - contentStart + 1,
-				Path:    card.Path,
-			}
-		}
-	}
-	return nil
-}
-
-// resolveComposeTarget maps the current visual cursor position to a lineTarget
-// in compose mode by using the source_map to identify which child note the
-// cursor line belongs to, then finding the exact line in that child's source file.
-func (self *PreviewLineOpsHelper) resolveComposeTarget() *lineTarget {
-	v := self.view()
-	if v == nil {
-		return nil
-	}
-	gui := self.c.GuiCommon()
-	comp := gui.Contexts().Compose
-	if len(comp.SourceMap) == 0 {
-		return nil
-	}
-	ns := comp.NavState()
-	ranges := ns.CardLineRanges
-	if len(ranges) == 0 {
-		return nil
-	}
-
-	// Get the visual cursor offset within the compose card
-	cardStart := ranges[0][0]
-	lineOffset := ns.CursorLine - cardStart - 1
-	if lineOffset < 0 {
-		return nil
-	}
-
-	// Get the rendered line text
-	width, _ := v.InnerSize()
-	if width < 10 {
-		width = 40
-	}
-	contentWidth := max(width-2, 10)
-	cardLines := gui.BuildCardContent(comp.Note, contentWidth)
-	if lineOffset >= len(cardLines) {
-		return nil
-	}
-	visibleLine := strings.TrimSpace(stripAnsi(cardLines[lineOffset]))
-	if visibleLine == "" {
-		return nil
-	}
-
-	// Step 1: Match visibleLine against composed_content lines to find the
-	// composed line number, then look up the source_map entry.
-	composedLines := strings.Split(comp.Note.Content, "\n")
-	composedLineNum := -1
-	bestDist := -1
-	for i, cl := range composedLines {
-		if strings.TrimSpace(cl) == visibleLine {
-			dist := abs(i - lineOffset)
-			if bestDist < 0 || dist < bestDist {
-				composedLineNum = i + 1 // 1-indexed
-				bestDist = dist
-			}
-		}
-	}
-	if composedLineNum < 0 {
-		return nil
-	}
-
-	// Find source_map entry containing this composed line
-	var entry *models.SourceMapEntry
-	for idx := range comp.SourceMap {
-		e := &comp.SourceMap[idx]
-		if composedLineNum >= e.StartLine && composedLineNum <= e.EndLine {
-			entry = e
-			break
-		}
-	}
-	if entry == nil {
-		return nil
-	}
-
-	// Step 2: Read the child's source file and find the exact line
-	data, err := os.ReadFile(entry.Path)
-	if err != nil {
-		// Fallback: use source_map formula
-		return &lineTarget{
-			UUID:    entry.UUID,
-			LineNum: composedLineNum - entry.StartLine + 1,
-			Path:    entry.Path,
-		}
-	}
-	fileLines := strings.Split(string(data), "\n")
-
-	// Skip frontmatter
-	contentStart := 0
-	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
-		for i := 1; i < len(fileLines); i++ {
-			if strings.TrimSpace(fileLines[i]) == "---" {
-				contentStart = i + 1
-				break
-			}
-		}
-	}
-
-	for i := contentStart; i < len(fileLines); i++ {
-		if strings.TrimSpace(fileLines[i]) == visibleLine {
-			return &lineTarget{
-				UUID:    entry.UUID,
-				LineNum: i - contentStart + 1,
-				Path:    entry.Path,
-			}
-		}
-	}
-
-	// Fallback: use source_map offset formula
-	return &lineTarget{
-		UUID:    entry.UUID,
-		LineNum: composedLineNum - entry.StartLine + 1,
-		Path:    entry.Path,
-	}
-}
-
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
-// ResolvePickTarget maps the current visual cursor position to a lineTarget
-// in pick-results mode, using the same word-wrap logic as renderPickResults.
-func (self *PreviewLineOpsHelper) ResolvePickTarget() *lineTarget {
-	pr := self.c.GuiCommon().Contexts().PickResults
-	return self.ResolvePickResultsTarget("preview", pr.Results, pr)
-}
-
-// ResolvePickResultsTarget maps the cursor position to a lineTarget for
-// any context that holds pick results (PickResults or PickDialog).
-func (self *PreviewLineOpsHelper) ResolvePickResultsTarget(viewName string, results []models.PickResult, ctx context.IPreviewContext) *lineTarget {
-	v := self.c.GuiCommon().GetView(viewName)
-	if v == nil {
-		return nil
-	}
-	idx := ctx.SelectedCardIndex()
-	if idx >= len(results) {
-		return nil
-	}
-	result := results[idx]
-	ns := ctx.NavState()
-	ranges := ns.CardLineRanges
-	if idx >= len(ranges) {
-		return nil
-	}
-
-	cardStart := ranges[idx][0]
-	lineOffset := ns.CursorLine - cardStart - 1
-	if lineOffset < 0 {
-		return nil
-	}
-
-	width, _ := v.InnerSize()
-	if width < 10 {
-		width = 40
-	}
-	contentWidth := max(width-2, 10)
-
-	renderedLine := 0
-	for _, match := range result.Matches {
-		lineNum := fmt.Sprintf("%02d", match.Line)
-		prefix := fmt.Sprintf("  L%s: ", lineNum)
-		prefixLen := len(prefix)
-		wrapped := wordwrap.String(match.Content, contentWidth-prefixLen)
-		lines := strings.Split(strings.TrimRight(wrapped, "\n"), "\n")
-		lineCount := len(lines)
-
-		if lineOffset >= renderedLine && lineOffset < renderedLine+lineCount {
-			return &lineTarget{
-				UUID:    result.UUID,
-				LineNum: match.Line,
-				Path:    result.File,
-			}
-		}
-		renderedLine += lineCount
-	}
-	return nil
+// ResolveTarget exposes resolveTarget for use by other helpers (e.g. preview nav).
+func (self *PreviewLineOpsHelper) ResolveTarget() *lineTarget {
+	return self.resolveTarget()
 }
 
 // readSourceLine reads the raw source file and returns the content line at

@@ -197,39 +197,6 @@ func (gui *Gui) RenderTags() {
 		})
 }
 
-// wrapLine breaks a line into chunks that fit within the given width,
-// wrapping at word boundaries when possible.
-func wrapLine(s string, width int) []string {
-	s = strings.ReplaceAll(s, "\t", "    ")
-	runes := []rune(s)
-	if len(runes) <= width {
-		return []string{s}
-	}
-	var lines []string
-	for len(runes) > width {
-		// Find the last space at or before the width limit
-		breakAt := -1
-		for i := width; i >= 0; i-- {
-			if runes[i] == ' ' {
-				breakAt = i
-				break
-			}
-		}
-		if breakAt <= 0 {
-			// No space found; hard break at width
-			lines = append(lines, string(runes[:width]))
-			runes = runes[width:]
-		} else {
-			lines = append(lines, string(runes[:breakAt]))
-			runes = runes[breakAt+1:] // skip the space
-		}
-	}
-	if len(runes) > 0 {
-		lines = append(lines, string(runes))
-	}
-	return lines
-}
-
 // scrollListView sets the origin of a list view to keep selLine visible.
 func scrollListView(v *gocui.View, selLine, itemHeight, viewHeight int) {
 	_, currentOrigin := v.Origin()

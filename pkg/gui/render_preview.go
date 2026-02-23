@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"kvnd/lazyruin/pkg/gui/context"
+	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
@@ -15,6 +16,14 @@ import (
 
 // inlineTagRe matches #tag patterns (hashtag followed by word characters).
 var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
+
+// lineIdentity pairs a source note's UUID, content line number, and file path.
+// Used internally by BuildCardContent to tag each rendered line with its origin.
+type lineIdentity struct {
+	uuid    string
+	lineNum int
+	path    string
+}
 
 func (gui *Gui) RenderPreview() {
 	v := gui.views.Preview
@@ -182,49 +191,216 @@ func highlightSpan(line string, col, length int) string {
 	return sb.String()
 }
 
-// buildCardContent returns the rendered lines for a single card's body content.
-func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []string {
+// BuildCardContent returns the rendered lines for a single card's body content.
+// Each SourceLine carries both the rendered text and the source identity
+// (UUID, 1-indexed content line number, file path), so callers never need
+// to re-derive which source line a visual line came from.
+func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.SourceLine {
 	content := note.Content
 	if content == "" {
 		content, _ = gui.loadNoteContent(note.Path)
 	}
 
 	ds := gui.contexts.ActivePreview().DisplayState()
-	var lines []string
+	var lines []types.SourceLine
 
+	// Frontmatter display lines — non-content (LineNum=0)
 	if ds.ShowFrontmatter {
 		if fm, err := gui.loadNoteFrontmatter(note.Path); err == nil && fm != "" {
-			lines = append(lines, " "+AnsiDim+"---"+AnsiReset)
+			lines = append(lines, types.SourceLine{Text: " " + AnsiDim + "---" + AnsiReset})
 			for _, fl := range strings.Split(fm, "\n") {
-				lines = append(lines, " "+AnsiDim+fl+AnsiReset)
+				lines = append(lines, types.SourceLine{Text: " " + AnsiDim + fl + AnsiReset})
 			}
-			lines = append(lines, " "+AnsiDim+"---"+AnsiReset)
+			lines = append(lines, types.SourceLine{Text: " " + AnsiDim + "---" + AnsiReset})
 		}
 	}
 
+	// Build a per-content-line identity mapping. In compose mode, each line
+	// may belong to a different child note; otherwise lines map to the note itself.
+	contentLines := strings.Split(content, "\n")
+	identities := make([]lineIdentity, len(contentLines))
+
+	if gui.contexts.ActivePreviewKey == "compose" && len(gui.contexts.Compose.SourceMap) > 0 {
+		gui.buildComposeLineMap(contentLines, gui.contexts.Compose.SourceMap, identities)
+	} else {
+		rawLineMap := gui.buildRawLineMap(note)
+		for i := range contentLines {
+			identities[i] = lineIdentity{uuid: note.UUID, lineNum: rawLineMap[i], path: note.Path}
+		}
+	}
+
+	// Render content lines and tag each with its source identity.
+	// Both paths process line-by-line so each visual line can be tagged
+	// with the source content line it came from.
 	if ds.RenderMarkdown {
-		rendered := gui.renderMarkdown(content, contentWidth)
-		for _, rl := range strings.Split(rendered, "\n") {
-			lines = append(lines, " "+rl)
+		// Highlight the full content (chroma needs context for multi-line constructs),
+		// then split by source lines and wrap each individually.
+		highlighted := gui.highlightMarkdown(content)
+		highlightedLines := strings.Split(highlighted, "\n")
+		for srcIdx, hl := range highlightedLines {
+			id := identities[srcIdx]
+			wrapped := wordwrap.String(hl, contentWidth)
+			for _, wl := range strings.Split(wrapped, "\n") {
+				lines = append(lines, types.SourceLine{
+					Text:    " " + wl,
+					UUID:    id.uuid,
+					LineNum: id.lineNum,
+					Path:    id.path,
+				})
+			}
 		}
 	} else {
-		for _, l := range strings.Split(content, "\n") {
-			for _, wl := range wrapLine(l, contentWidth) {
-				lines = append(lines, " "+wl)
+		for srcIdx, l := range contentLines {
+			id := identities[srcIdx]
+			wrapped := wordwrap.String(l, contentWidth)
+			for _, wl := range strings.Split(wrapped, "\n") {
+				lines = append(lines, types.SourceLine{
+					Text:    " " + wl,
+					UUID:    id.uuid,
+					LineNum: id.lineNum,
+					Path:    id.path,
+				})
 			}
 		}
 	}
 
 	// Trim visually empty lines from start and end (strip ANSI before checking,
 	// since rendered markdown lines contain escape codes even when visually blank)
-	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[0])) == "" {
+	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[0].Text)) == "" {
 		lines = lines[1:]
 	}
-	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[len(lines)-1])) == "" {
+	for len(lines) > 0 && strings.TrimSpace(stripAnsi(lines[len(lines)-1].Text)) == "" {
 		lines = lines[:len(lines)-1]
 	}
 
 	return lines
+}
+
+// buildRawLineMap returns a mapping from content line index (0-indexed in
+// note.Content) to 1-indexed raw content line number (after frontmatter in
+// the source file). This handles the gap created by --strip-title and
+// --strip-global-tags.
+func (gui *Gui) buildRawLineMap(note models.Note) map[int]int {
+	result := make(map[int]int)
+	content := note.Content
+	if content == "" {
+		content, _ = gui.loadNoteContent(note.Path)
+	}
+
+	contentLines := strings.Split(content, "\n")
+
+	// Try to read the raw file to determine true content line numbers
+	data, err := os.ReadFile(note.Path)
+	if err != nil {
+		// Can't read file; use sequential numbering as fallback
+		for i := range contentLines {
+			result[i] = i + 1
+		}
+		return result
+	}
+
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := skipFrontmatter(fileLines)
+
+	// Forward scan: for each stripped content line, find its position in the raw file
+	rawIdx := contentStart
+	for srcIdx, srcLine := range contentLines {
+		trimmed := strings.TrimSpace(srcLine)
+		for rawIdx < len(fileLines) {
+			if strings.TrimSpace(fileLines[rawIdx]) == trimmed {
+				result[srcIdx] = rawIdx - contentStart + 1 // 1-indexed
+				rawIdx++
+				break
+			}
+			rawIdx++
+		}
+		if _, ok := result[srcIdx]; !ok {
+			// Fallback: sequential from last known position
+			result[srcIdx] = srcIdx + 1
+		}
+	}
+
+	return result
+}
+
+// buildComposeLineMap populates identities for compose mode. Each composed
+// content line is mapped to the child note that owns it (via the source map)
+// and matched against the child's raw file to determine the child-relative
+// 1-indexed content line number. Header normalization (# → ## etc.) is
+// handled by comparing lines with leading '#' characters stripped.
+func (gui *Gui) buildComposeLineMap(contentLines []string, sourceMap []models.SourceMapEntry, identities []lineIdentity) {
+	// Pre-load each child's content lines (after frontmatter)
+	type childData struct {
+		lines []string // raw file lines after frontmatter
+	}
+	children := make(map[string]*childData)
+	for _, entry := range sourceMap {
+		if _, ok := children[entry.UUID]; ok {
+			continue
+		}
+		data, err := os.ReadFile(entry.Path)
+		if err != nil {
+			children[entry.UUID] = &childData{}
+			continue
+		}
+		fileLines := strings.Split(string(data), "\n")
+		cs := skipFrontmatter(fileLines)
+		children[entry.UUID] = &childData{lines: fileLines[cs:]}
+	}
+
+	for _, entry := range sourceMap {
+		child := children[entry.UUID]
+		if child == nil {
+			continue
+		}
+
+		// Forward-scan the child's content to match composed lines
+		childIdx := 0
+		for srcIdx := entry.StartLine - 1; srcIdx < entry.EndLine && srcIdx < len(contentLines); srcIdx++ {
+			composedTrimmed := strings.TrimSpace(contentLines[srcIdx])
+			if composedTrimmed == "" {
+				// Blank line — set child UUID/Path but LineNum=0 (non-resolvable)
+				identities[srcIdx] = lineIdentity{uuid: entry.UUID, path: entry.Path}
+				continue
+			}
+
+			composedNorm := stripHeaderPrefix(composedTrimmed)
+			matched := false
+			for childIdx < len(child.lines) {
+				childTrimmed := strings.TrimSpace(child.lines[childIdx])
+				childNorm := stripHeaderPrefix(childTrimmed)
+				if composedNorm != "" && composedNorm == childNorm {
+					identities[srcIdx] = lineIdentity{
+						uuid:    entry.UUID,
+						lineNum: childIdx + 1, // 1-indexed content line in child file
+						path:    entry.Path,
+					}
+					childIdx++
+					matched = true
+					break
+				}
+				childIdx++
+			}
+			if !matched {
+				// No match found — set child UUID/Path but LineNum=0
+				identities[srcIdx] = lineIdentity{uuid: entry.UUID, path: entry.Path}
+			}
+		}
+	}
+}
+
+// stripHeaderPrefix removes leading '#' characters and the following space
+// from a string, normalizing markdown headers for cross-level comparison
+// (e.g. "## Title" and "### Title" both become "Title").
+func stripHeaderPrefix(s string) string {
+	i := 0
+	for i < len(s) && s[i] == '#' {
+		i++
+	}
+	if i == 0 {
+		return s
+	}
+	return strings.TrimLeft(s[i:], " ")
 }
 
 // renderSeparatorCards renders cards using separator lines instead of frames
@@ -239,7 +415,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 	if width < 10 {
 		width = 40
 	}
-	contentWidth := max(width-2, 10)
+	contentWidth := types.PreviewContentWidth(v)
 
 	isActive := gui.isPreviewActive()
 	selectedStartLine := 0
@@ -247,6 +423,14 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 	currentLine := 0
 	ns.CardLineRanges = make([][2]int, len(cards))
 	ns.HeaderLines = ns.HeaderLines[:0]
+	ns.Lines = ns.Lines[:0]
+
+	emitLine := func(text string, sl types.SourceLine) {
+		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
+		sl.Text = text
+		ns.Lines = append(ns.Lines, sl)
+		currentLine++
+	}
 
 	for i, note := range cards {
 		selected := isActive && i == ctx.SelectedCardIndex()
@@ -265,16 +449,14 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 		if temporarilyMoved[i] && len(cards) > 1 {
 			upperRight = " Temporarily Moved "
 		}
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), currentLine, isActive, ns)
-		currentLine++
+		emitLine(gui.buildSeparatorLine(true, " "+title+" ", upperRight, width, selected), types.SourceLine{})
 
 		// Card body content
-		for _, line := range gui.BuildCardContent(note, contentWidth) {
-			if isHeaderLine(line) {
+		for _, sl := range gui.BuildCardContent(note, contentWidth) {
+			if isHeaderLine(sl.Text) {
 				ns.HeaderLines = append(ns.HeaderLines, currentLine)
 			}
-			gui.fprintPreviewLine(v, line, currentLine, isActive, ns)
-			currentLine++
+			emitLine(sl.Text, sl)
 		}
 
 		// Lower separator with date, global tags, and parent (if set)
@@ -286,8 +468,7 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 		if meta := models.JoinDot(note.ShortDate(), note.GlobalTagsString(), parentLabel); meta != "" {
 			rightText = " " + meta + " "
 		}
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", rightText, width, selected), currentLine, isActive, ns)
-		currentLine++
+		emitLine(gui.buildSeparatorLine(false, "", rightText, width, selected), types.SourceLine{})
 
 		ns.CardLineRanges[i][1] = currentLine
 		if selected {
@@ -296,8 +477,8 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 
 		// Blank line between cards (except last)
 		if i < len(cards)-1 {
-			gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
-			currentLine++
+			emitLine("", types.SourceLine{})
+
 		}
 	}
 
@@ -411,13 +592,21 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 	if width < 10 {
 		width = 40
 	}
-	contentWidth := max(width-2, 10)
+	contentWidth := types.PreviewContentWidth(v)
 
 	selectedStartLine := 0
 	selectedEndLine := 0
 	currentLine := 0
 	ns.CardLineRanges = make([][2]int, len(results))
 	ns.HeaderLines = ns.HeaderLines[:0]
+	ns.Lines = ns.Lines[:0]
+
+	emitLine := func(text string, sl types.SourceLine) {
+		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
+		sl.Text = text
+		ns.Lines = append(ns.Lines, sl)
+		currentLine++
+	}
 
 	for i, result := range results {
 		selected := isActive && i == selectedCardIdx
@@ -432,8 +621,7 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 		if title == "" {
 			title = "Untitled"
 		}
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), currentLine, isActive, ns)
-		currentLine++
+		emitLine(gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), types.SourceLine{})
 
 		// Render each match line
 		for _, match := range result.Matches {
@@ -443,6 +631,7 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 			highlighted := gui.highlightMarkdown(match.Content)
 			wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
 			indent := strings.Repeat(" ", prefixLen)
+			src := types.SourceLine{UUID: result.UUID, LineNum: match.Line, Path: result.File}
 			for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
 				var formatted string
 				if j == 0 {
@@ -450,15 +639,13 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 				} else {
 					formatted = indent + line
 				}
-				gui.fprintPreviewLine(v, formatted, currentLine, isActive, ns)
-				currentLine++
+				emitLine(formatted, src)
 			}
 		}
 
 		// Lower separator
 		matchCount := fmt.Sprintf(" %d matches ", len(result.Matches))
-		gui.fprintPreviewLine(v, gui.buildSeparatorLine(false, "", matchCount, width, selected), currentLine, isActive, ns)
-		currentLine++
+		emitLine(gui.buildSeparatorLine(false, "", matchCount, width, selected), types.SourceLine{})
 
 		ns.CardLineRanges[i][1] = currentLine
 		if selected {
@@ -467,8 +654,7 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 
 		// Blank line between groups (except last)
 		if i < len(results)-1 {
-			gui.fprintPreviewLine(v, "", currentLine, isActive, ns)
-			currentLine++
+			emitLine("", types.SourceLine{})
 		}
 	}
 
@@ -493,22 +679,33 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 	v.SetOrigin(0, originY)
 }
 
+// skipFrontmatter returns the 0-indexed line of the first content line in fileLines.
+// If no frontmatter is present, returns 0.
+func skipFrontmatter(fileLines []string) int {
+	if len(fileLines) == 0 || !strings.HasPrefix(fileLines[0], "---") {
+		return 0
+	}
+	for i := 1; i < len(fileLines); i++ {
+		if strings.TrimSpace(fileLines[i]) == "---" {
+			return i + 1
+		}
+	}
+	return 0 // unclosed frontmatter — treat whole file as content
+}
+
 // loadNoteFrontmatter returns the raw YAML frontmatter block (without the --- delimiters).
 func (gui *Gui) loadNoteFrontmatter(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	raw := string(data)
-	if !strings.HasPrefix(raw, "---") {
-		return "", nil
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := skipFrontmatter(fileLines)
+	if contentStart <= 1 {
+		return "", nil // no frontmatter
 	}
-	rest := raw[3:]
-	idx := strings.Index(rest, "\n---")
-	if idx == -1 {
-		return "", nil
-	}
-	fm := strings.TrimPrefix(rest[:idx], "\n")
+	// frontmatter is lines 1..contentStart-2 (between the --- delimiters)
+	fm := strings.Join(fileLines[1:contentStart-1], "\n")
 	return fm, nil
 }
 
@@ -517,17 +714,9 @@ func (gui *Gui) loadNoteContent(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	content := string(data)
-
-	// Strip YAML frontmatter if present
-	if strings.HasPrefix(content, "---") {
-		// Find the closing ---
-		rest := content[3:]
-		if idx := strings.Index(rest, "\n---"); idx != -1 {
-			content = strings.TrimLeft(rest[idx+4:], "\n")
-		}
-	}
-
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := skipFrontmatter(fileLines)
+	content := strings.Join(fileLines[contentStart:], "\n")
+	content = strings.TrimLeft(content, "\n")
 	return content, nil
 }

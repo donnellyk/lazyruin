@@ -20,38 +20,38 @@ type mockGuiCommon struct {
 func (m *mockGuiCommon) Contexts() *context.ContextTree { return m.contexts }
 
 // types.IGuiCommon stubs
-func (m *mockGuiCommon) Update(func() error)                          {}
-func (m *mockGuiCommon) RenderNotes()                                 {}
-func (m *mockGuiCommon) RenderTags()                                  {}
-func (m *mockGuiCommon) RenderQueries()                               {}
-func (m *mockGuiCommon) RenderPreview()                               {}
-func (m *mockGuiCommon) RenderAll()                                   {}
-func (m *mockGuiCommon) UpdateNotesTab()                              {}
-func (m *mockGuiCommon) UpdateTagsTab()                               {}
-func (m *mockGuiCommon) UpdateQueriesTab()                            {}
-func (m *mockGuiCommon) UpdateStatusBar()                             {}
-func (m *mockGuiCommon) CurrentContext() types.Context                { return nil }
-func (m *mockGuiCommon) CurrentContextKey() types.ContextKey          { return "" }
-func (m *mockGuiCommon) PushContext(types.Context, types.OnFocusOpts) {}
-func (m *mockGuiCommon) PushContextByKey(types.ContextKey)            {}
-func (m *mockGuiCommon) PopContext()                                  {}
-func (m *mockGuiCommon) ReplaceContext(types.Context)                 {}
-func (m *mockGuiCommon) ReplaceContextByKey(types.ContextKey)         {}
-func (m *mockGuiCommon) ContextByKey(types.ContextKey) types.Context  { return nil }
-func (m *mockGuiCommon) PopupActive() bool                            { return false }
-func (m *mockGuiCommon) SearchQueryActive() bool                      { return false }
-func (m *mockGuiCommon) ShowConfirm(string, string, func() error)     {}
-func (m *mockGuiCommon) ShowInput(string, string, func(string) error) {}
-func (m *mockGuiCommon) ShowError(error)                              {}
-func (m *mockGuiCommon) ShowMenuDialog(string, []types.MenuItem)      {}
-func (m *mockGuiCommon) SetCursorEnabled(bool)                        {}
-func (m *mockGuiCommon) Suspend() error                               { return nil }
-func (m *mockGuiCommon) Resume() error                                { return nil }
-func (m *mockGuiCommon) GetView(string) *gocui.View                   { return nil }
-func (m *mockGuiCommon) DeleteView(string)                            {}
-func (m *mockGuiCommon) BuildCardContent(models.Note, int) []string   { return nil }
-func (m *mockGuiCommon) RenderPickDialog()                            {}
-func (m *mockGuiCommon) PreviousContextKey() types.ContextKey         { return "" }
+func (m *mockGuiCommon) Update(func() error)                                  {}
+func (m *mockGuiCommon) RenderNotes()                                         {}
+func (m *mockGuiCommon) RenderTags()                                          {}
+func (m *mockGuiCommon) RenderQueries()                                       {}
+func (m *mockGuiCommon) RenderPreview()                                       {}
+func (m *mockGuiCommon) RenderAll()                                           {}
+func (m *mockGuiCommon) UpdateNotesTab()                                      {}
+func (m *mockGuiCommon) UpdateTagsTab()                                       {}
+func (m *mockGuiCommon) UpdateQueriesTab()                                    {}
+func (m *mockGuiCommon) UpdateStatusBar()                                     {}
+func (m *mockGuiCommon) CurrentContext() types.Context                        { return nil }
+func (m *mockGuiCommon) CurrentContextKey() types.ContextKey                  { return "" }
+func (m *mockGuiCommon) PushContext(types.Context, types.OnFocusOpts)         {}
+func (m *mockGuiCommon) PushContextByKey(types.ContextKey)                    {}
+func (m *mockGuiCommon) PopContext()                                          {}
+func (m *mockGuiCommon) ReplaceContext(types.Context)                         {}
+func (m *mockGuiCommon) ReplaceContextByKey(types.ContextKey)                 {}
+func (m *mockGuiCommon) ContextByKey(types.ContextKey) types.Context          { return nil }
+func (m *mockGuiCommon) PopupActive() bool                                    { return false }
+func (m *mockGuiCommon) SearchQueryActive() bool                              { return false }
+func (m *mockGuiCommon) ShowConfirm(string, string, func() error)             {}
+func (m *mockGuiCommon) ShowInput(string, string, func(string) error)         {}
+func (m *mockGuiCommon) ShowError(error)                                      {}
+func (m *mockGuiCommon) ShowMenuDialog(string, []types.MenuItem)              {}
+func (m *mockGuiCommon) SetCursorEnabled(bool)                                {}
+func (m *mockGuiCommon) Suspend() error                                       { return nil }
+func (m *mockGuiCommon) Resume() error                                        { return nil }
+func (m *mockGuiCommon) GetView(string) *gocui.View                           { return nil }
+func (m *mockGuiCommon) DeleteView(string)                                    {}
+func (m *mockGuiCommon) BuildCardContent(models.Note, int) []types.SourceLine { return nil }
+func (m *mockGuiCommon) RenderPickDialog()                                    {}
+func (m *mockGuiCommon) PreviousContextKey() types.ContextKey                 { return "" }
 
 func newTestCompletionHelper(mock *testutil.MockExecutor, gui *mockGuiCommon) *CompletionHelper {
 	ruinCmd := commands.NewRuinCommandWithExecutor(mock, "/mock")
