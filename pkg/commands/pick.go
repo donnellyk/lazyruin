@@ -17,7 +17,10 @@ func NewPickCommand(ruin *RuinCommand) *PickCommand {
 // PickOpts holds optional flags for the pick command.
 type PickOpts struct {
 	Any    bool
-	Filter string
+	Filter string   // --filter: note-level metadata filter
+	Date   string   // positional @date: line-level date filter
+	Todo   bool     // --todo flag
+	All    bool     // --all flag (include done todos)
 	Parent string   // --parent: scope to children of a parent note
 	Notes  []string // --notes: scope to specific note UUIDs
 }
@@ -30,8 +33,17 @@ func (p *PickCommand) Pick(tags []string, opts PickOpts) ([]models.PickResult, e
 			args = append(args, "--done")
 		}
 	}
+	if opts.Date != "" {
+		args = append(args, opts.Date)
+	}
 	if opts.Any {
 		args = append(args, "--any")
+	}
+	if opts.Todo {
+		args = append(args, "--todo")
+	}
+	if opts.All {
+		args = append(args, "--all")
 	}
 	if opts.Filter != "" {
 		args = append(args, "--filter", opts.Filter)

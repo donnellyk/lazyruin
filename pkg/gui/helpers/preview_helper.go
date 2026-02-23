@@ -174,8 +174,8 @@ func (self *PreviewHelper) ReloadPickResults() {
 	pr := gui.Contexts().PickResults
 	pickCtx := gui.Contexts().Pick
 
-	tags, filter := ParsePickQuery(pickCtx.Query)
-	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{Any: pickCtx.AnyMode, Filter: filter})
+	tags, date, filter := ParsePickQuery(pickCtx.Query)
+	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{Any: pickCtx.AnyMode, Date: date, Filter: filter})
 	if err != nil {
 		results = nil
 	}

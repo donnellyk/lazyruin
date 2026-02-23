@@ -61,12 +61,12 @@ func (self *PickHelper) OpenPickDialog() error {
 	return nil
 }
 
-// ParsePickQuery splits raw pick input into tags and a filter string.
-func ParsePickQuery(raw string) (tags []string, filter string) {
-	var filters []string
+// ParsePickQuery splits raw pick input into tags, an optional @date
+// (line-level date filter), and remaining filter text.
+func ParsePickQuery(raw string) (tags []string, date string, filter string) {
 	for _, token := range strings.Fields(raw) {
 		if strings.HasPrefix(token, "@") {
-			filters = append(filters, token)
+			date = token
 		} else {
 			if !strings.HasPrefix(token, "#") {
 				token = "#" + token
@@ -74,7 +74,7 @@ func ParsePickQuery(raw string) (tags []string, filter string) {
 			tags = append(tags, token)
 		}
 	}
-	return tags, strings.Join(filters, " ")
+	return tags, date, ""
 }
 
 // ExecutePick parses the raw input, runs the pick command, and shows results.
@@ -91,8 +91,8 @@ func (self *PickHelper) ExecutePick(raw string) error {
 		return self.executePickDialog(raw, ctx)
 	}
 
-	tags, filter := ParsePickQuery(raw)
-	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{Any: ctx.AnyMode, Filter: filter})
+	tags, date, filter := ParsePickQuery(raw)
+	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{Any: ctx.AnyMode, Date: date, Filter: filter})
 
 	// Always close the pick dialog
 	ctx.Query = raw
@@ -111,8 +111,8 @@ func (self *PickHelper) ExecutePick(raw string) error {
 // scopedPickOpts builds PickOpts with context-appropriate scoping:
 // compose mode scopes to the parent's children, cardList mode scopes to
 // the selected note, and all other modes are unscoped.
-func (self *PickHelper) scopedPickOpts(filter string, anyMode bool) commands.PickOpts {
-	opts := commands.PickOpts{Any: anyMode, Filter: filter}
+func (self *PickHelper) scopedPickOpts(date, filter string, anyMode bool) commands.PickOpts {
+	opts := commands.PickOpts{Any: anyMode, Date: date, Filter: filter}
 	gui := self.c.GuiCommon()
 	switch gui.Contexts().ActivePreviewKey {
 	case "compose":
@@ -136,13 +136,13 @@ func (self *PickHelper) scopedPickOpts(filter string, anyMode bool) commands.Pic
 func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) error {
 	gui := self.c.GuiCommon()
 
-	tags, filter := ParsePickQuery(raw)
+	tags, date, filter := ParsePickQuery(raw)
 
 	ctx.Query = raw
 	ctx.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
-	opts := self.scopedPickOpts(filter, ctx.AnyMode)
+	opts := self.scopedPickOpts(date, filter, ctx.AnyMode)
 
 	var results []models.PickResult
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
@@ -187,8 +187,8 @@ func (self *PickHelper) ReloadPickDialog() {
 		return
 	}
 
-	tags, filter := ParsePickQuery(pd.Query)
-	opts := self.scopedPickOpts(filter, false)
+	tags, date, filter := ParsePickQuery(pd.Query)
+	opts := self.scopedPickOpts(date, filter, false)
 
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
 	if err == nil {
