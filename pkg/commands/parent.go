@@ -40,12 +40,23 @@ func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, []models.S
 		return models.Note{}, nil, err
 	}
 
-	return models.Note{
+	note := models.Note{
 		UUID:    root.UUID,
 		Title:   title,
 		Path:    root.Path,
 		Content: root.ComposedContent,
-	}, root.SourceMap, nil
+	}
+
+	// Fetch root note metadata (tags, created, parent) for the card footer.
+	if metaOutput, err := p.ruin.Execute("get", "--uuid", uuid); err == nil {
+		if meta, err := unmarshalJSON[*models.Note](metaOutput); err == nil && meta != nil {
+			note.Tags = meta.Tags
+			note.Created = meta.Created
+			note.Parent = meta.Parent
+		}
+	}
+
+	return note, root.SourceMap, nil
 }
 
 // Save creates a parent bookmark via `parent save <name> <note>`.
