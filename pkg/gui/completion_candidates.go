@@ -539,12 +539,13 @@ func (gui *Gui) ParentCandidatesFor(completionState *types.CompletionState) func
 
 // abbreviationCandidates returns user-defined abbreviation snippets filtered by key.
 func (gui *Gui) abbreviationCandidates(filter string) []types.CompletionItem {
-	if len(gui.config.Abbreviations) == 0 {
+	abbrevs := gui.config.VaultAbbreviations(gui.ruinCmd.VaultPath())
+	if len(abbrevs) == 0 {
 		return nil
 	}
 	filter = strings.ToLower(filter)
-	keys := make([]string, 0, len(gui.config.Abbreviations))
-	for k := range gui.config.Abbreviations {
+	keys := make([]string, 0, len(abbrevs))
+	for k := range abbrevs {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -554,7 +555,7 @@ func (gui *Gui) abbreviationCandidates(filter string) []types.CompletionItem {
 		if filter != "" && !strings.Contains(strings.ToLower(k), filter) {
 			continue
 		}
-		expansion := gui.config.Abbreviations[k]
+		expansion := abbrevs[k]
 		detail := expansion
 		if len(detail) > 40 {
 			detail = detail[:37] + "..."

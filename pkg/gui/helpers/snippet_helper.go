@@ -20,21 +20,23 @@ func NewSnippetHelper(c *HelperCommon) *SnippetHelper {
 func (self *SnippetHelper) ListSnippets() error {
 	cfg := self.c.Config()
 	gui := self.c.GuiCommon()
+	vaultPath := self.c.RuinCmd().VaultPath()
+	abbrevs := cfg.VaultAbbreviations(vaultPath)
 
-	if len(cfg.Abbreviations) == 0 {
+	if len(abbrevs) == 0 {
 		gui.ShowError(fmt.Errorf("no snippets configured"))
 		return nil
 	}
 
-	keys := make([]string, 0, len(cfg.Abbreviations))
-	for k := range cfg.Abbreviations {
+	keys := make([]string, 0, len(abbrevs))
+	for k := range abbrevs {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	var items []types.MenuItem
 	for _, k := range keys {
-		expansion := cfg.Abbreviations[k]
+		expansion := abbrevs[k]
 		items = append(items, types.MenuItem{
 			Key:   "!" + k,
 			Label: expansion,
@@ -59,6 +61,7 @@ func (self *SnippetHelper) CreateSnippet() error {
 func (self *SnippetHelper) SaveSnippet(name, expansion string) error {
 	cfg := self.c.Config()
 	gui := self.c.GuiCommon()
+	vaultPath := self.c.RuinCmd().VaultPath()
 
 	if name == "" {
 		gui.ShowError(fmt.Errorf("snippet name cannot be empty"))
@@ -68,17 +71,13 @@ func (self *SnippetHelper) SaveSnippet(name, expansion string) error {
 		gui.ShowError(fmt.Errorf("expansion cannot be empty"))
 		return nil
 	}
-	if cfg.Abbreviations != nil {
-		if _, exists := cfg.Abbreviations[name]; exists {
-			gui.ShowError(fmt.Errorf("snippet !%s already exists", name))
-			return nil
-		}
+	abbrevs := cfg.VaultAbbreviations(vaultPath)
+	if _, exists := abbrevs[name]; exists {
+		gui.ShowError(fmt.Errorf("snippet !%s already exists", name))
+		return nil
 	}
 
-	if cfg.Abbreviations == nil {
-		cfg.Abbreviations = make(map[string]string)
-	}
-	cfg.Abbreviations[name] = expansion
+	cfg.SetVaultAbbreviation(vaultPath, name, expansion)
 	return cfg.Save()
 }
 
@@ -99,14 +98,16 @@ func (self *SnippetHelper) CloseEditor() error {
 func (self *SnippetHelper) DeleteSnippet() error {
 	cfg := self.c.Config()
 	gui := self.c.GuiCommon()
+	vaultPath := self.c.RuinCmd().VaultPath()
+	abbrevs := cfg.VaultAbbreviations(vaultPath)
 
-	if len(cfg.Abbreviations) == 0 {
+	if len(abbrevs) == 0 {
 		gui.ShowError(fmt.Errorf("no snippets to delete"))
 		return nil
 	}
 
-	keys := make([]string, 0, len(cfg.Abbreviations))
-	for k := range cfg.Abbreviations {
+	keys := make([]string, 0, len(abbrevs))
+	for k := range abbrevs {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -114,7 +115,7 @@ func (self *SnippetHelper) DeleteSnippet() error {
 	var items []types.MenuItem
 	for _, k := range keys {
 		name := k
-		expansion := cfg.Abbreviations[name]
+		expansion := abbrevs[name]
 		detail := expansion
 		if len(detail) > 40 {
 			detail = detail[:37] + "..."
@@ -124,7 +125,7 @@ func (self *SnippetHelper) DeleteSnippet() error {
 			Label: detail,
 			OnRun: func() error {
 				gui.ShowConfirm("Delete Snippet", fmt.Sprintf("Delete snippet !%s?", name), func() error {
-					delete(cfg.Abbreviations, name)
+					cfg.DeleteVaultAbbreviation(vaultPath, name)
 					return cfg.Save()
 				})
 				return nil
