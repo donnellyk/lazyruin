@@ -25,7 +25,10 @@ func (self *EditorHelper) OpenInEditor(path string) error {
 		return err
 	}
 
-	editor := os.Getenv("EDITOR")
+	editor := self.c.Config().Editor
+	if editor == "" {
+		editor = os.Getenv("EDITOR")
+	}
 	if editor == "" {
 		editor = "vim"
 	}

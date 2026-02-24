@@ -10,6 +10,7 @@ import (
 // Config holds the application configuration.
 type Config struct {
 	VaultPath     string            `yaml:"vault_path"`
+	Editor        string            `yaml:"editor"`
 	ChromaTheme   string            `yaml:"chroma_theme"`
 	Abbreviations map[string]string `yaml:"abbreviations,omitempty"`
 }
