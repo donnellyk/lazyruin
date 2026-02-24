@@ -103,6 +103,7 @@ func (gui *Gui) pickTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
 		{Prefix: "#", Candidates: tagCandidates},
 		{Prefix: "@", Candidates: atDateCandidates},
+		{Prefix: "--", Candidates: flagCandidates},
 	}
 }
 

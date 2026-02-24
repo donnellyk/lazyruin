@@ -229,6 +229,13 @@ func (gui *Gui) setupPickContext() {
 				}
 				return nil
 			}},
+			{Key: gocui.KeyCtrlT, Description: "Toggle --todo", Handler: func() error {
+				gui.helpers.Pick().TogglePickTodo()
+				if gui.views.Pick != nil {
+					gui.views.Pick.Footer = gui.pickFooter()
+				}
+				return nil
+			}},
 		},
 	)
 	controllers.AttachController(ctrl)

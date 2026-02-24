@@ -568,3 +568,22 @@ func (gui *Gui) abbreviationCandidates(filter string) []types.CompletionItem {
 	}
 	return items
 }
+
+// flagCandidates returns --any and --todo flag suggestions for the pick popup.
+func flagCandidates(filter string) []types.CompletionItem {
+	items := []types.CompletionItem{
+		{Label: "--any", InsertText: "--any", Detail: "match any tag"},
+		{Label: "--todo", InsertText: "--todo", Detail: "only todo lines"},
+	}
+	if filter == "" {
+		return items
+	}
+	filter = strings.ToLower(filter)
+	var filtered []types.CompletionItem
+	for _, item := range items {
+		if strings.Contains(item.Label, filter) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}

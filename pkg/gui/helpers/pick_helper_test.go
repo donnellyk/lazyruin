@@ -11,6 +11,7 @@ func TestParsePickQuery(t *testing.T) {
 		wantTags   []string
 		wantDate   string
 		wantFilter string
+		wantFlags  PickFlags
 	}{
 		{
 			name:     "single tag",
@@ -79,11 +80,36 @@ func TestParsePickQuery(t *testing.T) {
 			raw:      "@2026-01-01 @2026-02-23",
 			wantDate: "@2026-02-23",
 		},
+		{
+			name:      "--any flag",
+			raw:       "#followup --any",
+			wantTags:  []string{"#followup"},
+			wantFlags: PickFlags{Any: true},
+		},
+		{
+			name:      "--todo flag",
+			raw:       "#followup --todo",
+			wantTags:  []string{"#followup"},
+			wantFlags: PickFlags{Todo: true},
+		},
+		{
+			name:      "both flags",
+			raw:       "#followup --any --todo @today",
+			wantTags:  []string{"#followup"},
+			wantDate:  "@today",
+			wantFlags: PickFlags{Any: true, Todo: true},
+		},
+		{
+			name:      "flags among tags",
+			raw:       "--todo #urgent --any",
+			wantTags:  []string{"#urgent"},
+			wantFlags: PickFlags{Any: true, Todo: true},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tags, date, filter := ParsePickQuery(tt.raw)
+			tags, date, filter, flags := ParsePickQuery(tt.raw)
 
 			if !slicesEqual(tags, tt.wantTags) {
 				t.Errorf("tags = %v, want %v", tags, tt.wantTags)
@@ -93,6 +119,9 @@ func TestParsePickQuery(t *testing.T) {
 			}
 			if filter != tt.wantFilter {
 				t.Errorf("filter = %q, want %q", filter, tt.wantFilter)
+			}
+			if flags != tt.wantFlags {
+				t.Errorf("flags = %+v, want %+v", flags, tt.wantFlags)
 			}
 		})
 	}

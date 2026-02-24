@@ -27,6 +27,7 @@ func (self *PickHelper) OpenPick() error {
 	ctx := gui.Contexts().Pick
 	ctx.Completion = types.NewCompletionState()
 	ctx.AnyMode = false
+	ctx.TodoMode = false
 	ctx.SeedHash = true
 	ctx.DialogMode = false
 	gui.PushContextByKey("pick")
@@ -54,6 +55,7 @@ func (self *PickHelper) OpenPickDialog() error {
 	ctx := gui.Contexts().Pick
 	ctx.Completion = types.NewCompletionState()
 	ctx.AnyMode = false
+	ctx.TodoMode = false
 	ctx.SeedHash = true
 	ctx.DialogMode = true
 	ctx.ScopeTitle = scopeTitle
@@ -61,20 +63,33 @@ func (self *PickHelper) OpenPickDialog() error {
 	return nil
 }
 
+// PickFlags holds boolean flags parsed from the pick input text.
+type PickFlags struct {
+	Any  bool
+	Todo bool
+}
+
 // ParsePickQuery splits raw pick input into tags, an optional @date
-// (line-level date filter), and remaining filter text.
-func ParsePickQuery(raw string) (tags []string, date string, filter string) {
+// (line-level date filter), remaining filter text, and any --flags.
+func ParsePickQuery(raw string) (tags []string, date string, filter string, flags PickFlags) {
 	for _, token := range strings.Fields(raw) {
-		if strings.HasPrefix(token, "@") {
-			date = token
-		} else {
-			if !strings.HasPrefix(token, "#") {
-				token = "#" + token
+		switch token {
+		case "--any":
+			flags.Any = true
+		case "--todo":
+			flags.Todo = true
+		default:
+			if strings.HasPrefix(token, "@") {
+				date = token
+			} else {
+				if !strings.HasPrefix(token, "#") {
+					token = "#" + token
+				}
+				tags = append(tags, token)
 			}
-			tags = append(tags, token)
 		}
 	}
-	return tags, date, ""
+	return tags, date, "", flags
 }
 
 // ExecutePick parses the raw input, runs the pick command, and shows results.
@@ -91,8 +106,12 @@ func (self *PickHelper) ExecutePick(raw string) error {
 		return self.executePickDialog(raw, ctx)
 	}
 
-	tags, date, filter := ParsePickQuery(raw)
-	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{Any: ctx.AnyMode, Date: date, Filter: filter})
+	tags, date, filter, flags := ParsePickQuery(raw)
+	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{
+		Any:  ctx.AnyMode || flags.Any,
+		Todo: ctx.TodoMode || flags.Todo,
+		Date: date, Filter: filter,
+	})
 
 	// Always close the pick dialog
 	ctx.Query = raw
@@ -111,8 +130,8 @@ func (self *PickHelper) ExecutePick(raw string) error {
 // scopedPickOpts builds PickOpts with context-appropriate scoping:
 // compose mode scopes to the parent's children, cardList mode scopes to
 // the selected note, and all other modes are unscoped.
-func (self *PickHelper) scopedPickOpts(date, filter string, anyMode bool) commands.PickOpts {
-	opts := commands.PickOpts{Any: anyMode, Date: date, Filter: filter}
+func (self *PickHelper) scopedPickOpts(date, filter string, anyMode, todoMode bool) commands.PickOpts {
+	opts := commands.PickOpts{Any: anyMode, Todo: todoMode, Date: date, Filter: filter}
 	gui := self.c.GuiCommon()
 	switch gui.Contexts().ActivePreviewKey {
 	case "compose":
@@ -136,13 +155,13 @@ func (self *PickHelper) scopedPickOpts(date, filter string, anyMode bool) comman
 func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) error {
 	gui := self.c.GuiCommon()
 
-	tags, date, filter := ParsePickQuery(raw)
+	tags, date, filter, flags := ParsePickQuery(raw)
 
 	ctx.Query = raw
 	ctx.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
-	opts := self.scopedPickOpts(date, filter, ctx.AnyMode)
+	opts := self.scopedPickOpts(date, filter, ctx.AnyMode || flags.Any, ctx.TodoMode || flags.Todo)
 
 	var results []models.PickResult
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
@@ -179,6 +198,12 @@ func (self *PickHelper) TogglePickAny() {
 	ctx.AnyMode = !ctx.AnyMode
 }
 
+// TogglePickTodo toggles the todo-mode flag for pick.
+func (self *PickHelper) TogglePickTodo() {
+	ctx := self.c.GuiCommon().Contexts().Pick
+	ctx.TodoMode = !ctx.TodoMode
+}
+
 // ReloadPickDialog re-runs the current pick dialog query and updates results.
 func (self *PickHelper) ReloadPickDialog() {
 	gui := self.c.GuiCommon()
@@ -187,8 +212,8 @@ func (self *PickHelper) ReloadPickDialog() {
 		return
 	}
 
-	tags, date, filter := ParsePickQuery(pd.Query)
-	opts := self.scopedPickOpts(date, filter, false)
+	tags, date, filter, flags := ParsePickQuery(pd.Query)
+	opts := self.scopedPickOpts(date, filter, flags.Any, flags.Todo)
 
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
 	if err == nil {
