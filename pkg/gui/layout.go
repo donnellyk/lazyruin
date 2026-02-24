@@ -695,7 +695,16 @@ func (gui *Gui) pickFooter() string {
 	if gui.contexts.Pick.TodoMode {
 		todoLabel = "on"
 	}
-	return " --any: " + anyLabel + " <c-a> | --todo: " + todoLabel + " <c-t> | Tab: complete | Esc: cancel "
+	footer := " --any: " + anyLabel + " <c-a> | --todo: " + todoLabel + " <c-t>"
+	if gui.contexts.Pick.DialogMode {
+		allTagsLabel := "off"
+		if gui.contexts.Pick.AllTagsMode {
+			allTagsLabel = "on"
+		}
+		footer += " | --all-tags: " + allTagsLabel + " <c-l>"
+	}
+	footer += " | Tab: complete | Esc: cancel "
+	return footer
 }
 
 // updateCaptureFooter sets the capture popup footer to show date, tags, and parent.

@@ -71,9 +71,10 @@ func (self *CompletionHelper) CurrentCardTagCandidates(filter string) []types.Co
 // inlineTagPattern matches #tag tokens in note content.
 var inlineTagPattern = regexp.MustCompile(`#[\w-]+`)
 
-// ScopedInlineTagCandidates returns tag completion items limited to inline tags
-// found in the underlying preview document (compose note or cardList card).
-func (self *CompletionHelper) ScopedInlineTagCandidates(filter string) []types.CompletionItem {
+// ScopedInlineTags returns the unique inline tags found in the underlying
+// preview document (compose note or cardList card). Each tag includes the
+// leading # prefix. Returns nil when no scoped content is available.
+func (self *CompletionHelper) ScopedInlineTags() []string {
 	gui := self.c.GuiCommon()
 	var content string
 	switch gui.Contexts().ActivePreviewKey {
@@ -86,27 +87,35 @@ func (self *CompletionHelper) ScopedInlineTagCandidates(filter string) []types.C
 		}
 	}
 	if content == "" {
-		return self.TagCandidates(filter)
+		return nil
 	}
 
-	// Extract unique inline tags from content
 	seen := make(map[string]bool)
 	var tags []string
 	for _, m := range inlineTagPattern.FindAllString(content, -1) {
 		lower := strings.ToLower(m)
 		if !seen[lower] {
 			seen[lower] = true
+			if !strings.HasPrefix(m, "#") {
+				m = "#" + m
+			}
 			tags = append(tags, m)
 		}
+	}
+	return tags
+}
+
+// ScopedInlineTagCandidates returns tag completion items limited to inline tags
+// found in the underlying preview document (compose note or cardList card).
+func (self *CompletionHelper) ScopedInlineTagCandidates(filter string) []types.CompletionItem {
+	tags := self.ScopedInlineTags()
+	if tags == nil {
+		return self.TagCandidates(filter)
 	}
 
 	filter = strings.ToLower(filter)
 	var items []types.CompletionItem
-	for _, tag := range tags {
-		name := tag
-		if !strings.HasPrefix(name, "#") {
-			name = "#" + name
-		}
+	for _, name := range tags {
 		nameWithoutHash := strings.TrimPrefix(name, "#")
 		if filter != "" && !strings.Contains(strings.ToLower(nameWithoutHash), filter) {
 			continue

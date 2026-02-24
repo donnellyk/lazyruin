@@ -222,15 +222,22 @@ func (gui *Gui) setupPickContext() {
 			{Key: gocui.KeyTab, Description: "Complete", Handler: func() error {
 				return gui.completionTab(pickState, gui.pickTriggers)(gui.g, gui.views.Pick)
 			}},
-			{Key: gocui.KeyCtrlA, Description: "Toggle --any", Handler: func() error {
+			{Key: gocui.KeyCtrlA, Description: "--any", Handler: func() error {
 				gui.helpers.Pick().TogglePickAny()
 				if gui.views.Pick != nil {
 					gui.views.Pick.Footer = gui.pickFooter()
 				}
 				return nil
 			}},
-			{Key: gocui.KeyCtrlT, Description: "Toggle --todo", Handler: func() error {
+			{Key: gocui.KeyCtrlT, Description: "--todo", Handler: func() error {
 				gui.helpers.Pick().TogglePickTodo()
+				if gui.views.Pick != nil {
+					gui.views.Pick.Footer = gui.pickFooter()
+				}
+				return nil
+			}},
+			{Key: gocui.KeyCtrlL, Description: "--all-tags", Handler: func() error {
+				gui.helpers.Pick().TogglePickAllTags()
 				if gui.views.Pick != nil {
 					gui.views.Pick.Footer = gui.pickFooter()
 				}

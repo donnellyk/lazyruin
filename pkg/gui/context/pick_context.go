@@ -5,13 +5,14 @@ import "kvnd/lazyruin/pkg/gui/types"
 // PickContext owns the pick popup panel and its state.
 type PickContext struct {
 	BaseContext
-	Query      string
-	AnyMode    bool
-	TodoMode   bool
-	SeedHash   bool
-	DialogMode bool   // when true, ExecutePick shows results in a dialog overlay
-	ScopeTitle string // contextual title set when DialogMode is true
-	Completion *types.CompletionState
+	Query       string
+	AnyMode     bool
+	TodoMode    bool
+	AllTagsMode bool
+	SeedHash    bool
+	DialogMode  bool   // when true, ExecutePick shows results in a dialog overlay
+	ScopeTitle  string // contextual title set when DialogMode is true
+	Completion  *types.CompletionState
 }
 
 // NewPickContext creates a PickContext.

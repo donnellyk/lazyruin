@@ -228,7 +228,9 @@ Activated with `\` from any panel. Filters notes by tag intersection.
 |-----|--------|
 | `Enter` | Execute pick |
 | `Tab` | Accept completion |
-| `<c-a>` | Toggle `--any` mode (intersection vs union) |
+| `<c-a>` | `--any` mode (intersection vs union) |
+| `<c-t>` | `--todo` mode |
+| `<c-l>` | `--all-tags` (all scoped inline tags, dialog only) |
 | `Esc` | Dismiss completion, or cancel |
 
 ## Command Palette

@@ -105,6 +105,24 @@ func TestParsePickQuery(t *testing.T) {
 			wantTags:  []string{"#urgent"},
 			wantFlags: PickFlags{Any: true, Todo: true},
 		},
+		{
+			name:      "--all-tags flag alone",
+			raw:       "--all-tags",
+			wantFlags: PickFlags{AllTags: true},
+		},
+		{
+			name:      "--all-tags with other flags",
+			raw:       "#followup --all-tags --todo",
+			wantTags:  []string{"#followup"},
+			wantFlags: PickFlags{Todo: true, AllTags: true},
+		},
+		{
+			name:      "--all-tags with tags and date",
+			raw:       "--all-tags #urgent @today",
+			wantTags:  []string{"#urgent"},
+			wantDate:  "@today",
+			wantFlags: PickFlags{AllTags: true},
+		},
 	}
 
 	for _, tt := range tests {
@@ -122,6 +140,61 @@ func TestParsePickQuery(t *testing.T) {
 			}
 			if flags != tt.wantFlags {
 				t.Errorf("flags = %+v, want %+v", flags, tt.wantFlags)
+			}
+		})
+	}
+}
+
+func TestMergeTagsDedup(t *testing.T) {
+	tests := []struct {
+		name   string
+		typed  []string
+		scoped []string
+		want   []string
+	}{
+		{
+			name:   "no overlap",
+			typed:  []string{"#a"},
+			scoped: []string{"#b", "#c"},
+			want:   []string{"#a", "#b", "#c"},
+		},
+		{
+			name:   "case-insensitive dedup preserves typed casing",
+			typed:  []string{"#Followup"},
+			scoped: []string{"#followup", "#urgent"},
+			want:   []string{"#Followup", "#urgent"},
+		},
+		{
+			name:   "empty typed",
+			typed:  nil,
+			scoped: []string{"#a", "#b"},
+			want:   []string{"#a", "#b"},
+		},
+		{
+			name:   "empty scoped",
+			typed:  []string{"#a"},
+			scoped: nil,
+			want:   []string{"#a"},
+		},
+		{
+			name:   "both empty",
+			typed:  nil,
+			scoped: nil,
+			want:   nil,
+		},
+		{
+			name:   "hash prefix normalization",
+			typed:  []string{"#x"},
+			scoped: []string{"y"},
+			want:   []string{"#x", "#y"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mergeTagsDedup(tt.typed, tt.scoped)
+			if !slicesEqual(got, tt.want) {
+				t.Errorf("mergeTagsDedup(%v, %v) = %v, want %v", tt.typed, tt.scoped, got, tt.want)
 			}
 		})
 	}

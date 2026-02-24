@@ -28,6 +28,7 @@ func (self *PickHelper) OpenPick() error {
 	ctx.Completion = types.NewCompletionState()
 	ctx.AnyMode = false
 	ctx.TodoMode = false
+	ctx.AllTagsMode = false
 	ctx.SeedHash = true
 	ctx.DialogMode = false
 	gui.PushContextByKey("pick")
@@ -56,6 +57,7 @@ func (self *PickHelper) OpenPickDialog() error {
 	ctx.Completion = types.NewCompletionState()
 	ctx.AnyMode = false
 	ctx.TodoMode = false
+	ctx.AllTagsMode = false
 	ctx.SeedHash = true
 	ctx.DialogMode = true
 	ctx.ScopeTitle = scopeTitle
@@ -65,8 +67,9 @@ func (self *PickHelper) OpenPickDialog() error {
 
 // PickFlags holds boolean flags parsed from the pick input text.
 type PickFlags struct {
-	Any  bool
-	Todo bool
+	Any     bool
+	Todo    bool
+	AllTags bool
 }
 
 // ParsePickQuery splits raw pick input into tags, an optional @date
@@ -78,6 +81,8 @@ func ParsePickQuery(raw string) (tags []string, date string, filter string, flag
 			flags.Any = true
 		case "--todo":
 			flags.Todo = true
+		case "--all-tags":
+			flags.AllTags = true
 		default:
 			if strings.HasPrefix(token, "@") {
 				date = token
@@ -148,6 +153,29 @@ func (self *PickHelper) scopedPickOpts(date, filter string, anyMode, todoMode bo
 	return opts
 }
 
+// mergeTagsDedup merges typed and scoped tags, deduplicating case-insensitively.
+// Typed tags take precedence (their casing is preserved).
+func mergeTagsDedup(typed, scoped []string) []string {
+	seen := make(map[string]bool, len(typed))
+	for _, t := range typed {
+		key := strings.ToLower(strings.TrimPrefix(t, "#"))
+		seen[key] = true
+	}
+	merged := make([]string, len(typed))
+	copy(merged, typed)
+	for _, s := range scoped {
+		key := strings.ToLower(strings.TrimPrefix(s, "#"))
+		if !seen[key] {
+			seen[key] = true
+			if !strings.HasPrefix(s, "#") {
+				s = "#" + s
+			}
+			merged = append(merged, s)
+		}
+	}
+	return merged
+}
+
 // executePickDialog runs a pick and shows results in the dialog overlay.
 // In compose mode, results are scoped to the parent's children via --parent.
 // In cardList mode, results are scoped to the selected note via --notes.
@@ -157,11 +185,26 @@ func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) 
 
 	tags, date, filter, flags := ParsePickQuery(raw)
 
+	allTagsActive := ctx.AllTagsMode || flags.AllTags
+	anyMode := ctx.AnyMode || flags.Any
+	if allTagsActive {
+		scopedTags := self.c.Helpers().Completion().ScopedInlineTags()
+		// Exclude #done — it's a status marker, not a meaningful filter tag.
+		filtered := scopedTags[:0:0]
+		for _, t := range scopedTags {
+			if !strings.EqualFold(strings.TrimPrefix(t, "#"), "done") {
+				filtered = append(filtered, t)
+			}
+		}
+		tags = mergeTagsDedup(tags, filtered)
+		anyMode = true
+	}
+
 	ctx.Query = raw
 	ctx.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
-	opts := self.scopedPickOpts(date, filter, ctx.AnyMode || flags.Any, ctx.TodoMode || flags.Todo)
+	opts := self.scopedPickOpts(date, filter, anyMode, ctx.TodoMode || flags.Todo)
 
 	var results []models.PickResult
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
@@ -202,6 +245,12 @@ func (self *PickHelper) TogglePickAny() {
 func (self *PickHelper) TogglePickTodo() {
 	ctx := self.c.GuiCommon().Contexts().Pick
 	ctx.TodoMode = !ctx.TodoMode
+}
+
+// TogglePickAllTags toggles the all-tags mode flag for pick.
+func (self *PickHelper) TogglePickAllTags() {
+	ctx := self.c.GuiCommon().Contexts().Pick
+	ctx.AllTagsMode = !ctx.AllTagsMode
 }
 
 // ReloadPickDialog re-runs the current pick dialog query and updates results.
