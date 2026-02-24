@@ -103,7 +103,7 @@ func (self *PickHelper) ExecutePick(raw string) error {
 		results = nil
 	}
 
-	self.c.Helpers().Preview().ShowPickResults(" Pick: "+raw+" ", results)
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+raw, results)
 	gui.ReplaceContextByKey("pickResults")
 	return nil
 }

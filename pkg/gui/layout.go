@@ -329,25 +329,22 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	v.Wrap = true
 	setRoundedCorners(v)
 
-	// Set title with card count for multi-card/pick mode
+	// Read title from context state; layout only adds padding.
 	switch gui.contexts.ActivePreviewKey {
 	case "pickResults":
 		pr := gui.contexts.PickResults
-		query := gui.contexts.Pick.Query
-		if query != "" {
-			v.Title = " Pick: " + query + " "
-		} else {
-			v.Title = " Pick "
-		}
+		v.Title = " " + pr.Title() + " "
 		if len(pr.Results) > 0 {
 			v.Footer = fmt.Sprintf("%d of %d", pr.SelectedCardIdx+1, len(pr.Results))
 		} else {
 			v.Footer = ""
 		}
 	case "compose":
+		v.Title = " " + gui.contexts.Compose.Title() + " "
 		v.Footer = ""
 	case "datePreview":
 		dp := gui.contexts.DatePreview
+		v.Title = " " + dp.Title() + " "
 		total := dp.CardCount()
 		if total > 0 {
 			v.Footer = fmt.Sprintf("%d of %d", dp.SelectedCardIdx+1, total)
@@ -356,12 +353,11 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		}
 	default:
 		cl := gui.contexts.CardList
+		v.Title = " " + cl.Title() + " "
 		if len(cl.Cards) > 0 {
-			v.Title = "Preview"
 			v.Footer = fmt.Sprintf("%d of %d", cl.SelectedCardIdx+1, len(cl.Cards))
 		} else {
 			v.Footer = ""
-			v.Title = " Preview "
 		}
 	}
 

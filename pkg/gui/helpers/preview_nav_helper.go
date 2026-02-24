@@ -70,10 +70,6 @@ func (self *PreviewNavHelper) PushNavHistory() {
 
 func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
 	contexts := self.c.GuiCommon().Contexts()
-	title := ""
-	if v := self.view(); v != nil {
-		title = v.Title
-	}
 	ctx := self.activeCtx()
 	ns := ctx.NavState()
 
@@ -81,7 +77,7 @@ func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
 		SelectedCardIndex: ctx.SelectedCardIndex(),
 		CursorLine:        ns.CursorLine,
 		ScrollOffset:      ns.ScrollOffset,
-		Title:             title,
+		Title:             ctx.Title(),
 		ContextKey:        contexts.ActivePreviewKey,
 	}
 
@@ -159,8 +155,11 @@ func (self *PreviewNavHelper) restoreNavEntry(entry context.NavEntry) {
 
 	contexts.ActivePreviewKey = targetKey
 
+	// Restore the title into the context state; layout reads it on next draw.
+	activeCtx := gui.Contexts().ActivePreview()
+	activeCtx.SetTitle(entry.Title)
+
 	if v := self.view(); v != nil {
-		v.Title = entry.Title
 		v.SetOrigin(0, entry.ScrollOffset)
 	}
 
@@ -289,7 +288,7 @@ func (self *PreviewNavHelper) OpenDatePreviewResult() error {
 		if localIdx < len(dp.Notes) {
 			note := dp.Notes[localIdx]
 			self.PushNavHistory()
-			self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{note})
+			self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{note})
 			gui.PushContextByKey("cardList")
 		}
 	}
@@ -304,7 +303,7 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 		return nil
 	}
 	self.PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
+	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
 	self.c.GuiCommon().PushContextByKey("cardList")
 	return nil
 }
@@ -333,7 +332,7 @@ func (self *PreviewNavHelper) openPickResultFrom(results []models.PickResult, ct
 		beforeNav()
 	}
 	self.PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(" "+note.Title+" ", []models.Note{*note})
+	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
 	self.c.GuiCommon().PushContextByKey("cardList")
 
 	if lineTarget != nil {

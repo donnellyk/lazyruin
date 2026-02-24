@@ -161,7 +161,7 @@ func (self *ContribHelper) LoadNoteInPreview(index int) {
 	gui := self.c.GuiCommon()
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
-	self.c.Helpers().Preview().ShowCardList(" "+title+" ", []models.Note{*full})
+	self.c.Helpers().Preview().ShowCardList(title, []models.Note{*full})
 	gui.PushContextByKey("cardList")
 }
 

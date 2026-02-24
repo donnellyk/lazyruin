@@ -33,8 +33,8 @@ func NewSharedNavHistory() *SharedNavHistory {
 	return &SharedNavHistory{Index: -1}
 }
 
-// IPreviewContext is the interface that all three preview contexts implement,
-// allowing helpers to work generically across CardList, PickResults, and Compose.
+// IPreviewContext is the interface that all preview contexts implement,
+// allowing helpers to work generically across CardList, PickResults, Compose, and DatePreview.
 type IPreviewContext interface {
 	types.Context
 
@@ -44,4 +44,5 @@ type IPreviewContext interface {
 	SetSelectedCardIndex(int)
 	CardCount() int
 	NavHistory() *SharedNavHistory
+	SetTitle(string)
 }

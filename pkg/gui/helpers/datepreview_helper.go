@@ -47,9 +47,7 @@ func (self *DatePreviewHelper) LoadDatePreview(date string) error {
 	gui.Contexts().ActivePreviewKey = "datePreview"
 
 	t, _ := time.Parse("2006-01-02", date)
-	if v := gui.GetView("preview"); v != nil {
-		v.Title = " " + t.Format("Monday, January 2 2006") + " "
-	}
+	dp.SetTitle(t.Format("Monday, January 2 2006"))
 
 	gui.RenderPreview()
 	gui.PushContextByKey("datePreview")

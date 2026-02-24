@@ -7,8 +7,6 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
-
-	"github.com/jesseduffield/gocui"
 )
 
 // PreviewHelper handles core preview operations: accessors, content display,
@@ -38,10 +36,6 @@ func (self *PreviewHelper) BuildSearchOptions() commands.SearchOptions {
 		StripGlobalTags: !ds.ShowGlobalTags,
 		StripTitle:      !ds.ShowTitle,
 	}
-}
-
-func (self *PreviewHelper) view() *gocui.View {
-	return self.c.GuiCommon().GetView("preview")
 }
 
 // CurrentPreviewCard returns the currently selected card, or nil if none.
@@ -97,7 +91,7 @@ func (self *PreviewHelper) UpdatePreviewForNotes() {
 	}
 	note := notes.Items[idx]
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.ShowCardList(" "+note.Title+" ", []models.Note{note})
+	self.ShowCardList(note.Title, []models.Note{note})
 }
 
 // UpdatePreviewCardList loads a card list into the preview.
@@ -117,13 +111,11 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note) {
 	cl := contexts.CardList
 	cl.Cards = cards
 	cl.SelectedCardIdx = 0
+	cl.SetTitle(title)
 	ns := cl.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	contexts.ActivePreviewKey = "cardList"
-	if v := self.view(); v != nil {
-		v.Title = title
-	}
 	self.c.GuiCommon().RenderPreview()
 }
 
@@ -134,13 +126,11 @@ func (self *PreviewHelper) ShowPickResults(title string, results []models.PickRe
 	pr := contexts.PickResults
 	pr.Results = results
 	pr.SelectedCardIdx = 0
+	pr.SetTitle(title)
 	ns := pr.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	contexts.ActivePreviewKey = "pickResults"
-	if v := self.view(); v != nil {
-		v.Title = title
-	}
 	self.c.GuiCommon().RenderPreview()
 }
 
@@ -153,14 +143,12 @@ func (self *PreviewHelper) ShowCompose(title string, note models.Note, sourceMap
 	comp.SourceMap = sourceMap
 	comp.ParentUUID = parentUUID
 	comp.ParentTitle = parentTitle
+	comp.SetTitle(title)
 	comp.SelectedCardIdx = 0
 	ns := comp.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	contexts.ActivePreviewKey = "compose"
-	if v := self.view(); v != nil {
-		v.Title = title
-	}
 	self.c.GuiCommon().RenderPreview()
 }
 

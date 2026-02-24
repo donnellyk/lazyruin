@@ -130,19 +130,7 @@ func (self *PreviewLinksHelper) FollowLink(link context.PreviewLink) error {
 		}
 		nav := self.c.Helpers().PreviewNav()
 		nav.PushNavHistory()
-		// Wiki-links always open as a card list
-		contexts := self.c.GuiCommon().Contexts()
-		cl := contexts.CardList
-		cl.Cards = []models.Note{*note}
-		cl.SelectedCardIdx = 0
-		ns := cl.NavState()
-		ns.CursorLine = 1
-		ns.ScrollOffset = 0
-		contexts.ActivePreviewKey = "cardList"
-		if v := self.view(); v != nil {
-			v.Title = " " + note.Title + " "
-		}
-		self.c.GuiCommon().RenderPreview()
+		self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
 		return nil
 	}
 

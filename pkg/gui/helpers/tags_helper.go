@@ -92,7 +92,7 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 	}
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(" Tag: #"+tag.Name+" ", notes)
+	self.c.Helpers().Preview().ShowCardList("Tag: "+tag.Name, notes)
 	gui.PushContextByKey("cardList")
 	return nil
 }
@@ -111,7 +111,7 @@ func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 	pickCtx.Query = tag.Name
 	pickCtx.AnyMode = false
 
-	self.c.Helpers().Preview().ShowPickResults(" Pick: "+tag.Name+" ", results)
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results)
 	gui.PushContextByKey("pickResults")
 	return nil
 }
@@ -173,7 +173,7 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 		return
 	}
 
-	self.c.Helpers().Preview().UpdatePreviewCardList(" Tag: #"+tag.Name+" ", func() ([]models.Note, error) {
+	self.c.Helpers().Preview().UpdatePreviewCardList("Tag: "+tag.Name, func() ([]models.Note, error) {
 		return self.c.RuinCmd().Search.Search(tag.Name, self.c.Helpers().Preview().BuildSearchOptions())
 	})
 }
@@ -191,5 +191,5 @@ func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
 	pickCtx.Query = tag.Name
 	pickCtx.AnyMode = false
 
-	self.c.Helpers().Preview().ShowPickResults(" Pick: "+tag.Name+" ", results)
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results)
 }
