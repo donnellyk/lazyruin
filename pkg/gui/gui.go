@@ -128,22 +128,15 @@ func (gui *Gui) backgroundRefresh() {
 	}
 }
 
-// backgroundRefreshData reloads data without resetting focus, selection, or preview mode.
+// backgroundRefreshData reloads sidebar lists without touching the preview.
+// Preview content lives in CardList.Cards (or PickResults, Compose, etc.)
+// which is separate from the sidebar data, so re-rendering it would only
+// disturb the scroll offset and nav-history state.
 func (gui *Gui) backgroundRefreshData() {
-	// Preserve selections
-	cl := gui.contexts.CardList
-	cardIdx := cl.SelectedCardIdx
-
 	gui.RefreshNotes(true)
 	gui.RefreshTags(true)
 	gui.RefreshQueries(true)
 	gui.RefreshParents(true)
-
-	if cl.SelectedCardIdx != cardIdx && cardIdx < len(cl.Cards) {
-		cl.SelectedCardIdx = cardIdx
-	}
-
-	gui.RenderPreview()
 	gui.UpdateStatusBar()
 }
 
