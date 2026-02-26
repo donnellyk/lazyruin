@@ -721,3 +721,46 @@ func (self *PreviewNavHelper) OpenInEditor() error {
 	}
 	return self.c.Helpers().Editor().OpenInEditor(card.Path)
 }
+
+// OpenComposeInEditor opens the child file under the cursor in $EDITOR,
+// runs doctor, reloads the compose preview, and preserves the cursor line.
+func (self *PreviewNavHelper) OpenComposeInEditor() error {
+	ns := self.c.GuiCommon().Contexts().Compose.NavState()
+	path := self.resolveComposePath(ns)
+	if path == "" {
+		return nil
+	}
+
+	savedCursor := ns.CursorLine
+	savedScroll := ns.ScrollOffset
+
+	if err := self.c.Helpers().Editor().OpenFileInEditor(path); err != nil {
+		return err
+	}
+
+	self.c.Helpers().Preview().ReloadActivePreview()
+	ns.CursorLine = savedCursor
+	ns.ScrollOffset = savedScroll
+	self.c.GuiCommon().RenderAll()
+	return nil
+}
+
+// resolveComposePath returns the file path for the child note at the cursor.
+// If the cursor is on a non-content line (separator, title bar), it scans
+// backward to find the nearest content line with a path.
+func (self *PreviewNavHelper) resolveComposePath(ns *context.PreviewNavState) string {
+	if ns.CursorLine >= 0 && ns.CursorLine < len(ns.Lines) {
+		if p := ns.Lines[ns.CursorLine].Path; p != "" {
+			return p
+		}
+	}
+	// Scan backward for nearest line with a path.
+	for i := ns.CursorLine - 1; i >= 0; i-- {
+		if i < len(ns.Lines) {
+			if p := ns.Lines[i].Path; p != "" {
+				return p
+			}
+		}
+	}
+	return ""
+}

@@ -16,9 +16,10 @@ func NewEditorHelper(c *HelperCommon) *EditorHelper {
 	return &EditorHelper{c: c}
 }
 
-// OpenInEditor suspends the TUI, opens the given file in $EDITOR,
-// resumes the TUI, and refreshes all data.
-func (self *EditorHelper) OpenInEditor(path string) error {
+// OpenFileInEditor suspends the TUI, opens the given file in $EDITOR,
+// resumes the TUI, and runs ruin doctor on the file. The caller is
+// responsible for refreshing the appropriate preview afterward.
+func (self *EditorHelper) OpenFileInEditor(path string) error {
 	gui := self.c.GuiCommon()
 
 	if err := gui.Suspend(); err != nil {
@@ -50,7 +51,16 @@ func (self *EditorHelper) OpenInEditor(path string) error {
 	self.c.Helpers().Tags().RefreshTags(false)
 	self.c.Helpers().Queries().RefreshQueries(false)
 	self.c.Helpers().Queries().RefreshParents(false)
+	return nil
+}
+
+// OpenInEditor suspends the TUI, opens the given file in $EDITOR,
+// resumes the TUI, and refreshes all data.
+func (self *EditorHelper) OpenInEditor(path string) error {
+	if err := self.OpenFileInEditor(path); err != nil {
+		return err
+	}
 	self.c.Helpers().Preview().ReloadContent()
-	gui.RenderAll()
+	self.c.GuiCommon().RenderAll()
 	return nil
 }

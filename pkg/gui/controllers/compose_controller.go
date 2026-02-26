@@ -30,6 +30,11 @@ func (self *ComposeController) Context() types.Context { return self.getContext(
 func (self *ComposeController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	bindings := self.NavBindings()
 	bindings = append(bindings, self.LineOpsBindings("compose")...)
+	bindings = append(bindings, &types.Binding{
+		ID: "compose.open_editor", Key: 'E',
+		Handler: self.nav().OpenComposeInEditor, Description: "Open in Editor", Category: "Preview",
+		DisplayOnScreen: true, StatusBarLabel: "Editor",
+	})
 	return bindings
 }
 
