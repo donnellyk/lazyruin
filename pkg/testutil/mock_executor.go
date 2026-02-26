@@ -10,13 +10,15 @@ import (
 
 // MockExecutor provides canned responses for testing.
 type MockExecutor struct {
-	vaultPath string
-	notes     []models.Note
-	tags      []models.Tag
-	queries   []models.Query
-	parents   []models.ParentBookmark
-	compose   []byte // raw JSON for compose tree
-	err       error
+	vaultPath  string
+	notes      []models.Note
+	tags       []models.Tag
+	queries    []models.Query
+	parents    []models.ParentBookmark
+	compose    []byte // raw JSON for compose tree
+	noteResult []byte // raw JSON for note mutation responses (merge, etc.)
+	err        error
+	NoteCalls  [][]string // recorded args for note subcommand calls
 }
 
 // NewMockExecutor creates a new mock executor.
@@ -53,6 +55,12 @@ func (m *MockExecutor) WithParents(parents ...models.ParentBookmark) *MockExecut
 // WithCompose sets the raw JSON for compose tree responses.
 func (m *MockExecutor) WithCompose(data []byte) *MockExecutor {
 	m.compose = data
+	return m
+}
+
+// WithNoteResult sets the raw JSON for note mutation responses.
+func (m *MockExecutor) WithNoteResult(data []byte) *MockExecutor {
+	m.noteResult = data
 	return m
 }
 
@@ -149,11 +157,24 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		}
 		return []byte("{}"), nil
 
+	case "note":
+		m.NoteCalls = append(m.NoteCalls, args)
+		if m.noteResult != nil {
+			return m.noteResult, nil
+		}
+		return []byte("{}"), nil
+
 	case "compose":
 		if m.compose != nil {
 			return m.compose, nil
 		}
 		return []byte("{}"), nil
+
+	case "log":
+		return json.Marshal(m.notes)
+
+	case "pick":
+		return []byte("[]"), nil
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)

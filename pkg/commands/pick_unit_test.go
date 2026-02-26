@@ -6,11 +6,19 @@ import (
 )
 
 type argCapture struct {
-	calls [][]string
+	calls    [][]string
+	response []byte // custom response (default "[]")
+	err      error  // error to return from Execute
 }
 
 func (a *argCapture) Execute(args ...string) ([]byte, error) {
 	a.calls = append(a.calls, args)
+	if a.err != nil {
+		return nil, a.err
+	}
+	if a.response != nil {
+		return a.response, nil
+	}
 	return []byte("[]"), nil
 }
 

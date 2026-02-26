@@ -118,3 +118,85 @@ func TestNote_JSONNoInlineTags(t *testing.T) {
 		t.Errorf("InlineTags = %v, want nil", note.InlineTags)
 	}
 }
+
+func TestNote_FirstLine(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{name: "empty content", content: "", want: ""},
+		{name: "single line", content: "hello world", want: "hello world"},
+		{name: "multiline", content: "first\nsecond\nthird", want: "first"},
+		{name: "leading blank lines", content: "\n\n  \nactual first", want: "actual first"},
+		{name: "all blank lines", content: "\n  \n\t\n", want: ""},
+		{name: "whitespace trimmed", content: "  padded  ", want: "padded"},
+		{name: "only whitespace line then content", content: "   \ncontent here", want: "content here"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			note := Note{Content: tc.content}
+			got := note.FirstLine()
+			if got != tc.want {
+				t.Errorf("FirstLine() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestJoinDot(t *testing.T) {
+	tests := []struct {
+		name  string
+		parts []string
+		want  string
+	}{
+		{name: "no parts", parts: nil, want: ""},
+		{name: "single part", parts: []string{"hello"}, want: "hello"},
+		{name: "two parts", parts: []string{"a", "b"}, want: "a · b"},
+		{name: "three parts", parts: []string{"a", "b", "c"}, want: "a · b · c"},
+		{name: "empty parts filtered", parts: []string{"a", "", "b", "", "c"}, want: "a · b · c"},
+		{name: "all empty", parts: []string{"", "", ""}, want: ""},
+		{name: "single non-empty among empties", parts: []string{"", "only", ""}, want: "only"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := JoinDot(tc.parts...)
+			if got != tc.want {
+				t.Errorf("JoinDot(%v) = %q, want %q", tc.parts, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNote_GlobalTagsString(t *testing.T) {
+	tests := []struct {
+		name string
+		tags []string
+		want string
+	}{
+		{name: "empty tags", tags: nil, want: ""},
+		{name: "single tag without hash", tags: []string{"daily"}, want: "#daily"},
+		{name: "single tag with hash", tags: []string{"#daily"}, want: "#daily"},
+		{name: "multiple tags", tags: []string{"daily", "work"}, want: "#daily, #work"},
+		{name: "mixed hash prefixes", tags: []string{"#meeting", "work"}, want: "#meeting, #work"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			note := Note{Tags: tc.tags}
+			got := note.GlobalTagsString()
+			if got != tc.want {
+				t.Errorf("GlobalTagsString() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNote_ShortDate_Zero(t *testing.T) {
+	note := Note{}
+	if got := note.ShortDate(); got != "" {
+		t.Errorf("ShortDate() on zero time = %q, want empty", got)
+	}
+}
