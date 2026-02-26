@@ -751,6 +751,7 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	}
 
 	var sb strings.Builder
+	sb.WriteString(reset) // Clear any leftover foreground color from content lines
 	if highlight {
 		sb.WriteString(green)
 	}
