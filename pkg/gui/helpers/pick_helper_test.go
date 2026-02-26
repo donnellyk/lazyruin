@@ -200,6 +200,128 @@ func TestMergeTagsDedup(t *testing.T) {
 	}
 }
 
+// TestAllTagsExpansion simulates the --all-tags resolution that
+// executePickDialog performs, then verifies the resolved query stored in
+// pd.Query can be re-parsed by ReloadPickDialog to produce identical
+// pick arguments — without needing PickContext state.
+func TestAllTagsExpansion(t *testing.T) {
+	tests := []struct {
+		name       string
+		raw        string        // what the user typed
+		scopedTags []string      // simulated ScopedInlineTags() return
+		anyToggle  bool          // PickContext.AnyMode
+		todoToggle bool          // PickContext.TodoMode
+		wantTags   []string      // expected tags after re-parse
+		wantAny    bool          // expected --any after re-parse
+		wantTodo   bool          // expected --todo after re-parse
+		wantDate   string        // expected date after re-parse
+		wantNoAllTags bool       // resolved query must NOT contain --all-tags
+	}{
+		{
+			name:          "--all-tags expands scoped tags and forces --any",
+			raw:           "--all-tags",
+			scopedTags:    []string{"#followup", "#idea", "#urgent"},
+			wantTags:      []string{"#followup", "#idea", "#urgent"},
+			wantAny:       true,
+			wantNoAllTags: true,
+		},
+		{
+			name:          "--all-tags with typed tag deduplicates",
+			raw:           "#followup --all-tags",
+			scopedTags:    []string{"#followup", "#idea", "#urgent"},
+			wantTags:      []string{"#followup", "#idea", "#urgent"},
+			wantAny:       true,
+			wantNoAllTags: true,
+		},
+		{
+			name:          "--all-tags excludes #done from expansion",
+			raw:           "--all-tags",
+			scopedTags:    []string{"#followup", "#done", "#idea"},
+			wantTags:      []string{"#followup", "#idea"},
+			wantAny:       true,
+			wantNoAllTags: true,
+		},
+		{
+			name:          "--all-tags with date and --todo",
+			raw:           "--all-tags @today --todo",
+			scopedTags:    []string{"#followup"},
+			wantTags:      []string{"#followup"},
+			wantAny:       true,
+			wantTodo:      true,
+			wantDate:      "@today",
+			wantNoAllTags: true,
+		},
+		{
+			name:          "context TodoMode baked in without --todo in raw",
+			raw:           "--all-tags",
+			scopedTags:    []string{"#followup"},
+			todoToggle:    true,
+			wantTags:      []string{"#followup"},
+			wantAny:       true,
+			wantTodo:      true,
+			wantNoAllTags: true,
+		},
+		{
+			name:       "no --all-tags: resolved query matches raw parse",
+			raw:        "#followup --any",
+			scopedTags: []string{"#idea", "#urgent"},
+			wantTags:   []string{"#followup"},
+			wantAny:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// --- Simulate executePickDialog resolution ---
+			tags, date, _, flags := ParsePickQuery(tt.raw)
+			allTagsActive := flags.AllTags // (would also check ctx.AllTagsMode)
+			anyMode := tt.anyToggle || flags.Any
+			todoMode := tt.todoToggle || flags.Todo
+
+			if allTagsActive {
+				filtered := make([]string, 0, len(tt.scopedTags))
+				for _, tg := range tt.scopedTags {
+					if tg != "#done" && tg != "#Done" {
+						filtered = append(filtered, tg)
+					}
+				}
+				tags = mergeTagsDedup(tags, filtered)
+				anyMode = true
+			}
+
+			resolved := buildResolvedQuery(tags, date, anyMode, todoMode)
+
+			// --- Verify resolved query has no --all-tags ---
+			if tt.wantNoAllTags {
+				rTags, _, _, rFlags := ParsePickQuery(resolved)
+				if rFlags.AllTags {
+					t.Errorf("resolved query still contains --all-tags: %q", resolved)
+				}
+				// Verify expanded tags are present
+				if !slicesEqual(rTags, tt.wantTags) {
+					t.Errorf("re-parsed tags = %v, want %v", rTags, tt.wantTags)
+				}
+			}
+
+			// --- Simulate ReloadPickDialog: re-parse the resolved query ---
+			reloadTags, reloadDate, _, reloadFlags := ParsePickQuery(resolved)
+
+			if !slicesEqual(reloadTags, tt.wantTags) {
+				t.Errorf("reload tags = %v, want %v", reloadTags, tt.wantTags)
+			}
+			if reloadDate != tt.wantDate {
+				t.Errorf("reload date = %q, want %q", reloadDate, tt.wantDate)
+			}
+			if reloadFlags.Any != tt.wantAny {
+				t.Errorf("reload Any = %v, want %v", reloadFlags.Any, tt.wantAny)
+			}
+			if reloadFlags.Todo != tt.wantTodo {
+				t.Errorf("reload Todo = %v, want %v", reloadFlags.Todo, tt.wantTodo)
+			}
+		})
+	}
+}
+
 func slicesEqual(a, b []string) bool {
 	if len(a) == 0 && len(b) == 0 {
 		return true

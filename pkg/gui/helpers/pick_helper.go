@@ -187,6 +187,7 @@ func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) 
 
 	allTagsActive := ctx.AllTagsMode || flags.AllTags
 	anyMode := ctx.AnyMode || flags.Any
+	todoMode := ctx.TodoMode || flags.Todo
 	if allTagsActive {
 		scopedTags := self.c.Helpers().Completion().ScopedInlineTags()
 		// Exclude #done — it's a status marker, not a meaningful filter tag.
@@ -200,11 +201,15 @@ func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) 
 		anyMode = true
 	}
 
+	// Build a resolved query that bakes in expanded tags and toggle flags,
+	// so ReloadPickDialog can re-execute without needing PickContext state.
+	resolvedQuery := buildResolvedQuery(tags, date, anyMode, todoMode)
+
 	ctx.Query = raw
 	ctx.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
-	opts := self.scopedPickOpts(date, filter, anyMode, ctx.TodoMode || flags.Todo)
+	opts := self.scopedPickOpts(date, filter, anyMode, todoMode)
 
 	var results []models.PickResult
 	res, err := self.c.RuinCmd().Pick.Pick(tags, opts)
@@ -217,10 +222,28 @@ func (self *PickHelper) executePickDialog(raw string, ctx *context.PickContext) 
 	pd.SelectedCardIdx = 0
 	pd.CursorLine = 1
 	pd.ScrollOffset = 0
-	pd.Query = raw
+	pd.Query = resolvedQuery
 	pd.ScopeTitle = ctx.ScopeTitle
 	gui.ReplaceContextByKey("pickDialog")
 	return nil
+}
+
+// buildResolvedQuery assembles a canonical query string from already-resolved
+// tags and flags. This is stored in pd.Query so that ReloadPickDialog can
+// re-execute without needing the original PickContext toggle state.
+func buildResolvedQuery(tags []string, date string, anyMode, todoMode bool) string {
+	parts := make([]string, 0, len(tags)+3)
+	parts = append(parts, tags...)
+	if date != "" {
+		parts = append(parts, date)
+	}
+	if anyMode {
+		parts = append(parts, "--any")
+	}
+	if todoMode {
+		parts = append(parts, "--todo")
+	}
+	return strings.Join(parts, " ")
 }
 
 // CancelPick closes the pick popup without executing.
@@ -254,6 +277,8 @@ func (self *PickHelper) TogglePickAllTags() {
 }
 
 // ReloadPickDialog re-runs the current pick dialog query and updates results.
+// pd.Query is already a resolved query (tags expanded, flags baked in), so
+// this just parses and executes — no PickContext state needed.
 func (self *PickHelper) ReloadPickDialog() {
 	gui := self.c.GuiCommon()
 	pd := gui.Contexts().PickDialog
