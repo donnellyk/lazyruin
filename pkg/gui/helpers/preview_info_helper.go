@@ -7,8 +7,6 @@ import (
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-
-	"github.com/jesseduffield/gocui"
 )
 
 // PreviewInfoHelper handles the info dialog: parent structure and TOC.
@@ -23,10 +21,6 @@ func NewPreviewInfoHelper(c *HelperCommon) *PreviewInfoHelper {
 
 func (self *PreviewInfoHelper) activeCtx() context.IPreviewContext {
 	return self.c.GuiCommon().Contexts().ActivePreview()
-}
-
-func (self *PreviewInfoHelper) view() *gocui.View {
-	return self.c.GuiCommon().GetView("preview")
 }
 
 // ShowInfoDialog shows parent structure / TOC for the current card.
@@ -95,11 +89,9 @@ func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
 	}
 	ranges := ns.CardLineRanges[idx]
 
-	var viewLines []string
-	if v := self.view(); v != nil {
-		viewLines = v.ViewBufferLines()
-	}
-
+	// Use ns.Lines (indexed in sync with ns.HeaderLines) instead of
+	// ViewBufferLines(), which returns gocui's wrapped display lines and
+	// can have shifted indices when Wrap=true.
 	type header struct {
 		level    int
 		title    string
@@ -111,8 +103,8 @@ func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
 		if hLine < ranges[0] || hLine >= ranges[1] {
 			continue
 		}
-		if hLine < len(viewLines) {
-			raw := strings.TrimSpace(stripAnsi(viewLines[hLine]))
+		if hLine < len(ns.Lines) {
+			raw := strings.TrimSpace(stripAnsi(ns.Lines[hLine].Text))
 			level := 0
 			for _, r := range raw {
 				if r == '#' {

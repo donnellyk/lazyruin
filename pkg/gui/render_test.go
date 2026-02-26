@@ -210,3 +210,33 @@ func TestBuildCardContent_ComposeSourceIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestIsHeaderLine(t *testing.T) {
+	tests := []struct {
+		line string
+		want bool
+	}{
+		// Actual markdown headers
+		{"# Header", true},
+		{"## Sub Header", true},
+		{"### Deep Header", true},
+		{" # Indented Header", true},
+		// With ANSI codes (chroma output)
+		{"\x1b[38;5;37m# \x1b[0m\x1b[38;5;147mHeader\x1b[0m", true},
+		// Tag lines — NOT headers
+		{"#tag", false},
+		{"#runner, #log", false},
+		{"#followup #done", false},
+		{" #ruin #log", false},
+		// Empty / no hash
+		{"", false},
+		{"No header here", false},
+		{"Some text #inline-tag", false},
+	}
+	for _, tt := range tests {
+		got := isHeaderLine(tt.line)
+		if got != tt.want {
+			t.Errorf("isHeaderLine(%q) = %v, want %v", tt.line, got, tt.want)
+		}
+	}
+}

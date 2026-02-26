@@ -107,10 +107,13 @@ func splitLeadingChar(line string) (string, string) {
 	return "", line
 }
 
-// isHeaderLine checks whether a rendered line is a markdown header.
+// isHeaderLine checks whether a rendered line is a markdown ATX header.
+// Requires "# " (hash + space) to distinguish from #tag lines.
 func isHeaderLine(line string) bool {
 	trimmed := strings.TrimLeft(stripAnsi(line), " ")
-	return strings.HasPrefix(trimmed, "#")
+	// Strip leading '#' characters, then check for a space (ATX heading spec).
+	rest := strings.TrimLeft(trimmed, "#")
+	return len(rest) < len(trimmed) && len(rest) > 0 && rest[0] == ' '
 }
 
 // fprintPreviewLine writes a line to the preview view, applying a dim background
