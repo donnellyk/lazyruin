@@ -87,6 +87,13 @@ func (r *RuinCommand) CheckVault() error {
 	return nil
 }
 
+// Doctor reindexes a specific file after manual editing via `ruin doctor <path>`.
+func (r *RuinCommand) Doctor(path string) error {
+	cmd := r.buildCommand("doctor", path)
+	_, err := cmd.CombinedOutput()
+	return err
+}
+
 // Execute runs a ruin command with the given arguments.
 // It automatically appends --json and --vault flags.
 func (r *RuinCommand) Execute(args ...string) ([]byte, error) {

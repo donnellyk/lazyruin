@@ -44,6 +44,9 @@ func (self *EditorHelper) OpenInEditor(path string) error {
 		return err
 	}
 
+	// Reindex the edited file so ruin's frontmatter/tags/index are up to date.
+	self.c.RuinCmd().Doctor(path)
+
 	self.c.Helpers().Tags().RefreshTags(false)
 	self.c.Helpers().Queries().RefreshQueries(false)
 	self.c.Helpers().Queries().RefreshParents(false)
