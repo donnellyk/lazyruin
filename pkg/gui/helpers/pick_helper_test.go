@@ -206,16 +206,16 @@ func TestMergeTagsDedup(t *testing.T) {
 // pick arguments — without needing PickContext state.
 func TestAllTagsExpansion(t *testing.T) {
 	tests := []struct {
-		name       string
-		raw        string        // what the user typed
-		scopedTags []string      // simulated ScopedInlineTags() return
-		anyToggle  bool          // PickContext.AnyMode
-		todoToggle bool          // PickContext.TodoMode
-		wantTags   []string      // expected tags after re-parse
-		wantAny    bool          // expected --any after re-parse
-		wantTodo   bool          // expected --todo after re-parse
-		wantDate   string        // expected date after re-parse
-		wantNoAllTags bool       // resolved query must NOT contain --all-tags
+		name          string
+		raw           string   // what the user typed
+		scopedTags    []string // simulated ScopedInlineTags() return
+		anyToggle     bool     // PickContext.AnyMode
+		todoToggle    bool     // PickContext.TodoMode
+		wantTags      []string // expected tags after re-parse
+		wantAny       bool     // expected --any after re-parse
+		wantTodo      bool     // expected --todo after re-parse
+		wantDate      string   // expected date after re-parse
+		wantNoAllTags bool     // resolved query must NOT contain --all-tags
 	}{
 		{
 			name:          "--all-tags expands scoped tags and forces --any",

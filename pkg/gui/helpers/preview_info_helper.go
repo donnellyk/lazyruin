@@ -31,10 +31,44 @@ func (self *PreviewInfoHelper) ShowInfoDialog() error {
 	}
 
 	var items []types.MenuItem
-	items = append(items, types.MenuItem{Label: "Info: " + card.Title, IsHeader: true})
+	items = append(items, types.MenuItem{Label: "Info: " + card.Title, Hint: "(c to copy)", IsHeader: true})
 
+	// Frontmatter fields with copy-to-clipboard support.
+	type fm struct {
+		key, value string
+	}
+	vaultPath := self.c.RuinCmd().VaultPath()
+	var fields []fm
+	fields = append(fields, fm{"UUID", card.UUID})
+	if !card.Created.IsZero() {
+		fields = append(fields, fm{"Created", card.Created.Format("Jan 02, 2006 3:04 PM")})
+	}
+	if !card.Updated.IsZero() && !card.Updated.Equal(card.Created) {
+		fields = append(fields, fm{"Updated", card.Updated.Format("Jan 02, 2006 3:04 PM")})
+	}
+	if tags := card.GlobalTagsString(); tags != "" {
+		fields = append(fields, fm{"Tags", tags})
+	}
+	if len(card.InlineTags) > 0 {
+		inline := strings.Join(card.InlineTags, ", ")
+		fields = append(fields, fm{"Inline", inline})
+	}
+	if card.Path != "" {
+		rel := strings.TrimPrefix(card.Path, vaultPath+"/")
+		fields = append(fields, fm{"Path", rel})
+	}
 	if card.Order != nil {
-		items = append(items, types.MenuItem{Label: "Order: " + fmt.Sprintf("%d", *card.Order)})
+		fields = append(fields, fm{"Order", fmt.Sprintf("%d", *card.Order)})
+	}
+	for _, f := range fields {
+		val := f.value
+		items = append(items, types.MenuItem{
+			Label:       fmt.Sprintf("%-8s  %s", f.key, val),
+			KeepOpenKey: "c",
+			OnRun: func() error {
+				return self.c.Helpers().Clipboard().CopyToClipboard(val)
+			},
+		})
 	}
 
 	treeRef := card.UUID

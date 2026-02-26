@@ -178,7 +178,19 @@ func (e *menuEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modif
 		return false
 	}
 	pressed := string(ch)
-	for _, item := range e.gui.state.Dialog.MenuItems {
+
+	// KeepOpenKey: run the selected item's action without closing.
+	sel := e.gui.state.Dialog.MenuSelection
+	items := e.gui.state.Dialog.MenuItems
+	if sel >= 0 && sel < len(items) {
+		item := items[sel]
+		if item.KeepOpenKey == pressed && item.OnRun != nil {
+			item.OnRun()
+			return true
+		}
+	}
+
+	for _, item := range items {
 		if item.Key == pressed && item.OnRun != nil {
 			e.gui.closeDialog()
 			item.OnRun()
@@ -214,11 +226,14 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	// Size: width based on longest item, height based on item count
-	width := 30
+	width := 50
 	for _, item := range items {
 		var l int
 		if item.IsHeader {
 			l = len(item.Label) + 10 // " --- Label --- "
+			if item.Hint != "" {
+				l += len(item.Hint) + 3 // "  (hint)"
+			}
 		} else if item.Key != "" {
 			l = 1 + maxKeyLen + 2 + len(item.Label) + 1 // " key  label "
 		} else {
@@ -264,7 +279,16 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	for i, item := range items {
 		// Header items
 		if item.IsHeader {
-			fmt.Fprintf(v, " %s--- %s ---%s\n", AnsiCyan, item.Label, AnsiReset)
+			header := fmt.Sprintf(" %s--- %s ---%s", AnsiCyan, item.Label, AnsiReset)
+			if item.Hint != "" {
+				visible := len(item.Label) + 10 // " --- Label --- "
+				pad := innerWidth - visible - len(item.Hint)
+				if pad < 2 {
+					pad = 2
+				}
+				header += fmt.Sprintf("%s%s%s%s", strings.Repeat(" ", pad), AnsiDim, item.Hint, AnsiReset)
+			}
+			fmt.Fprintln(v, header)
 			continue
 		}
 
