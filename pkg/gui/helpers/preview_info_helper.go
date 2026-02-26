@@ -46,7 +46,7 @@ func (self *PreviewInfoHelper) ShowInfoDialog() error {
 		items = append(items, types.MenuItem{})
 		items = append(items, types.MenuItem{Label: "Parent", IsHeader: true})
 		rootUUID := tree.UUID
-		items = append(items, types.MenuItem{Label: "* " + tree.Title, OnRun: func() error {
+		items = append(items, types.MenuItem{Label: tree.Title, OnRun: func() error {
 			return self.c.Helpers().PreviewNav().OpenNoteByUUID(rootUUID)
 		}})
 		items = self.appendTreeItems(items, tree.Children, "", 5)
@@ -63,21 +63,94 @@ func (self *PreviewInfoHelper) ShowInfoDialog() error {
 	return nil
 }
 
-func (self *PreviewInfoHelper) appendTreeItems(items []types.MenuItem, children []commands.TreeNode, indent string, maxDepth int) []types.MenuItem {
+func (self *PreviewInfoHelper) appendTreeItems(items []types.MenuItem, children []commands.TreeNode, prefix string, maxDepth int) []types.MenuItem {
 	if maxDepth <= 0 || len(children) == 0 {
 		return items
 	}
-	for _, child := range children {
+	for i, child := range children {
+		connector, childPrefix := treeConnector(prefix, i == len(children)-1)
 		childUUID := child.UUID
 		items = append(items, types.MenuItem{
-			Label: indent + "  * " + child.Title,
+			Label: connector + child.Title,
 			OnRun: func() error {
 				return self.c.Helpers().PreviewNav().OpenNoteByUUID(childUUID)
 			},
 		})
-		items = self.appendTreeItems(items, child.Children, indent+"  ", maxDepth-1)
+		items = self.appendTreeItems(items, child.Children, childPrefix, maxDepth-1)
 	}
 	return items
+}
+
+// treeConnector returns the box-drawing prefix for a node and the
+// continuation prefix for its children.
+func treeConnector(prefix string, isLast bool) (connector, childPrefix string) {
+	if isLast {
+		return prefix + "└─ ", prefix + "   "
+	}
+	return prefix + "├─ ", prefix + "│  "
+}
+
+// depthLabel pairs a depth level with a display label.
+type depthLabel struct {
+	depth int
+	label string
+}
+
+// depthTreePrefixes converts a flat list of depth/label pairs into
+// prefixed strings using box-drawing characters. Items at depth 0 get
+// no prefix (they are roots); deeper items get ├─/└─ connectors with
+// │ continuation lines from open ancestor levels.
+func depthTreePrefixes(items []depthLabel) []string {
+	if len(items) == 0 {
+		return nil
+	}
+	maxDepth := 0
+	for _, item := range items {
+		if item.depth > maxDepth {
+			maxDepth = item.depth
+		}
+	}
+	open := make([]bool, maxDepth+1)
+	result := make([]string, len(items))
+
+	for i, item := range items {
+		d := item.depth
+
+		// Is this the last sibling at its depth?
+		isLast := true
+		for j := i + 1; j < len(items); j++ {
+			if items[j].depth <= d {
+				isLast = items[j].depth < d
+				break
+			}
+		}
+
+		open[d] = !isLast
+		for k := d + 1; k <= maxDepth; k++ {
+			open[k] = false
+		}
+
+		var sb strings.Builder
+		// Start at 1: depth-0 items are roots with no connector,
+		// so they produce no continuation column.
+		for k := 1; k < d; k++ {
+			if open[k] {
+				sb.WriteString("│  ")
+			} else {
+				sb.WriteString("   ")
+			}
+		}
+		if d > 0 {
+			if isLast {
+				sb.WriteString("└─ ")
+			} else {
+				sb.WriteString("├─ ")
+			}
+		}
+		sb.WriteString(item.label)
+		result[i] = sb.String()
+	}
+	return result
 }
 
 func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
@@ -129,13 +202,18 @@ func (self *PreviewInfoHelper) buildHeaderTOC() []types.MenuItem {
 		}
 	}
 
+	// Convert to depth/label pairs and compute prefixes.
+	depthLabels := make([]depthLabel, len(headers))
+	for i, h := range headers {
+		depthLabels[i] = depthLabel{depth: h.level - minLevel, label: h.title}
+	}
+	prefixed := depthTreePrefixes(depthLabels)
+
 	var items []types.MenuItem
-	for _, h := range headers {
-		depth := h.level - minLevel
-		indent := strings.Repeat("  ", depth)
-		targetLine := h.viewLine
+	for i, pl := range prefixed {
+		targetLine := headers[i].viewLine
 		items = append(items, types.MenuItem{
-			Label: indent + "* " + h.title,
+			Label: pl,
 			OnRun: func() error {
 				ns.CursorLine = targetLine
 				self.c.GuiCommon().RenderPreview()
