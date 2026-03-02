@@ -60,7 +60,7 @@ func (self *EditorHelper) OpenInEditor(path string) error {
 	if err := self.OpenFileInEditor(path); err != nil {
 		return err
 	}
-	self.c.Helpers().Preview().ReloadContent()
+	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.GuiCommon().RenderAll()
 	return nil
 }

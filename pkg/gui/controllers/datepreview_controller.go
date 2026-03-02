@@ -42,6 +42,11 @@ func (self *DatePreviewController) GetKeybindings(opts types.KeybindingsOpts) []
 		},
 	)
 	bindings = append(bindings, self.LineOpsBindings("datePreview")...)
+	bindings = append(bindings, &types.Binding{
+		ID: "datePreview.open_editor", Key: 'E',
+		Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
+		DisplayOnScreen: true, StatusBarLabel: "Editor",
+	})
 	return bindings
 }
 
