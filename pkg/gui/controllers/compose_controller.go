@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	"github.com/jesseduffield/gocui"
+	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
+
+	"github.com/jesseduffield/gocui"
 )
 
 // ComposeController handles keybindings for the compose preview mode.
@@ -30,12 +32,32 @@ func (self *ComposeController) Context() types.Context { return self.getContext(
 func (self *ComposeController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	bindings := self.NavBindings()
 	bindings = append(bindings, self.LineOpsBindings("compose")...)
-	bindings = append(bindings, &types.Binding{
-		ID: "compose.open_editor", Key: 'E',
-		Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
-		DisplayOnScreen: true, StatusBarLabel: "Editor",
-	})
+	bindings = append(bindings,
+		&types.Binding{
+			ID: "compose.open_editor", Key: 'E',
+			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Editor",
+		},
+		&types.Binding{
+			ID: "compose.new_child", Key: gocui.KeyCtrlN,
+			Handler: self.newChildNote, Description: "New child note", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "New Child",
+		},
+	)
 	return bindings
+}
+
+func (self *ComposeController) newChildNote() error {
+	target := self.c.Helpers().PreviewLineOps().ResolveTarget()
+	if target == nil {
+		return nil
+	}
+	// Fetch the note title for the capture footer display.
+	note, err := self.c.RuinCmd().Search.Get(target.UUID, commands.SearchOptions{})
+	if err != nil {
+		return nil
+	}
+	return self.c.Helpers().Capture().OpenCaptureWithParent(target.UUID, note.Title)
 }
 
 func (self *ComposeController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -23,6 +24,19 @@ func (self *CaptureHelper) OpenCapture() error {
 	}
 	ctx := self.c.GuiCommon().Contexts().Capture
 	ctx.Parent = nil
+	ctx.Completion = types.NewCompletionState()
+	gui.PushContextByKey("capture")
+	return nil
+}
+
+// OpenCaptureWithParent opens the capture popup with a pre-set parent.
+func (self *CaptureHelper) OpenCaptureWithParent(uuid, title string) error {
+	gui := self.c.GuiCommon()
+	if gui.PopupActive() {
+		return nil
+	}
+	ctx := gui.Contexts().Capture
+	ctx.Parent = &context.CaptureParentInfo{UUID: uuid, Title: title}
 	ctx.Completion = types.NewCompletionState()
 	gui.PushContextByKey("capture")
 	return nil
