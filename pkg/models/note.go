@@ -1,9 +1,23 @@
 package models
 
 import (
+	"regexp"
 	"strings"
 	"time"
 )
+
+// InlineTagRe matches #tag patterns (hashtag followed by word characters).
+var InlineTagRe = regexp.MustCompile(`#[\w-]+`)
+
+// HasDoneTag returns true if the line contains a #done inline tag (case-insensitive).
+func HasDoneTag(line string) bool {
+	for _, m := range InlineTagRe.FindAllString(line, -1) {
+		if strings.EqualFold(m, "#done") {
+			return true
+		}
+	}
+	return false
+}
 
 type Note struct {
 	UUID       string    `json:"uuid"`

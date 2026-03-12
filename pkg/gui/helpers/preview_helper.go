@@ -343,6 +343,14 @@ func (self *PreviewHelper) ToggleGlobalTags() error {
 	return nil
 }
 
+// ToggleDimDone toggles dimming of lines with #done.
+func (self *PreviewHelper) ToggleDimDone() error {
+	ds := self.activeCtx().DisplayState()
+	ds.DimDone = !ds.DimDone
+	self.c.GuiCommon().RenderPreview()
+	return nil
+}
+
 // ViewOptionsDialog shows the view options menu.
 func (self *PreviewHelper) ViewOptionsDialog() error {
 	ds := self.activeCtx().DisplayState()
@@ -362,12 +370,17 @@ func (self *PreviewHelper) ViewOptionsDialog() error {
 	if ds.RenderMarkdown {
 		mdLabel = "Raw markdown"
 	}
+	doneLabel := "Dim #done lines"
+	if ds.DimDone {
+		doneLabel = "Undim #done lines"
+	}
 
 	self.c.GuiCommon().ShowMenuDialog("View Options", []types.MenuItem{
 		{Label: fmLabel, Key: "f", OnRun: func() error { return self.ToggleFrontmatter() }},
 		{Label: titleLabel, Key: "t", OnRun: func() error { return self.ToggleTitle() }},
 		{Label: tagsLabel, Key: "T", OnRun: func() error { return self.ToggleGlobalTags() }},
 		{Label: mdLabel, Key: "M", OnRun: func() error { return self.ToggleMarkdown() }},
+		{Label: doneLabel, Key: "d", OnRun: func() error { return self.ToggleDimDone() }},
 	})
 	return nil
 }

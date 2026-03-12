@@ -17,6 +17,13 @@ import (
 // inlineTagRe matches #tag patterns (hashtag followed by word characters).
 var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
 
+// dimLine wraps a rendered line in AnsiDim. Re-applies dim after every
+// ANSI reset so chroma's mid-line resets don't cancel the effect.
+func dimLine(text string) string {
+	patched := strings.ReplaceAll(text, AnsiReset, AnsiReset+AnsiDim)
+	return AnsiDim + patched + AnsiReset
+}
+
 // lineIdentity pairs a source note's UUID, content line number, and file path.
 // Used internally by BuildCardContent to tag each rendered line with its origin.
 type lineIdentity struct {
@@ -245,10 +252,15 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 		highlightedLines := strings.Split(highlighted, "\n")
 		for srcIdx, hl := range highlightedLines {
 			id := identities[srcIdx]
+			isDone := ds.DimDone && srcIdx < len(contentLines) && models.HasDoneTag(contentLines[srcIdx])
 			wrapped := wordwrap.String(hl, contentWidth)
 			for _, wl := range strings.Split(wrapped, "\n") {
+				text := " " + wl
+				if isDone {
+					text = dimLine(text)
+				}
 				lines = append(lines, types.SourceLine{
-					Text:    " " + wl,
+					Text:    text,
 					UUID:    id.uuid,
 					LineNum: id.lineNum,
 					Path:    id.path,
@@ -258,10 +270,15 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 	} else {
 		for srcIdx, l := range contentLines {
 			id := identities[srcIdx]
+			isDone := ds.DimDone && models.HasDoneTag(l)
 			wrapped := wordwrap.String(l, contentWidth)
 			for _, wl := range strings.Split(wrapped, "\n") {
+				text := " " + wl
+				if isDone {
+					text = dimLine(text)
+				}
 				lines = append(lines, types.SourceLine{
-					Text:    " " + wl,
+					Text:    text,
 					UUID:    id.uuid,
 					LineNum: id.lineNum,
 					Path:    id.path,
@@ -480,6 +497,7 @@ func (gui *Gui) renderPickGroupInto(v *gocui.View, result models.PickResult, car
 	}
 	emit(gui.buildSeparatorLine(true, " "+title+" ", "", width, selected), types.SourceLine{})
 
+	dimDone := gui.contexts.ActivePreview().DisplayState().DimDone
 	for _, match := range result.Matches {
 		lineNum := fmt.Sprintf("%02d", match.Line)
 		prefix := fmt.Sprintf("  L%s: ", lineNum)
@@ -488,12 +506,16 @@ func (gui *Gui) renderPickGroupInto(v *gocui.View, result models.PickResult, car
 		wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
 		indent := strings.Repeat(" ", prefixLen)
 		src := types.SourceLine{UUID: result.UUID, LineNum: match.Line, Path: result.File}
+		isDone := dimDone && match.Done
 		for j, line := range strings.Split(strings.TrimRight(wrapped, "\n"), "\n") {
 			var formatted string
 			if j == 0 {
 				formatted = fmt.Sprintf("  %sL%s:%s %s", AnsiDim, lineNum, AnsiReset, line)
 			} else {
 				formatted = indent + line
+			}
+			if isDone {
+				formatted = dimLine(formatted)
 			}
 			emit(formatted, src)
 		}

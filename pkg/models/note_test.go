@@ -108,6 +108,32 @@ func TestNote_JSONInlineTags(t *testing.T) {
 	}
 }
 
+func TestHasDoneTag(t *testing.T) {
+	tests := []struct {
+		line string
+		want bool
+	}{
+		{"some text #done", true},
+		{"- task #done", true},
+		{"- [ ] todo #done", true},
+		{"- [x] checked #done", true},
+		{"#done at start", true},
+		{"#DONE uppercase", true},
+		{"#Done mixed case", true},
+		{"no done tag", false},
+		{"#doneForToday is not done", false},
+		{"", false},
+		{"#doing something", false},
+		{"undone", false},
+	}
+	for _, tt := range tests {
+		got := HasDoneTag(tt.line)
+		if got != tt.want {
+			t.Errorf("HasDoneTag(%q) = %v, want %v", tt.line, got, tt.want)
+		}
+	}
+}
+
 func TestNote_JSONNoInlineTags(t *testing.T) {
 	input := `{"uuid":"abc","title":"Test","tags":["#meeting"]}`
 	var note Note

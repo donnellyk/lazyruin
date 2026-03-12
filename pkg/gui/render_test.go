@@ -240,3 +240,19 @@ func TestIsHeaderLine(t *testing.T) {
 		}
 	}
 }
+
+func TestDimLine(t *testing.T) {
+	// Plain text gets wrapped in dim.
+	got := dimLine(" hello")
+	if got != AnsiDim+" hello"+AnsiReset {
+		t.Errorf("dimLine plain: got %q", got)
+	}
+
+	// Mid-line resets are patched so dim survives chroma highlighting.
+	input := AnsiGreen + "- " + AnsiReset + "task"
+	got = dimLine(input)
+	want := AnsiDim + AnsiGreen + "- " + AnsiReset + AnsiDim + "task" + AnsiReset
+	if got != want {
+		t.Errorf("dimLine with reset:\ngot  %q\nwant %q", got, want)
+	}
+}

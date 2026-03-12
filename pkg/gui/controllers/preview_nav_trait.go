@@ -117,6 +117,12 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Category:    "Preview",
 		},
 		{
+			ID:          "preview.toggle_dim_done",
+			Handler:     t.preview().ToggleDimDone,
+			Description: "Toggle Dim Done",
+			Category:    "Preview",
+		},
+		{
 			ID:          "preview.show_nav_history",
 			Handler:     t.nav().ShowNavHistory,
 			Description: "View History",

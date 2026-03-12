@@ -7,6 +7,7 @@ import (
 
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -123,13 +124,7 @@ func (self *PreviewLineOpsHelper) AppendDone() error {
 	}
 
 	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
-	hasDone := false
-	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
-		if strings.EqualFold(m, "#done") {
-			hasDone = true
-			break
-		}
-	}
+	hasDone := models.HasDoneTag(srcLine)
 
 	var err error
 	if hasDone {

@@ -35,7 +35,7 @@ func NewComposeContext(navHistory *SharedNavHistory) *ComposeContext {
 		}),
 		ComposeState: &ComposeState{
 			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true},
+			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
 		},
 		navHistory: navHistory,
 	}

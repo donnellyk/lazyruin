@@ -489,6 +489,7 @@ echo "  PASS: f toggle frontmatter (no crash)"
 echo "[38] Preview: v (view options)"
 send v
 assert_contains "v opens view options" "View"
+assert_contains "v shows dim done option" "done"
 send Escape; settle
 
 # =============================================

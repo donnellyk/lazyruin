@@ -43,7 +43,7 @@ func NewDatePreviewContext(navHistory *SharedNavHistory) *DatePreviewContext {
 		}),
 		DatePreviewState: &DatePreviewState{
 			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true},
+			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
 		},
 		navHistory: navHistory,
 	}
