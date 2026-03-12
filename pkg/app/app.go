@@ -18,8 +18,9 @@ type App struct {
 	Config        *config.Config
 	RuinCmd       *commands.RuinCommand
 	Gui           *gui.Gui
-	QuickCapture  bool // when true, open directly into new note and exit on save
-	DebugBindings bool // when true, print all registered bindings and exit
+	QuickCapture  bool   // when true, open directly into new note and exit on save
+	DebugBindings bool   // when true, print all registered bindings and exit
+	OpenRef       string // note path/title or parent bookmark to open on launch
 }
 
 // NewApp creates a new application instance.
@@ -56,6 +57,7 @@ func (a *App) Run() error {
 	// Initialize GUI
 	a.Gui = gui.NewGui(a.Config, a.RuinCmd)
 	a.Gui.QuickCapture = a.QuickCapture
+	a.Gui.OpenRef = a.OpenRef
 
 	// Debug mode: print all registered bindings and exit without running the TUI.
 	if a.DebugBindings {

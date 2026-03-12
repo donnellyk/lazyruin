@@ -149,6 +149,9 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		}
 		return []byte("{}"), nil
 
+	case "get":
+		return m.handleGet(args)
+
 	case "compose":
 		if m.compose != nil {
 			return m.compose, nil
@@ -158,6 +161,41 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)
 	}
+}
+
+func (m *MockExecutor) handleGet(args []string) ([]byte, error) {
+	for i, a := range args {
+		switch a {
+		case "--uuid":
+			if i+1 < len(args) {
+				uuid := args[i+1]
+				for _, n := range m.notes {
+					if n.UUID == uuid {
+						return json.Marshal(&n)
+					}
+				}
+			}
+		case "--path":
+			if i+1 < len(args) {
+				sub := args[i+1]
+				for _, n := range m.notes {
+					if strings.Contains(n.Path, sub) {
+						return json.Marshal(&n)
+					}
+				}
+			}
+		case "--title":
+			if i+1 < len(args) {
+				sub := strings.ToLower(args[i+1])
+				for _, n := range m.notes {
+					if strings.Contains(strings.ToLower(n.Title), sub) {
+						return json.Marshal(&n)
+					}
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("note not found")
 }
 
 // VaultPath returns the mock vault path.

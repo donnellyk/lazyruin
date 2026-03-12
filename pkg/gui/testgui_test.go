@@ -19,14 +19,24 @@ type testGui struct {
 	t   *testing.T
 }
 
+// testGuiOpts allows configuring the test GUI before layout runs.
+type testGuiOpts struct {
+	OpenRef string
+}
+
 // newTestGui creates a headless GUI with mock data.
 // Views are created and data is loaded via the mock executor.
 func newTestGui(t *testing.T, mock *testutil.MockExecutor) *testGui {
+	return newTestGuiWithOpts(t, mock, testGuiOpts{})
+}
+
+func newTestGuiWithOpts(t *testing.T, mock *testutil.MockExecutor, opts testGuiOpts) *testGui {
 	t.Helper()
 
 	ruin := commands.NewRuinCommandWithExecutor(mock, mock.VaultPath())
 	cfg := &config.Config{}
 	gui := NewGui(cfg, ruin)
+	gui.OpenRef = opts.OpenRef
 
 	g, err := gocui.NewGui(gocui.NewGuiOpts{
 		OutputMode: gocui.OutputNormal,

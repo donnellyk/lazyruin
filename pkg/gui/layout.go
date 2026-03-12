@@ -176,7 +176,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastHeight = maxY
 		gui.RefreshAll()
 		if !gui.QuickCapture {
-			gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
+			if gui.OpenRef != "" {
+				gui.openInitialRef(gui.OpenRef)
+			} else {
+				gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
+			}
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX

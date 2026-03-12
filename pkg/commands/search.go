@@ -65,6 +65,11 @@ func (s *SearchCommand) GetByTitle(title string, opts SearchOptions) (*models.No
 	return s.get([]string{"--title", title}, opts)
 }
 
+// GetByPath fetches a single note by path (substring match).
+func (s *SearchCommand) GetByPath(path string, opts SearchOptions) (*models.Note, error) {
+	return s.get([]string{"--path", path}, opts)
+}
+
 func (s *SearchCommand) get(filter []string, opts SearchOptions) (*models.Note, error) {
 	args := append([]string{"get"}, filter...)
 	if opts.IncludeContent {

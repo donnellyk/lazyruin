@@ -49,6 +49,68 @@ func TestHeadlessGui_Initializes(t *testing.T) {
 	}
 }
 
+func TestOpenRef_MatchesParentBookmark(t *testing.T) {
+	mock := defaultMock().WithCompose([]byte(`{"uuid":"parent-1","title":"Daily Journal","path":"journal.md","composed_content":"# Journal\nentry one","source_map":[]}`))
+	tg := newTestGuiWithOpts(t, mock, testGuiOpts{OpenRef: "journal"})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "compose" {
+		t.Errorf("CurrentContext = %v, want compose", tg.gui.contextMgr.Current())
+	}
+	if tg.gui.contexts.ActivePreviewKey != "compose" {
+		t.Errorf("ActivePreviewKey = %v, want compose", tg.gui.contexts.ActivePreviewKey)
+	}
+}
+
+func TestOpenRef_MatchesNoteByPath(t *testing.T) {
+	mock := defaultMock()
+	mock.WithNotes(
+		models.Note{UUID: "1", Title: "Note One", Path: "2025/meeting-notes.md", Created: time.Now()},
+		models.Note{UUID: "2", Title: "Note Two", Path: "2025/ideas.md", Created: time.Now()},
+	)
+	tg := newTestGuiWithOpts(t, mock, testGuiOpts{OpenRef: "meeting-notes"})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "cardList" {
+		t.Errorf("CurrentContext = %v, want cardList", tg.gui.contextMgr.Current())
+	}
+	if len(tg.gui.contexts.CardList.Cards) != 1 {
+		t.Errorf("CardList.Cards = %d, want 1", len(tg.gui.contexts.CardList.Cards))
+	}
+	if tg.gui.contexts.CardList.Cards[0].UUID != "1" {
+		t.Errorf("CardList.Cards[0].UUID = %v, want 1", tg.gui.contexts.CardList.Cards[0].UUID)
+	}
+}
+
+func TestOpenRef_MatchesNoteByTitle(t *testing.T) {
+	mock := defaultMock()
+	mock.WithNotes(
+		models.Note{UUID: "1", Title: "Project Alpha", Path: "alpha.md", Created: time.Now()},
+		models.Note{UUID: "2", Title: "Project Beta", Path: "beta.md", Created: time.Now()},
+	)
+	tg := newTestGuiWithOpts(t, mock, testGuiOpts{OpenRef: "Project Alpha"})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "cardList" {
+		t.Errorf("CurrentContext = %v, want cardList", tg.gui.contextMgr.Current())
+	}
+	if len(tg.gui.contexts.CardList.Cards) != 1 {
+		t.Errorf("CardList.Cards = %d, want 1", len(tg.gui.contexts.CardList.Cards))
+	}
+	if tg.gui.contexts.CardList.Cards[0].Title != "Project Alpha" {
+		t.Errorf("CardList.Cards[0].Title = %v, want Project Alpha", tg.gui.contexts.CardList.Cards[0].Title)
+	}
+}
+
+func TestOpenRef_FallsBackToDatePreview(t *testing.T) {
+	tg := newTestGuiWithOpts(t, defaultMock(), testGuiOpts{OpenRef: "nonexistent-ref"})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "datePreview" {
+		t.Errorf("CurrentContext = %v, want datePreview (fallback)", tg.gui.contextMgr.Current())
+	}
+}
+
 func TestHeadlessGui_LoadsNotes(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
@@ -727,6 +789,26 @@ func TestToggleGlobalTags(t *testing.T) {
 	}
 }
 
+func TestToggleDimDone(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	ds := tg.gui.contexts.ActivePreview().DisplayState()
+	if !ds.DimDone {
+		t.Fatal("DimDone should default to true")
+	}
+
+	tg.gui.helpers.Preview().ToggleDimDone()
+	if ds.DimDone {
+		t.Error("DimDone should be false after toggle")
+	}
+
+	tg.gui.helpers.Preview().ToggleDimDone()
+	if !ds.DimDone {
+		t.Error("DimDone should be true after second toggle")
+	}
+}
+
 // --- Notes tab cycling tests ---
 
 func TestFocusNotes_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
@@ -835,6 +917,27 @@ func TestNewNote_OpensCapture(t *testing.T) {
 
 	if tg.gui.contextMgr.Current() != "capture" {
 		t.Error("newNote should push capture context")
+	}
+}
+
+func TestOpenCaptureWithParent_SetsParent(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCaptureWithParent("parent-1", "Daily Journal")
+
+	if tg.gui.contextMgr.Current() != "capture" {
+		t.Errorf("currentContext() = %v, want capture", tg.gui.contextMgr.Current())
+	}
+	p := tg.gui.contexts.Capture.Parent
+	if p == nil {
+		t.Fatal("CaptureParent should not be nil")
+	}
+	if p.UUID != "parent-1" {
+		t.Errorf("CaptureParent.UUID = %v, want parent-1", p.UUID)
+	}
+	if p.Title != "Daily Journal" {
+		t.Errorf("CaptureParent.Title = %v, want Daily Journal", p.Title)
 	}
 }
 

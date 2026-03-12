@@ -22,7 +22,8 @@ type Gui struct {
 	config         *config.Config
 	ruinCmd        *commands.RuinCommand
 	stopBg         chan struct{}
-	QuickCapture   bool // when true, open capture on start and quit on save
+	QuickCapture   bool   // when true, open capture on start and quit on save
+	OpenRef        string // note path/title or parent bookmark to open on launch
 	darkBackground bool
 
 	// New controller/context architecture (Phase 2+)

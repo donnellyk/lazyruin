@@ -13,6 +13,7 @@ func main() {
 	ruinBin := flag.String("ruin", "", "Path to the ruin binary")
 	newNote := flag.Bool("new", false, "Open directly into new note capture, exit on save")
 	debugBindings := flag.Bool("debug-bindings", false, "Print all registered keybindings and exit")
+	openRef := flag.String("open", "", "Open a specific note (path/title) or parent bookmark on launch")
 	flag.Parse()
 
 	a, err := app.NewApp(*vaultPath, *ruinBin)
@@ -23,6 +24,7 @@ func main() {
 
 	a.QuickCapture = *newNote
 	a.DebugBindings = *debugBindings
+	a.OpenRef = *openRef
 
 	if err := a.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
