@@ -721,7 +721,7 @@ func (gui *Gui) updateCaptureFooter() {
 
 	// Extract inline tags from current capture content
 	content := gui.views.Capture.TextArea.GetContent()
-	tagMatches := inlineTagRe.FindAllString(content, -1)
+	tagMatches := models.InlineTagRe.FindAllString(content, -1)
 	seen := make(map[string]bool)
 	var tags []string
 	for _, t := range tagMatches {

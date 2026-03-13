@@ -18,25 +18,22 @@ func NewCaptureHelper(c *HelperCommon) *CaptureHelper {
 
 // OpenCapture opens the capture popup, resetting state.
 func (self *CaptureHelper) OpenCapture() error {
-	gui := self.c.GuiCommon()
-	if gui.PopupActive() {
-		return nil
-	}
-	ctx := self.c.GuiCommon().Contexts().Capture
-	ctx.Parent = nil
-	ctx.Completion = types.NewCompletionState()
-	gui.PushContextByKey("capture")
-	return nil
+	return self.OpenCaptureWithParent("", "")
 }
 
 // OpenCaptureWithParent opens the capture popup with a pre-set parent.
+// Pass empty uuid/title for no parent.
 func (self *CaptureHelper) OpenCaptureWithParent(uuid, title string) error {
 	gui := self.c.GuiCommon()
 	if gui.PopupActive() {
 		return nil
 	}
 	ctx := gui.Contexts().Capture
-	ctx.Parent = &context.CaptureParentInfo{UUID: uuid, Title: title}
+	if uuid != "" {
+		ctx.Parent = &context.CaptureParentInfo{UUID: uuid, Title: title}
+	} else {
+		ctx.Parent = nil
+	}
 	ctx.Completion = types.NewCompletionState()
 	gui.PushContextByKey("capture")
 	return nil

@@ -834,6 +834,24 @@ send Escape  # Esc also cancels
 assert_not_contains "Esc cancels confirm" "[y] Yes"
 
 # =============================================
+# 70. Compose: Ctrl-N (new child note)
+# =============================================
+echo "[70] Compose: Ctrl-N (new child note)"
+reset_to_notes
+send 2; sleep 0.3                           # focus Queries panel
+send 2; sleep 0.3                           # cycle to Parents tab
+echo "  DEBUG status after tab: $(status)"
+echo "  DEBUG pane:"
+cap | grep -i "parent\|queries" | head -5
+send Enter; sleep 0.3                       # open parent → compose view
+echo "  DEBUG status after enter: $(status)"
+assert_status "compose visible" "New Child"
+send C-n
+assert_contains "Ctrl-N opens capture" "New Note"
+send Escape; settle  # close capture
+send Escape; settle  # back from compose
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

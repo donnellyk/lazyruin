@@ -13,10 +13,7 @@ import (
 )
 
 // regex patterns for line operations
-var (
-	inlineTagRe  = regexp.MustCompile(`#[\w-]+`)
-	inlineDateRe = regexp.MustCompile(`@\d{4}-\d{2}-\d{2}`)
-)
+var inlineDateRe = regexp.MustCompile(`@\d{4}-\d{2}-\d{2}`)
 
 // lineTarget identifies a specific content line in a note file.
 type lineTarget struct {
@@ -160,7 +157,7 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 
 	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
 	existingTags := make(map[string]bool)
-	for _, m := range inlineTagRe.FindAllString(srcLine, -1) {
+	for _, m := range models.InlineTagRe.FindAllString(srcLine, -1) {
 		existingTags[strings.ToLower(m)] = true
 	}
 

@@ -3,7 +3,6 @@ package gui
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"kvnd/lazyruin/pkg/gui/context"
@@ -13,9 +12,6 @@ import (
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/reflow/wordwrap"
 )
-
-// inlineTagRe matches #tag patterns (hashtag followed by word characters).
-var inlineTagRe = regexp.MustCompile(`#[\w-]+`)
 
 // dimLine wraps a rendered line in AnsiDim. Re-applies dim after every
 // ANSI reset so chroma's mid-line resets don't cancel the effect.
