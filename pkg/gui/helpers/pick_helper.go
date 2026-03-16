@@ -45,7 +45,7 @@ func (self *PickHelper) OpenPickDialog() error {
 	var scopeTitle string
 	switch gui.Contexts().ActivePreviewKey {
 	case "compose":
-		scopeTitle = gui.Contexts().Compose.ParentTitle
+		scopeTitle = gui.Contexts().Compose.Parent.Title
 	case "cardList":
 		cl := gui.Contexts().CardList
 		if cl.SelectedCardIdx < len(cl.Cards) {
@@ -141,8 +141,11 @@ func (self *PickHelper) scopedPickOpts(date, filter string, anyMode, todoMode bo
 	switch gui.Contexts().ActivePreviewKey {
 	case "compose":
 		comp := gui.Contexts().Compose
-		if comp.ParentUUID != "" {
-			opts.Parent = comp.ParentUUID
+		if comp.Parent.UUID != "" {
+			opts.Parent = comp.Parent.UUID
+		} else if comp.Note.UUID != "" {
+			// File-based bookmarks: scope to root note UUID
+			opts.Parent = comp.Note.UUID
 		}
 	case "cardList":
 		cl := gui.Contexts().CardList

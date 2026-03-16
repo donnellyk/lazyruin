@@ -73,12 +73,12 @@ func (l *parentsList) GetSelectedItemId() string {
 	if idx >= len(l.ctx.Parents) {
 		return ""
 	}
-	return l.ctx.Parents[idx].UUID
+	return l.ctx.Parents[idx].Name
 }
 
 func (l *parentsList) FindIndexById(id string) int {
 	for i, p := range l.ctx.Parents {
-		if p.UUID == id {
+		if p.Name == id {
 			return i
 		}
 	}

@@ -27,14 +27,24 @@ type composeResult struct {
 	SourceMap       []models.SourceMapEntry `json:"source_map"`
 }
 
-// ComposeFlat runs compose and returns the fully-assembled document as a single Note
-// plus a source map that maps composed line ranges back to their source child notes.
-func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, []models.SourceMapEntry, error) {
-	output, err := p.ruin.Execute("compose", uuid, "--strip-title", "--strip-global-tags", "--normalize-headers", "--sort", "created:desc")
+// Compose dispatches to the appropriate compose method based on bookmark type.
+func (p *ParentCommand) Compose(bm models.ParentBookmark) (models.Note, []models.SourceMapEntry, error) {
+	var args []string
+	if bm.IsFileBased() {
+		args = []string{"compose", "--file", bm.File, "--strip-title", "--strip-global-tags", "--normalize-headers", "--expand-embeds"}
+	} else {
+		args = []string{"compose", bm.UUID, "--strip-title", "--strip-global-tags", "--normalize-headers", "--sort", "created:desc", "--expand-embeds"}
+	}
+
+	output, err := p.ruin.Execute(args...)
 	if err != nil {
 		return models.Note{}, nil, err
 	}
 
+	return p.parseComposeResult(output, bm.Title)
+}
+
+func (p *ParentCommand) parseComposeResult(output []byte, title string) (models.Note, []models.SourceMapEntry, error) {
 	root, err := unmarshalJSON[composeResult](output)
 	if err != nil {
 		return models.Note{}, nil, err
@@ -47,12 +57,13 @@ func (p *ParentCommand) ComposeFlat(uuid, title string) (models.Note, []models.S
 		Content: root.ComposedContent,
 	}
 
-	// Fetch root note metadata (tags, created, parent) for the card footer.
-	if metaOutput, err := p.ruin.Execute("get", "--uuid", uuid); err == nil {
-		if meta, err := unmarshalJSON[*models.Note](metaOutput); err == nil && meta != nil {
-			note.Tags = meta.Tags
-			note.Created = meta.Created
-			note.Parent = meta.Parent
+	if root.UUID != "" {
+		if metaOutput, err := p.ruin.Execute("get", "--uuid", root.UUID); err == nil {
+			if meta, err := unmarshalJSON[*models.Note](metaOutput); err == nil && meta != nil {
+				note.Tags = meta.Tags
+				note.Created = meta.Created
+				note.Parent = meta.Parent
+			}
 		}
 	}
 

@@ -47,11 +47,11 @@ func (gui *Gui) openNote(note *models.Note) {
 }
 
 func (gui *Gui) openParentBookmark(parent *models.ParentBookmark) {
-	composed, sourceMap, err := gui.ruinCmd.Parent.ComposeFlat(parent.UUID, parent.Title)
+	composed, sourceMap, err := gui.ruinCmd.Parent.Compose(*parent)
 	if err != nil {
 		gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
 		return
 	}
-	gui.helpers.Preview().ShowCompose("Parent: "+parent.Name, composed, sourceMap, parent.UUID, parent.Title)
+	gui.helpers.Preview().ShowCompose("Parent: "+parent.Name, composed, sourceMap, *parent)
 	gui.pushContextByKey("compose")
 }

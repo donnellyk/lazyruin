@@ -17,6 +17,7 @@ type MockExecutor struct {
 	parents   []models.ParentBookmark
 	compose   []byte // raw JSON for compose tree
 	err       error
+	Calls     [][]string // recorded argument lists from Execute calls
 }
 
 // NewMockExecutor creates a new mock executor.
@@ -64,6 +65,8 @@ func (m *MockExecutor) WithError(err error) *MockExecutor {
 
 // Execute returns canned JSON responses based on the command.
 func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
+	m.Calls = append(m.Calls, args)
+
 	if m.err != nil {
 		return nil, m.err
 	}

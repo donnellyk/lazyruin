@@ -23,8 +23,7 @@ type NavEntry struct {
 	PickResults       []models.PickResult
 	ContextKey        types.ContextKey        // which context key to restore ("cardList", "pickResults", "compose")
 	SourceMap         []models.SourceMapEntry // compose source map
-	ParentUUID        string                  // compose parent UUID
-	ParentTitle       string                  // compose parent title
+	Parent            models.ParentBookmark   // compose parent bookmark
 	DateTargetDate    string                  // datePreview target date
 	DateTagPicks      []models.PickResult     // datePreview tag picks
 	DateTodoPicks     []models.PickResult     // datePreview todo picks

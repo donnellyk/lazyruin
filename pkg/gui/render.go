@@ -158,6 +158,9 @@ func (gui *Gui) renderParents() {
 		func(i int, _ bool) listItem {
 			parent := queriesCtx.Parents[i]
 			title := parent.Title
+			if title == "" && parent.IsFileBased() {
+				title = parent.File
+			}
 			if len(title) > width-6 {
 				title = title[:width-9] + "..."
 			}
