@@ -16,6 +16,7 @@ type MockExecutor struct {
 	queries   []models.Query
 	parents   []models.ParentBookmark
 	compose   []byte // raw JSON for compose tree
+	linkJSON  []byte // raw JSON for link command responses
 	err       error
 	Calls     [][]string // recorded argument lists from Execute calls
 }
@@ -54,6 +55,12 @@ func (m *MockExecutor) WithParents(parents ...models.ParentBookmark) *MockExecut
 // WithCompose sets the raw JSON for compose tree responses.
 func (m *MockExecutor) WithCompose(data []byte) *MockExecutor {
 	m.compose = data
+	return m
+}
+
+// WithLinkJSON sets the raw JSON for link command responses.
+func (m *MockExecutor) WithLinkJSON(data []byte) *MockExecutor {
+	m.linkJSON = data
 	return m
 }
 
@@ -161,6 +168,9 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		}
 		return []byte("{}"), nil
 
+	case "link":
+		return m.handleLink(args)
+
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)
 	}
@@ -199,6 +209,13 @@ func (m *MockExecutor) handleGet(args []string) ([]byte, error) {
 		}
 	}
 	return nil, fmt.Errorf("note not found")
+}
+
+func (m *MockExecutor) handleLink(args []string) ([]byte, error) {
+	if m.linkJSON != nil {
+		return m.linkJSON, nil
+	}
+	return []byte("{}"), nil
 }
 
 // VaultPath returns the mock vault path.

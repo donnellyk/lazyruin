@@ -21,6 +21,7 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 		{Name: "Notes: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(0) }},
 		{Name: "Notes: Today", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(1) }},
 		{Name: "Notes: Recent", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(2) }},
+		{Name: "Notes: Links", Category: "Tabs", OnRun: func() error { return gui.helpers.Notes().SwitchNotesTabByIndex(3) }},
 		{Name: "Queries: Queries", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(0) }},
 		{Name: "Queries: Parents", Category: "Tabs", OnRun: func() error { return gui.helpers.Queries().SwitchQueriesTabByIndex(1) }},
 		{Name: "Tags: All", Category: "Tabs", OnRun: func() error { return gui.helpers.Tags().SwitchTagsTabByIndex(0) }},
@@ -49,6 +50,10 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 		{Name: "Friday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Friday))},
 		{Name: "Saturday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Saturday))},
 		{Name: "Sunday", Category: "Date", OnRun: dp(helpers.CurrentWeekday(time.Sunday))},
+
+		{Name: "Browse Links", Category: "Links", OnRun: func() error {
+			return gui.helpers.Link().BrowseLinks()
+		}},
 	}
 }
 

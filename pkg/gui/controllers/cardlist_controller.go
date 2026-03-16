@@ -93,9 +93,21 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			ID:      "cardList.order_cards",
 			Handler: self.mutations().OrderCards, Description: "Order Cards", Category: "Preview",
 		},
+		&types.Binding{
+			ID: "cardList.open_url", Key: 'o',
+			Handler: self.openURL, Description: "Open URL", Category: "Preview",
+		},
 	)
 	bindings = append(bindings, self.LineOpsBindings("cardList")...)
 	return bindings
+}
+
+func (self *CardListController) openURL() error {
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	return self.c.Helpers().Link().OpenLinkURL(card)
 }
 
 func (self *CardListController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

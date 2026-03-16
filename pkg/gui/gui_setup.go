@@ -187,6 +187,9 @@ func (gui *Gui) setupCaptureContext() {
 		[]*types.Binding{
 			{Key: gocui.KeyCtrlS, Description: "Save", Handler: func() error {
 				content := strings.TrimSpace(gui.views.Capture.TextArea.GetUnwrappedContent())
+				if gui.contexts.Capture.LinkURL != "" {
+					return gui.helpers.Link().SubmitLinkCapture(content)
+				}
 				return gui.helpers.Capture().SubmitCapture(content, gui.QuickCapture)
 			}},
 			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},

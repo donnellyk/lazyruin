@@ -8,11 +8,30 @@ type CaptureParentInfo struct {
 	Title string // display title for footer (e.g. "Parent / Child")
 }
 
+type LinkResolveState int
+
+const (
+	ResolveIdle LinkResolveState = iota
+	ResolveInFlight
+	ResolveComplete
+	ResolveFailed
+)
+
+type LinkResolveResult struct {
+	Title   string
+	Summary string
+}
+
 // CaptureContext owns the capture popup panel.
 type CaptureContext struct {
 	BaseContext
-	Parent     *CaptureParentInfo
-	Completion *types.CompletionState
+	Parent        *CaptureParentInfo
+	Completion    *types.CompletionState
+	LinkURL       string
+	LinkTitle     string
+	ResolveState  LinkResolveState
+	ResolveResult *LinkResolveResult
+	ResolveDone   chan struct{}
 }
 
 // NewCaptureContext creates a CaptureContext.

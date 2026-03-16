@@ -134,6 +134,85 @@ func TestHasDoneTag(t *testing.T) {
 	}
 }
 
+func TestNote_IsLink(t *testing.T) {
+	tests := []struct {
+		name string
+		tags []string
+		want bool
+	}{
+		{"hash-prefixed #link tag", []string{"#link"}, true},
+		{"bare link tag", []string{"link"}, true},
+		{"uppercase #LINK tag", []string{"#LINK"}, true},
+		{"mixed case #Link tag", []string{"#Link"}, true},
+		{"no link tag", []string{"daily", "work"}, false},
+		{"empty tags", []string{}, false},
+		{"nil tags", nil, false},
+		{"link among other tags", []string{"daily", "#link", "work"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := Note{Tags: tt.tags}
+			if got := n.IsLink(); got != tt.want {
+				t.Errorf("IsLink() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNote_URL(t *testing.T) {
+	tests := []struct {
+		name    string
+		tags    []string
+		content string
+		want    string
+	}{
+		{
+			name:    "link note with https URL",
+			tags:    []string{"link"},
+			content: "https://example.com\nsome description",
+			want:    "https://example.com",
+		},
+		{
+			name:    "link note with http URL",
+			tags:    []string{"#link"},
+			content: "http://example.com",
+			want:    "http://example.com",
+		},
+		{
+			name:    "link note with non-URL content",
+			tags:    []string{"link"},
+			content: "just some text",
+			want:    "",
+		},
+		{
+			name:    "non-link note with URL content",
+			tags:    []string{"daily"},
+			content: "https://example.com",
+			want:    "",
+		},
+		{
+			name:    "link note with empty content",
+			tags:    []string{"link"},
+			content: "",
+			want:    "",
+		},
+		{
+			name:    "link note with leading blank lines then URL",
+			tags:    []string{"link"},
+			content: "\n\nhttps://example.com",
+			want:    "https://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := Note{Tags: tt.tags, Content: tt.content}
+			if got := n.URL(); got != tt.want {
+				t.Errorf("URL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNote_JSONNoInlineTags(t *testing.T) {
 	input := `{"uuid":"abc","title":"Test","tags":["#meeting"]}`
 	var note Note

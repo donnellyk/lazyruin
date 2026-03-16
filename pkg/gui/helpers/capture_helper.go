@@ -92,6 +92,11 @@ func (self *CaptureHelper) CloseCapture() error {
 	ctx := gui.Contexts().Capture
 	ctx.Parent = nil
 	ctx.Completion = types.NewCompletionState()
+	ctx.LinkURL = ""
+	ctx.LinkTitle = ""
+	ctx.ResolveState = context.ResolveIdle
+	ctx.ResolveResult = nil
+	ctx.ResolveDone = nil
 	gui.SetCursorEnabled(false)
 	gui.PopContext()
 	return nil

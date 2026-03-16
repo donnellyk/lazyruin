@@ -47,6 +47,9 @@ func (self *NotesHelper) FetchNotesForCurrentTab(preserve bool) {
 		opts.Limit = 20
 		recentDate := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
 		notes, err = self.c.RuinCmd().Search.Search("after:"+recentDate, opts)
+	case context.NotesTabLinks:
+		opts.Limit = 50
+		notes, err = self.c.RuinCmd().Search.Search("#link", opts)
 	}
 
 	if err == nil {

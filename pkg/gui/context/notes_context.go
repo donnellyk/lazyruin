@@ -12,10 +12,11 @@ const (
 	NotesTabAll    NotesTab = "all"
 	NotesTabToday  NotesTab = "today"
 	NotesTabRecent NotesTab = "recent"
+	NotesTabLinks  NotesTab = "links"
 )
 
 // NotesTabs maps tab indices to NotesTab values.
-var NotesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent}
+var NotesTabs = []NotesTab{NotesTabAll, NotesTabToday, NotesTabRecent, NotesTabLinks}
 
 // NotesContext owns all Notes panel state: items, cursor, and tab.
 type NotesContext struct {

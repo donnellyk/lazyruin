@@ -89,6 +89,11 @@ func (gui *Gui) RenderNotes() {
 			}
 
 			snippet := note.FirstLine()
+			if note.IsLink() {
+				if u := note.URL(); u != "" {
+					snippet = u
+				}
+			}
 			snippetRunes := []rune(snippet)
 			if len(snippetRunes) > width-2 {
 				snippet = strings.TrimRight(string(snippetRunes[:width-5]), " ") + "..."

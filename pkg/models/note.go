@@ -70,6 +70,26 @@ type SourceMapEntry struct {
 	EndLine   int    `json:"end_line"`
 }
 
+func (n *Note) IsLink() bool {
+	for _, tag := range n.Tags {
+		if strings.EqualFold(strings.TrimPrefix(tag, "#"), "link") {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *Note) URL() string {
+	if !n.IsLink() {
+		return ""
+	}
+	line := n.FirstLine()
+	if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+		return line
+	}
+	return ""
+}
+
 func (n *Note) GlobalTagsString() string {
 	result := ""
 	for i, tag := range n.Tags {

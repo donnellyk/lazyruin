@@ -254,7 +254,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.views.Notes = v
 	v.TitlePrefix = "[1]"
 	// v.Title = "[1]"
-	v.Tabs = []string{"All", "Today", "Recent"}
+	v.Tabs = []string{"All", "Today", "Recent", "Links"}
 	v.SelFgColor = gocui.ColorGreen
 	gui.UpdateNotesTab()
 	setRoundedCorners(v)
@@ -527,7 +527,11 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	gui.views.Capture = v
-	v.Title = " New Note "
+	if gui.contexts.Capture.LinkTitle != "" {
+		v.Title = gui.contexts.Capture.LinkTitle
+	} else {
+		v.Title = " New Note "
+	}
 	v.Subtitle = " <c-s> to save "
 	v.Editable = true
 	v.TextArea.AutoWrap = true

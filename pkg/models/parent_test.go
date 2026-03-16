@@ -96,4 +96,3 @@ func TestParentBookmark_JSON_OmitsEmpty(t *testing.T) {
 		t.Errorf("JSON should omit empty file, got: %s", s2)
 	}
 }
-

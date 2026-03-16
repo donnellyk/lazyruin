@@ -145,6 +145,16 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			Description:       "Show Info",
 			Category:          "Note Actions",
 		},
+		{
+			ID:                "notes.openURL",
+			Key:               'o',
+			Handler:           self.withItem(self.openURL),
+			GetDisabledReason: self.require(self.singleItemSelected(), self.isLinkNote()),
+			Description:       "Open URL",
+			Category:          "Notes",
+			DisplayOnScreen:   true,
+			StatusBarLabel:    "Open",
+		},
 	}
 	// Navigation bindings (no Description → excluded from palette)
 	bindings = append(bindings, self.NavBindings()...)
@@ -207,4 +217,18 @@ func (self *NotesController) toggleBookmark(_ models.Note) error {
 
 func (self *NotesController) showInfo(note models.Note) error {
 	return self.onShowInfo(&note)
+}
+
+func (self *NotesController) openURL(note models.Note) error {
+	return self.c.Helpers().Link().OpenLinkURL(&note)
+}
+
+func (self *NotesController) isLinkNote() func() *types.DisabledReason {
+	return func() *types.DisabledReason {
+		note := self.getContext().Selected()
+		if note == nil || !note.IsLink() {
+			return &types.DisabledReason{Text: "Not a link note"}
+		}
+		return nil
+	}
 }

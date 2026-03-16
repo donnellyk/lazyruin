@@ -27,6 +27,7 @@ type RuinCommand struct {
 	Parent    *ParentCommand
 	Pick      *PickCommand
 	Note      *NoteCommand
+	Link      *LinkCommand
 }
 
 // NewRuinCommand creates a new RuinCommand with the given vault path and binary.
@@ -41,6 +42,7 @@ func NewRuinCommand(vaultPath, bin string) *RuinCommand {
 	r.Parent = NewParentCommand(r)
 	r.Pick = NewPickCommand(r)
 	r.Note = NewNoteCommand(r)
+	r.Link = NewLinkCommand(r)
 
 	return r
 }
@@ -58,6 +60,7 @@ func NewRuinCommandWithExecutor(executor Executor, vaultPath string) *RuinComman
 	r.Parent = NewParentCommand(r)
 	r.Pick = NewPickCommand(r)
 	r.Note = NewNoteCommand(r)
+	r.Link = NewLinkCommand(r)
 
 	return r
 }

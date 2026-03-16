@@ -831,7 +831,12 @@ func TestFocusNotes_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 		t.Errorf("tab = %v, want Recent", tg.gui.contexts.Notes.CurrentTab)
 	}
 
-	tg.gui.globalController.FocusNotes() // cycles Recent → All
+	tg.gui.globalController.FocusNotes() // cycles Recent → Links
+	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabLinks {
+		t.Errorf("tab = %v, want Links", tg.gui.contexts.Notes.CurrentTab)
+	}
+
+	tg.gui.globalController.FocusNotes() // cycles Links → All
 	if tg.gui.contexts.Notes.CurrentTab != context.NotesTabAll {
 		t.Errorf("tab = %v, want All (wrapped)", tg.gui.contexts.Notes.CurrentTab)
 	}
