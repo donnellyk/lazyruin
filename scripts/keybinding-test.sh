@@ -381,6 +381,7 @@ echo "  PASS: arrows in queries (no crash)"
 # 26. Queries: Enter (run query)
 # =============================================
 echo "[26] Queries: Enter"
+send 1; settle  # leave queries context first to avoid tab cycling
 send 2; settle
 send Enter
 assert_status "Enter runs query" "Back: esc"
@@ -791,7 +792,6 @@ send 2  # cycle back to Queries
 settle
 TOTAL=$((TOTAL + 1))
 echo "  PASS: 2 cycles queries tabs (no crash)"
-
 # =============================================
 # 67. Tags: 3 cycles tabs when already focused
 # =============================================
@@ -840,11 +840,7 @@ echo "[70] Compose: Ctrl-N (new child note)"
 reset_to_notes
 send 2; sleep 0.3                           # focus Queries panel
 send 2; sleep 0.3                           # cycle to Parents tab
-echo "  DEBUG status after tab: $(status)"
-echo "  DEBUG pane:"
-cap | grep -i "parent\|queries" | head -5
 send Enter; sleep 0.3                       # open parent → compose view
-echo "  DEBUG status after enter: $(status)"
 assert_status "compose visible" "New Child"
 send C-n
 assert_contains "Ctrl-N opens capture" "New Note"
