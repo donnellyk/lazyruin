@@ -535,7 +535,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Subtitle = " <c-s> to save "
 	v.Editable = true
 	v.TextArea.AutoWrap = true
-	v.TextArea.AutoWrapWidth = v.InnerWidth() - 1
+	v.TextArea.AutoWrapWidth = v.InnerWidth()
 	v.Editor = &captureEditor{gui: gui}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen

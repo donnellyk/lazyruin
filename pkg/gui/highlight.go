@@ -74,18 +74,33 @@ func (gui *Gui) renderCaptureTextArea(v *gocui.View) {
 	fmt.Fprint(v, gui.highlightMarkdown(content))
 
 	cursorX, cursorY := v.TextArea.GetCursorXY()
-	prevOriginX, prevOriginY := v.Origin()
+	_, prevOriginY := v.Origin()
 	width, height := v.InnerWidth(), v.InnerHeight()
 
-	newViewCursorX, newOriginX := captureUpdatedCursorAndOrigin(prevOriginX, width, cursorX)
+	// X: compute fresh each render so a stale origin from a pre-wrap long line
+	// doesn't clip the first column of the wrapped continuation.
+	newViewCursorX, newOriginX := captureXCursorAndOrigin(width, cursorX)
 	newViewCursorY, newOriginY := captureUpdatedCursorAndOrigin(prevOriginY, height, cursorY)
 
 	v.SetCursor(newViewCursorX, newViewCursorY)
 	v.SetOrigin(newOriginX, newOriginY)
 }
 
+// captureXCursorAndOrigin computes the X view-cursor and origin from scratch,
+// without carrying over any previous origin. This prevents a stale origin
+// (set while the cursor was at the end of a pre-wrap long line) from clipping
+// the first character of the wrapped continuation line.
+func captureXCursorAndOrigin(width, cursorX int) (int, int) {
+	usable := width - 1
+	if cursorX > usable {
+		return usable, cursorX - usable
+	}
+	return cursorX, 0
+}
+
 // captureUpdatedCursorAndOrigin computes new view cursor and origin positions.
 // Replicates the unexported gocui updatedCursorAndOrigin function.
+// Used for the Y dimension only (vertical scrolling requires stateful origin).
 func captureUpdatedCursorAndOrigin(prevOrigin int, size int, cursor int) (int, int) {
 	var newViewCursor int
 	newOrigin := prevOrigin
