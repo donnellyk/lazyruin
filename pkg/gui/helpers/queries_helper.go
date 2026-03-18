@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"strings"
+
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -115,14 +117,25 @@ func (self *QueriesHelper) RunQuery() error {
 		return nil
 	}
 
-	notes, err := self.c.RuinCmd().Queries.Run(query.Name, self.c.Helpers().Preview().BuildSearchOptions())
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
+	notes, err := self.c.RuinCmd().Queries.Run(query.Name, opts)
 	if err != nil {
 		gui.ShowError(err)
 		return nil
 	}
 
+	queryText := query.Query
+	source := context.CardListSource{
+		Query: queryText,
+		Requery: func(filterText string) ([]models.Note, error) {
+			o := self.c.Helpers().Preview().BuildSearchOptions()
+			combined := strings.TrimSpace(queryText + " " + filterText)
+			return self.c.RuinCmd().Search.Search(combined, o)
+		},
+	}
+
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Query: "+query.Name, notes)
+	self.c.Helpers().Preview().ShowCardList("Query: "+query.Name, notes, source)
 	gui.PushContextByKey("cardList")
 	return nil
 }

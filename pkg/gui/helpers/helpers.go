@@ -26,6 +26,7 @@ type Helpers struct {
 	completion       *CompletionHelper
 	datePreview      *DatePreviewHelper
 	link             *LinkHelper
+	cardListFilter   *CardListFilterHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -55,6 +56,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		completion:       NewCompletionHelper(common),
 		datePreview:      NewDatePreviewHelper(common),
 		link:             NewLinkHelper(common),
+		cardListFilter:   NewCardListFilterHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -86,3 +88,4 @@ func (h *Helpers) Contrib() *ContribHelper                   { return h.contrib 
 func (h *Helpers) Completion() *CompletionHelper             { return h.completion }
 func (h *Helpers) DatePreview() *DatePreviewHelper           { return h.datePreview }
 func (h *Helpers) Link() *LinkHelper                         { return h.link }
+func (h *Helpers) CardListFilter() *CardListFilterHelper     { return h.cardListFilter }

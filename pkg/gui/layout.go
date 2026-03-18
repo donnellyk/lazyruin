@@ -358,10 +358,17 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	default:
 		cl := gui.contexts.CardList
 		v.Title = " " + cl.Title() + " "
-		if len(cl.Cards) > 0 {
-			v.Footer = fmt.Sprintf("%d of %d", cl.SelectedCardIdx+1, len(cl.Cards))
+		if cl.FilterActive() {
+			v.Subtitle = fmt.Sprintf(" Filter: %s ", cl.FilterText)
+			v.Footer = fmt.Sprintf("%d of %d matched",
+				len(cl.Cards), cl.UnfilteredCount)
 		} else {
-			v.Footer = ""
+			v.Subtitle = ""
+			if len(cl.Cards) > 0 {
+				v.Footer = fmt.Sprintf("%d of %d", cl.SelectedCardIdx+1, len(cl.Cards))
+			} else {
+				v.Footer = ""
+			}
 		}
 	}
 
@@ -408,19 +415,31 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	gui.views.Search = v
-	v.Title = " Search "
+	if gui.contexts.Search.InFilterMode() {
+		v.Title = " " + gui.contexts.Search.FilterTitle + " "
+	} else {
+		v.Title = " Search "
+	}
 	v.Footer = " / for filters | # for tags | Tab: complete | Esc: cancel "
 	v.Editable = true
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:        gui,
 		state:      func() *types.CompletionState { return gui.contexts.Search.Completion },
-		triggers:   gui.searchTriggers,
+		triggers:   gui.searchOrFilterTriggers,
 		drillFlags: 0,
 	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
+
+	// Seed text on first open in filter mode
+	sc := gui.contexts.Search
+	if sc.InFilterMode() && !sc.FilterSeedDone && sc.FilterSeed != "" {
+		sc.FilterSeedDone = true
+		v.TextArea.TypeString(sc.FilterSeed)
+	}
+
 	v.RenderTextArea() // ensure view has content so footer renders
 
 	g.Cursor = true

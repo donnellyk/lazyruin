@@ -106,12 +106,19 @@ func (self *PreviewHelper) UpdatePreviewCardList(title string, loadFn func() ([]
 
 // ShowCardList sets the preview to card-list mode with the given cards and title,
 // then renders. Does NOT push nav history or change context focus.
-func (self *PreviewHelper) ShowCardList(title string, cards []models.Note) {
+// The optional source enables filtering; pass a zero-value source to disable.
+func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, source ...context.CardListSource) {
 	contexts := self.c.GuiCommon().Contexts()
 	cl := contexts.CardList
 	cl.Cards = cards
 	cl.SelectedCardIdx = 0
 	cl.SetTitle(title)
+	cl.ClearFilter()
+	if len(source) > 0 {
+		cl.Source = source[0]
+	} else {
+		cl.Source = context.CardListSource{}
+	}
 	ns := cl.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0

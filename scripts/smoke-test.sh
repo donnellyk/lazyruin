@@ -418,6 +418,24 @@ fi
 tmux resize-pane -t "$SESSION" -x "$COLS" -y "$ROWS"
 
 # =============================================
+# 25. CardList filter (Ctrl-/ and X)
+# =============================================
+echo "[25] CardList filter"
+send 1; settle
+send /
+wait_for "Search" || true
+send -l "project"
+send Enter
+wait_for "Back: esc" || true
+# Open filter dialog with Ctrl-/
+send C-/
+assert_contains "Ctrl-/ opens filter dialog" "Filter"
+send Escape; settle  # cancel filter
+# Status bar should show Filter hint
+assert_status "filter hint in status bar" "Filter"
+send Escape; settle  # back from preview
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

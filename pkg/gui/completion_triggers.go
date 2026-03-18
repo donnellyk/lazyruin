@@ -81,6 +81,15 @@ func (gui *Gui) searchTriggers() []types.CompletionTrigger {
 	return triggers
 }
 
+// searchOrFilterTriggers returns source-specific triggers in filter mode,
+// falling back to searchTriggers otherwise.
+func (gui *Gui) searchOrFilterTriggers() []types.CompletionTrigger {
+	if gui.contexts.Search.FilterTriggers != nil {
+		return gui.contexts.Search.FilterTriggers()
+	}
+	return gui.searchTriggers()
+}
+
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{

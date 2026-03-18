@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"strings"
+
 	"kvnd/lazyruin/pkg/commands"
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
@@ -91,8 +93,18 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 		return nil
 	}
 
+	tagName := tag.Name
+	source := context.CardListSource{
+		Query: tagName,
+		Requery: func(filterText string) ([]models.Note, error) {
+			o := self.c.Helpers().Preview().BuildSearchOptions()
+			combined := strings.TrimSpace(tagName + " " + filterText)
+			return self.c.RuinCmd().Search.Search(combined, o)
+		},
+	}
+
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Tag: "+tag.Name, notes)
+	self.c.Helpers().Preview().ShowCardList("Tag: "+tag.Name, notes, source)
 	gui.PushContextByKey("cardList")
 	return nil
 }

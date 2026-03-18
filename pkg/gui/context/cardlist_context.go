@@ -5,6 +5,14 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
+// CardListSource holds metadata about the query that populated a card list,
+// enabling re-query for filtering.
+type CardListSource struct {
+	Query    string                                         // for display/seed in filter dialog
+	Requery  func(filterText string) ([]models.Note, error) // combines filter with original query
+	Triggers func() []types.CompletionTrigger               // completion triggers for filter dialog
+}
+
 // CardListState holds state specific to the card-list preview mode.
 type CardListState struct {
 	PreviewNavState
@@ -12,6 +20,19 @@ type CardListState struct {
 	Cards            []models.Note
 	SelectedCardIdx  int
 	TemporarilyMoved map[int]bool
+
+	FilterText      string
+	Source          CardListSource
+	UnfilteredCount int
+}
+
+func (s *CardListState) FilterActive() bool {
+	return s.FilterText != ""
+}
+
+func (s *CardListState) ClearFilter() {
+	s.FilterText = ""
+	s.UnfilteredCount = 0
 }
 
 // CardListContext owns the card-list preview mode (search results, tag/query

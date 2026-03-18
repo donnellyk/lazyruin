@@ -97,9 +97,36 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			ID: "cardList.open_url", Key: 'o',
 			Handler: self.openURL, Description: "Open URL", Category: "Preview",
 		},
+		&types.Binding{
+			ID: "cardList.filter", Key: gocui.Key(0x1F), // Ctrl-/
+			Handler: self.openFilter, Description: "Filter Cards", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Filter",
+		},
+		&types.Binding{
+			ID: "cardList.clear_filter", Key: 'X',
+			Handler:           self.clearFilter,
+			GetDisabledReason: self.filterNotActive,
+			Description:       "Clear Filter", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Clear",
+		},
 	)
 	bindings = append(bindings, self.LineOpsBindings("cardList")...)
 	return bindings
+}
+
+func (self *CardListController) openFilter() error {
+	return self.c.Helpers().CardListFilter().OpenFilterDialog()
+}
+
+func (self *CardListController) clearFilter() error {
+	return self.c.Helpers().CardListFilter().ClearFilter()
+}
+
+func (self *CardListController) filterNotActive() *types.DisabledReason {
+	if !self.getContext().FilterActive() {
+		return &types.DisabledReason{Text: "No active filter"}
+	}
+	return nil
 }
 
 func (self *CardListController) openURL() error {

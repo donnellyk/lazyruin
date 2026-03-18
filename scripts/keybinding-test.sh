@@ -554,9 +554,35 @@ echo "  PASS: l/L link navigation (no crash)"
 send Escape; settle
 
 # =============================================
-# 46. DatePreview: ) / ( section jump
+# 46. Preview (cardList): Ctrl-/ (filter)
 # =============================================
-echo "[46] DatePreview: section jump"
+echo "[46] Preview: Ctrl-/ (filter)"
+send 1; settle; send g; settle
+send /
+wait_for "Search" || true
+send -l "project"
+send Enter
+wait_for "Back: esc" || true
+send C-/
+assert_contains "Ctrl-/ opens filter dialog" "Filter"
+send Escape; settle  # cancel filter
+send Escape; settle  # back from preview
+
+# =============================================
+# 47. Preview (cardList): X (clear filter - disabled)
+# =============================================
+echo "[47] Preview: X (clear filter)"
+send 1; settle; send g; settle
+send Enter; wait_for "Back: esc" || true
+send X; settle  # should be no-op (no active filter)
+TOTAL=$((TOTAL + 1))
+echo "  PASS: X clear filter (no crash when no filter)"
+send Escape; settle
+
+# =============================================
+# 48. DatePreview: ) / ( section jump
+# =============================================
+echo "[48] DatePreview: section jump"
 send 1; settle
 send c  # open calendar
 wait_for "Su Mo Tu We Th Fr Sa" || true
@@ -568,33 +594,33 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: )/( section jump (no crash)"
 
 # =============================================
-# 47. DatePreview: J/K card navigation
+# 49. DatePreview: J/K card navigation
 # =============================================
-echo "[47] DatePreview: J/K"
+echo "[49] DatePreview: J/K"
 send J; settle; send K; settle
 TOTAL=$((TOTAL + 1))
 echo "  PASS: J/K in datePreview (no crash)"
 
 # =============================================
-# 48. DatePreview: j/k line scroll
+# 50. DatePreview: j/k line scroll
 # =============================================
-echo "[48] DatePreview: j/k"
+echo "[50] DatePreview: j/k"
 send j; send j; send k
 TOTAL=$((TOTAL + 1))
 echo "  PASS: j/k in datePreview (no crash)"
 
 # =============================================
-# 49. DatePreview: {/} header jump
+# 51. DatePreview: {/} header jump
 # =============================================
-echo "[49] DatePreview: {/}"
+echo "[51] DatePreview: {/}"
 send '}'; settle; send '{'; settle
 TOTAL=$((TOTAL + 1))
 echo "  PASS: {/} in datePreview (no crash)"
 
 # =============================================
-# 50. DatePreview: Enter (open note) / Esc (back)
+# 52. DatePreview: Enter (open note) / Esc (back)
 # =============================================
-echo "[50] DatePreview: Enter/Esc"
+echo "[52] DatePreview: Enter/Esc"
 send Enter
 assert_footer "Enter opens note from datePreview" "1 of 1"
 send Escape
@@ -603,9 +629,9 @@ send Escape  # back to notes
 settle
 
 # =============================================
-# 51. Calendar: hjkl grid navigation
+# 53. Calendar: hjkl grid navigation
 # =============================================
-echo "[51] Calendar: hjkl"
+echo "[53] Calendar: hjkl"
 send 1; settle
 send c
 wait_for "Su Mo Tu We Th Fr Sa" || true
@@ -617,9 +643,9 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: hjkl in calendar grid (no crash)"
 
 # =============================================
-# 52. Calendar: arrow keys
+# 54. Calendar: arrow keys
 # =============================================
-echo "[52] Calendar: Arrow keys"
+echo "[54] Calendar: Arrow keys"
 send Left; settle
 send Right; settle
 send Up; settle
@@ -628,9 +654,9 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: arrow keys in calendar grid (no crash)"
 
 # =============================================
-# 53. Calendar: Tab (focus input)
+# 55. Calendar: Tab (focus input)
 # =============================================
-echo "[53] Calendar: Tab"
+echo "[55] Calendar: Tab"
 send Tab; settle
 # Should focus calendarInput
 TOTAL=$((TOTAL + 1))
@@ -638,9 +664,9 @@ echo "  PASS: Tab in calendar (no crash)"
 send Escape; settle  # close calendar
 
 # =============================================
-# 54. Calendar: / (focus input)
+# 56. Calendar: / (focus input)
 # =============================================
-echo "[54] Calendar: / (focus input)"
+echo "[56] Calendar: / (focus input)"
 send 1; settle
 send c
 wait_for "Su Mo Tu We Th Fr Sa" || true
@@ -650,9 +676,9 @@ echo "  PASS: / focuses calendar input (no crash)"
 send Escape; settle  # close
 
 # =============================================
-# 55. Contributions: hjkl grid navigation
+# 57. Contributions: hjkl grid navigation
 # =============================================
-echo "[55] Contributions: hjkl"
+echo "[57] Contributions: hjkl"
 send 1; settle
 send C
 wait_for "Contributions" || true
@@ -664,9 +690,9 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: hjkl in contrib grid (no crash)"
 
 # =============================================
-# 56. Contributions: Arrow keys
+# 58. Contributions: Arrow keys
 # =============================================
-echo "[56] Contributions: Arrow keys"
+echo "[58] Contributions: Arrow keys"
 send Left; settle
 send Right; settle
 send Up; settle
@@ -675,18 +701,18 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: arrow keys in contrib grid (no crash)"
 
 # =============================================
-# 57. Contributions: Tab (focus notes list)
+# 59. Contributions: Tab (focus notes list)
 # =============================================
-echo "[57] Contributions: Tab"
+echo "[59] Contributions: Tab"
 send Tab; settle
 TOTAL=$((TOTAL + 1))
 echo "  PASS: Tab in contrib (no crash)"
 send Escape; settle
 
 # =============================================
-# 58. Contributions: Enter (select date -> datePreview)
+# 60. Contributions: Enter (select date -> datePreview)
 # =============================================
-echo "[58] Contributions: Enter"
+echo "[60] Contributions: Enter"
 send 1; settle
 send C
 wait_for "Contributions" || true
@@ -695,9 +721,9 @@ assert_status "Enter in contrib -> datePreview" "View: v"
 send Escape; settle
 
 # =============================================
-# 59. Search: type query + Enter + 0/x clear
+# 61. Search: type query + Enter + 0/x clear
 # =============================================
-echo "[59] Search: full flow"
+echo "[61] Search: full flow"
 send 1; settle
 send /
 wait_for "Search" || true
@@ -710,9 +736,9 @@ send x
 assert_not_contains "x clears search" "[0]-Search"
 
 # =============================================
-# 60. Pick: type tag + Esc
+# 62. Pick: type tag + Esc
 # =============================================
-echo "[60] Pick: type + Esc"
+echo "[62] Pick: type + Esc"
 send 1; settle
 send p
 wait_for "Pick" || true
@@ -721,9 +747,9 @@ send Escape
 assert_not_contains "pick dismissed" "Pick tags"
 
 # =============================================
-# 61. Capture: type + Esc
+# 63. Capture: type + Esc
 # =============================================
-echo "[61] Capture: type + Esc"
+echo "[63] Capture: type + Esc"
 send 1; settle
 send n
 wait_for "New Note" || true
@@ -733,9 +759,9 @@ send Escape
 assert_not_contains "capture dismissed" "New Note"
 
 # =============================================
-# 62. Palette: filter + Esc
+# 64. Palette: filter + Esc
 # =============================================
-echo "[62] Palette: filter + Esc"
+echo "[64] Palette: filter + Esc"
 send 1; settle
 send :
 wait_for "Command Palette" || true
@@ -745,9 +771,9 @@ send Escape
 assert_not_contains "palette dismissed" "Command Palette"
 
 # =============================================
-# 63. Help: shows context-specific bindings
+# 65. Help: shows context-specific bindings
 # =============================================
-echo "[63] Help: context bindings"
+echo "[65] Help: context bindings"
 send 1; settle
 send ?
 assert_contains "help shows Notes bindings" "Notes"
@@ -755,9 +781,9 @@ assert_contains "help shows Global section" "Global"
 send Escape; settle
 
 # =============================================
-# 64. Preview: [ / ] nav history
+# 66. Preview: [ / ] nav history
 # =============================================
-echo "[64] Preview: nav history"
+echo "[66] Preview: nav history"
 send 1; settle; send g; settle
 send Enter; wait_for "Back: esc" || true
 # Navigate forward into something, then use [ to go back
@@ -767,9 +793,9 @@ echo "  PASS: [/] nav history (no crash)"
 send Escape; settle
 
 # =============================================
-# 65. Notes: 1 cycles tabs when already focused
+# 67. Notes: 1 cycles tabs when already focused
 # =============================================
-echo "[65] Notes: tab cycling"
+echo "[67] Notes: tab cycling"
 send 1; settle
 assert_contains "initial tab All" "All - Today - Recent"
 send 1  # cycle to Today
@@ -782,9 +808,9 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: 1 cycles notes tabs (no crash)"
 
 # =============================================
-# 66. Queries: 2 cycles tabs when already focused
+# 68. Queries: 2 cycles tabs when already focused
 # =============================================
-echo "[66] Queries: tab cycling"
+echo "[68] Queries: tab cycling"
 send 2; settle
 send 2  # cycle to Parents
 settle
@@ -793,9 +819,9 @@ settle
 TOTAL=$((TOTAL + 1))
 echo "  PASS: 2 cycles queries tabs (no crash)"
 # =============================================
-# 67. Tags: 3 cycles tabs when already focused
+# 69. Tags: 3 cycles tabs when already focused
 # =============================================
-echo "[67] Tags: tab cycling"
+echo "[69] Tags: tab cycling"
 send 3; settle
 send 3  # cycle to Global
 settle
@@ -807,9 +833,9 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: 3 cycles tags tabs (no crash)"
 
 # =============================================
-# 68. Calendar: Enter → datePreview
+# 70. Calendar: Enter → datePreview
 # =============================================
-echo "[68] Calendar: Enter -> datePreview"
+echo "[70] Calendar: Enter -> datePreview"
 send 1; settle
 send c
 wait_for "Su Mo Tu We Th Fr Sa" || true
@@ -819,9 +845,9 @@ assert_contains "datePreview date title after calendar" "2026"
 send Escape; settle
 
 # =============================================
-# 69. Confirm dialog: y/n
+# 71. Confirm dialog: y/n
 # =============================================
-echo "[69] Confirm: y/n"
+echo "[71] Confirm: y/n"
 send 1; settle; send g; settle
 send d  # delete note → confirm
 assert_contains "confirm dialog visible" "[y] Yes"
@@ -834,9 +860,9 @@ send Escape  # Esc also cancels
 assert_not_contains "Esc cancels confirm" "[y] Yes"
 
 # =============================================
-# 70. Compose: Ctrl-N (new child note)
+# 72. Compose: Ctrl-N (new child note)
 # =============================================
-echo "[70] Compose: Ctrl-N (new child note)"
+echo "[72] Compose: Ctrl-N (new child note)"
 reset_to_notes
 send 2; sleep 0.3                           # focus Queries panel
 send 2; sleep 0.3                           # cycle to Parents tab

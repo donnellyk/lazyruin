@@ -216,8 +216,19 @@ func (self *LinkHelper) BrowseLinks() error {
 	if err != nil {
 		return nil
 	}
+
+	source := context.CardListSource{
+		Query: "",
+		Requery: func(filterText string) ([]models.Note, error) {
+			o := self.c.Helpers().Preview().BuildSearchOptions()
+			o.Limit = 50
+			combined := strings.TrimSpace("#link " + filterText)
+			return self.c.RuinCmd().Search.Search(combined, o)
+		},
+	}
+
 	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Links", notes)
+	self.c.Helpers().Preview().ShowCardList("Links", notes, source)
 	self.c.GuiCommon().PushContextByKey("cardList")
 	return nil
 }

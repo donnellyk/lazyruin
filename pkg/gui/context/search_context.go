@@ -7,6 +7,26 @@ type SearchContext struct {
 	BaseContext
 	Query      string
 	Completion *types.CompletionState
+
+	// Filter mode: when OnFilterSubmit is set, the search dialog acts as a
+	// filter input instead of a normal search.
+	FilterTitle    string
+	FilterSeed     string
+	FilterSeedDone bool
+	FilterTriggers func() []types.CompletionTrigger
+	OnFilterSubmit func(string) error
+}
+
+func (s *SearchContext) InFilterMode() bool {
+	return s.OnFilterSubmit != nil
+}
+
+func (s *SearchContext) ClearFilterMode() {
+	s.FilterTitle = ""
+	s.FilterSeed = ""
+	s.FilterSeedDone = false
+	s.FilterTriggers = nil
+	s.OnFilterSubmit = nil
 }
 
 // NewSearchContext creates a SearchContext.

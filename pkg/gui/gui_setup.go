@@ -154,8 +154,15 @@ func (gui *Gui) setupSearchContext() {
 		func() *context.SearchContext { return gui.contexts.Search },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Description: "Search", Handler: func() error {
-				return gui.completionEnter(searchState, gui.searchTriggers, func(g *gocui.Gui, v *gocui.View) error {
+				return gui.completionEnter(searchState, gui.searchOrFilterTriggers, func(g *gocui.Gui, v *gocui.View) error {
 					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+					ctx := gui.contexts.Search
+					if ctx.InFilterMode() {
+						err := ctx.OnFilterSubmit(raw)
+						ctx.ClearFilterMode()
+						searchHelper().CancelSearch()
+						return err
+					}
 					if !searchHelper().ExecuteSearch(raw) {
 						searchHelper().CancelSearch()
 					}
@@ -169,7 +176,7 @@ func (gui *Gui) setupSearchContext() {
 				})(gui.g, gui.views.Search)
 			}},
 			{Key: gocui.KeyTab, Description: "Complete", Handler: func() error {
-				return gui.completionTab(searchState, gui.searchTriggers)(gui.g, gui.views.Search)
+				return gui.completionTab(searchState, gui.searchOrFilterTriggers)(gui.g, gui.views.Search)
 			}},
 		},
 	)
