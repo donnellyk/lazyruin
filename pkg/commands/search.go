@@ -12,6 +12,7 @@ type SearchOptions struct {
 	StripGlobalTags bool
 	StripTitle      bool
 	Everything      bool
+	Link            bool
 }
 
 type SearchCommand struct {
@@ -45,6 +46,9 @@ func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note,
 	}
 	if opts.Everything {
 		args = append(args, "--everything")
+	}
+	if opts.Link {
+		args = append(args, "--link")
 	}
 
 	output, err := s.ruin.Execute(args...)

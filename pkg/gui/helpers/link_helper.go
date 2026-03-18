@@ -212,7 +212,8 @@ func (self *LinkHelper) parseLinkContent(content, url string) (title, comment st
 func (self *LinkHelper) BrowseLinks() error {
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	opts.Limit = 50
-	notes, err := self.c.RuinCmd().Search.Search("#link", opts)
+	opts.Link = true
+	notes, err := self.c.RuinCmd().Search.Search("", opts)
 	if err != nil {
 		return nil
 	}
@@ -222,8 +223,8 @@ func (self *LinkHelper) BrowseLinks() error {
 		Requery: func(filterText string) ([]models.Note, error) {
 			o := self.c.Helpers().Preview().BuildSearchOptions()
 			o.Limit = 50
-			combined := strings.TrimSpace("#link " + filterText)
-			return self.c.RuinCmd().Search.Search(combined, o)
+			o.Link = true
+			return self.c.RuinCmd().Search.Search(strings.TrimSpace(filterText), o)
 		},
 	}
 
