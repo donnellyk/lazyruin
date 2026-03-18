@@ -98,7 +98,7 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			Handler: self.openURL, Description: "Open URL", Category: "Preview",
 		},
 		&types.Binding{
-			ID: "cardList.filter", Key: gocui.Key(0x1F), // Ctrl-/
+			ID: "cardList.filter", Key: gocui.KeyCtrlF,
 			Handler: self.openFilter, Description: "Filter Cards", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "Filter",
 		},

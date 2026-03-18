@@ -554,16 +554,16 @@ echo "  PASS: l/L link navigation (no crash)"
 send Escape; settle
 
 # =============================================
-# 46. Preview (cardList): Ctrl-/ (filter)
+# 46. Preview (cardList): Ctrl-F (filter)
 # =============================================
-echo "[46] Preview: Ctrl-/ (filter)"
+echo "[46] Preview: Ctrl-F (filter)"
 send 1; settle; send g; settle
 send /
 wait_for "Search" || true
 send -l "project"
 send Enter
 wait_for "Back: esc" || true
-send C-/
+send C-f
 assert_contains "Ctrl-/ opens filter dialog" "Filter"
 send Escape; settle  # cancel filter
 send Escape; settle  # back from preview

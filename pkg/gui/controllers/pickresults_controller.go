@@ -56,6 +56,20 @@ func (self *PickResultsController) GetKeybindings(opts types.KeybindingsOpts) []
 		return bindings
 	}
 	bindings := self.NavBindings()
+	bindings = append(bindings,
+		&types.Binding{
+			ID: "pickResults.filter", Key: gocui.KeyCtrlF,
+			Handler: self.openFilter, Description: "Filter Results", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Filter",
+		},
+		&types.Binding{
+			ID: "pickResults.clear_filter", Key: 'X',
+			Handler:           self.clearFilter,
+			GetDisabledReason: self.filterNotActive,
+			Description:       "Clear Filter", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Clear",
+		},
+	)
 	bindings = append(bindings, self.LineOpsBindings("pickResults")...)
 	return bindings
 }
@@ -65,6 +79,21 @@ func (self *PickResultsController) GetMouseKeybindings(opts types.KeybindingsOpt
 		return nil
 	}
 	return self.NavMouseBindings()
+}
+
+func (self *PickResultsController) openFilter() error {
+	return self.c.Helpers().CardListFilter().OpenFilterDialog()
+}
+
+func (self *PickResultsController) clearFilter() error {
+	return self.c.Helpers().CardListFilter().ClearFilter()
+}
+
+func (self *PickResultsController) filterNotActive() *types.DisabledReason {
+	if !self.c.Helpers().CardListFilter().FilterActive() {
+		return &types.DisabledReason{Text: "No active filter"}
+	}
+	return nil
 }
 
 func (self *PickResultsController) dialogEnter() error {

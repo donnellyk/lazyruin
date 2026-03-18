@@ -123,7 +123,18 @@ func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 	pickCtx.Query = tag.Name
 	pickCtx.AnyMode = false
 
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results)
+	tagName := tag.Name
+	source := context.PickResultsSource{
+		Query: tagName,
+		Requery: func(filterText string) ([]models.PickResult, error) {
+			combined := strings.TrimSpace(tagName + " " + filterText)
+			tags, _, _, _ := ParsePickQuery(combined)
+			return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
+		},
+	}
+
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results, source)
 	gui.PushContextByKey("pickResults")
 	return nil
 }
@@ -203,5 +214,15 @@ func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
 	pickCtx.Query = tag.Name
 	pickCtx.AnyMode = false
 
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results)
+	tagName := tag.Name
+	source := context.PickResultsSource{
+		Query: tagName,
+		Requery: func(filterText string) ([]models.PickResult, error) {
+			combined := strings.TrimSpace(tagName + " " + filterText)
+			tags, _, _, _ := ParsePickQuery(combined)
+			return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
+		},
+	}
+
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results, source)
 }

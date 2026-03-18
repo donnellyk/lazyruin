@@ -112,9 +112,10 @@ func (self *PickHelper) ExecutePick(raw string) error {
 	}
 
 	tags, date, filter, flags := ParsePickQuery(raw)
+	anyMode := ctx.AnyMode || flags.Any
+	todoMode := ctx.TodoMode || flags.Todo
 	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{
-		Any:  ctx.AnyMode || flags.Any,
-		Todo: ctx.TodoMode || flags.Todo,
+		Any: anyMode, Todo: todoMode,
 		Date: date, Filter: filter,
 	})
 
@@ -127,7 +128,21 @@ func (self *PickHelper) ExecutePick(raw string) error {
 		results = nil
 	}
 
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+raw, results)
+	capturedRaw := raw
+	source := context.PickResultsSource{
+		Query: raw,
+		Requery: func(filterText string) ([]models.PickResult, error) {
+			combined := strings.TrimSpace(capturedRaw + " " + filterText)
+			t, d, f, fl := ParsePickQuery(combined)
+			return self.c.RuinCmd().Pick.Pick(t, commands.PickOpts{
+				Any: anyMode || fl.Any, Todo: todoMode || fl.Todo,
+				Date: d, Filter: f,
+			})
+		},
+	}
+
+	self.c.Helpers().PreviewNav().PushNavHistory()
+	self.c.Helpers().Preview().ShowPickResults("Pick: "+raw, results, source)
 	gui.ReplaceContextByKey("pickResults")
 	return nil
 }

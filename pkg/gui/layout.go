@@ -338,10 +338,17 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	case "pickResults":
 		pr := gui.contexts.PickResults
 		v.Title = " " + pr.Title() + " "
-		if len(pr.Results) > 0 {
-			v.Footer = fmt.Sprintf("%d of %d", pr.SelectedCardIdx+1, len(pr.Results))
+		if pr.FilterActive() {
+			v.Subtitle = fmt.Sprintf(" Filter: %s ", pr.FilterText)
+			v.Footer = fmt.Sprintf("%d of %d matched",
+				len(pr.Results), pr.UnfilteredCount)
 		} else {
-			v.Footer = ""
+			v.Subtitle = ""
+			if len(pr.Results) > 0 {
+				v.Footer = fmt.Sprintf("%d of %d", pr.SelectedCardIdx+1, len(pr.Results))
+			} else {
+				v.Footer = ""
+			}
 		}
 	case "compose":
 		v.Title = " " + gui.contexts.Compose.Title() + " "

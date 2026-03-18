@@ -418,7 +418,7 @@ fi
 tmux resize-pane -t "$SESSION" -x "$COLS" -y "$ROWS"
 
 # =============================================
-# 25. CardList filter (Ctrl-/ and X)
+# 25. CardList filter (Ctrl-F and X)
 # =============================================
 echo "[25] CardList filter"
 send 1; settle
@@ -427,9 +427,9 @@ wait_for "Search" || true
 send -l "project"
 send Enter
 wait_for "Back: esc" || true
-# Open filter dialog with Ctrl-/
-send C-/
-assert_contains "Ctrl-/ opens filter dialog" "Filter"
+# Open filter dialog with Ctrl-F
+send C-f
+assert_contains "Ctrl-F opens filter dialog" "Filter"
 send Escape; settle  # cancel filter
 # Status bar should show Filter hint
 assert_status "filter hint in status bar" "Filter"

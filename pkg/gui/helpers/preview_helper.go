@@ -128,12 +128,19 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 
 // ShowPickResults sets the preview to pick-results mode with the given results
 // and title, then renders. Does NOT push nav history or change context focus.
-func (self *PreviewHelper) ShowPickResults(title string, results []models.PickResult) {
+// The optional source enables filtering; pass a zero-value source to disable.
+func (self *PreviewHelper) ShowPickResults(title string, results []models.PickResult, source ...context.PickResultsSource) {
 	contexts := self.c.GuiCommon().Contexts()
 	pr := contexts.PickResults
 	pr.Results = results
 	pr.SelectedCardIdx = 0
 	pr.SetTitle(title)
+	pr.ClearFilter()
+	if len(source) > 0 {
+		pr.Source = source[0]
+	} else {
+		pr.Source = context.PickResultsSource{}
+	}
 	ns := pr.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0

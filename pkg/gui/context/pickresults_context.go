@@ -5,6 +5,14 @@ import (
 	"kvnd/lazyruin/pkg/models"
 )
 
+// PickResultsSource holds metadata about the query that populated pick results,
+// enabling re-query for filtering.
+type PickResultsSource struct {
+	Query    string                                               // for display/seed in filter dialog
+	Requery  func(filterText string) ([]models.PickResult, error) // combines filter with original query
+	Triggers func() []types.CompletionTrigger                     // completion triggers for filter dialog
+}
+
 // PickResultsState holds state specific to the pick-results preview mode.
 type PickResultsState struct {
 	PreviewNavState
@@ -13,6 +21,19 @@ type PickResultsState struct {
 	SelectedCardIdx int
 	Query           string // dialog mode: for title display
 	ScopeTitle      string // dialog mode: scoped context name
+
+	FilterText      string
+	Source          PickResultsSource
+	UnfilteredCount int
+}
+
+func (s *PickResultsState) FilterActive() bool {
+	return s.FilterText != ""
+}
+
+func (s *PickResultsState) ClearFilter() {
+	s.FilterText = ""
+	s.UnfilteredCount = 0
 }
 
 // PickResultsContext owns the pick-results preview mode (inline tag pick,
