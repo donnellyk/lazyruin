@@ -99,7 +99,7 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	x0, y0, x1, y1 := centerRect(maxX, maxY, 50, 7)
+	x0, y0, x1, y1 := centerRect(maxX, maxY, 50, 5)
 
 	v, err := g.SetView(ConfirmView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -107,13 +107,14 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	v.Title = " " + gui.state.Dialog.Title + " "
+	v.Footer = " [y] Yes · [n/Esc] No "
 	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
 	v.Clear()
 
 	fmt.Fprintln(v, "")
 	fmt.Fprintln(v, "  "+gui.state.Dialog.Message)
-	fmt.Fprintln(v, "")
-	fmt.Fprintln(v, "  [y] Yes    [n/Esc] No")
 
 	g.SetViewOnTop(ConfirmView)
 	g.SetCurrentView(ConfirmView)
@@ -137,6 +138,8 @@ func (gui *Gui) createInputDialog(g *gocui.Gui, maxX, maxY int) error {
 	v.Title = " " + gui.state.Dialog.Title + " "
 	v.Editable = true
 	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
 	v.Clear()
 
 	fmt.Fprintln(v, "")
