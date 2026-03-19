@@ -29,6 +29,7 @@ type CaptureContext struct {
 	Completion    *types.CompletionState
 	LinkURL       string
 	LinkTitle     string
+	LinkTags      []string
 	ResolveState  LinkResolveState
 	ResolveResult *LinkResolveResult
 	ResolveDone   chan struct{}

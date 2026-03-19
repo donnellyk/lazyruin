@@ -190,7 +190,7 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{ID: "global.pick", Key: 'p', Handler: self.openPick, Description: "Pick", Category: "Global"},
 		{Key: '\\', Handler: self.openPick},
 		{ID: "global.new_note", Key: 'n', Handler: self.newNote, Description: "New Note", Category: "Global"},
-		{ID: "global.new_link", Key: 'L', Handler: self.newLink, Description: "New Link", Category: "Global"},
+		{ID: "global.new_link", Key: gocui.KeyCtrlL, Handler: self.newLink, Description: "New Link", Category: "Global"},
 		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
 		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Keys"},
 		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette

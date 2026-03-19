@@ -94,6 +94,7 @@ func (self *CaptureHelper) CloseCapture() error {
 	ctx.Completion = types.NewCompletionState()
 	ctx.LinkURL = ""
 	ctx.LinkTitle = ""
+	ctx.LinkTags = nil
 	ctx.ResolveState = context.ResolveIdle
 	ctx.ResolveResult = nil
 	ctx.ResolveDone = nil

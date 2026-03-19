@@ -27,73 +27,153 @@ func (self *LinkHelper) CreateLink() error {
 	}
 
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
-		Title: "New Link",
+		Title:      "New Link",
+		Footer:     " Enter: resolve | Ctrl-S: save now ",
+		DeferClose: true,
+		Triggers: func() []types.CompletionTrigger {
+			return []types.CompletionTrigger{
+				{Prefix: "#", Candidates: self.c.Helpers().Completion().TagCandidates},
+			}
+		},
 		OnAccept: func(raw string, _ *types.CompletionItem) error {
-			url := strings.TrimSpace(raw)
+			url, tags := self.parseURLAndTags(raw)
+			if url == "" {
+				self.c.Helpers().InputPopup().CloseInputPopup()
+				return nil
+			}
+			return self.resolveAndCapture(url, tags)
+		},
+		OnCtrlS: func(raw string) error {
+			url, tags := self.parseURLAndTags(raw)
 			if url == "" {
 				return nil
 			}
-			return self.openLinkCapture(url)
+			return self.saveImmediate(url, tags)
 		},
 	})
 	return nil
 }
 
-func (self *LinkHelper) openLinkCapture(url string) error {
+// parseURLAndTags splits input like "https://example.com #tag1 #tag2" into URL and tag list.
+func (self *LinkHelper) parseURLAndTags(raw string) (url string, tags []string) {
+	fields := strings.Fields(raw)
+	for _, f := range fields {
+		if strings.HasPrefix(f, "#") {
+			tag := strings.TrimPrefix(f, "#")
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		} else if url == "" {
+			url = f
+		}
+	}
+	return url, tags
+}
+
+// saveImmediate creates a link with --no-fetch and optional tags, then closes.
+func (self *LinkHelper) saveImmediate(url string, tags []string) error {
+	opts := commands.LinkNewOpts{NoFetch: true}
+	if len(tags) > 0 {
+		opts.Tags = strings.Join(tags, ",")
+	}
+
+	_, err := self.c.RuinCmd().Link.New(url, opts)
+	if err != nil {
+		self.c.GuiCommon().ShowError(err)
+		return nil
+	}
+
+	self.c.Helpers().InputPopup().CloseInputPopup()
+	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.Helpers().Tags().RefreshTags(false)
+	return nil
+}
+
+// resolveAndCapture locks the input, resolves the URL, then opens capture with results.
+func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
+	gui := self.c.GuiCommon()
+	ctx := gui.Contexts().InputPopup
+
+	// Lock the input popup
+	if ctx.Config != nil {
+		ctx.Config.Locked = true
+		ctx.Config.Footer = ""
+	}
+
+	done := make(chan struct{})
+
+	go self.spinInputTitle(url, done)
+	go self.doResolve(url, tags, done)
+
+	return nil
+}
+
+func (self *LinkHelper) doResolve(url string, tags []string, done chan struct{}) {
+	result, err := self.c.RuinCmd().Link.Resolve(url)
+	gui := self.c.GuiCommon()
+	gui.Update(func() error {
+		close(done)
+
+		ctx := gui.Contexts().InputPopup
+		// Verify we're still in the same input popup
+		if ctx.Config == nil || !ctx.Config.Locked {
+			return nil
+		}
+
+		self.c.Helpers().InputPopup().CloseInputPopup()
+
+		if err != nil {
+			gui.ShowError(fmt.Errorf("link resolve failed: %w", err))
+			return nil
+		}
+
+		self.openCaptureWithResolved(url, tags, result)
+		return nil
+	})
+}
+
+func (self *LinkHelper) openCaptureWithResolved(url string, tags []string, result *commands.LinkResolveResult) {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().Capture
 	ctx.Parent = nil
 	ctx.Completion = types.NewCompletionState()
 	ctx.LinkURL = url
 	ctx.LinkTitle = " New Link "
-	ctx.ResolveState = context.ResolveInFlight
-	ctx.ResolveResult = nil
-	ctx.ResolveDone = make(chan struct{})
+	ctx.ResolveState = context.ResolveComplete
+	ctx.ResolveResult = &context.LinkResolveResult{
+		Title:   result.Title,
+		Summary: result.Summary,
+	}
+	ctx.ResolveDone = nil
+	ctx.LinkTags = tags
 
 	gui.PushContextByKey("capture")
 
-	// Seed the capture view with the URL after the view is created.
 	gui.Update(func() error {
 		v := gui.GetView("capture")
 		if v == nil {
 			return nil
 		}
-		v.TextArea.TypeString(url)
-		return nil
-	})
-
-	done := ctx.ResolveDone
-
-	go self.resolveURL(url, done)
-	go self.spinResolve(url, done)
-
-	return nil
-}
-
-func (self *LinkHelper) resolveURL(url string, done chan struct{}) {
-	result, err := self.c.RuinCmd().Link.Resolve(url)
-	gui := self.c.GuiCommon()
-	gui.Update(func() error {
-		defer close(done)
-		ctx := gui.Contexts().Capture
-		if ctx.LinkURL != url {
-			return nil
+		var buf strings.Builder
+		if result.Title != "" {
+			fmt.Fprintf(&buf, "# %s\n\n", result.Title)
 		}
-		if err != nil {
-			ctx.ResolveState = context.ResolveFailed
-		} else {
-			ctx.ResolveState = context.ResolveComplete
-			ctx.ResolveResult = &context.LinkResolveResult{
-				Title:   result.Title,
-				Summary: result.Summary,
+		buf.WriteString(url)
+		if result.Summary != "" {
+			fmt.Fprintf(&buf, "\n\n%s", result.Summary)
+		}
+		if len(tags) > 0 {
+			buf.WriteString("\n\n")
+			for _, t := range tags {
+				buf.WriteString("#" + t + " ")
 			}
-			self.populateResolvedContent(url, result.Title, result.Summary)
 		}
+		v.TextArea.TypeString(buf.String())
 		return nil
 	})
 }
 
-func (self *LinkHelper) spinResolve(url string, done chan struct{}) {
+func (self *LinkHelper) spinInputTitle(_ string, done chan struct{}) {
 	frames := []string{"\u280b", "\u2819", "\u2839", "\u2838", "\u283c", "\u2834", "\u2826", "\u2827", "\u2807", "\u280f"}
 	tick := time.NewTicker(80 * time.Millisecond)
 	defer tick.Stop()
@@ -104,54 +184,18 @@ func (self *LinkHelper) spinResolve(url string, done chan struct{}) {
 		case <-tick.C:
 			frame := frames[i%len(frames)]
 			gui.Update(func() error {
-				ctx := gui.Contexts().Capture
-				if ctx.LinkURL != url {
+				ctx := gui.Contexts().InputPopup
+				if ctx.Config == nil || !ctx.Config.Locked {
 					return nil
 				}
-				ctx.LinkTitle = fmt.Sprintf(" New Link %s ", frame)
+				ctx.Config.Title = fmt.Sprintf("Resolving %s", frame)
 				return nil
 			})
 			i++
 		case <-done:
-			gui.Update(func() error {
-				ctx := gui.Contexts().Capture
-				if ctx.LinkURL != url {
-					return nil
-				}
-				if ctx.ResolveState == context.ResolveFailed {
-					ctx.LinkTitle = " New Link (fetch failed) "
-				} else {
-					ctx.LinkTitle = " New Link "
-				}
-				return nil
-			})
 			return
 		}
 	}
-}
-
-func (self *LinkHelper) populateResolvedContent(url, title, summary string) {
-	gui := self.c.GuiCommon()
-	v := gui.GetView("capture")
-	if v == nil {
-		return
-	}
-	current := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-	if current != url {
-		return
-	}
-	// Clear existing content and replace with resolved template
-	v.TextArea.Clear()
-	v.Clear()
-	var buf strings.Builder
-	if title != "" {
-		fmt.Fprintf(&buf, "# %s\n\n", title)
-	}
-	buf.WriteString(url)
-	if summary != "" {
-		fmt.Fprintf(&buf, "\n\n%s", summary)
-	}
-	v.TextArea.TypeString(buf.String())
 }
 
 func (self *LinkHelper) SubmitLinkCapture(content string) error {
@@ -165,19 +209,18 @@ func (self *LinkHelper) SubmitLinkCapture(content string) error {
 
 	title, comment := self.parseLinkContent(content, url)
 
-	var opts commands.LinkNewOpts
-	if ctx.ResolveState == context.ResolveComplete {
-		opts = commands.LinkNewOpts{
-			Title:   title,
-			Comment: comment,
-			NoFetch: true,
-		}
+	opts := commands.LinkNewOpts{
+		Title:   title,
+		Comment: comment,
+		NoFetch: true,
 	}
-	// For InFlight/Failed, use empty opts so CLI fetches itself.
+	if len(ctx.LinkTags) > 0 {
+		opts.Tags = strings.Join(ctx.LinkTags, ",")
+	}
 
 	_, err := self.c.RuinCmd().Link.New(url, opts)
 	if err != nil {
-		self.c.GuiCommon().ShowError(err)
+		gui.ShowError(err)
 		return nil
 	}
 
@@ -202,11 +245,28 @@ func (self *LinkHelper) parseLinkContent(content, url string) (title, comment st
 			continue
 		}
 		if pastURL && trimmed != "" {
+			if isTagLine(trimmed) {
+				continue
+			}
 			commentLines = append(commentLines, trimmed)
 		}
 	}
 	comment = strings.Join(commentLines, "\n")
 	return title, comment
+}
+
+// isTagLine returns true if every non-empty token on the line starts with #.
+func isTagLine(line string) bool {
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return false
+	}
+	for _, f := range fields {
+		if !strings.HasPrefix(f, "#") {
+			return false
+		}
+	}
+	return true
 }
 
 func (self *LinkHelper) BrowseLinks() error {

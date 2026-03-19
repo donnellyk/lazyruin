@@ -268,9 +268,13 @@ func (gui *Gui) setupInputPopupContext() {
 		func() *context.InputPopupContext { return gui.contexts.InputPopup },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Handler: func() error {
+				ctx := gui.contexts.InputPopup
+				if ctx.Config != nil && ctx.Config.Locked {
+					return nil
+				}
 				v, _ := gui.g.View(InputPopupView)
 				raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
-				state := gui.contexts.InputPopup.Completion
+				state := ctx.Completion
 				var item *types.CompletionItem
 				if state.Active && len(state.Items) > 0 {
 					selected := state.Items[state.SelectedIndex]
@@ -278,9 +282,18 @@ func (gui *Gui) setupInputPopupContext() {
 				}
 				return gui.helpers.InputPopup().HandleEnter(raw, item)
 			}},
-			{Key: gocui.KeyEsc, Handler: func() error { return gui.helpers.InputPopup().HandleEsc() }},
+			{Key: gocui.KeyEsc, Handler: func() error {
+				ctx := gui.contexts.InputPopup
+				if ctx.Config != nil && ctx.Config.Locked {
+					return nil
+				}
+				return gui.helpers.InputPopup().HandleEsc()
+			}},
 			{Key: gocui.KeyTab, Handler: func() error {
 				ctx := gui.contexts.InputPopup
+				if ctx.Config != nil && ctx.Config.Locked {
+					return nil
+				}
 				if ctx.Completion.Active && len(ctx.Completion.Items) > 0 {
 					v, _ := gui.g.View(InputPopupView)
 					raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
@@ -288,6 +301,15 @@ func (gui *Gui) setupInputPopupContext() {
 					return gui.helpers.InputPopup().HandleEnter(raw, &selected)
 				}
 				return nil
+			}},
+			{Key: gocui.KeyCtrlS, Handler: func() error {
+				ctx := gui.contexts.InputPopup
+				if ctx.Config == nil || ctx.Config.OnCtrlS == nil || ctx.Config.Locked {
+					return nil
+				}
+				v, _ := gui.g.View(InputPopupView)
+				raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
+				return ctx.Config.OnCtrlS(raw)
 			}},
 		},
 	)

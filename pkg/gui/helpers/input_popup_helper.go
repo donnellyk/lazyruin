@@ -37,9 +37,12 @@ func (self *InputPopupHelper) CloseInputPopup() {
 func (self *InputPopupHelper) HandleEnter(raw string, item *types.CompletionItem) error {
 	ctx := self.c.GuiCommon().Contexts().InputPopup
 	config := ctx.Config
-	self.CloseInputPopup()
 	if (raw == "" && item == nil) || config == nil || config.OnAccept == nil {
+		self.CloseInputPopup()
 		return nil
+	}
+	if !config.DeferClose {
+		self.CloseInputPopup()
 	}
 	return config.OnAccept(raw, item)
 }

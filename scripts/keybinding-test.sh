@@ -874,6 +874,16 @@ send Escape; settle  # close capture
 send Escape; settle  # back from compose
 
 # =============================================
+# 73. Global: Ctrl-L (New Link popup)
+# =============================================
+echo "[73] Global: Ctrl-L (New Link popup)"
+reset_to_notes
+send C-l
+assert_contains "Ctrl-L opens New Link popup" "New Link"
+assert_contains "New Link footer hint" "resolve"
+send Escape; settle
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

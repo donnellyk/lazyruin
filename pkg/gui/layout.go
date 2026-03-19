@@ -485,7 +485,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 
 	v.Title = " " + config.Title + " "
 	v.Footer = config.Footer
-	v.Editable = true
+	v.Editable = !config.Locked
 	v.Wrap = false
 	v.Editor = &completionEditor{
 		gui:   gui,
