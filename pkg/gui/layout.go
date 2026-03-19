@@ -26,8 +26,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		sidebarWidth = 20
 	}
 
-	statusHeight := 3
-	contentHeight := maxY - statusHeight
+	contentHeight := maxY - 1
 
 	// Search filter pane height (only shown when search is active)
 	searchFilterHeight := 0
@@ -70,7 +69,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
-	if err := gui.createStatusView(g, 0, contentHeight, maxX-1, maxY-1); err != nil {
+	// Status bar on the last terminal row. The view's top "frame" row overlaps
+	// panel borders but Frame=false means nothing is drawn there.
+	if err := gui.createStatusView(g, 0, contentHeight-1, maxX-1, contentHeight+1); err != nil {
 		return err
 	}
 
