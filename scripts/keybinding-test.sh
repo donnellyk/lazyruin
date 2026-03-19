@@ -875,7 +875,7 @@ echo "[73] Global: Ctrl-L (New Link popup)"
 reset_to_notes
 send C-l
 assert_contains "Ctrl-L opens New Link popup" "New Link"
-assert_contains "New Link footer hint" "resolve"
+assert_contains "New Link footer hint" "Resolve URL"
 send Escape; settle
 
 # =============================================

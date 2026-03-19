@@ -28,7 +28,7 @@ func (self *LinkHelper) CreateLink() error {
 
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:      "New Link",
-		Footer:     " Enter: resolve | Ctrl-S: save now ",
+		Footer:     " Enter: Resolve URL | <c-s>: Save ",
 		DeferClose: true,
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{
