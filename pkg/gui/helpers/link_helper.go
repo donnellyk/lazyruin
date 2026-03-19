@@ -94,28 +94,36 @@ func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().InputPopup
 
-	// Lock the input popup
+	cancelled := make(chan struct{})
+	done := make(chan struct{})
+
+	// Lock the input popup and wire up Esc to cancel
 	if ctx.Config != nil {
 		ctx.Config.Locked = true
 		ctx.Config.Footer = ""
+		ctx.Config.OnCancel = func() { close(cancelled) }
 	}
 
-	done := make(chan struct{})
-
 	go self.spinInputTitle(url, done)
-	go self.doResolve(url, tags, done)
+	go self.doResolve(url, tags, done, cancelled)
 
 	return nil
 }
 
-func (self *LinkHelper) doResolve(url string, tags []string, done chan struct{}) {
+func (self *LinkHelper) doResolve(url string, tags []string, done, cancelled chan struct{}) {
 	result, err := self.c.RuinCmd().Link.Resolve(url)
+	close(done)
+
 	gui := self.c.GuiCommon()
 	gui.Update(func() error {
-		close(done)
+		// If Esc was pressed while resolving, discard the result.
+		select {
+		case <-cancelled:
+			return nil
+		default:
+		}
 
 		ctx := gui.Contexts().InputPopup
-		// Verify we're still in the same input popup
 		if ctx.Config == nil || !ctx.Config.Locked {
 			return nil
 		}

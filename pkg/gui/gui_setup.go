@@ -285,6 +285,10 @@ func (gui *Gui) setupInputPopupContext() {
 			{Key: gocui.KeyEsc, Handler: func() error {
 				ctx := gui.contexts.InputPopup
 				if ctx.Config != nil && ctx.Config.Locked {
+					if ctx.Config.OnCancel != nil {
+						ctx.Config.OnCancel()
+					}
+					gui.helpers.InputPopup().CloseInputPopup()
 					return nil
 				}
 				return gui.helpers.InputPopup().HandleEsc()

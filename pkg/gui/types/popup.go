@@ -8,6 +8,7 @@ type InputPopupConfig struct {
 	Triggers   func() []CompletionTrigger                   // provides triggers referencing current completion state
 	OnAccept   func(raw string, item *CompletionItem) error // raw text and selected item (nil if none)
 	OnCtrlS    func(raw string) error                       // Ctrl-S handler (nil = no Ctrl-S action)
+	OnCancel   func()                                       // called when Esc is pressed while Locked (e.g. cancel async work)
 	Locked     bool                                         // when true, input is disabled (spinner/waiting state)
 	DeferClose bool                                         // when true, OnAccept is responsible for closing the popup
 }
