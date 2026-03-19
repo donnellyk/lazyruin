@@ -98,6 +98,12 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			Handler: self.openURL, Description: "Open URL", Category: "Preview",
 		},
 		&types.Binding{
+			ID: "cardList.re_resolve_link", Key: 'R',
+			Handler:           self.reResolveLink,
+			GetDisabledReason: self.notLinkNote,
+			Description:       "Re-resolve Link", Category: "Preview",
+		},
+		&types.Binding{
 			ID: "cardList.filter", Key: 'F',
 			Handler: self.openFilter, Description: "Filter Cards", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "Filter",
@@ -135,6 +141,22 @@ func (self *CardListController) openURL() error {
 		return nil
 	}
 	return self.c.Helpers().Link().OpenLinkURL(card)
+}
+
+func (self *CardListController) reResolveLink() error {
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	return self.c.Helpers().Link().ReResolveLink(card)
+}
+
+func (self *CardListController) notLinkNote() *types.DisabledReason {
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
+	if card == nil || !card.IsLink() {
+		return &types.DisabledReason{Text: "Not a link note"}
+	}
+	return nil
 }
 
 func (self *CardListController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

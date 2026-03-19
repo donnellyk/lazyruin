@@ -89,6 +89,47 @@ func (self *LinkHelper) saveImmediate(url string, tags []string) error {
 	return nil
 }
 
+// ReResolveLink re-resolves an existing link note's URL, preserving global tags and parent.
+func (self *LinkHelper) ReResolveLink(note *models.Note) error {
+	url := note.URL()
+	if url == "" {
+		return nil
+	}
+
+	// Preserve global tags without # prefix, excluding link (added automatically by ruin)
+	var tags []string
+	for _, t := range note.Tags {
+		t = strings.TrimPrefix(t, "#")
+		if t != "" && t != "link" {
+			tags = append(tags, t)
+		}
+	}
+
+	cancelled := make(chan struct{})
+	done := make(chan struct{})
+
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
+		Title:      "Re-resolve Link",
+		DeferClose: true,
+		Locked:     true,
+		OnCancel:   func() { close(cancelled) },
+	})
+
+	opts := linkResolveOpts{
+		url:          url,
+		tags:         tags,
+		existingUUID: note.UUID,
+		parent:       note.Parent,
+		done:         done,
+		cancelled:    cancelled,
+	}
+
+	go self.spinInputTitle(url, done)
+	go self.doResolve(opts)
+
+	return nil
+}
+
 // resolveAndCapture locks the input, resolves the URL, then opens capture with results.
 func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
 	gui := self.c.GuiCommon()
@@ -104,21 +145,38 @@ func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
 		ctx.Config.OnCancel = func() { close(cancelled) }
 	}
 
+	opts := linkResolveOpts{
+		url:       url,
+		tags:      tags,
+		done:      done,
+		cancelled: cancelled,
+	}
+
 	go self.spinInputTitle(url, done)
-	go self.doResolve(url, tags, done, cancelled)
+	go self.doResolve(opts)
 
 	return nil
 }
 
-func (self *LinkHelper) doResolve(url string, tags []string, done, cancelled chan struct{}) {
-	result, err := self.c.RuinCmd().Link.Resolve(url)
-	close(done)
+// linkResolveOpts holds parameters for the async resolve → capture flow.
+type linkResolveOpts struct {
+	url          string
+	tags         []string
+	existingUUID string // non-empty when re-resolving
+	parent       string // parent UUID to preserve
+	done         chan struct{}
+	cancelled    chan struct{}
+}
+
+func (self *LinkHelper) doResolve(opts linkResolveOpts) {
+	result, err := self.c.RuinCmd().Link.Resolve(opts.url)
+	close(opts.done)
 
 	gui := self.c.GuiCommon()
 	gui.Update(func() error {
 		// If Esc was pressed while resolving, discard the result.
 		select {
-		case <-cancelled:
+		case <-opts.cancelled:
 			return nil
 		default:
 		}
@@ -135,25 +193,32 @@ func (self *LinkHelper) doResolve(url string, tags []string, done, cancelled cha
 			return nil
 		}
 
-		self.openCaptureWithResolved(url, tags, result)
+		self.openCaptureWithResolved(opts, result)
 		return nil
 	})
 }
 
-func (self *LinkHelper) openCaptureWithResolved(url string, tags []string, result *commands.LinkResolveResult) {
+func (self *LinkHelper) openCaptureWithResolved(opts linkResolveOpts, result *commands.LinkResolveResult) {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().Capture
 	ctx.Parent = nil
 	ctx.Completion = types.NewCompletionState()
-	ctx.LinkURL = url
-	ctx.LinkTitle = " New Link "
+	ctx.LinkURL = opts.url
+	ctx.LinkExistingUUID = opts.existingUUID
+	ctx.LinkParent = opts.parent
 	ctx.ResolveState = context.ResolveComplete
 	ctx.ResolveResult = &context.LinkResolveResult{
 		Title:   result.Title,
 		Summary: result.Summary,
 	}
 	ctx.ResolveDone = nil
-	ctx.LinkTags = tags
+	ctx.LinkTags = opts.tags
+
+	if opts.existingUUID != "" {
+		ctx.LinkTitle = " Re-resolve Link "
+	} else {
+		ctx.LinkTitle = " New Link "
+	}
 
 	gui.PushContextByKey("capture")
 
@@ -166,13 +231,13 @@ func (self *LinkHelper) openCaptureWithResolved(url string, tags []string, resul
 		if result.Title != "" {
 			fmt.Fprintf(&buf, "# %s\n\n", result.Title)
 		}
-		buf.WriteString(url)
+		buf.WriteString(opts.url)
 		if result.Summary != "" {
 			fmt.Fprintf(&buf, "\n\n%s", result.Summary)
 		}
-		if len(tags) > 0 {
+		if len(opts.tags) > 0 {
 			buf.WriteString("\n\n")
-			for _, t := range tags {
+			for _, t := range opts.tags {
 				buf.WriteString("#" + t + " ")
 			}
 		}
@@ -224,6 +289,17 @@ func (self *LinkHelper) SubmitLinkCapture(content string) error {
 	}
 	if len(ctx.LinkTags) > 0 {
 		opts.Tags = strings.Join(ctx.LinkTags, ",")
+	}
+	if ctx.LinkParent != "" {
+		opts.Parent = ctx.LinkParent
+	}
+
+	// Re-resolve: delete the old note before creating the replacement.
+	if ctx.LinkExistingUUID != "" {
+		if err := self.c.RuinCmd().Note.Delete(ctx.LinkExistingUUID); err != nil {
+			gui.ShowError(fmt.Errorf("failed to delete old link note: %w", err))
+			return nil
+		}
 	}
 
 	_, err := self.c.RuinCmd().Link.New(url, opts)

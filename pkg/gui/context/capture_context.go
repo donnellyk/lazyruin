@@ -25,14 +25,16 @@ type LinkResolveResult struct {
 // CaptureContext owns the capture popup panel.
 type CaptureContext struct {
 	BaseContext
-	Parent        *CaptureParentInfo
-	Completion    *types.CompletionState
-	LinkURL       string
-	LinkTitle     string
-	LinkTags      []string
-	ResolveState  LinkResolveState
-	ResolveResult *LinkResolveResult
-	ResolveDone   chan struct{}
+	Parent           *CaptureParentInfo
+	Completion       *types.CompletionState
+	LinkURL          string
+	LinkTitle        string
+	LinkTags         []string
+	LinkExistingUUID string // non-empty when re-resolving an existing link note
+	LinkParent       string // parent UUID to preserve on re-resolve
+	ResolveState     LinkResolveState
+	ResolveResult    *LinkResolveResult
+	ResolveDone      chan struct{}
 }
 
 // NewCaptureContext creates a CaptureContext.

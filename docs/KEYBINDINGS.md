@@ -99,6 +99,8 @@ Shared across all preview modes: Card List, Pick Results, Compose, Date Preview.
 | `>` | Set parent |
 | `P` | Remove parent |
 | `b` | Toggle bookmark |
+| `o` | Open URL |
+| `R` | Re-resolve link |
 | `F` | Filter cards |
 | `X` | Clear filter |
 
