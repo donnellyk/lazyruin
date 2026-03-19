@@ -186,9 +186,8 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{Key: gocui.KeyCtrlC, Handler: self.onQuit},
 
 		// Core actions
-		{ID: "global.search", Key: '/', Handler: self.openSearch, Description: "Search", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Search"},
+		{ID: "global.search", Key: 'S', Handler: self.openSearch, Description: "Search", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Search"},
 		{ID: "global.pick", Key: 'p', Handler: self.openPick, Description: "Pick", Category: "Global"},
-		{Key: '\\', Handler: self.openPick},
 		{ID: "global.new_note", Key: 'n', Handler: self.newNote, Description: "New Note", Category: "Global"},
 		{ID: "global.new_link", Key: gocui.KeyCtrlL, Handler: self.newLink, Description: "New Link", Category: "Global"},
 		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},

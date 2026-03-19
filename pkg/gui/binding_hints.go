@@ -186,7 +186,7 @@ func collectBindingGroups(bindings []*types.Binding) (groups []categoryGroup, na
 	categoryMap := map[string][]types.MenuItem{}
 
 	for _, b := range bindings {
-		if b.Description == "" {
+		if b.Description == "" || b.Key == nil {
 			continue
 		}
 		item := types.MenuItem{

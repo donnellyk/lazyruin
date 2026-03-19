@@ -14,6 +14,11 @@ import (
 
 // paletteCommands builds the full palette command list from controller bindings
 // and palette-only commands (tabs, snippets, etc. without a controller home).
+//
+// Preview contexts (cardList, pickResults, compose, datePreview) share many
+// identical commands (e.g. Toggle Todo, Toggle Frontmatter). To avoid
+// duplicate entries, we keep only one entry per binding-ID suffix across all
+// preview contexts, preferring the currently active preview context's binding.
 func (gui *Gui) paletteCommands() []types.PaletteCommand {
 	var cmds []types.PaletteCommand
 
@@ -22,6 +27,15 @@ func (gui *Gui) paletteCommands() []types.PaletteCommand {
 
 	// Controller bindings
 	opts := types.KeybindingsOpts{}
+	activePreview := gui.contexts.ActivePreviewKey
+
+	type previewCmd struct {
+		cmd    types.PaletteCommand
+		ctxKey types.ContextKey
+		suffix string
+	}
+	var previewCmds []previewCmd
+
 	for _, ctx := range gui.contexts.All() {
 		ctxKey := ctx.GetKey()
 		kind := ctx.GetKind()
@@ -29,6 +43,7 @@ func (gui *Gui) paletteCommands() []types.PaletteCommand {
 		if kind == types.PERSISTENT_POPUP || kind == types.TEMPORARY_POPUP {
 			continue
 		}
+		isPreview := context.IsPreviewContextKey(ctxKey)
 		for _, b := range ctx.GetKeybindings(opts) {
 			if b.Description == "" || b.Category == "Navigation" {
 				continue
@@ -37,22 +52,50 @@ func (gui *Gui) paletteCommands() []types.PaletteCommand {
 			if b.Key != nil {
 				keyHint = keyDisplayString(b.Key)
 			}
-			// Global context bindings are available regardless of active context.
 			var contexts []types.ContextKey
 			if !isGlobal {
 				contexts = []types.ContextKey{ctxKey}
 			}
-			cmds = append(cmds, types.PaletteCommand{
+			cmd := types.PaletteCommand{
 				Name:     b.Description,
 				Category: b.Category,
 				Key:      keyHint,
 				OnRun:    b.Handler,
 				Contexts: contexts,
-			})
+			}
+			if isPreview && b.ID != "" {
+				suffix := bindingSuffix(b.ID)
+				previewCmds = append(previewCmds, previewCmd{cmd: cmd, ctxKey: ctxKey, suffix: suffix})
+			} else {
+				cmds = append(cmds, cmd)
+			}
+		}
+	}
+
+	// Deduplicate preview commands by suffix, preferring the active preview.
+	seen := map[string]bool{}
+	for _, pc := range previewCmds {
+		if pc.ctxKey == activePreview && !seen[pc.suffix] {
+			seen[pc.suffix] = true
+			cmds = append(cmds, pc.cmd)
+		}
+	}
+	for _, pc := range previewCmds {
+		if !seen[pc.suffix] {
+			seen[pc.suffix] = true
+			cmds = append(cmds, pc.cmd)
 		}
 	}
 
 	return cmds
+}
+
+// bindingSuffix returns the part of a binding ID after the first dot.
+func bindingSuffix(id string) string {
+	if idx := strings.Index(id, "."); idx >= 0 {
+		return id[idx+1:]
+	}
+	return id
 }
 
 // isPaletteCommandAvailable checks if a command is available given the origin context.

@@ -548,6 +548,86 @@ func TestPaletteCommands_NoDuplicateNameContexts(t *testing.T) {
 	}
 }
 
+func TestBindingSuffix(t *testing.T) {
+	tests := []struct {
+		id   string
+		want string
+	}{
+		{"cardList.filter", "filter"},
+		{"preview.toggle_frontmatter", "toggle_frontmatter"},
+		{"global.quit", "quit"},
+		{"nodot", "nodot"},
+		{"a.b.c", "b.c"},
+	}
+	for _, tt := range tests {
+		got := bindingSuffix(tt.id)
+		if got != tt.want {
+			t.Errorf("bindingSuffix(%q) = %q, want %q", tt.id, got, tt.want)
+		}
+	}
+}
+
+func TestPaletteCommands_DeduplicatesPreviewContexts(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.contexts.ActivePreviewKey = "cardList"
+	cmds := tg.gui.paletteCommands()
+
+	// Count how many times "Toggle Todo" appears
+	count := 0
+	for _, cmd := range cmds {
+		if cmd.Name == "Toggle Todo" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("Toggle Todo appears %d times in palette, want 1 (deduplicated)", count)
+	}
+}
+
+func TestPaletteCommands_PrefersActivePreview(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// With cardList active, the deduped "Filter Cards" should come from cardList
+	tg.gui.contexts.ActivePreviewKey = "cardList"
+	cmds := tg.gui.paletteCommands()
+
+	for _, cmd := range cmds {
+		if cmd.Name == "Filter Cards" {
+			if len(cmd.Contexts) != 1 || cmd.Contexts[0] != "cardList" {
+				t.Errorf("Filter Cards contexts = %v, want [cardList]", cmd.Contexts)
+			}
+			return
+		}
+	}
+	t.Error("Filter Cards not found in palette commands")
+}
+
+func TestPaletteCommands_SharedPreviewBindingsDeduped(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.contexts.ActivePreviewKey = "cardList"
+	cmds := tg.gui.paletteCommands()
+
+	// Shared preview commands that exist in all 4 preview contexts
+	// should each appear exactly once.
+	shared := []string{"Toggle Frontmatter", "View Options", "Open Link"}
+	for _, name := range shared {
+		count := 0
+		for _, cmd := range cmds {
+			if cmd.Name == name {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("%q appears %d times, want 1", name, count)
+		}
+	}
+}
+
 func TestKeyDisplayString(t *testing.T) {
 	tests := []struct {
 		key  any

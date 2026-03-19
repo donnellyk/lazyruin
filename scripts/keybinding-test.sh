@@ -144,24 +144,20 @@ assert_status "Shift-Tab -> tags" "Filter: enter"
 send 1; settle
 
 # =============================================
-# 3. Global: Search (/)
+# 3. Global: Search (S)
 # =============================================
 echo "[3] Global: Search"
-send /
-assert_contains "/ opens search" "Search"
+send S
+assert_contains "S opens search" "Search"
 send Escape; settle; send Escape; settle
 
 # =============================================
-# 4. Global: Pick (p and \)
+# 4. Global: Pick (p)
 # =============================================
 echo "[4] Global: Pick"
 send 1; settle
 send p
 assert_contains "p opens pick" "Pick"
-send Escape; settle; send Escape; settle
-send 1; settle
-send '\'
-assert_contains "\\ opens pick" "Pick"
 send Escape; settle; send Escape; settle
 
 # =============================================
@@ -477,12 +473,11 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: {/} header jump (no crash)"
 
 # =============================================
-# 37. Preview: f (toggle frontmatter)
+# 37. Preview: frontmatter (palette-only, no direct key)
 # =============================================
-echo "[37] Preview: f (frontmatter)"
-send f; settle; send f; settle
+echo "[37] Preview: frontmatter (no direct key)"
 TOTAL=$((TOTAL + 1))
-echo "  PASS: f toggle frontmatter (no crash)"
+echo "  PASS: frontmatter is palette-only (no key to test)"
 
 # =============================================
 # 38. Preview: v (view options dialog)
@@ -554,17 +549,17 @@ echo "  PASS: l/L link navigation (no crash)"
 send Escape; settle
 
 # =============================================
-# 46. Preview (cardList): Ctrl-F (filter)
+# 46. Preview (cardList): F (filter)
 # =============================================
-echo "[46] Preview: Ctrl-F (filter)"
+echo "[46] Preview: F (filter)"
 send 1; settle; send g; settle
-send /
+send S
 wait_for "Search" || true
 send -l "project"
 send Enter
 wait_for "Back: esc" || true
-send C-f
-assert_contains "Ctrl-/ opens filter dialog" "Filter"
+send F
+assert_contains "F opens filter dialog" "Filter"
 send Escape; settle  # cancel filter
 send Escape; settle  # back from preview
 
@@ -725,7 +720,7 @@ send Escape; settle
 # =============================================
 echo "[61] Search: full flow"
 send 1; settle
-send /
+send S
 wait_for "Search" || true
 send -l "daily"
 send Enter

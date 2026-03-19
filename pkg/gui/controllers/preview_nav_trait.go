@@ -49,7 +49,6 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 		// Display toggles
 		{
 			ID:          "preview.toggle_frontmatter",
-			Key:         'f',
 			Handler:     t.preview().ToggleFrontmatter,
 			Description: "Toggle Frontmatter",
 			Category:    "Preview",

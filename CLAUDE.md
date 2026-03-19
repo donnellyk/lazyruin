@@ -101,9 +101,9 @@ tmux kill-session -t test             # cleanup
 
 ## Smoke Test
 
-`scripts/smoke-test.sh` runs an automated TUI regression check via tmux (60 assertions across 24 sections). Keep this script up to date when adding/changing UI flows, keybindings, panel titles, status bar hints, or popup dialogs.
+`scripts/smoke-test.sh` runs an automated TUI regression check via tmux (64 assertions across 25 sections). Keep this script up to date when adding/changing UI flows, keybindings, panel titles, status bar hints, or popup dialogs.
 
-`scripts/keybinding-test.sh` runs a comprehensive keyboard shortcut smoke test (90 assertions across 69 sections covering all TUI contexts). Keep this script up to date when adding/changing keybindings.
+`scripts/keybinding-test.sh` runs a comprehensive keyboard shortcut smoke test (66 assertions across 73 sections covering all TUI contexts). Keep this script up to date when adding/changing keybindings.
 
 ```bash
 go build -o /tmp/lazyruin-test ./main.go && ./scripts/smoke-test.sh

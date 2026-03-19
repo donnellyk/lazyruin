@@ -243,7 +243,7 @@ assert_status "back to notes" "View: enter"
 # 11. Search flow
 # =============================================
 echo "[11] Search"
-send /
+send S
 assert_contains "search popup open" "Search"
 assert_status "search hints" "Complete: tab"
 send -l "project"
@@ -265,7 +265,7 @@ assert_not_contains "search filter gone" "[0]-Search"
 # =============================================
 echo "[12] Pick"
 send 1
-send '\'
+send p
 assert_contains "pick popup open" "Pick"
 send Escape  # dismiss completion dropdown
 settle
@@ -418,18 +418,18 @@ fi
 tmux resize-pane -t "$SESSION" -x "$COLS" -y "$ROWS"
 
 # =============================================
-# 25. CardList filter (Ctrl-F and X)
+# 25. CardList filter (F and X)
 # =============================================
 echo "[25] CardList filter"
 send 1; settle
-send /
+send S
 wait_for "Search" || true
 send -l "project"
 send Enter
 wait_for "Back: esc" || true
-# Open filter dialog with Ctrl-F
-send C-f
-assert_contains "Ctrl-F opens filter dialog" "Filter"
+# Open filter dialog with F
+send F
+assert_contains "F opens filter dialog" "Filter"
 send Escape; settle  # cancel filter
 # Status bar should show Filter hint
 assert_status "filter hint in status bar" "Filter"

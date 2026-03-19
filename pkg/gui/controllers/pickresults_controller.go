@@ -58,7 +58,7 @@ func (self *PickResultsController) GetKeybindings(opts types.KeybindingsOpts) []
 	bindings := self.NavBindings()
 	bindings = append(bindings,
 		&types.Binding{
-			ID: "pickResults.filter", Key: gocui.KeyCtrlF,
+			ID: "pickResults.filter", Key: 'F',
 			Handler: self.openFilter, Description: "Filter Results", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "Filter",
 		},
