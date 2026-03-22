@@ -102,6 +102,16 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	}
 }
 
+// inboxTriggers returns the completion triggers for the inbox input popup.
+// A subset of capture triggers: tags, wiki-links, dates.
+func (gui *Gui) inboxTriggers() []types.CompletionTrigger {
+	return []types.CompletionTrigger{
+		{Prefix: "#", Candidates: gui.TagCandidates},
+		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
+		{Prefix: "@", Candidates: atDateCandidates},
+	}
+}
+
 // pickTriggers returns the completion triggers for the pick popup.
 // In dialog mode, tag suggestions are scoped to inline tags in the underlying document.
 func (gui *Gui) pickTriggers() []types.CompletionTrigger {

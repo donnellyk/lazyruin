@@ -21,6 +21,7 @@ type ContextTree struct {
 	Contrib          *ContribContext
 	PickDialog       *PickResultsContext
 	DatePreview      *DatePreviewContext
+	InboxBrowser     *InboxBrowserContext
 	ActivePreviewKey types.ContextKey // "cardList", "pickResults", "compose", or "datePreview"
 }
 
@@ -89,6 +90,9 @@ func (self *ContextTree) All() []types.Context {
 	}
 	if self.DatePreview != nil {
 		all = append(all, self.DatePreview)
+	}
+	if self.InboxBrowser != nil {
+		all = append(all, self.InboxBrowser)
 	}
 	return all
 }

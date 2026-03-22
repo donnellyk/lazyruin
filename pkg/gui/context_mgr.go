@@ -82,6 +82,18 @@ func (m *ContextMgr) Replace(key types.ContextKey) {
 	}
 }
 
+// Contains returns true if the given key is anywhere in the stack.
+func (m *ContextMgr) Contains(key types.ContextKey) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, k := range m.stack {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
 // SetStack replaces the entire stack.
 func (m *ContextMgr) SetStack(keys []types.ContextKey) {
 	m.mu.Lock()

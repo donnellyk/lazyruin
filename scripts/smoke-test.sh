@@ -436,6 +436,34 @@ assert_status "filter hint in status bar" "Filter"
 send Escape; settle  # back from preview
 
 # =============================================
+# 26. Inbox: browser and jot
+# =============================================
+echo "[26] Inbox"
+
+# Open inbox browser from notes panel
+send i; settle
+assert_contains "inbox browser opens" "Inbox"
+send Escape; settle
+assert_not_contains "inbox browser closed" "Inbox"
+
+# Open capture, then Ctrl-J for inbox jot
+send n
+wait_for "New Note" || true
+send C-j
+assert_contains "inbox jot from capture" "Jot to Inbox"
+send -l "test inbox thought"
+send Enter; settle
+assert_not_contains "inbox jot closed" "Jot to Inbox"
+send Escape; settle  # close capture
+
+# Verify item appears in inbox browser
+send i; settle
+assert_contains "inbox item visible" "test inbox thought"
+send d; settle  # delete
+send y; settle  # confirm
+send Escape; settle
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

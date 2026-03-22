@@ -39,6 +39,20 @@ func (self *CaptureHelper) OpenCaptureWithParent(uuid, title string) error {
 	return nil
 }
 
+// OpenCaptureWithContent opens the capture popup with pre-filled text content.
+func (self *CaptureHelper) OpenCaptureWithContent(text string) error {
+	gui := self.c.GuiCommon()
+	if gui.PopupActive() {
+		return nil
+	}
+	ctx := gui.Contexts().Capture
+	ctx.Parent = nil
+	ctx.Completion = types.NewCompletionState()
+	ctx.PrefillContent = text
+	gui.PushContextByKey("capture")
+	return nil
+}
+
 // SubmitCapture submits the capture content and closes the popup.
 func (self *CaptureHelper) SubmitCapture(content string, quickCapture bool) error {
 	gui := self.c.GuiCommon()
@@ -95,6 +109,7 @@ func (self *CaptureHelper) CloseCapture() error {
 	ctx.LinkURL = ""
 	ctx.LinkTitle = ""
 	ctx.LinkTags = nil
+	ctx.PrefillContent = ""
 	ctx.ResolveState = context.ResolveIdle
 	ctx.ResolveResult = nil
 	ctx.ResolveDone = nil

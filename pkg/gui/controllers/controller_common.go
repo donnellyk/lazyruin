@@ -36,6 +36,7 @@ type IHelpers interface {
 	DatePreview() *helpers.DatePreviewHelper
 	Link() *helpers.LinkHelper
 	CardListFilter() *helpers.CardListFilterHelper
+	Inbox() *helpers.InboxHelper
 }
 
 // ControllerCommon provides shared dependencies for all controllers.

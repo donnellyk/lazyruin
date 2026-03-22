@@ -169,6 +169,10 @@ func (self *GlobalController) openContrib() error {
 	return self.c.Helpers().Contrib().Open()
 }
 
+func (self *GlobalController) openInbox() error {
+	return self.c.Helpers().Inbox().OpenBrowser()
+}
+
 func (self *GlobalController) refresh() error {
 	self.c.Helpers().Refresh().RefreshAll()
 	return nil
@@ -195,6 +199,7 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
 		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
 		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},
+		{ID: "global.inbox", Key: 'i', Handler: self.openInbox, Description: "Inbox", Category: "Global"},
 
 		// Focus shortcuts
 		{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},

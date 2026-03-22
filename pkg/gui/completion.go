@@ -350,6 +350,20 @@ func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *types.Comple
 func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	state := gui.contexts.Capture.Completion
 	if state.Active {
+		// Check for action items (e.g. /inbox)
+		if len(state.Items) > 0 {
+			selected := state.Items[state.SelectedIndex]
+			if selected.Value == "action:inbox" {
+				state.Dismiss()
+				gui.clearTriggerToken(v, state)
+				gui.renderCaptureTextArea(v)
+				return gui.helpers.Inbox().OpenBrowserForInsert(func(text string) {
+					if gui.views.Capture != nil {
+						gui.views.Capture.TextArea.TypeString(text)
+					}
+				})
+			}
+		}
 		if isAbbreviationCompletion(v, state) {
 			gui.acceptAbbreviationInCapture(v, state)
 		} else if isParentCompletion(v, state) {
@@ -360,4 +374,14 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 		gui.renderCaptureTextArea(v)
 	}
 	return nil
+}
+
+// clearTriggerToken removes the trigger text (e.g. "/inbox") from the editor
+// without inserting replacement text.
+func (gui *Gui) clearTriggerToken(v *gocui.View, state *types.CompletionState) {
+	cursorPos := viewCursorBytePos(v)
+	charsToDelete := cursorPos - state.TriggerStart
+	for range charsToDelete {
+		v.TextArea.BackSpaceChar()
+	}
 }

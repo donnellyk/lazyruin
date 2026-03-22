@@ -98,6 +98,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			return err
 		}
 	case "inputPopup":
+		if gui.contextMgr.Contains("capture") {
+			if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
+				return err
+			}
+		}
 		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
 			return err
 		}
@@ -121,6 +126,15 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		if err := gui.createPickDialog(g, maxX, maxY); err != nil {
 			return err
 		}
+	case "inboxBrowser":
+		if gui.contextMgr.Contains("capture") {
+			if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
+				return err
+			}
+		}
+		if err := gui.createInboxBrowser(g, maxX, maxY); err != nil {
+			return err
+		}
 	}
 	// Delete views for inactive overlays
 	ctx := gui.contextMgr.Current()
@@ -128,7 +142,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		g.DeleteView(SearchView)
 		g.DeleteView(SearchSuggestView)
 	}
-	if ctx != "capture" {
+	if ctx != "capture" && !gui.contextMgr.Contains("capture") {
 		g.DeleteView(CaptureView)
 		g.DeleteView(CaptureSuggestView)
 		gui.views.Capture = nil
@@ -164,6 +178,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	}
 	if ctx != "pickDialog" {
 		g.DeleteView(PickDialogView)
+	}
+	if ctx != "inboxBrowser" {
+		g.DeleteView(InboxBrowserView)
 	}
 
 	// Render any active dialogs
@@ -567,6 +584,10 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
+	if gui.contexts.Capture.PrefillContent != "" {
+		v.TextArea.TypeString(gui.contexts.Capture.PrefillContent)
+		gui.contexts.Capture.PrefillContent = ""
+	}
 	gui.updateCaptureFooter()
 	gui.renderCaptureTextArea(v) // render with syntax highlighting
 
@@ -858,6 +879,57 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, width); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
+	ctx := gui.contexts.InboxBrowser
+
+	width := 60
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	itemCount := len(ctx.Items)
+	height := itemCount + 2 // items + border
+	if height < 4 {
+		height = 4
+	}
+	maxHeight := maxY * 60 / 100
+	if height > maxHeight {
+		height = maxHeight
+	}
+
+	x0 := (maxX - width) / 2
+	y0 := (maxY - height) / 2
+	x1 := x0 + width
+	y1 := y0 + height
+
+	v, err := g.SetView(InboxBrowserView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	v.Title = " Inbox "
+	v.Highlight = false
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+
+	if itemCount > 0 {
+		v.Footer = fmt.Sprintf("%d of %d items", ctx.SelectedIdx+1, itemCount)
+	} else {
+		v.Footer = "empty"
+	}
+
+	renderList(v, itemCount, ctx.SelectedIdx, true, 1, "  No inbox items",
+		func(i int, selected bool) listItem {
+			text := ctx.Items[i].Text
+			return listItem{Lines: []string{"  " + text}}
+		})
+
+	g.SetViewOnTop(InboxBrowserView)
+	g.SetCurrentView(InboxBrowserView)
 
 	return nil
 }

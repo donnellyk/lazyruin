@@ -201,6 +201,16 @@ func (gui *Gui) setupCaptureContext() {
 			}},
 			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},
 			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
+			{Key: gocui.KeyCtrlJ, Description: "Jot to inbox", Handler: func() error {
+				return gui.helpers.Inbox().OpenInboxInput()
+			}},
+			{Key: gocui.KeyCtrlO, Description: "Insert inbox item", Handler: func() error {
+				return gui.helpers.Inbox().OpenBrowserForInsert(func(text string) {
+					if gui.views.Capture != nil {
+						gui.views.Capture.TextArea.TypeString(text)
+					}
+				})
+			}},
 		},
 	)
 	controllers.AttachController(ctrl)
@@ -453,6 +463,19 @@ func (gui *Gui) setupPickDialogContext() {
 	ctrl := controllers.NewPickDialogController(gui.controllerCommon, func() *context.PickResultsContext {
 		return gui.contexts.PickDialog
 	})
+	controllers.AttachController(ctrl)
+}
+
+// setupInboxBrowserContext initializes the inbox browser context and controller.
+func (gui *Gui) setupInboxBrowserContext() {
+	inboxCtx := context.NewInboxBrowserContext()
+	gui.contexts.InboxBrowser = inboxCtx
+	gui.contextMgr.Register(inboxCtx)
+
+	ctrl := controllers.NewInboxBrowserController(
+		gui.controllerCommon,
+		func() *context.InboxBrowserContext { return gui.contexts.InboxBrowser },
+	)
 	controllers.AttachController(ctrl)
 }
 

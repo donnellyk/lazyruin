@@ -30,6 +30,7 @@ const (
 	ContribGridView       = "contribGrid"
 	ContribNotesView      = "contribNotes"
 	PickDialogView        = "pickDialog"
+	InboxBrowserView      = "inboxBrowser"
 )
 
 // Views holds references to all views.

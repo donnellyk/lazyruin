@@ -32,6 +32,7 @@ type CaptureContext struct {
 	LinkTags         []string
 	LinkExistingUUID string // non-empty when re-resolving an existing link note
 	LinkParent       string // parent UUID to preserve on re-resolve
+	PrefillContent   string // pre-filled text (e.g. from inbox promote)
 	ResolveState     LinkResolveState
 	ResolveResult    *LinkResolveResult
 	ResolveDone      chan struct{}
