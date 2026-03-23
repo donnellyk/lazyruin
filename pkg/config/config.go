@@ -84,7 +84,7 @@ func Load() (*Config, error) {
 
 	// Detect old flat abbreviations format before full unmarshal.
 	var raw struct {
-		Abbreviations interface{} `yaml:"abbreviations"`
+		Abbreviations any `yaml:"abbreviations"`
 	}
 	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func Load() (*Config, error) {
 
 	needsMigration := false
 	if raw.Abbreviations != nil {
-		if flat, ok := raw.Abbreviations.(map[string]interface{}); ok {
+		if flat, ok := raw.Abbreviations.(map[string]any); ok {
 			// Check if values are strings (old format) vs maps (new format).
 			for _, v := range flat {
 				if _, isStr := v.(string); isStr {

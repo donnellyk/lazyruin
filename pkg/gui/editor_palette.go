@@ -34,8 +34,8 @@ func (e *paletteEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 
 	// Re-filter based on current text; ":" prefix switches to Quick Open mode
 	content := strings.TrimSpace(v.TextArea.GetContent())
-	if strings.HasPrefix(content, ":") {
-		e.gui.filterQuickOpenItems(strings.TrimPrefix(content, ":"))
+	if after, ok := strings.CutPrefix(content, ":"); ok {
+		e.gui.filterQuickOpenItems(after)
 		e.gui.views.Palette.Title = " Open "
 	} else {
 		e.gui.filterPaletteCommands(content)

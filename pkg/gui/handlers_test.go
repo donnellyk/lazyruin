@@ -231,7 +231,7 @@ func TestNotesDown_MultipleSteps(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		testNotesDown(tg)
 	}
 

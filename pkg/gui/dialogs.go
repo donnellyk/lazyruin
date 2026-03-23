@@ -249,10 +249,9 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	if width > maxX-4 {
 		width = maxX - 4
 	}
-	height := len(items) + 2 // border
-	if height > maxY-4 {
-		height = maxY - 4
-	}
+	height := min(
+		// border
+		len(items)+2, maxY-4)
 	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
 	v, err := g.SetView(MenuView, x0, y0, x1, y1, 0)
@@ -285,10 +284,7 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 			header := fmt.Sprintf(" %s--- %s ---%s", AnsiCyan, item.Label, AnsiReset)
 			if item.Hint != "" {
 				visible := len(item.Label) + 10 // " --- Label --- "
-				pad := innerWidth - visible - len(item.Hint)
-				if pad < 2 {
-					pad = 2
-				}
+				pad := max(innerWidth-visible-len(item.Hint), 2)
 				header += fmt.Sprintf("%s%s%s%s", strings.Repeat(" ", pad), AnsiDim, item.Hint, AnsiReset)
 			}
 			fmt.Fprintln(v, header)

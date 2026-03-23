@@ -120,7 +120,7 @@ func (self *SearchHelper) FocusSearchFilter() error {
 func ExtractSort(query string) (string, string) {
 	var remaining []string
 	var sortVal string
-	for _, token := range strings.Fields(query) {
+	for token := range strings.FieldsSeq(query) {
 		if v, ok := strings.CutPrefix(token, "sort:"); ok {
 			sortVal = v
 		} else {

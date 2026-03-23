@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -97,12 +98,13 @@ func (tv *TestVault) CreateNote(content string, tags ...string) {
 	title := fmt.Sprintf("test-note-%d", id)
 
 	// Build content with tags
-	fullContent := content
+	var fullContent strings.Builder
+	fullContent.WriteString(content)
 	for _, tag := range tags {
-		fullContent += " #" + tag
+		fullContent.WriteString(" #" + tag)
 	}
 
-	cmd := exec.Command("ruin", "log", "-t", title, fullContent, "--vault", tv.Path)
+	cmd := exec.Command("ruin", "log", "-t", title, fullContent.String(), "--vault", tv.Path)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		tv.t.Fatalf("failed to create note: %v\n%s", err, output)
 	}
@@ -112,12 +114,13 @@ func (tv *TestVault) CreateNote(content string, tags ...string) {
 func (tv *TestVault) CreateNoteWithTitle(title, content string, tags ...string) {
 	tv.t.Helper()
 
-	fullContent := content
+	var fullContent strings.Builder
+	fullContent.WriteString(content)
 	for _, tag := range tags {
-		fullContent += " #" + tag
+		fullContent.WriteString(" #" + tag)
 	}
 
-	cmd := exec.Command("ruin", "log", "-t", title, fullContent, "--vault", tv.Path)
+	cmd := exec.Command("ruin", "log", "-t", title, fullContent.String(), "--vault", tv.Path)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		tv.t.Fatalf("failed to create note with title: %v\n%s", err, output)
 	}

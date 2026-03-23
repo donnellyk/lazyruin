@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"slices"
 	"sync"
 
 	"kvnd/lazyruin/pkg/gui/types"
@@ -86,12 +87,7 @@ func (m *ContextMgr) Replace(key types.ContextKey) {
 func (m *ContextMgr) Contains(key types.ContextKey) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for _, k := range m.stack {
-		if k == key {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(m.stack, key)
 }
 
 // SetStack replaces the entire stack.

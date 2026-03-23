@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"kvnd/lazyruin/pkg/models"
@@ -245,10 +246,5 @@ func findCall(calls [][]string, cmd string) []string {
 }
 
 func containsArg(args []string, target string) bool {
-	for _, a := range args {
-		if a == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(args, target)
 }

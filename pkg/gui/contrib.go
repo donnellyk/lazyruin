@@ -14,10 +14,9 @@ func (gui *Gui) createContribViews(g *gocui.Gui, maxX, maxY int) error {
 
 	// Calculate width based on available space
 	// Each cell is 2 chars wide (block + space), plus 5 for row labels, plus 2 for borders
-	weekCols := (maxX - 10 - 2 - 5) / 2 // available for cells
-	if weekCols > 52 {
-		weekCols = 52
-	}
+	weekCols := min(
+		// available for cells
+		(maxX-10-2-5)/2, 52)
 	if weekCols < 10 {
 		weekCols = 10
 	}

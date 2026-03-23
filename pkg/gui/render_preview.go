@@ -145,10 +145,9 @@ func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highl
 	// keeping the text at its original position.
 	width, _ := v.InnerSize()
 	leading, hlLine := splitLeadingChar(line)
-	pad := width - visibleWidth(line) - 1 // -1 for trailing inset
-	if pad < 0 {
-		pad = 0
-	}
+	pad := max(
+		// -1 for trailing inset
+		width-visibleWidth(line)-1, 0)
 	// Re-apply background after every ANSI reset so chroma formatting
 	// doesn't clear our highlight mid-line.
 	patched := strings.ReplaceAll(hlLine, AnsiReset, AnsiReset+AnsiDimBg)
@@ -168,7 +167,7 @@ func highlightSpan(line string, col, length int) string {
 	spanStart := col
 	spanEnd := col + length
 
-	for i := 0; i < len(runes); i++ {
+	for i := range runes {
 		r := runes[i]
 		if inEsc {
 			sb.WriteRune(r)
@@ -217,7 +216,7 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 	if ds.ShowFrontmatter {
 		if fm, err := gui.loadNoteFrontmatter(note.Path); err == nil && fm != "" {
 			lines = append(lines, types.SourceLine{Text: " " + AnsiDim + "---" + AnsiReset})
-			for _, fl := range strings.Split(fm, "\n") {
+			for fl := range strings.SplitSeq(fm, "\n") {
 				lines = append(lines, types.SourceLine{Text: " " + AnsiDim + fl + AnsiReset})
 			}
 			lines = append(lines, types.SourceLine{Text: " " + AnsiDim + "---" + AnsiReset})
@@ -250,7 +249,7 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 			id := identities[srcIdx]
 			isDone := ds.DimDone && srcIdx < len(contentLines) && models.HasDoneTag(contentLines[srcIdx])
 			wrapped := wordwrap.String(hl, contentWidth)
-			for _, wl := range strings.Split(wrapped, "\n") {
+			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
 				if isDone {
 					text = dimLine(text)
@@ -268,7 +267,7 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 			id := identities[srcIdx]
 			isDone := ds.DimDone && models.HasDoneTag(l)
 			wrapped := wordwrap.String(l, contentWidth)
-			for _, wl := range strings.Split(wrapped, "\n") {
+			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
 				if isDone {
 					text = dimLine(text)
@@ -740,10 +739,7 @@ func (gui *Gui) renderDatePreview(v *gocui.View, dp *context.DatePreviewContext,
 func (gui *Gui) buildStraightSeparator(label string, width int) string {
 	sep := "─"
 	labelLen := len([]rune(label))
-	fillLen := width - labelLen - 2
-	if fillLen < 0 {
-		fillLen = 0
-	}
+	fillLen := max(width-labelLen-2, 0)
 	var sb strings.Builder
 	sb.WriteString(AnsiDim)
 	sb.WriteString(sep)
@@ -766,10 +762,9 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	rightLen := len([]rune(rightText))
 
 	// Calculate fill length
-	fillLen := width - leftLen - rightLen - 4 // 4 for leading/trailing separator chars
-	if fillLen < 0 {
-		fillLen = 0
-	}
+	fillLen := max(
+		// 4 for leading/trailing separator chars
+		width-leftLen-rightLen-4, 0)
 
 	var sb strings.Builder
 	sb.WriteString(reset) // Clear any leftover foreground color from content lines

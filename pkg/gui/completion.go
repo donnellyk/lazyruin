@@ -28,10 +28,7 @@ func extractTokenAtCursor(content string, cursorPos int) (string, int) {
 // lineContainsAt returns true if the current line (determined by cursorPos)
 // contains an '@' character. Used to scope ambient date fallback.
 func lineContainsAt(content string, cursorPos int) bool {
-	cp := cursorPos
-	if cp > len(content) {
-		cp = len(content)
-	}
+	cp := min(cursorPos, len(content))
 	// Find line start
 	lineStart := strings.LastIndex(content[:cp], "\n") + 1
 	// Find line end
@@ -59,10 +56,7 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 	}
 
 	// Fallback: scan for unclosed [[ before cursor (allows spaces in filter)
-	cp := cursorPos
-	if cp > len(content) {
-		cp = len(content)
-	}
+	cp := min(cursorPos, len(content))
 	if idx := strings.LastIndex(content[:cp], "[["); idx >= 0 {
 		after := content[idx+2 : cp]
 		if !strings.Contains(after, "]]") {

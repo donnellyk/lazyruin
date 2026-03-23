@@ -84,10 +84,7 @@ func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *types
 	}
 
 	// width = " " + label column + gap + detail column + " " + frame
-	width := max(1+maxLabelW+2+maxDetailW+1+2, 20)
-	if width > maxWidth {
-		width = maxWidth
-	}
+	width := min(max(1+maxLabelW+2+maxDetailW+1+2, 20), maxWidth)
 
 	x1 := x0 + width
 	y1 := y0 + itemCount + 1 // +1 for border

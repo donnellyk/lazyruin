@@ -26,10 +26,7 @@ func (self *ListCursor) SetSelectedLineIdx(idx int) {
 }
 
 func (self *ListCursor) MoveSelectedLine(delta int) {
-	next := self.selectedLineIdx + delta
-	if next < 0 {
-		next = 0
-	}
+	next := max(self.selectedLineIdx+delta, 0)
 	length := self.list.Len()
 	if length > 0 && next >= length {
 		next = length - 1

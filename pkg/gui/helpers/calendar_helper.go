@@ -177,10 +177,7 @@ func (self *CalendarHelper) GridClick() error {
 		return nil
 	}
 
-	col := contentX / 3
-	if col > 6 {
-		col = 6
-	}
+	col := min(contentX/3, 6)
 
 	weekRow := row - 3
 	first := time.Date(s.Year, time.Month(s.Month), 1, 0, 0, 0, 0, time.Local)

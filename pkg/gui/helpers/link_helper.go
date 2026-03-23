@@ -56,10 +56,10 @@ func (self *LinkHelper) CreateLink() error {
 
 // parseURLAndTags splits input like "https://example.com #tag1 #tag2" into URL and tag list.
 func (self *LinkHelper) parseURLAndTags(raw string) (url string, tags []string) {
-	fields := strings.Fields(raw)
-	for _, f := range fields {
-		if strings.HasPrefix(f, "#") {
-			tag := strings.TrimPrefix(f, "#")
+	fields := strings.FieldsSeq(raw)
+	for f := range fields {
+		if after, ok := strings.CutPrefix(f, "#"); ok {
+			tag := after
 			if tag != "" {
 				tags = append(tags, tag)
 			}

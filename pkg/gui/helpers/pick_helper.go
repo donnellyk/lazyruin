@@ -75,7 +75,7 @@ type PickFlags struct {
 // ParsePickQuery splits raw pick input into tags, an optional @date
 // (line-level date filter), remaining filter text, and any --flags.
 func ParsePickQuery(raw string) (tags []string, date string, filter string, flags PickFlags) {
-	for _, token := range strings.Fields(raw) {
+	for token := range strings.FieldsSeq(raw) {
 		switch token {
 		case "--any":
 			flags.Any = true

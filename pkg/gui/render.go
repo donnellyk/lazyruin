@@ -227,10 +227,7 @@ func scrollListView(v *gocui.View, selLine, itemHeight, viewHeight int) {
 // scrollListView instead, which does keep the selection on-screen.
 func scrollViewport(v *gocui.View, delta int) {
 	_, oy := v.Origin()
-	newOy := oy + delta
-	if newOy < 0 {
-		newOy = 0
-	}
+	newOy := max(oy+delta, 0)
 	v.SetOrigin(0, newOy)
 }
 

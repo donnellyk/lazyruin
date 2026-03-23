@@ -18,10 +18,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return nil
 	}
 
-	sidebarWidth := maxX / 3
-	if sidebarWidth > 40 {
-		sidebarWidth = 40
-	}
+	sidebarWidth := min(maxX/3, 40)
 	if sidebarWidth < 20 {
 		sidebarWidth = 20
 	}
@@ -248,10 +245,7 @@ func (gui *Gui) applyFocusColors(v *gocui.View, contextKey string) {
 // centerPopup calculates centered popup coordinates with width clamping.
 // yOffset shifts the popup vertically from center (negative = up).
 func centerPopup(maxX, maxY, preferredWidth, height, yOffset int) (x0, y0, x1, y1 int) {
-	width := preferredWidth
-	if width > maxX-4 {
-		width = maxX - 4
-	}
+	width := min(preferredWidth, maxX-4)
 	x0 = (maxX - width) / 2
 	y0 = (maxY-height)/2 + yOffset
 	x1 = x0 + width
@@ -540,10 +534,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 		x1 = maxX - 1
 		y1 = maxY - 1
 	} else {
-		height := 25
-		if height > maxY-4 {
-			height = maxY - 4
-		}
+		height := min(25, maxY-4)
 		x0, y0, x1, y1 = centerPopup(maxX, maxY, 75, height, 0)
 	}
 
@@ -843,10 +834,9 @@ func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 	ctx := gui.contexts.InboxBrowser
 
 	itemCount := len(ctx.Items)
-	height := itemCount + 2 // items + border
-	if height < 4 {
-		height = 4
-	}
+	height := max(
+		// items + border
+		itemCount+2, 4)
 	maxHeight := maxY * 60 / 100
 	if height > maxHeight {
 		height = maxHeight

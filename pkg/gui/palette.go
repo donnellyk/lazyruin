@@ -92,8 +92,8 @@ func (gui *Gui) paletteCommands() []types.PaletteCommand {
 
 // bindingSuffix returns the part of a binding ID after the first dot.
 func bindingSuffix(id string) string {
-	if idx := strings.Index(id, "."); idx >= 0 {
-		return id[idx+1:]
+	if _, after, ok := strings.Cut(id, "."); ok {
+		return after
 	}
 	return id
 }
@@ -103,12 +103,7 @@ func isPaletteCommandAvailable(cmd types.PaletteCommand, origin types.ContextKey
 	if len(cmd.Contexts) == 0 {
 		return true
 	}
-	for _, ctx := range cmd.Contexts {
-		if ctx == origin {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(cmd.Contexts, origin)
 }
 
 // openPalette opens the command palette popup.
@@ -207,10 +202,7 @@ func (gui *Gui) paletteSelectMove(delta int) {
 	if gui.contexts.Palette.Palette == nil {
 		return
 	}
-	next := gui.contexts.Palette.Palette.SelectedIndex + delta
-	if next < 0 {
-		next = 0
-	}
+	next := max(gui.contexts.Palette.Palette.SelectedIndex+delta, 0)
 	if max := len(gui.contexts.Palette.Palette.Filtered) - 1; next > max {
 		next = max
 	}
@@ -293,10 +285,7 @@ func (gui *Gui) renderPaletteList() {
 
 		key := cmd.Key
 		label := fmt.Sprintf("%s: %s", cmd.Category, cmd.Name)
-		keyPad := keyCol - len(key)
-		if keyPad < 1 {
-			keyPad = 1
-		}
+		keyPad := max(keyCol-len(key), 1)
 
 		if i == gui.contexts.Palette.Palette.SelectedIndex {
 			line := " " + key + strings.Repeat(" ", keyPad) + label
