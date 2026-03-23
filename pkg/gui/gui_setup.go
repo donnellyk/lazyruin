@@ -81,77 +81,88 @@ func (gui *Gui) setupQueriesContext() {
 	controllers.AttachController(gui.queriesController)
 }
 
-// setupPreviewContext initializes the three preview contexts (cardList,
-// pickResults, compose) that share a single nav history.
+// registerPreviewContext is a helper that handles the common registration
+// boilerplate for preview contexts: store via setter, register with contextMgr,
+// create a controller via ctrlFactory, and attach it. The onFocus callback
+// is added to the context before the controller is attached.
+func registerPreviewContext[C types.Context](
+	gui *Gui,
+	ctx C,
+	setter func(C),
+	onFocus func(types.OnFocusOpts),
+	ctrlFactory func() types.IController,
+) {
+	setter(ctx)
+	gui.contextMgr.Register(ctx)
+	ctx.AddOnFocusFn(onFocus)
+	ctrl := ctrlFactory()
+	controllers.AttachController(ctrl)
+}
+
+// setupPreviewContext initializes the four preview contexts (cardList,
+// pickResults, compose, datePreview) that share a single nav history.
 func (gui *Gui) setupPreviewContext() {
 	gui.contexts.ActivePreviewKey = "cardList"
 
-	// Shared nav history across all three preview contexts
+	// Shared nav history across all four preview contexts
 	navHistory := context.NewSharedNavHistory()
 
-	// CardList context
-	cardListCtx := context.NewCardListContext(navHistory)
-	gui.contexts.CardList = cardListCtx
-	gui.contextMgr.Register(cardListCtx)
-	cardListCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
-		gui.RenderPreview()
-	})
-	cardListCtrl := controllers.NewCardListController(
-		gui.controllerCommon,
-		func() *context.CardListContext { return gui.contexts.CardList },
-	)
-	controllers.AttachController(cardListCtrl)
+	onPreviewFocus := func(_ types.OnFocusOpts) { gui.RenderPreview() }
 
-	// PickResults context
-	pickResultsCtx := context.NewPickResultsContext(navHistory)
-	gui.contexts.PickResults = pickResultsCtx
-	gui.contextMgr.Register(pickResultsCtx)
-	pickResultsCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
-		gui.RenderPreview()
-	})
-	pickResultsCtrl := controllers.NewPickResultsController(
-		gui.controllerCommon,
-		func() *context.PickResultsContext { return gui.contexts.PickResults },
+	registerPreviewContext(gui, context.NewCardListContext(navHistory),
+		func(ctx *context.CardListContext) { gui.contexts.CardList = ctx },
+		onPreviewFocus,
+		func() types.IController {
+			return controllers.NewCardListController(gui.controllerCommon,
+				func() *context.CardListContext { return gui.contexts.CardList })
+		},
 	)
-	controllers.AttachController(pickResultsCtrl)
 
-	// Compose context
-	composeCtx := context.NewComposeContext(navHistory)
-	gui.contexts.Compose = composeCtx
-	gui.contextMgr.Register(composeCtx)
-	composeCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
-		gui.RenderPreview()
-	})
-	composeCtrl := controllers.NewComposeController(
-		gui.controllerCommon,
-		func() *context.ComposeContext { return gui.contexts.Compose },
+	registerPreviewContext(gui, context.NewPickResultsContext(navHistory),
+		func(ctx *context.PickResultsContext) { gui.contexts.PickResults = ctx },
+		onPreviewFocus,
+		func() types.IController {
+			return controllers.NewPickResultsController(gui.controllerCommon,
+				func() *context.PickResultsContext { return gui.contexts.PickResults })
+		},
 	)
-	controllers.AttachController(composeCtrl)
 
-	// DatePreview context
-	datePreviewCtx := context.NewDatePreviewContext(navHistory)
-	gui.contexts.DatePreview = datePreviewCtx
-	gui.contextMgr.Register(datePreviewCtx)
-	datePreviewCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
-		gui.RenderPreview()
-	})
-	datePreviewCtrl := controllers.NewDatePreviewController(
-		gui.controllerCommon,
-		func() *context.DatePreviewContext { return gui.contexts.DatePreview },
+	registerPreviewContext(gui, context.NewComposeContext(navHistory),
+		func(ctx *context.ComposeContext) { gui.contexts.Compose = ctx },
+		onPreviewFocus,
+		func() types.IController {
+			return controllers.NewComposeController(gui.controllerCommon,
+				func() *context.ComposeContext { return gui.contexts.Compose })
+		},
 	)
-	controllers.AttachController(datePreviewCtrl)
+
+	registerPreviewContext(gui, context.NewDatePreviewContext(navHistory),
+		func(ctx *context.DatePreviewContext) { gui.contexts.DatePreview = ctx },
+		onPreviewFocus,
+		func() types.IController {
+			return controllers.NewDatePreviewController(gui.controllerCommon,
+				func() *context.DatePreviewContext { return gui.contexts.DatePreview })
+		},
+	)
+}
+
+// registerPopupContext is a helper that handles the common registration
+// boilerplate for popup contexts: store via setter, register with contextMgr,
+// create a PopupController with the given bindings, and attach it.
+func registerPopupContext[C types.Context](gui *Gui, ctx C, setter func(C), bindings []*types.Binding) {
+	setter(ctx)
+	gui.contextMgr.Register(ctx)
+	ctrl := controllers.NewPopupController(func() C { return ctx }, bindings)
+	controllers.AttachController(ctrl)
 }
 
 // setupSearchContext initializes the "search" and its popup controller.
 func (gui *Gui) setupSearchContext() {
-	searchCtx := context.NewSearchContext()
-	gui.contexts.Search = searchCtx
-	gui.contextMgr.Register(searchCtx)
-
 	searchState := func() *types.CompletionState { return gui.contexts.Search.Completion }
 	searchHelper := func() *helperspkg.SearchHelper { return gui.helpers.Search() }
-	ctrl := controllers.NewPopupController(
-		func() *context.SearchContext { return gui.contexts.Search },
+
+	registerPopupContext(gui, context.NewSearchContext(),
+		func(ctx *context.SearchContext) { gui.contexts.Search = ctx },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Description: "Search", Handler: func() error {
 				return gui.completionEnter(searchState, gui.searchOrFilterTriggers, func(g *gocui.Gui, v *gocui.View) error {
@@ -180,17 +191,12 @@ func (gui *Gui) setupSearchContext() {
 			}},
 		},
 	)
-	controllers.AttachController(ctrl)
 }
 
 // setupCaptureContext initializes the "capture" and its popup controller.
 func (gui *Gui) setupCaptureContext() {
-	captureCtx := context.NewCaptureContext()
-	gui.contexts.Capture = captureCtx
-	gui.contextMgr.Register(captureCtx)
-
-	ctrl := controllers.NewPopupController(
-		func() *context.CaptureContext { return gui.contexts.Capture },
+	registerPopupContext(gui, context.NewCaptureContext(),
+		func(ctx *context.CaptureContext) { gui.contexts.Capture = ctx },
 		[]*types.Binding{
 			{Key: gocui.KeyCtrlS, Description: "Save", Handler: func() error {
 				content := strings.TrimSpace(gui.views.Capture.TextArea.GetUnwrappedContent())
@@ -213,18 +219,14 @@ func (gui *Gui) setupCaptureContext() {
 			}},
 		},
 	)
-	controllers.AttachController(ctrl)
 }
 
 // setupPickContext initializes the "pick" and its popup controller.
 func (gui *Gui) setupPickContext() {
-	pickCtx := context.NewPickContext()
-	gui.contexts.Pick = pickCtx
-	gui.contextMgr.Register(pickCtx)
-
 	pickState := func() *types.CompletionState { return gui.contexts.Pick.Completion }
-	ctrl := controllers.NewPopupController(
-		func() *context.PickContext { return gui.contexts.Pick },
+
+	registerPopupContext(gui, context.NewPickContext(),
+		func(ctx *context.PickContext) { gui.contexts.Pick = ctx },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Description: "Pick", Handler: func() error {
 				executePick := func(g *gocui.Gui, v *gocui.View) error {
@@ -265,17 +267,12 @@ func (gui *Gui) setupPickContext() {
 			}},
 		},
 	)
-	controllers.AttachController(ctrl)
 }
 
 // setupInputPopupContext initializes the InputPopupContext and its popup controller.
 func (gui *Gui) setupInputPopupContext() {
-	inputPopupCtx := context.NewInputPopupContext()
-	gui.contexts.InputPopup = inputPopupCtx
-	gui.contextMgr.Register(inputPopupCtx)
-
-	ctrl := controllers.NewPopupController(
-		func() *context.InputPopupContext { return gui.contexts.InputPopup },
+	registerPopupContext(gui, context.NewInputPopupContext(),
+		func(ctx *context.InputPopupContext) { gui.contexts.InputPopup = ctx },
 		[]*types.Binding{
 			{Key: gocui.KeyEnter, Handler: func() error {
 				ctx := gui.contexts.InputPopup
@@ -327,7 +324,6 @@ func (gui *Gui) setupInputPopupContext() {
 			}},
 		},
 	)
-	controllers.AttachController(ctrl)
 }
 
 // setupGlobalContext initializes the GlobalContext and GlobalController.

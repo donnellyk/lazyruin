@@ -233,6 +233,32 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	return nil
 }
 
+// applyFocusColors sets frame and title colors based on whether the given
+// context key is the currently focused context (green = focused, default = not).
+func (gui *Gui) applyFocusColors(v *gocui.View, contextKey string) {
+	if gui.contextMgr.Current() == types.ContextKey(contextKey) {
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
+	} else {
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
+	}
+}
+
+// centerPopup calculates centered popup coordinates with width clamping.
+// yOffset shifts the popup vertically from center (negative = up).
+func centerPopup(maxX, maxY, preferredWidth, height, yOffset int) (x0, y0, x1, y1 int) {
+	width := preferredWidth
+	if width > maxX-4 {
+		width = maxX - 4
+	}
+	x0 = (maxX - width) / 2
+	y0 = (maxY-height)/2 + yOffset
+	x1 = x0 + width
+	y1 = y0 + height
+	return
+}
+
 // setRoundedCorners applies rounded corner frame characters to a view
 func setRoundedCorners(v *gocui.View) {
 	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
@@ -280,13 +306,7 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// Notes uses manual multi-line highlighting in renderNotes()
 	v.Highlight = false
 
-	if gui.contextMgr.Current() == "notes" {
-		v.FrameColor = gocui.ColorGreen
-		v.TitleColor = gocui.ColorGreen
-	} else {
-		v.FrameColor = gocui.ColorDefault
-		v.TitleColor = gocui.ColorDefault
-	}
+	gui.applyFocusColors(v, "notes")
 
 	return nil
 }
@@ -305,13 +325,7 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.UpdateQueriesTab()
 	setRoundedCorners(v)
 
-	if gui.contextMgr.Current() == "queries" {
-		v.FrameColor = gocui.ColorGreen
-		v.TitleColor = gocui.ColorGreen
-	} else {
-		v.FrameColor = gocui.ColorDefault
-		v.TitleColor = gocui.ColorDefault
-	}
+	gui.applyFocusColors(v, "queries")
 
 	return nil
 }
@@ -330,13 +344,7 @@ func (gui *Gui) createTagsView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	gui.UpdateTagsTab()
 	setRoundedCorners(v)
 
-	if gui.contextMgr.Current() == "tags" {
-		v.FrameColor = gocui.ColorGreen
-		v.TitleColor = gocui.ColorGreen
-	} else {
-		v.FrameColor = gocui.ColorDefault
-		v.TitleColor = gocui.ColorDefault
-	}
+	gui.applyFocusColors(v, "tags")
 
 	return nil
 }
@@ -397,6 +405,7 @@ func (gui *Gui) createPreviewView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 		}
 	}
 
+	// Preview maps to multiple context keys; use existing bool helper.
 	if gui.isPreviewActive() {
 		v.FrameColor = gocui.ColorGreen
 		v.TitleColor = gocui.ColorGreen
@@ -423,16 +432,7 @@ func (gui *Gui) createStatusView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 }
 
 func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-	height := 3
-
-	x0 := (maxX - width) / 2
-	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerPopup(maxX, maxY, 60, 3, -2)
 
 	v, err := g.SetView(SearchView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -455,8 +455,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 		drillFlags: 0,
 	}
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "search")
 
 	// Seed text on first open in filter mode
 	sc := gui.contexts.Search
@@ -472,7 +471,7 @@ func (gui *Gui) createSearchPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(SearchView)
 
 	// Render suggestion dropdown below the search popup
-	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.contexts.Search.Completion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SearchSuggestView, gui.contexts.Search.Completion, x0, y1, x1-x0); err != nil {
 		return err
 	}
 
@@ -485,16 +484,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-	height := 3
-
-	x0 := (maxX - width) / 2
-	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerPopup(maxX, maxY, 60, 3, -2)
 
 	v, err := g.SetView(InputPopupView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -517,8 +507,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 		drillFlags: DrillParent,
 	}
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "inputPopup")
 
 	// Seed text on first open so completion appears immediately
 	if !gui.contexts.InputPopup.SeedDone && config.Seed != "" {
@@ -536,7 +525,7 @@ func (gui *Gui) createInputPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetCurrentView(InputPopupView)
 
 	// Render suggestion dropdown below
-	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.contexts.InputPopup.Completion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, InputPopupSuggestView, gui.contexts.InputPopup.Completion, x0, y1, x1-x0); err != nil {
 		return err
 	}
 
@@ -551,18 +540,11 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 		x1 = maxX - 1
 		y1 = maxY - 1
 	} else {
-		width := 75
-		if width > maxX-4 {
-			width = maxX - 4
-		}
 		height := 25
 		if height > maxY-4 {
 			height = maxY - 4
 		}
-		x0 = (maxX - width) / 2
-		y0 = (maxY - height) / 2
-		x1 = x0 + width
-		y1 = y0 + height
+		x0, y0, x1, y1 = centerPopup(maxX, maxY, 75, height, 0)
 	}
 
 	v, err := g.SetView(CaptureView, x0, y0, x1, y1, 0)
@@ -582,8 +564,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.TextArea.AutoWrapWidth = v.InnerWidth()
 	v.Editor = &captureEditor{gui: gui}
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "capture")
 	if gui.contexts.Capture.PrefillContent != "" {
 		v.TextArea.TypeString(gui.contexts.Capture.PrefillContent)
 		gui.contexts.Capture.PrefillContent = ""
@@ -612,16 +593,7 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-	height := 3
-
-	x0 := (maxX - width) / 2
-	y0 := (maxY-height)/2 - 2 // offset up to leave room for suggestions
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerPopup(maxX, maxY, 60, 3, -2)
 
 	v, err := g.SetView(PickView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -644,8 +616,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 		drillFlags: 0,
 	}
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "pick")
 	// Seed "#" on first open so tag completion appears immediately
 	if gui.contexts.Pick.SeedHash {
 		gui.contexts.Pick.SeedHash = false
@@ -659,7 +630,7 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 	g.SetViewOnTop(PickView)
 	g.SetCurrentView(PickView)
 
-	if err := gui.renderSuggestionView(g, PickSuggestView, gui.contexts.Pick.Completion, x0, y1, width); err != nil {
+	if err := gui.renderSuggestionView(g, PickSuggestView, gui.contexts.Pick.Completion, x0, y1, x1-x0); err != nil {
 		return err
 	}
 
@@ -667,23 +638,16 @@ func (gui *Gui) createPickPopup(g *gocui.Gui, maxX, maxY int) error {
 }
 
 func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-
 	// Input view (single line)
 	inputHeight := 2
 	// List view (up to 15 visible lines + 2 for border)
 	listHeight := 17
 	totalHeight := inputHeight + listHeight
 
-	x0 := (maxX - width) / 2
-	y0 := (maxY-totalHeight)/2 - 1
+	x0, y0, x1, _ := centerPopup(maxX, maxY, 60, totalHeight, -1)
 	if y0 < 0 {
 		y0 = 0
 	}
-	x1 := x0 + width
 	y1 := y0 + inputHeight
 
 	// Input view
@@ -696,8 +660,7 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Editor = &paletteEditor{gui: gui}
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "palette")
 
 	// Start in Command Palette mode; typing ":" switches to Quick Open
 	if !gui.contexts.Palette.SeedDone {
@@ -726,7 +689,7 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 	gui.views.PaletteList = lv
 	lv.Wrap = false
 	setRoundedCorners(lv)
-	lv.FrameColor = gocui.ColorGreen
+	gui.applyFocusColors(lv, "palette")
 
 	g.SetViewOnTop(PaletteListView)
 
@@ -802,21 +765,14 @@ func (gui *Gui) updateCaptureFooter() {
 }
 
 func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
-
 	nameHeight := 3
 	expansionHeight := 8
 	totalHeight := nameHeight + expansionHeight
 
-	x0 := (maxX - width) / 2
-	y0 := (maxY-totalHeight)/2 - 2
+	x0, y0, x1, _ := centerPopup(maxX, maxY, 60, totalHeight, -2)
 	if y0 < 0 {
 		y0 = 0
 	}
-	x1 := x0 + width
 
 	// Name field (top)
 	ny1 := y0 + nameHeight
@@ -876,7 +832,7 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	// Suggestion dropdown below expansion view
-	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, width); err != nil {
+	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, x1-x0); err != nil {
 		return err
 	}
 
@@ -886,10 +842,6 @@ func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
 func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 	ctx := gui.contexts.InboxBrowser
 
-	width := 60
-	if width > maxX-4 {
-		width = maxX - 4
-	}
 	itemCount := len(ctx.Items)
 	height := itemCount + 2 // items + border
 	if height < 4 {
@@ -900,10 +852,7 @@ func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 		height = maxHeight
 	}
 
-	x0 := (maxX - width) / 2
-	y0 := (maxY - height) / 2
-	x1 := x0 + width
-	y1 := y0 + height
+	x0, y0, x1, y1 := centerPopup(maxX, maxY, 60, height, 0)
 
 	v, err := g.SetView(InboxBrowserView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -913,8 +862,7 @@ func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 	v.Title = " Inbox "
 	v.Highlight = false
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "inboxBrowser")
 
 	if itemCount > 0 {
 		v.Footer = fmt.Sprintf("%d of %d items", ctx.SelectedIdx+1, itemCount)
@@ -963,8 +911,7 @@ func (gui *Gui) createPickDialog(g *gocui.Gui, maxX, maxY int) error {
 	v.Wrap = false
 	v.Frame = true
 	setRoundedCorners(v)
-	v.FrameColor = gocui.ColorGreen
-	v.TitleColor = gocui.ColorGreen
+	gui.applyFocusColors(v, "pickDialog")
 
 	g.SetViewOnTop(PickDialogView)
 	g.SetCurrentView(PickDialogView)
