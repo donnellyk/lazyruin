@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
 	"strings"
 )
@@ -41,17 +42,37 @@ func triggerHints(triggers []types.CompletionTrigger) []types.CompletionItem {
 	return items
 }
 
+// tagTrigger returns the # tag completion trigger.
+func (gui *Gui) tagTrigger() types.CompletionTrigger {
+	return types.CompletionTrigger{Prefix: "#", Candidates: gui.TagCandidates}
+}
+
+// dateTrigger returns the @ date completion trigger.
+func (gui *Gui) dateTrigger() types.CompletionTrigger {
+	return types.CompletionTrigger{Prefix: "@", Candidates: atDateCandidates}
+}
+
+// abbreviationTrigger returns the ! abbreviation completion trigger.
+func (gui *Gui) abbreviationTrigger() types.CompletionTrigger {
+	return types.CompletionTrigger{Prefix: "!", Candidates: gui.abbreviationCandidates}
+}
+
+// wikiLinkTrigger returns the [[ wiki-link completion trigger.
+func (gui *Gui) wikiLinkTrigger() types.CompletionTrigger {
+	return types.CompletionTrigger{Prefix: "[[", Candidates: gui.wikiLinkCandidates}
+}
+
 // searchTriggers returns the completion triggers for the search popup.
 // The "/" trigger shows an overview of all available filter prefixes.
 func (gui *Gui) searchTriggers() []types.CompletionTrigger {
 	triggers := []types.CompletionTrigger{
-		{Prefix: "!", Candidates: gui.abbreviationCandidates},
-		{Prefix: "#", Candidates: gui.TagCandidates},
-		{Prefix: "@", Candidates: atDateCandidates},
-		{Prefix: "created:", Candidates: gui.createdCandidates},
-		{Prefix: "updated:", Candidates: gui.updatedCandidates},
-		{Prefix: "before:", Candidates: gui.beforeCandidates},
-		{Prefix: "after:", Candidates: gui.afterCandidates},
+		gui.abbreviationTrigger(),
+		gui.tagTrigger(),
+		gui.dateTrigger(),
+		{Prefix: "created:", Candidates: func(f string) []types.CompletionItem { return dateCandidates("created:", f) }},
+		{Prefix: "updated:", Candidates: func(f string) []types.CompletionItem { return dateCandidates("updated:", f) }},
+		{Prefix: "before:", Candidates: func(f string) []types.CompletionItem { return dateCandidates("before:", f) }},
+		{Prefix: "after:", Candidates: func(f string) []types.CompletionItem { return dateCandidates("after:", f) }},
 		{Prefix: "between:", Candidates: gui.betweenCandidates},
 		{Prefix: "title:", Candidates: gui.titleCandidates},
 		{Prefix: "path:", Candidates: gui.pathCandidates},
@@ -93,10 +114,10 @@ func (gui *Gui) searchOrFilterTriggers() []types.CompletionTrigger {
 // captureTriggers returns the completion triggers for the capture popup.
 func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
-		{Prefix: "!", Candidates: gui.abbreviationCandidates},
-		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
-		{Prefix: "#", Candidates: gui.TagCandidates},
-		{Prefix: "@", Candidates: atDateCandidates},
+		gui.abbreviationTrigger(),
+		gui.wikiLinkTrigger(),
+		gui.tagTrigger(),
+		gui.dateTrigger(),
 		{Prefix: ">", Candidates: gui.ParentCandidatesFor(gui.contexts.Capture.Completion)},
 		{Prefix: "/", Candidates: markdownCandidates},
 	}
@@ -106,22 +127,22 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 // A subset of capture triggers: tags, wiki-links, dates.
 func (gui *Gui) inboxTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
-		{Prefix: "#", Candidates: gui.TagCandidates},
-		{Prefix: "[[", Candidates: gui.wikiLinkCandidates},
-		{Prefix: "@", Candidates: atDateCandidates},
+		gui.tagTrigger(),
+		gui.wikiLinkTrigger(),
+		gui.dateTrigger(),
 	}
 }
 
 // pickTriggers returns the completion triggers for the pick popup.
 // In dialog mode, tag suggestions are scoped to inline tags in the underlying document.
 func (gui *Gui) pickTriggers() []types.CompletionTrigger {
-	tagCandidates := gui.TagCandidates
+	tagTrigger := gui.tagTrigger()
 	if gui.contexts.Pick.DialogMode {
-		tagCandidates = gui.ScopedInlineTagCandidates
+		tagTrigger.Candidates = gui.ScopedInlineTagCandidates
 	}
 	return []types.CompletionTrigger{
-		{Prefix: "#", Candidates: tagCandidates},
-		{Prefix: "@", Candidates: atDateCandidates},
+		tagTrigger,
+		gui.dateTrigger(),
 		{Prefix: "--", Candidates: flagCandidates},
 	}
 }
@@ -155,17 +176,7 @@ func (gui *Gui) snippetExpansionTriggers() []types.CompletionTrigger {
 	return merged
 }
 
-// extractSort removes any "sort:field:dir" token from the query, returning
-// the cleaned query and the sort value (e.g. "created:desc") for the -s flag.
+// extractSort delegates to helpers.ExtractSort.
 func extractSort(query string) (string, string) {
-	var remaining []string
-	var sortVal string
-	for _, token := range strings.Fields(query) {
-		if v, ok := strings.CutPrefix(token, "sort:"); ok {
-			sortVal = v
-		} else {
-			remaining = append(remaining, token)
-		}
-	}
-	return strings.Join(remaining, " "), sortVal
+	return helpers.ExtractSort(query)
 }
