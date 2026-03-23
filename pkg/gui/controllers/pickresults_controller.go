@@ -12,6 +12,7 @@ import (
 type PickResultsController struct {
 	baseController
 	PreviewNavTrait
+	FilterablePreviewTrait
 	c          *ControllerCommon
 	getContext func() *context.PickResultsContext
 	dialogMode bool
@@ -21,19 +22,21 @@ var _ types.IController = &PickResultsController{}
 
 func NewPickResultsController(c *ControllerCommon, getContext func() *context.PickResultsContext) *PickResultsController {
 	return &PickResultsController{
-		PreviewNavTrait: PreviewNavTrait{c: c},
-		c:               c,
-		getContext:      getContext,
+		PreviewNavTrait:        PreviewNavTrait{c: c},
+		FilterablePreviewTrait: FilterablePreviewTrait{c: c},
+		c:                      c,
+		getContext:             getContext,
 	}
 }
 
 // NewPickDialogController creates a PickResultsController in dialog mode.
 func NewPickDialogController(c *ControllerCommon, getContext func() *context.PickResultsContext) *PickResultsController {
 	return &PickResultsController{
-		PreviewNavTrait: PreviewNavTrait{c: c},
-		c:               c,
-		getContext:      getContext,
-		dialogMode:      true,
+		PreviewNavTrait:        PreviewNavTrait{c: c},
+		FilterablePreviewTrait: FilterablePreviewTrait{c: c},
+		c:                      c,
+		getContext:             getContext,
+		dialogMode:             true,
 	}
 }
 
@@ -55,8 +58,7 @@ func (self *PickResultsController) GetKeybindings(opts types.KeybindingsOpts) []
 		bindings = append(bindings, self.LineOpsBindings("pickDialog")...)
 		return bindings
 	}
-	bindings := self.NavBindings()
-	bindings = append(bindings,
+	return self.BuildPreviewBindings("pickResults",
 		&types.Binding{
 			ID: "pickResults.filter", Key: 'F',
 			Handler: self.openFilter, Description: "Filter Results", Category: "Preview",
@@ -70,8 +72,6 @@ func (self *PickResultsController) GetKeybindings(opts types.KeybindingsOpts) []
 			DisplayOnScreen: true, StatusBarLabel: "Clear",
 		},
 	)
-	bindings = append(bindings, self.LineOpsBindings("pickResults")...)
-	return bindings
 }
 
 func (self *PickResultsController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
@@ -79,21 +79,6 @@ func (self *PickResultsController) GetMouseKeybindings(opts types.KeybindingsOpt
 		return nil
 	}
 	return self.NavMouseBindings()
-}
-
-func (self *PickResultsController) openFilter() error {
-	return self.c.Helpers().CardListFilter().OpenFilterDialog()
-}
-
-func (self *PickResultsController) clearFilter() error {
-	return self.c.Helpers().CardListFilter().ClearFilter()
-}
-
-func (self *PickResultsController) filterNotActive() *types.DisabledReason {
-	if !self.c.Helpers().CardListFilter().FilterActive() {
-		return &types.DisabledReason{Text: "No active filter"}
-	}
-	return nil
 }
 
 func (self *PickResultsController) dialogEnter() error {

@@ -11,6 +11,7 @@ import (
 type NotesController struct {
 	baseController
 	*ListControllerTrait[models.Note]
+	NoteActionHandlersTrait
 	c          *ControllerCommon
 	getContext func() *context.NotesContext
 
@@ -31,9 +32,10 @@ type NotesControllerOpts struct {
 // NewNotesController creates a new NotesController.
 func NewNotesController(opts NotesControllerOpts) *NotesController {
 	ctrl := &NotesController{
-		c:          opts.Common,
-		getContext: opts.GetContext,
-		onShowInfo: opts.OnShowInfo,
+		NoteActionHandlersTrait: NoteActionHandlersTrait{c: opts.Common},
+		c:                       opts.Common,
+		getContext:              opts.GetContext,
+		onShowInfo:              opts.OnShowInfo,
 	}
 
 	ctrl.ListControllerTrait = NewListControllerTrait[models.Note](
@@ -96,7 +98,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		{
 			ID:                "notes.addTag",
 			Key:               't',
-			Handler:           self.withItem(self.addTag),
+			Handler:           self.withItem(func(_ models.Note) error { return self.addTag() }),
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Add Tag",
 			Category:          "Note Actions",
@@ -106,7 +108,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		{
 			ID:                "notes.removeTag",
 			Key:               'T',
-			Handler:           self.withItem(self.removeTag),
+			Handler:           self.withItem(func(_ models.Note) error { return self.removeTag() }),
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Remove Tag",
 			Category:          "Note Actions",
@@ -114,7 +116,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		{
 			ID:                "notes.setParent",
 			Key:               '>',
-			Handler:           self.withItem(self.setParent),
+			Handler:           self.withItem(func(_ models.Note) error { return self.setParent() }),
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Set Parent",
 			Category:          "Note Actions",
@@ -122,7 +124,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		{
 			ID:                "notes.removeParent",
 			Key:               'P',
-			Handler:           self.withItem(self.removeParent),
+			Handler:           self.withItem(func(_ models.Note) error { return self.removeParent() }),
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Remove Parent",
 			Category:          "Note Actions",
@@ -130,7 +132,7 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 		{
 			ID:                "notes.bookmark",
 			Key:               'b',
-			Handler:           self.withItem(self.toggleBookmark),
+			Handler:           self.withItem(func(_ models.Note) error { return self.toggleBookmark() }),
 			GetDisabledReason: self.require(self.singleItemSelected()),
 			Description:       "Toggle Bookmark",
 			Category:          "Note Actions",
@@ -195,26 +197,6 @@ func (self *NotesController) copyPath(note models.Note) error {
 	return self.c.Helpers().Clipboard().CopyToClipboard(note.Path)
 }
 
-func (self *NotesController) addTag(_ models.Note) error {
-	return self.c.Helpers().NoteActions().AddGlobalTag()
-}
-
-func (self *NotesController) removeTag(_ models.Note) error {
-	return self.c.Helpers().NoteActions().RemoveTag()
-}
-
-func (self *NotesController) setParent(_ models.Note) error {
-	return self.c.Helpers().NoteActions().SetParentDialog()
-}
-
-func (self *NotesController) removeParent(_ models.Note) error {
-	return self.c.Helpers().NoteActions().RemoveParent()
-}
-
-func (self *NotesController) toggleBookmark(_ models.Note) error {
-	return self.c.Helpers().NoteActions().ToggleBookmark()
-}
-
 func (self *NotesController) showInfo(note models.Note) error {
 	return self.onShowInfo(&note)
 }
@@ -224,11 +206,5 @@ func (self *NotesController) openURL(note models.Note) error {
 }
 
 func (self *NotesController) isLinkNote() func() *types.DisabledReason {
-	return func() *types.DisabledReason {
-		note := self.getContext().Selected()
-		if note == nil || !note.IsLink() {
-			return &types.DisabledReason{Text: "Not a link note"}
-		}
-		return nil
-	}
+	return requireLinkNote(func() *models.Note { return self.getContext().Selected() })
 }

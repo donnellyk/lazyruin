@@ -9,6 +9,7 @@ import (
 // CalendarController handles keybindings for the calendar dialog popup.
 type CalendarController struct {
 	baseController
+	GridNavTrait
 	c          *ControllerCommon
 	getContext func() *context.CalendarContext
 }
@@ -23,21 +24,23 @@ type CalendarControllerOpts struct {
 
 // NewCalendarController creates a CalendarController.
 func NewCalendarController(opts CalendarControllerOpts) *CalendarController {
-	return &CalendarController{
+	ctrl := &CalendarController{
 		c:          opts.Common,
 		getContext: opts.GetContext,
 	}
+	ctrl.GridNavTrait = GridNavTrait{
+		c:       opts.Common,
+		hDelta:  1,
+		vDelta:  7,
+		moveDay: opts.Common.Helpers().Calendar().MoveDay,
+	}
+	return ctrl
 }
 
 // Context returns the context this controller is attached to.
 func (self *CalendarController) Context() types.Context {
 	return self.getContext()
 }
-
-func (self *CalendarController) gridLeft() error  { self.c.Helpers().Calendar().MoveDay(-1); return nil }
-func (self *CalendarController) gridRight() error { self.c.Helpers().Calendar().MoveDay(1); return nil }
-func (self *CalendarController) gridUp() error    { self.c.Helpers().Calendar().MoveDay(-7); return nil }
-func (self *CalendarController) gridDown() error  { self.c.Helpers().Calendar().MoveDay(7); return nil }
 
 func (self *CalendarController) close() error {
 	self.c.Helpers().Calendar().Close()

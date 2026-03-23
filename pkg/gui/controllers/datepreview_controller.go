@@ -26,8 +26,7 @@ func NewDatePreviewController(c *ControllerCommon, getContext func() *context.Da
 func (self *DatePreviewController) Context() types.Context { return self.getContext() }
 
 func (self *DatePreviewController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
-	bindings := self.NavBindings()
-	bindings = append(bindings,
+	return self.BuildPreviewBindings("datePreview",
 		&types.Binding{
 			ID: "datePreview.next_section", Key: ')',
 			Handler:     self.nav().NextSection,
@@ -40,14 +39,12 @@ func (self *DatePreviewController) GetKeybindings(opts types.KeybindingsOpts) []
 			Key:     '(',
 			Handler: self.nav().PrevSection,
 		},
+		&types.Binding{
+			ID: "datePreview.open_editor", Key: 'E',
+			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
+			DisplayOnScreen: true, StatusBarLabel: "Editor",
+		},
 	)
-	bindings = append(bindings, self.LineOpsBindings("datePreview")...)
-	bindings = append(bindings, &types.Binding{
-		ID: "datePreview.open_editor", Key: 'E',
-		Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
-		DisplayOnScreen: true, StatusBarLabel: "Editor",
-	})
-	return bindings
 }
 
 func (self *DatePreviewController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

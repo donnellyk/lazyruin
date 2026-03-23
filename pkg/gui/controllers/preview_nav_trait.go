@@ -138,6 +138,15 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 	}
 }
 
+// BuildPreviewBindings assembles the standard preview binding set: shared nav
+// bindings, line-ops (parameterized by prefix), and any custom bindings.
+func (t *PreviewNavTrait) BuildPreviewBindings(lineOpsPrefix string, custom ...*types.Binding) []*types.Binding {
+	bindings := t.NavBindings()
+	bindings = append(bindings, t.LineOpsBindings(lineOpsPrefix)...)
+	bindings = append(bindings, custom...)
+	return bindings
+}
+
 // LineOpsBindings returns the 4 standard line-level operation bindings
 // (toggle todo, toggle #done, toggle inline tag, toggle inline date),
 // parameterized by prefix for unique binding IDs.

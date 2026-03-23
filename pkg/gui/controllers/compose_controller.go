@@ -30,9 +30,7 @@ func NewComposeController(c *ControllerCommon, getContext func() *context.Compos
 func (self *ComposeController) Context() types.Context { return self.getContext() }
 
 func (self *ComposeController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
-	bindings := self.NavBindings()
-	bindings = append(bindings, self.LineOpsBindings("compose")...)
-	bindings = append(bindings,
+	return self.BuildPreviewBindings("compose",
 		&types.Binding{
 			ID: "compose.open_editor", Key: 'E',
 			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
@@ -44,7 +42,6 @@ func (self *ComposeController) GetKeybindings(opts types.KeybindingsOpts) []*typ
 			DisplayOnScreen: true, StatusBarLabel: "New Child",
 		},
 	)
-	return bindings
 }
 
 func (self *ComposeController) newChildNote() error {

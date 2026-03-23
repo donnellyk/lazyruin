@@ -5,6 +5,7 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/helpers"
 	"kvnd/lazyruin/pkg/gui/types"
+	"kvnd/lazyruin/pkg/models"
 )
 
 // CardListController handles keybindings for the card-list preview mode.
@@ -12,6 +13,8 @@ import (
 type CardListController struct {
 	baseController
 	PreviewNavTrait
+	NoteActionHandlersTrait
+	FilterablePreviewTrait
 	c          *ControllerCommon
 	getContext func() *context.CardListContext
 }
@@ -20,9 +23,11 @@ var _ types.IController = &CardListController{}
 
 func NewCardListController(c *ControllerCommon, getContext func() *context.CardListContext) *CardListController {
 	return &CardListController{
-		PreviewNavTrait: PreviewNavTrait{c: c},
-		c:               c,
-		getContext:      getContext,
+		PreviewNavTrait:         PreviewNavTrait{c: c},
+		NoteActionHandlersTrait: NoteActionHandlersTrait{c: c},
+		FilterablePreviewTrait:  FilterablePreviewTrait{c: c},
+		c:                       c,
+		getContext:              getContext,
 	}
 }
 
@@ -32,23 +37,8 @@ func (self *CardListController) mutations() *helpers.PreviewMutationsHelper {
 	return self.c.Helpers().PreviewMutations()
 }
 
-func (self *CardListController) addTag() error { return self.c.Helpers().NoteActions().AddGlobalTag() }
-func (self *CardListController) removeTag() error {
-	return self.c.Helpers().NoteActions().RemoveTag()
-}
-func (self *CardListController) setParent() error {
-	return self.c.Helpers().NoteActions().SetParentDialog()
-}
-func (self *CardListController) removeParent() error {
-	return self.c.Helpers().NoteActions().RemoveParent()
-}
-func (self *CardListController) toggleBookmark() error {
-	return self.c.Helpers().NoteActions().ToggleBookmark()
-}
-
 func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
-	bindings := self.NavBindings()
-	bindings = append(bindings,
+	return self.BuildPreviewBindings("cardList",
 		&types.Binding{
 			ID: "cardList.delete", Key: 'd',
 			Handler: self.mutations().DeleteCard, Description: "Delete Card", Category: "Preview",
@@ -100,7 +90,7 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 		&types.Binding{
 			ID: "cardList.re_resolve_link", Key: 'R',
 			Handler:           self.reResolveLink,
-			GetDisabledReason: self.notLinkNote,
+			GetDisabledReason: requireLinkNote(func() *models.Note { return self.c.Helpers().Preview().CurrentPreviewCard() }),
 			Description:       "Re-resolve Link", Category: "Preview",
 		},
 		&types.Binding{
@@ -116,23 +106,6 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			DisplayOnScreen: true, StatusBarLabel: "Clear",
 		},
 	)
-	bindings = append(bindings, self.LineOpsBindings("cardList")...)
-	return bindings
-}
-
-func (self *CardListController) openFilter() error {
-	return self.c.Helpers().CardListFilter().OpenFilterDialog()
-}
-
-func (self *CardListController) clearFilter() error {
-	return self.c.Helpers().CardListFilter().ClearFilter()
-}
-
-func (self *CardListController) filterNotActive() *types.DisabledReason {
-	if !self.getContext().FilterActive() {
-		return &types.DisabledReason{Text: "No active filter"}
-	}
-	return nil
 }
 
 func (self *CardListController) openURL() error {
@@ -149,14 +122,6 @@ func (self *CardListController) reResolveLink() error {
 		return nil
 	}
 	return self.c.Helpers().Link().ReResolveLink(card)
-}
-
-func (self *CardListController) notLinkNote() *types.DisabledReason {
-	card := self.c.Helpers().Preview().CurrentPreviewCard()
-	if card == nil || !card.IsLink() {
-		return &types.DisabledReason{Text: "Not a link note"}
-	}
-	return nil
 }
 
 func (self *CardListController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

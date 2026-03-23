@@ -9,6 +9,7 @@ import (
 // ContribController handles keybindings for the contribution chart dialog popup.
 type ContribController struct {
 	baseController
+	GridNavTrait
 	c          *ControllerCommon
 	getContext func() *context.ContribContext
 }
@@ -23,32 +24,22 @@ type ContribControllerOpts struct {
 
 // NewContribController creates a ContribController.
 func NewContribController(opts ContribControllerOpts) *ContribController {
-	return &ContribController{
+	ctrl := &ContribController{
 		c:          opts.Common,
 		getContext: opts.GetContext,
 	}
+	ctrl.GridNavTrait = GridNavTrait{
+		c:       opts.Common,
+		hDelta:  7,
+		vDelta:  1,
+		moveDay: opts.Common.Helpers().Contrib().MoveDay,
+	}
+	return ctrl
 }
 
 // Context returns the context this controller is attached to.
 func (self *ContribController) Context() types.Context {
 	return self.getContext()
-}
-
-func (self *ContribController) gridLeft() error {
-	self.c.Helpers().Contrib().MoveDay(-7) // left = prev week (column)
-	return nil
-}
-func (self *ContribController) gridRight() error {
-	self.c.Helpers().Contrib().MoveDay(7) // right = next week (column)
-	return nil
-}
-func (self *ContribController) gridUp() error {
-	self.c.Helpers().Contrib().MoveDay(-1) // up = prev day (row)
-	return nil
-}
-func (self *ContribController) gridDown() error {
-	self.c.Helpers().Contrib().MoveDay(1) // down = next day (row)
-	return nil
 }
 
 func (self *ContribController) close() error {
