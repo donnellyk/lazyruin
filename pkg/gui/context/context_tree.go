@@ -112,6 +112,17 @@ func (self *ContextTree) ActivePreview() IPreviewContext {
 	}
 }
 
+// ActiveFilterable returns the Filterable for the current ActivePreviewKey,
+// or nil if the active preview does not support filtering.
+func (self *ContextTree) ActiveFilterable() Filterable {
+	switch self.ActivePreviewKey {
+	case "pickResults":
+		return self.PickResults
+	default:
+		return self.CardList
+	}
+}
+
 // IsPreviewContextKey returns true if the key belongs to one of the three
 // preview contexts.
 func IsPreviewContextKey(key types.ContextKey) bool {
