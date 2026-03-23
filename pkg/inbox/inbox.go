@@ -2,8 +2,10 @@ package inbox
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -21,12 +23,20 @@ type Store struct {
 	items []Item
 }
 
-func NewStore() *Store {
-	return &Store{path: defaultPath()}
+func NewStoreForVault(vaultPath string) *Store {
+	return &Store{path: PathForVault(vaultPath)}
 }
 
 func NewStoreWithPath(path string) *Store {
 	return &Store{path: path}
+}
+
+// PathForVault returns the inbox file path for a given vault, stored under the
+// lazyruin config directory keyed by a hash of the vault path.
+func PathForVault(vaultPath string) string {
+	hash := sha256.Sum256([]byte(vaultPath))
+	name := fmt.Sprintf("%x.json", hash[:8])
+	return filepath.Join(configDir(), "inboxes", name)
 }
 
 func (s *Store) Load() error {
@@ -82,12 +92,12 @@ func (s *Store) Len() int {
 	return len(s.items)
 }
 
-func defaultPath() string {
+func configDir() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "lazyruin", "inbox.json")
+		return filepath.Join(xdg, "lazyruin")
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "lazyruin", "inbox.json")
+	return filepath.Join(home, ".config", "lazyruin")
 }
 
 func randomHex(n int) string {

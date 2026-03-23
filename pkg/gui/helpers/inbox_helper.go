@@ -12,7 +12,7 @@ type InboxHelper struct {
 }
 
 func NewInboxHelper(c *HelperCommon) *InboxHelper {
-	store := inbox.NewStore()
+	store := inbox.NewStoreForVault(c.RuinCmd().VaultPath())
 	if err := store.Load(); err != nil {
 		// Non-fatal: inbox starts empty. Could log when logging is available.
 	}

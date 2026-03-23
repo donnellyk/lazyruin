@@ -103,6 +103,60 @@ func TestLoadMissingFileReturnsEmpty(t *testing.T) {
 	}
 }
 
+func TestPathForVaultDeterministic(t *testing.T) {
+	a := PathForVault("/tmp/vault-a")
+	b := PathForVault("/tmp/vault-a")
+	if a != b {
+		t.Fatalf("same vault path should produce same inbox path: %q != %q", a, b)
+	}
+}
+
+func TestPathForVaultDiffersPerVault(t *testing.T) {
+	a := PathForVault("/tmp/vault-a")
+	b := PathForVault("/tmp/vault-b")
+	if a == b {
+		t.Fatalf("different vault paths should produce different inbox paths: %q", a)
+	}
+}
+
+func TestPathForVaultInConfigDir(t *testing.T) {
+	p := PathForVault("/some/vault")
+	if dir := filepath.Base(filepath.Dir(p)); dir != "inboxes" {
+		t.Fatalf("expected parent dir 'inboxes', got %q", dir)
+	}
+	if ext := filepath.Ext(p); ext != ".json" {
+		t.Fatalf("expected .json extension, got %q", ext)
+	}
+}
+
+func TestNewStoreForVaultUsesVaultPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	s := NewStoreForVault("/tmp/test-vault")
+	s.Add("test item")
+	if err := s.Save(); err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	s2 := NewStoreForVault("/tmp/test-vault")
+	if err := s2.Load(); err != nil {
+		t.Fatalf("load failed: %v", err)
+	}
+	if s2.Len() != 1 {
+		t.Fatalf("expected 1 item, got %d", s2.Len())
+	}
+
+	// Different vault should be empty.
+	s3 := NewStoreForVault("/tmp/other-vault")
+	if err := s3.Load(); err != nil {
+		t.Fatalf("load failed: %v", err)
+	}
+	if s3.Len() != 0 {
+		t.Fatalf("expected 0 items for different vault, got %d", s3.Len())
+	}
+}
+
 func TestSaveCreatesDirectory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "dir")
 	path := filepath.Join(dir, "inbox.json")
