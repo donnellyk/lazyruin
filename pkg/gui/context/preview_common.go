@@ -34,6 +34,39 @@ func NewSharedNavHistory() *SharedNavHistory {
 	return &SharedNavHistory{Index: -1}
 }
 
+// PreviewState bundles navigation and display state shared by all preview contexts.
+type PreviewState struct {
+	PreviewNavState
+	PreviewDisplayState
+	SelectedCardIdx int
+}
+
+// PreviewContextTrait provides the IPreviewContext delegation methods that are
+// identical across CardList, PickResults, Compose, and DatePreview.  Each
+// concrete preview context embeds this trait instead of reimplementing the
+// five common accessors.
+type PreviewContextTrait struct {
+	PreviewState
+	navHistory *SharedNavHistory
+}
+
+// NewPreviewContextTrait creates a PreviewContextTrait with sensible defaults.
+func NewPreviewContextTrait(navHistory *SharedNavHistory) PreviewContextTrait {
+	return PreviewContextTrait{
+		PreviewState: PreviewState{
+			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
+			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
+		},
+		navHistory: navHistory,
+	}
+}
+
+func (t *PreviewContextTrait) NavState() *PreviewNavState         { return &t.PreviewNavState }
+func (t *PreviewContextTrait) DisplayState() *PreviewDisplayState { return &t.PreviewDisplayState }
+func (t *PreviewContextTrait) SelectedCardIndex() int             { return t.SelectedCardIdx }
+func (t *PreviewContextTrait) SetSelectedCardIndex(idx int)       { t.SelectedCardIdx = idx }
+func (t *PreviewContextTrait) NavHistory() *SharedNavHistory      { return t.navHistory }
+
 // IPreviewContext is the interface that all preview contexts implement,
 // allowing helpers to work generically across CardList, PickResults, Compose, and DatePreview.
 type IPreviewContext interface {
@@ -46,4 +79,22 @@ type IPreviewContext interface {
 	CardCount() int
 	NavHistory() *SharedNavHistory
 	SetTitle(string)
+}
+
+// Filterable abstracts the filter state shared by CardListContext and
+// PickResultsContext, allowing a single set of open/apply/clear helpers
+// to work with both context types.
+type Filterable interface {
+	Title() string
+	GetFilterText() string
+	SetFilterText(string)
+	FilterActive() bool
+	ClearFilter()
+	ItemCount() int
+	GetUnfilteredCount() int
+	SetUnfilteredCount(int)
+	ResetSelectedCard()
+	HasRequery() bool
+	RequeryAndApply(filterText string) error
+	FilterTriggers() func() []types.CompletionTrigger
 }

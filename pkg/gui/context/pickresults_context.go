@@ -15,12 +15,9 @@ type PickResultsSource struct {
 
 // PickResultsState holds state specific to the pick-results preview mode.
 type PickResultsState struct {
-	PreviewNavState
-	PreviewDisplayState
-	Results         []models.PickResult
-	SelectedCardIdx int
-	Query           string // dialog mode: for title display
-	ScopeTitle      string // dialog mode: scoped context name
+	Results    []models.PickResult
+	Query      string // dialog mode: for title display
+	ScopeTitle string // dialog mode: scoped context name
 
 	FilterText      string
 	Source          PickResultsSource
@@ -40,8 +37,8 @@ func (s *PickResultsState) ClearFilter() {
 // pick dialog results).
 type PickResultsContext struct {
 	BaseContext
+	PreviewContextTrait
 	*PickResultsState
-	navHistory *SharedNavHistory
 }
 
 // NewPickResultsContext creates a PickResultsContext with a shared nav history.
@@ -54,22 +51,37 @@ func NewPickResultsContext(navHistory *SharedNavHistory) *PickResultsContext {
 			Focusable: true,
 			Title:     "Pick Results",
 		}),
-		PickResultsState: &PickResultsState{
-			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
-		},
-		navHistory: navHistory,
+		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		PickResultsState:    &PickResultsState{},
 	}
 }
 
-// IPreviewContext implementation.
+// IPreviewContext implementation (CardCount varies per context; the rest are
+// provided by the embedded PreviewContextTrait).
 
-func (self *PickResultsContext) NavState() *PreviewNavState         { return &self.PreviewNavState }
-func (self *PickResultsContext) DisplayState() *PreviewDisplayState { return &self.PreviewDisplayState }
-func (self *PickResultsContext) SelectedCardIndex() int             { return self.SelectedCardIdx }
-func (self *PickResultsContext) SetSelectedCardIndex(idx int)       { self.SelectedCardIdx = idx }
-func (self *PickResultsContext) CardCount() int                     { return len(self.Results) }
-func (self *PickResultsContext) NavHistory() *SharedNavHistory      { return self.navHistory }
+func (self *PickResultsContext) CardCount() int { return len(self.Results) }
+
+// Filterable implementation.
+
+func (self *PickResultsContext) GetFilterText() string    { return self.FilterText }
+func (self *PickResultsContext) SetFilterText(s string)   { self.FilterText = s }
+func (self *PickResultsContext) ItemCount() int           { return len(self.Results) }
+func (self *PickResultsContext) GetUnfilteredCount() int  { return self.UnfilteredCount }
+func (self *PickResultsContext) SetUnfilteredCount(n int) { self.UnfilteredCount = n }
+func (self *PickResultsContext) ResetSelectedCard()       { self.SelectedCardIdx = 0 }
+func (self *PickResultsContext) HasRequery() bool         { return self.Source.Requery != nil }
+func (self *PickResultsContext) FilterTriggers() func() []types.CompletionTrigger {
+	return self.Source.Triggers
+}
+
+func (self *PickResultsContext) RequeryAndApply(filterText string) error {
+	results, err := self.Source.Requery(filterText)
+	if err != nil {
+		return err
+	}
+	self.Results = results
+	return nil
+}
 
 var pickDialogNavHistory = &SharedNavHistory{Index: -1}
 
@@ -83,10 +95,11 @@ func NewPickDialogContext() *PickResultsContext {
 			Focusable: true,
 			Title:     "Pick Dialog",
 		}),
-		PickResultsState: &PickResultsState{},
-		navHistory:       pickDialogNavHistory,
+		PreviewContextTrait: NewPreviewContextTrait(pickDialogNavHistory),
+		PickResultsState:    &PickResultsState{},
 	}
 }
 
 var _ types.Context = &PickResultsContext{}
 var _ IPreviewContext = &PickResultsContext{}
+var _ Filterable = &PickResultsContext{}

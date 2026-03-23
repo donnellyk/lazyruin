@@ -14,13 +14,10 @@ const (
 )
 
 type DatePreviewState struct {
-	PreviewNavState
-	PreviewDisplayState
 	TargetDate         string
 	TagPicks           []models.PickResult
 	TodoPicks          []models.PickResult
 	Notes              []models.Note
-	SelectedCardIdx    int
 	SectionRanges      [3][2]int
 	SectionLineRanges  [3][2]int
 	SectionHeaderLines []int
@@ -28,8 +25,8 @@ type DatePreviewState struct {
 
 type DatePreviewContext struct {
 	BaseContext
+	PreviewContextTrait
 	*DatePreviewState
-	navHistory *SharedNavHistory
 }
 
 func NewDatePreviewContext(navHistory *SharedNavHistory) *DatePreviewContext {
@@ -41,22 +38,17 @@ func NewDatePreviewContext(navHistory *SharedNavHistory) *DatePreviewContext {
 			Focusable: true,
 			Title:     "Date Preview",
 		}),
-		DatePreviewState: &DatePreviewState{
-			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
-		},
-		navHistory: navHistory,
+		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		DatePreviewState:    &DatePreviewState{},
 	}
 }
 
-func (self *DatePreviewContext) NavState() *PreviewNavState         { return &self.PreviewNavState }
-func (self *DatePreviewContext) DisplayState() *PreviewDisplayState { return &self.PreviewDisplayState }
-func (self *DatePreviewContext) SelectedCardIndex() int             { return self.SelectedCardIdx }
-func (self *DatePreviewContext) SetSelectedCardIndex(idx int)       { self.SelectedCardIdx = idx }
+// IPreviewContext implementation (CardCount varies per context; the rest are
+// provided by the embedded PreviewContextTrait).
+
 func (self *DatePreviewContext) CardCount() int {
 	return len(self.TagPicks) + len(self.TodoPicks) + len(self.Notes)
 }
-func (self *DatePreviewContext) NavHistory() *SharedNavHistory { return self.navHistory }
 
 func (s *DatePreviewState) SectionForCard(idx int) DatePreviewSection {
 	for i, r := range s.SectionRanges {

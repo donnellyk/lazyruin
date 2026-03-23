@@ -15,10 +15,7 @@ type CardListSource struct {
 
 // CardListState holds state specific to the card-list preview mode.
 type CardListState struct {
-	PreviewNavState
-	PreviewDisplayState
 	Cards            []models.Note
-	SelectedCardIdx  int
 	TemporarilyMoved map[int]bool
 
 	FilterText      string
@@ -39,8 +36,8 @@ func (s *CardListState) ClearFilter() {
 // results, calendar/contrib dates, single-note view).
 type CardListContext struct {
 	BaseContext
+	PreviewContextTrait
 	*CardListState
-	navHistory *SharedNavHistory
 }
 
 // NewCardListContext creates a CardListContext with a shared nav history.
@@ -53,22 +50,38 @@ func NewCardListContext(navHistory *SharedNavHistory) *CardListContext {
 			Focusable: true,
 			Title:     "Preview",
 		}),
-		CardListState: &CardListState{
-			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
-		},
-		navHistory: navHistory,
+		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		CardListState:       &CardListState{},
 	}
 }
 
-// IPreviewContext implementation.
+// IPreviewContext implementation (CardCount varies per context; the rest are
+// provided by the embedded PreviewContextTrait).
 
-func (self *CardListContext) NavState() *PreviewNavState         { return &self.PreviewNavState }
-func (self *CardListContext) DisplayState() *PreviewDisplayState { return &self.PreviewDisplayState }
-func (self *CardListContext) SelectedCardIndex() int             { return self.SelectedCardIdx }
-func (self *CardListContext) SetSelectedCardIndex(idx int)       { self.SelectedCardIdx = idx }
-func (self *CardListContext) CardCount() int                     { return len(self.Cards) }
-func (self *CardListContext) NavHistory() *SharedNavHistory      { return self.navHistory }
+func (self *CardListContext) CardCount() int { return len(self.Cards) }
+
+// Filterable implementation.
+
+func (self *CardListContext) GetFilterText() string    { return self.FilterText }
+func (self *CardListContext) SetFilterText(s string)   { self.FilterText = s }
+func (self *CardListContext) ItemCount() int           { return len(self.Cards) }
+func (self *CardListContext) GetUnfilteredCount() int  { return self.UnfilteredCount }
+func (self *CardListContext) SetUnfilteredCount(n int) { self.UnfilteredCount = n }
+func (self *CardListContext) ResetSelectedCard()       { self.SelectedCardIdx = 0 }
+func (self *CardListContext) HasRequery() bool         { return self.Source.Requery != nil }
+func (self *CardListContext) FilterTriggers() func() []types.CompletionTrigger {
+	return self.Source.Triggers
+}
+
+func (self *CardListContext) RequeryAndApply(filterText string) error {
+	notes, err := self.Source.Requery(filterText)
+	if err != nil {
+		return err
+	}
+	self.Cards = notes
+	return nil
+}
 
 var _ types.Context = &CardListContext{}
 var _ IPreviewContext = &CardListContext{}
+var _ Filterable = &CardListContext{}
