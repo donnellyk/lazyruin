@@ -31,33 +31,16 @@ func NewLinkCommand(ruin *RuinCommand) *LinkCommand {
 }
 
 func (l *LinkCommand) New(url string, opts LinkNewOpts) (*LinkNewResult, error) {
-	args := []string{"link", "new", url}
-	if opts.Title != "" {
-		args = append(args, "--title", opts.Title)
-	}
-	if opts.Tags != "" {
-		args = append(args, "--tags", opts.Tags)
-	}
-	if opts.Parent != "" {
-		args = append(args, "--parent", opts.Parent)
-	}
-	if opts.NoFetch {
-		args = append(args, "--no-fetch")
-	}
-	if opts.Comment != "" {
-		args = append(args, "--comment", opts.Comment)
-	}
-	output, err := l.ruin.Execute(args...)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalJSON[*LinkNewResult](output)
+	b := NewArgBuilder("link", "new", url).
+		AddIf(opts.Title != "", "--title", opts.Title).
+		AddIf(opts.Tags != "", "--tags", opts.Tags).
+		AddIf(opts.Parent != "", "--parent", opts.Parent).
+		AddIf(opts.NoFetch, "--no-fetch").
+		AddIf(opts.Comment != "", "--comment", opts.Comment)
+
+	return ExecuteAndUnmarshal[*LinkNewResult](l.ruin, b.Build()...)
 }
 
 func (l *LinkCommand) Resolve(url string) (*LinkResolveResult, error) {
-	output, err := l.ruin.Execute("link", "resolve", url)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalJSON[*LinkResolveResult](output)
+	return ExecuteAndUnmarshal[*LinkResolveResult](l.ruin, "link", "resolve", url)
 }

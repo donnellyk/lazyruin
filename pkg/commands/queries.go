@@ -11,33 +11,14 @@ func NewQueriesCommand(ruin *RuinCommand) *QueriesCommand {
 }
 
 func (q *QueriesCommand) List() ([]models.Query, error) {
-	output, err := q.ruin.Execute("query", "list")
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalJSON[[]models.Query](output)
+	return ExecuteAndUnmarshal[[]models.Query](q.ruin, "query", "list")
 }
 
 func (q *QueriesCommand) Run(name string, opts SearchOptions) ([]models.Note, error) {
-	args := []string{"query", "run", name, "--content"}
-	if opts.StripGlobalTags {
-		args = append(args, "--strip-global-tags")
-	}
-	if opts.StripTitle {
-		args = append(args, "--strip-title")
-	}
+	b := NewArgBuilder("query", "run", name)
+	opts.applyDisplayFlags(b)
 
-	output, err := q.ruin.Execute(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	notes, err := unmarshalJSON[[]models.Note](output)
-	if err != nil {
-		return []models.Note{}, nil
-	}
-	return notes, nil
+	return ExecuteAndUnmarshal[[]models.Note](q.ruin, b.Build()...)
 }
 
 func (q *QueriesCommand) Save(name, queryStr string) error {

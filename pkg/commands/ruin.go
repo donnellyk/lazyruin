@@ -16,6 +16,16 @@ func unmarshalJSON[T any](data []byte) (T, error) {
 	return result, nil
 }
 
+// ExecuteAndUnmarshal runs a ruin command and unmarshals the JSON output into T.
+func ExecuteAndUnmarshal[T any](r *RuinCommand, args ...string) (T, error) {
+	output, err := r.Execute(args...)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	return unmarshalJSON[T](output)
+}
+
 // RuinCommand wraps the ruin CLI for executing commands.
 type RuinCommand struct {
 	vaultPath string
@@ -36,14 +46,7 @@ func NewRuinCommand(vaultPath, bin string) *RuinCommand {
 		vaultPath: vaultPath,
 		bin:       bin,
 	}
-	r.Search = NewSearchCommand(r)
-	r.Tags = NewTagsCommand(r)
-	r.Queries = NewQueriesCommand(r)
-	r.Parent = NewParentCommand(r)
-	r.Pick = NewPickCommand(r)
-	r.Note = NewNoteCommand(r)
-	r.Link = NewLinkCommand(r)
-
+	r.initSubcommands()
 	return r
 }
 
@@ -54,6 +57,12 @@ func NewRuinCommandWithExecutor(executor Executor, vaultPath string) *RuinComman
 		vaultPath: vaultPath,
 		executor:  executor,
 	}
+	r.initSubcommands()
+	return r
+}
+
+// initSubcommands wires up all sub-command instances.
+func (r *RuinCommand) initSubcommands() {
 	r.Search = NewSearchCommand(r)
 	r.Tags = NewTagsCommand(r)
 	r.Queries = NewQueriesCommand(r)
@@ -61,8 +70,6 @@ func NewRuinCommandWithExecutor(executor Executor, vaultPath string) *RuinComman
 	r.Pick = NewPickCommand(r)
 	r.Note = NewNoteCommand(r)
 	r.Link = NewLinkCommand(r)
-
-	return r
 }
 
 // VaultPath returns the configured vault path.

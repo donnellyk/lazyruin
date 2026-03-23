@@ -11,16 +11,7 @@ func NewTagsCommand(ruin *RuinCommand) *TagsCommand {
 }
 
 func (t *TagsCommand) List() ([]models.Tag, error) {
-	output, err := t.ruin.Execute("tags", "list")
-	if err != nil {
-		return nil, err
-	}
-
-	tags, err := unmarshalJSON[[]models.Tag](output)
-	if err != nil {
-		return []models.Tag{}, nil
-	}
-	return tags, nil
+	return ExecuteAndUnmarshal[[]models.Tag](t.ruin, "tags", "list")
 }
 
 func (t *TagsCommand) Rename(oldName, newName string) error {

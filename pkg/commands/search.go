@@ -15,6 +15,16 @@ type SearchOptions struct {
 	Link            bool
 }
 
+// applyDisplayFlags adds the common display flags (--content, --strip-global-tags,
+// --strip-title) to the builder based on the options. This centralizes the logic
+// that was previously duplicated across Search, get, Today, and Queries.Run.
+func (o SearchOptions) applyDisplayFlags(b *ArgBuilder) *ArgBuilder {
+	return b.
+		AddIf(o.IncludeContent, "--content").
+		AddIf(o.StripGlobalTags, "--strip-global-tags").
+		AddIf(o.StripTitle, "--strip-title")
+}
+
 type SearchCommand struct {
 	ruin *RuinCommand
 }
@@ -24,39 +34,15 @@ func NewSearchCommand(ruin *RuinCommand) *SearchCommand {
 }
 
 func (s *SearchCommand) Search(query string, opts SearchOptions) ([]models.Note, error) {
-	args := []string{"search"}
-	if query != "" {
-		args = append(args, query)
-	}
+	b := NewArgBuilder("search").
+		AddIf(query != "", query).
+		AddIf(opts.Sort != "", "-s", opts.Sort).
+		AddIf(opts.Limit > 0, "-l", strconv.Itoa(opts.Limit))
+	opts.applyDisplayFlags(b).
+		AddIf(opts.Everything, "--everything").
+		AddIf(opts.Link, "--link")
 
-	if opts.Sort != "" {
-		args = append(args, "-s", opts.Sort)
-	}
-	if opts.Limit > 0 {
-		args = append(args, "-l", strconv.Itoa(opts.Limit))
-	}
-	if opts.IncludeContent {
-		args = append(args, "--content")
-	}
-	if opts.StripGlobalTags {
-		args = append(args, "--strip-global-tags")
-	}
-	if opts.StripTitle {
-		args = append(args, "--strip-title")
-	}
-	if opts.Everything {
-		args = append(args, "--everything")
-	}
-	if opts.Link {
-		args = append(args, "--link")
-	}
-
-	output, err := s.ruin.Execute(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalJSON[[]models.Note](output)
+	return ExecuteAndUnmarshal[[]models.Note](s.ruin, b.Build()...)
 }
 
 // Get fetches a single note by UUID with the given search options.
@@ -75,34 +61,12 @@ func (s *SearchCommand) GetByPath(path string, opts SearchOptions) (*models.Note
 }
 
 func (s *SearchCommand) get(filter []string, opts SearchOptions) (*models.Note, error) {
-	args := append([]string{"get"}, filter...)
-	if opts.IncludeContent {
-		args = append(args, "--content")
-	}
-	if opts.StripGlobalTags {
-		args = append(args, "--strip-global-tags")
-	}
-	if opts.StripTitle {
-		args = append(args, "--strip-title")
-	}
+	b := NewArgBuilder("get").Add(filter...)
+	opts.applyDisplayFlags(b)
 
-	output, err := s.ruin.Execute(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalJSON[*models.Note](output)
+	return ExecuteAndUnmarshal[*models.Note](s.ruin, b.Build()...)
 }
 
 func (s *SearchCommand) Today() ([]models.Note, error) {
-	output, err := s.ruin.Execute("today", "--content")
-	if err != nil {
-		return nil, err
-	}
-
-	notes, err := unmarshalJSON[[]models.Note](output)
-	if err != nil {
-		return []models.Note{}, nil // Empty results are not an error
-	}
-	return notes, nil
+	return ExecuteAndUnmarshal[[]models.Note](s.ruin, "today", "--content")
 }

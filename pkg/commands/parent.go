@@ -11,12 +11,7 @@ func NewParentCommand(ruin *RuinCommand) *ParentCommand {
 }
 
 func (p *ParentCommand) List() ([]models.ParentBookmark, error) {
-	output, err := p.ruin.Execute("parent", "list")
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalJSON[[]models.ParentBookmark](output)
+	return ExecuteAndUnmarshal[[]models.ParentBookmark](p.ruin, "parent", "list")
 }
 
 type composeResult struct {
@@ -36,20 +31,15 @@ func (p *ParentCommand) Compose(bm models.ParentBookmark) (models.Note, []models
 		args = []string{"compose", bm.UUID, "--strip-title", "--strip-global-tags", "--normalize-headers", "--sort", "created:desc", "--expand-embeds"}
 	}
 
-	output, err := p.ruin.Execute(args...)
+	result, err := ExecuteAndUnmarshal[composeResult](p.ruin, args...)
 	if err != nil {
 		return models.Note{}, nil, err
 	}
 
-	return p.parseComposeResult(output, bm.Title)
+	return p.buildComposeNote(result, bm.Title)
 }
 
-func (p *ParentCommand) parseComposeResult(output []byte, title string) (models.Note, []models.SourceMapEntry, error) {
-	root, err := unmarshalJSON[composeResult](output)
-	if err != nil {
-		return models.Note{}, nil, err
-	}
-
+func (p *ParentCommand) buildComposeNote(root composeResult, title string) (models.Note, []models.SourceMapEntry, error) {
 	note := models.Note{
 		UUID:    root.UUID,
 		Title:   title,
@@ -57,17 +47,31 @@ func (p *ParentCommand) parseComposeResult(output []byte, title string) (models.
 		Content: root.ComposedContent,
 	}
 
-	if root.UUID != "" {
-		if metaOutput, err := p.ruin.Execute("get", "--uuid", root.UUID); err == nil {
-			if meta, err := unmarshalJSON[*models.Note](metaOutput); err == nil && meta != nil {
-				note.Tags = meta.Tags
-				note.Created = meta.Created
-				note.Parent = meta.Parent
-			}
-		}
+	if err := p.enrichNoteMetadata(&note); err != nil {
+		return note, root.SourceMap, nil
 	}
 
 	return note, root.SourceMap, nil
+}
+
+// enrichNoteMetadata fetches and applies metadata (tags, created, parent) for a note with a UUID.
+func (p *ParentCommand) enrichNoteMetadata(note *models.Note) error {
+	if note.UUID == "" {
+		return nil
+	}
+
+	meta, err := ExecuteAndUnmarshal[*models.Note](p.ruin, "get", "--uuid", note.UUID)
+	if err != nil {
+		return err
+	}
+	if meta == nil {
+		return nil
+	}
+
+	note.Tags = meta.Tags
+	note.Created = meta.Created
+	note.Parent = meta.Parent
+	return nil
 }
 
 // Save creates a parent bookmark via `parent save <name> <note>`.
@@ -90,11 +94,7 @@ type ChildInfo struct {
 
 // Children returns the children of a note via `parent children`.
 func (p *ParentCommand) Children(noteRef string) ([]ChildInfo, error) {
-	output, err := p.ruin.Execute("parent", "children", noteRef, "--recursive")
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalJSON[[]ChildInfo](output)
+	return ExecuteAndUnmarshal[[]ChildInfo](p.ruin, "parent", "children", noteRef, "--recursive")
 }
 
 // TreeNode represents a node in the parent tree.
@@ -106,9 +106,5 @@ type TreeNode struct {
 
 // Tree returns the parent-child tree for a note.
 func (p *ParentCommand) Tree(noteRef string) (*TreeNode, error) {
-	output, err := p.ruin.Execute("parent", "tree", noteRef)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalJSON[*TreeNode](output)
+	return ExecuteAndUnmarshal[*TreeNode](p.ruin, "parent", "tree", noteRef)
 }

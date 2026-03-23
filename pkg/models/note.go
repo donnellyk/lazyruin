@@ -90,39 +90,30 @@ func (n *Note) URL() string {
 	return ""
 }
 
-func (n *Note) GlobalTagsString() string {
-	result := ""
-	for i, tag := range n.Tags {
-		if i > 0 {
-			result += ", "
-		}
-		if len(tag) > 0 && tag[0] != '#' {
-			result += "#"
-		}
-		result += tag
+// formatTag ensures a tag has a leading "#".
+func formatTag(tag string) string {
+	if len(tag) > 0 && tag[0] != '#' {
+		return "#" + tag
 	}
-	return result
+	return tag
+}
+
+// joinTags formats a slice of tags as comma-separated "#tag" strings.
+func joinTags(tags []string) string {
+	formatted := make([]string, len(tags))
+	for i, tag := range tags {
+		formatted[i] = formatTag(tag)
+	}
+	return strings.Join(formatted, ", ")
+}
+
+func (n *Note) GlobalTagsString() string {
+	return joinTags(n.Tags)
 }
 
 func (n *Note) TagsString() string {
-	result := ""
-	for i, tag := range n.Tags {
-		if i > 0 {
-			result += ", "
-		}
-		if len(tag) > 0 && tag[0] != '#' {
-			result += "#"
-		}
-		result += tag
-	}
-	for _, tag := range n.InlineTags {
-		if result != "" {
-			result += ", "
-		}
-		if len(tag) > 0 && tag[0] != '#' {
-			result += "#"
-		}
-		result += tag
-	}
-	return result
+	combined := make([]string, 0, len(n.Tags)+len(n.InlineTags))
+	combined = append(combined, n.Tags...)
+	combined = append(combined, n.InlineTags...)
+	return joinTags(combined)
 }

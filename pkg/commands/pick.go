@@ -26,39 +26,20 @@ type PickOpts struct {
 }
 
 func (p *PickCommand) Pick(tags []string, opts PickOpts) ([]models.PickResult, error) {
-	args := []string{"pick"}
+	b := NewArgBuilder("pick")
 	for _, tag := range tags {
-		args = append(args, tag)
+		b.Add(tag)
 		if strings.EqualFold(tag, "#done") {
-			args = append(args, "--done")
+			b.Add("--done")
 		}
 	}
-	if opts.Date != "" {
-		args = append(args, opts.Date)
-	}
-	if opts.Any {
-		args = append(args, "--any")
-	}
-	if opts.Todo {
-		args = append(args, "--todo")
-	}
-	if opts.All {
-		args = append(args, "--all")
-	}
-	if opts.Filter != "" {
-		args = append(args, "--filter", opts.Filter)
-	}
-	if opts.Parent != "" {
-		args = append(args, "--parent", opts.Parent)
-	}
-	if len(opts.Notes) > 0 {
-		args = append(args, "--notes", strings.Join(opts.Notes, ","))
-	}
+	b.AddIf(opts.Date != "", opts.Date).
+		AddIf(opts.Any, "--any").
+		AddIf(opts.Todo, "--todo").
+		AddIf(opts.All, "--all").
+		AddIf(opts.Filter != "", "--filter", opts.Filter).
+		AddIf(opts.Parent != "", "--parent", opts.Parent).
+		AddIf(len(opts.Notes) > 0, "--notes", strings.Join(opts.Notes, ","))
 
-	output, err := p.ruin.Execute(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshalJSON[[]models.PickResult](output)
+	return ExecuteAndUnmarshal[[]models.PickResult](p.ruin, b.Build()...)
 }
