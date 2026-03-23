@@ -38,6 +38,36 @@ func (self *PreviewHelper) BuildSearchOptions() commands.SearchOptions {
 	}
 }
 
+// NewSearchSource builds a CardListSource that re-queries via ruin search.
+// The baseQuery is prepended to any filter text. Sort is applied if non-empty.
+func (self *PreviewHelper) NewSearchSource(baseQuery, sort string) context.CardListSource {
+	return context.CardListSource{
+		Query: baseQuery,
+		Requery: func(filterText string) ([]models.Note, error) {
+			combined := strings.TrimSpace(baseQuery + " " + filterText)
+			o := self.BuildSearchOptions()
+			o.Sort = sort
+			return self.c.RuinCmd().Search.Search(combined, o)
+		},
+	}
+}
+
+// NewSearchSourceWithExtractSort builds a CardListSource that re-queries via
+// ruin search, extracting a sort: token from rawQuery on each re-query. This
+// is used for user-typed search strings that may contain "sort:value".
+func (self *PreviewHelper) NewSearchSourceWithExtractSort(rawQuery string) context.CardListSource {
+	return context.CardListSource{
+		Query: rawQuery,
+		Requery: func(filterText string) ([]models.Note, error) {
+			q, s := ExtractSort(rawQuery)
+			combined := strings.TrimSpace(q + " " + filterText)
+			o := self.BuildSearchOptions()
+			o.Sort = s
+			return self.c.RuinCmd().Search.Search(combined, o)
+		},
+	}
+}
+
 // CurrentPreviewCard returns the currently selected card, or nil if none.
 // Returns nil in pickResults mode since those are transient results.
 func (self *PreviewHelper) CurrentPreviewCard() *models.Note {

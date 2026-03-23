@@ -1,8 +1,6 @@
 package helpers
 
 import (
-	"strings"
-
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/models"
 )
@@ -22,23 +20,16 @@ func NewQueriesHelper(c *HelperCommon) *QueriesHelper {
 func (self *QueriesHelper) RefreshQueries(preserve bool) {
 	gui := self.c.GuiCommon()
 	queriesCtx := gui.Contexts().Queries
-	prevID := queriesCtx.GetQueriesList().GetSelectedItemId()
 
-	queries, err := self.c.RuinCmd().Queries.List()
+	err := RefreshList(
+		func() ([]models.Query, error) { return self.c.RuinCmd().Queries.List() },
+		func(queries []models.Query) { queriesCtx.Queries = queries },
+		queriesCtx.GetQueriesList(),
+		preserve,
+	)
 	if err != nil {
-		return
+		gui.ShowError(err)
 	}
-	queriesCtx.Queries = queries
-
-	if preserve && prevID != "" {
-		if newIdx := queriesCtx.GetQueriesList().FindIndexById(prevID); newIdx >= 0 {
-			queriesCtx.QueriesTrait().SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		queriesCtx.QueriesTrait().SetSelectedLineIdx(0)
-	}
-	queriesCtx.QueriesTrait().ClampSelection()
-
 	gui.RenderQueries()
 }
 
@@ -47,47 +38,39 @@ func (self *QueriesHelper) RefreshQueries(preserve bool) {
 func (self *QueriesHelper) RefreshParents(preserve bool) {
 	gui := self.c.GuiCommon()
 	queriesCtx := gui.Contexts().Queries
-	prevID := queriesCtx.GetParentsList().GetSelectedItemId()
 
-	parents, err := self.c.RuinCmd().Parent.List()
+	err := RefreshList(
+		func() ([]models.ParentBookmark, error) { return self.c.RuinCmd().Parent.List() },
+		func(parents []models.ParentBookmark) { queriesCtx.Parents = parents },
+		queriesCtx.GetParentsList(),
+		preserve,
+	)
 	if err != nil {
-		return
+		gui.ShowError(err)
 	}
-	queriesCtx.Parents = parents
-
-	if preserve && prevID != "" {
-		if newIdx := queriesCtx.GetParentsList().FindIndexById(prevID); newIdx >= 0 {
-			queriesCtx.ParentsTrait().SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		queriesCtx.ParentsTrait().SetSelectedLineIdx(0)
-	}
-	queriesCtx.ParentsTrait().ClampSelection()
-
 	gui.RenderQueries()
 }
 
 // CycleQueriesTab cycles through Queries -> Parents tabs.
 func (self *QueriesHelper) CycleQueriesTab() {
-	gui := self.c.GuiCommon()
-	queriesCtx := gui.Contexts().Queries
-	idx := (queriesCtx.TabIndex() + 1) % len(context.QueriesTabs)
-	queriesCtx.CurrentTab = context.QueriesTabs[idx]
-	queriesCtx.SetSelectedLineIdx(0)
-	self.LoadDataForQueriesTab()
+	queriesCtx := self.c.GuiCommon().Contexts().Queries
+	CycleTab(context.QueriesTabs, queriesCtx.TabIndex(), func(tab context.QueriesTab) {
+		queriesCtx.CurrentTab = tab
+		queriesCtx.SetSelectedLineIdx(0)
+	}, self.LoadDataForQueriesTab)
 }
 
 // SwitchQueriesTabByIndex switches to a specific tab by index (for tab click).
 func (self *QueriesHelper) SwitchQueriesTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(context.QueriesTabs) {
-		return nil
-	}
 	gui := self.c.GuiCommon()
 	queriesCtx := gui.Contexts().Queries
-	queriesCtx.CurrentTab = context.QueriesTabs[tabIndex]
-	queriesCtx.SetSelectedLineIdx(0)
-	self.LoadDataForQueriesTab()
-	gui.PushContextByKey("queries")
+	SwitchTab(context.QueriesTabs, tabIndex, func(tab context.QueriesTab) {
+		queriesCtx.CurrentTab = tab
+		queriesCtx.SetSelectedLineIdx(0)
+	}, func() {
+		self.LoadDataForQueriesTab()
+		gui.PushContextByKey("queries")
+	})
 	return nil
 }
 
@@ -124,15 +107,7 @@ func (self *QueriesHelper) RunQuery() error {
 		return nil
 	}
 
-	queryText := query.Query
-	source := context.CardListSource{
-		Query: queryText,
-		Requery: func(filterText string) ([]models.Note, error) {
-			o := self.c.Helpers().Preview().BuildSearchOptions()
-			combined := strings.TrimSpace(queryText + " " + filterText)
-			return self.c.RuinCmd().Search.Search(combined, o)
-		},
-	}
+	source := self.c.Helpers().Preview().NewSearchSource(query.Query, "")
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList("Query: "+query.Name, notes, source)

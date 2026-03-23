@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"testing"
 
 	"kvnd/lazyruin/pkg/gui/types"
@@ -137,5 +138,125 @@ func TestPreserveSelection_EmptyList(t *testing.T) {
 
 	if list.selectedIdx != 0 {
 		t.Errorf("selectedIdx = %d, want 0 (empty list)", list.selectedIdx)
+	}
+}
+
+// --- RefreshList tests ---
+
+func TestRefreshList_PreserveSelection(t *testing.T) {
+	// Start with ["a", "b", "c"], selected "b" at idx 1.
+	// After refresh, items become ["x", "a", "b"], so "b" moves to idx 2.
+	list := &mockList{ids: []string{"a", "b", "c"}, selectedIdx: 1}
+
+	err := RefreshList(
+		func() ([]string, error) { return []string{"x", "a", "b"}, nil },
+		func(items []string) { list.ids = items },
+		list,
+		true,
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if list.selectedIdx != 2 {
+		t.Errorf("selectedIdx = %d, want 2 (b moved to index 2)", list.selectedIdx)
+	}
+}
+
+func TestRefreshList_PreserveSelection_ItemGone(t *testing.T) {
+	// Start with ["a", "b"], selected "b" at idx 1.
+	// After refresh, items become ["x", "y"]. "b" is gone, should clamp.
+	list := &mockList{ids: []string{"a", "b"}, selectedIdx: 1}
+
+	err := RefreshList(
+		func() ([]string, error) { return []string{"x", "y"}, nil },
+		func(items []string) { list.ids = items },
+		list,
+		true,
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// preserve=true, prevID="b", not found => no SetSelectedLineIdx call,
+	// but ClampSelection keeps idx 1 which is valid for 2-element list.
+	if list.selectedIdx != 1 {
+		t.Errorf("selectedIdx = %d, want 1 (clamped, still valid)", list.selectedIdx)
+	}
+}
+
+func TestRefreshList_NoPreserve_ResetsToZero(t *testing.T) {
+	// Start at idx 2. Without preserve, should reset to 0.
+	list := &mockList{ids: []string{"a", "b", "c"}, selectedIdx: 2}
+
+	err := RefreshList(
+		func() ([]string, error) { return []string{"x", "y", "z"}, nil },
+		func(items []string) { list.ids = items },
+		list,
+		false,
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if list.selectedIdx != 0 {
+		t.Errorf("selectedIdx = %d, want 0 (no preserve resets)", list.selectedIdx)
+	}
+}
+
+func TestRefreshList_LoadError_ReturnsError(t *testing.T) {
+	list := &mockList{ids: []string{"a"}, selectedIdx: 0}
+
+	err := RefreshList(
+		func() ([]string, error) { return nil, fmt.Errorf("load failed") },
+		func(items []string) { list.ids = items },
+		list,
+		false,
+	)
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	// Items should not have been modified (setItems not called on error).
+	if len(list.ids) != 1 || list.ids[0] != "a" {
+		t.Errorf("items were modified despite load error: %v", list.ids)
+	}
+}
+
+func TestRefreshList_EmptyResult(t *testing.T) {
+	list := &mockList{ids: []string{"a", "b"}, selectedIdx: 1}
+
+	err := RefreshList(
+		func() ([]string, error) { return []string{}, nil },
+		func(items []string) { list.ids = items },
+		list,
+		true,
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if list.selectedIdx != 0 {
+		t.Errorf("selectedIdx = %d, want 0 (empty list)", list.selectedIdx)
+	}
+}
+
+func TestRefreshList_PreserveWithEmptyPrevID(t *testing.T) {
+	// Empty list initially => GetSelectedItemId returns "".
+	// Even with preserve=true, should reset to 0 since prevID is empty.
+	list := &mockList{ids: []string{}, selectedIdx: 0}
+
+	err := RefreshList(
+		func() ([]string, error) { return []string{"a", "b"}, nil },
+		func(items []string) { list.ids = items },
+		list,
+		true,
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if list.selectedIdx != 0 {
+		t.Errorf("selectedIdx = %d, want 0 (empty prevID falls through to else)", list.selectedIdx)
 	}
 }

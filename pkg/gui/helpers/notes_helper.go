@@ -22,51 +22,47 @@ func NewNotesHelper(c *HelperCommon) *NotesHelper {
 func (self *NotesHelper) FetchNotesForCurrentTab(preserve bool) {
 	gui := self.c.GuiCommon()
 	notesCtx := gui.Contexts().Notes
-	prevID := ""
-	if preserve {
-		prevID = notesCtx.GetSelectedItemId()
+
+	err := RefreshList(
+		func() ([]models.Note, error) {
+			return self.loadNotesForTab(notesCtx.CurrentTab)
+		},
+		func(notes []models.Note) { notesCtx.Items = notes },
+		notesCtx.GetList(),
+		preserve,
+	)
+	if err != nil {
+		gui.ShowError(err)
 	}
+	gui.RenderNotes()
+	gui.UpdateNotesTab()
+}
 
-	var notes []models.Note
-	var err error
-
+// loadNotesForTab fetches notes for the given tab.
+func (self *NotesHelper) loadNotesForTab(tab context.NotesTab) ([]models.Note, error) {
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	opts.Sort = "created:desc"
 	opts.IncludeContent = true
 	opts.StripTitle = true
 	opts.StripGlobalTags = true
 
-	switch notesCtx.CurrentTab {
+	switch tab {
 	case context.NotesTabAll:
 		opts.Limit = 50
 		opts.Everything = true
-		notes, err = self.c.RuinCmd().Search.Search("", opts)
+		return self.c.RuinCmd().Search.Search("", opts)
 	case context.NotesTabToday:
-		notes, err = self.c.RuinCmd().Search.Search("created:today", opts)
+		return self.c.RuinCmd().Search.Search("created:today", opts)
 	case context.NotesTabRecent:
 		opts.Limit = 20
 		recentDate := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
-		notes, err = self.c.RuinCmd().Search.Search("after:"+recentDate, opts)
+		return self.c.RuinCmd().Search.Search("after:"+recentDate, opts)
 	case context.NotesTabLinks:
 		opts.Limit = 50
-		notes, err = self.c.RuinCmd().Search.Search("#link", opts)
+		return self.c.RuinCmd().Search.Search("#link", opts)
+	default:
+		return nil, nil
 	}
-
-	if err == nil {
-		notesCtx.Items = notes
-		if preserve && prevID != "" {
-			if newIdx := notesCtx.GetList().FindIndexById(prevID); newIdx >= 0 {
-				notesCtx.SetSelectedLineIdx(newIdx)
-			} else {
-				notesCtx.SetSelectedLineIdx(0)
-			}
-		} else {
-			notesCtx.SetSelectedLineIdx(0)
-		}
-		notesCtx.ClampSelection()
-	}
-	gui.RenderNotes()
-	gui.UpdateNotesTab()
 }
 
 // LoadNotesForCurrentTab loads notes based on the current tab,
@@ -79,23 +75,23 @@ func (self *NotesHelper) LoadNotesForCurrentTab() {
 // CycleNotesTab cycles through All -> Today -> Recent tabs.
 func (self *NotesHelper) CycleNotesTab() {
 	notesCtx := self.c.GuiCommon().Contexts().Notes
-	idx := (notesCtx.TabIndex() + 1) % len(context.NotesTabs)
-	notesCtx.CurrentTab = context.NotesTabs[idx]
-	notesCtx.SetSelectedLineIdx(0)
-	self.LoadNotesForCurrentTab()
+	CycleTab(context.NotesTabs, notesCtx.TabIndex(), func(tab context.NotesTab) {
+		notesCtx.CurrentTab = tab
+		notesCtx.SetSelectedLineIdx(0)
+	}, self.LoadNotesForCurrentTab)
 }
 
 // SwitchNotesTabByIndex switches to a specific tab by index (for tab click).
 func (self *NotesHelper) SwitchNotesTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(context.NotesTabs) {
-		return nil
-	}
 	gui := self.c.GuiCommon()
 	notesCtx := gui.Contexts().Notes
-	notesCtx.CurrentTab = context.NotesTabs[tabIndex]
-	notesCtx.SetSelectedLineIdx(0)
-	self.LoadNotesForCurrentTab()
-	gui.PushContextByKey("notes")
+	SwitchTab(context.NotesTabs, tabIndex, func(tab context.NotesTab) {
+		notesCtx.CurrentTab = tab
+		notesCtx.SetSelectedLineIdx(0)
+	}, func() {
+		self.LoadNotesForCurrentTab()
+		gui.PushContextByKey("notes")
+	})
 	return nil
 }
 

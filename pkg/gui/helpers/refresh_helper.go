@@ -29,6 +29,45 @@ func (self *RefreshHelper) PreserveSelection(list types.IListContext) {
 	}
 }
 
+// RefreshList fetches items, updates a list context, and optionally preserves
+// selection by stable ID. It extracts the common refresh-and-preserve pattern
+// used by NotesHelper, TagsHelper, and QueriesHelper.
+//
+// Parameters:
+//   - load: fetches the new items from the backend
+//   - setItems: sets the fetched items on the context
+//   - list: provides selection state and ID-based lookup (typically from GetList())
+//   - preserve: if true, the previously selected item is restored by ID
+func RefreshList[T any](
+	load func() ([]T, error),
+	setItems func([]T),
+	list types.IList,
+	preserve bool,
+) error {
+	prevID := ""
+	if preserve {
+		prevID = list.GetSelectedItemId()
+	}
+
+	items, err := load()
+	if err != nil {
+		return err
+	}
+
+	setItems(items)
+
+	if preserve && prevID != "" {
+		if newIdx := list.FindIndexById(prevID); newIdx >= 0 {
+			list.SetSelectedLineIdx(newIdx)
+		}
+	} else {
+		list.SetSelectedLineIdx(0)
+	}
+	list.ClampSelection()
+
+	return nil
+}
+
 // RefreshAll refreshes data for all panels.
 func (self *RefreshHelper) RefreshAll() {
 	h := self.c.Helpers()

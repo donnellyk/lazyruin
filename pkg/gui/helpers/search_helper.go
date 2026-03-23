@@ -5,7 +5,6 @@ import (
 
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 )
 
 // SearchHelper manages search execution and query management.
@@ -43,7 +42,7 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 		return false
 	}
 
-	query, sort := extractSort(raw)
+	query, sort := ExtractSort(raw)
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
 	opts.Sort = sort
 	notes, err := self.c.RuinCmd().Search.Search(query, opts)
@@ -57,19 +56,7 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 	sc.Completion = types.NewCompletionState()
 	gui.SetCursorEnabled(false)
 
-	// Capture query+sort for the re-query callback so filtering works.
-	capturedRaw := raw
-	source := context.CardListSource{
-		Query: raw,
-		Requery: func(filterText string) ([]models.Note, error) {
-			q, s := extractSort(capturedRaw)
-			combined := strings.TrimSpace(q + " " + filterText)
-			o := self.c.Helpers().Preview().BuildSearchOptions()
-			o.Sort = s
-			return self.c.RuinCmd().Search.Search(combined, o)
-		},
-		// Triggers: nil — defaults to searchTriggers in the filter dialog
-	}
+	source := self.c.Helpers().Preview().NewSearchSourceWithExtractSort(raw)
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList("Search: "+query, notes, source)
@@ -116,22 +103,12 @@ func (self *SearchHelper) FocusSearchFilter() error {
 	gui := self.c.GuiCommon()
 	sq := self.searchCtx().Query
 	if sq != "" {
-		query, sort := extractSort(sq)
+		query, sort := ExtractSort(sq)
 		opts := self.c.Helpers().Preview().BuildSearchOptions()
 		opts.Sort = sort
 		notes, err := self.c.RuinCmd().Search.Search(query, opts)
 		if err == nil {
-			capturedRaw := sq
-			source := context.CardListSource{
-				Query: sq,
-				Requery: func(filterText string) ([]models.Note, error) {
-					q, s := extractSort(capturedRaw)
-					combined := strings.TrimSpace(q + " " + filterText)
-					o := self.c.Helpers().Preview().BuildSearchOptions()
-					o.Sort = s
-					return self.c.RuinCmd().Search.Search(combined, o)
-				},
-			}
+			source := self.c.Helpers().Preview().NewSearchSourceWithExtractSort(sq)
 			self.c.Helpers().Preview().ShowCardList("Search: "+sq, notes, source)
 		}
 		gui.PushContextByKey("searchFilter")
@@ -139,8 +116,8 @@ func (self *SearchHelper) FocusSearchFilter() error {
 	return nil
 }
 
-// extractSort splits a "sort:value" token out of a query string.
-func extractSort(query string) (string, string) {
+// ExtractSort splits a "sort:value" token out of a query string.
+func ExtractSort(query string) (string, string) {
 	var remaining []string
 	var sortVal string
 	for _, token := range strings.Fields(query) {

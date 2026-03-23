@@ -23,23 +23,16 @@ func NewTagsHelper(c *HelperCommon) *TagsHelper {
 func (self *TagsHelper) RefreshTags(preserve bool) {
 	gui := self.c.GuiCommon()
 	tagsCtx := gui.Contexts().Tags
-	prevID := tagsCtx.GetSelectedItemId()
 
-	tags, err := self.c.RuinCmd().Tags.List()
+	err := RefreshList(
+		func() ([]models.Tag, error) { return self.c.RuinCmd().Tags.List() },
+		func(tags []models.Tag) { tagsCtx.Items = tags },
+		tagsCtx.GetList(),
+		preserve,
+	)
 	if err != nil {
-		return
+		gui.ShowError(err)
 	}
-	tagsCtx.Items = tags
-
-	if preserve && prevID != "" {
-		if newIdx := tagsCtx.GetList().FindIndexById(prevID); newIdx >= 0 {
-			tagsCtx.SetSelectedLineIdx(newIdx)
-		}
-	} else {
-		tagsCtx.SetSelectedLineIdx(0)
-	}
-	tagsCtx.ClampSelection()
-
 	gui.RenderTags()
 }
 
@@ -47,27 +40,29 @@ func (self *TagsHelper) RefreshTags(preserve bool) {
 func (self *TagsHelper) CycleTagsTab() {
 	gui := self.c.GuiCommon()
 	tagsCtx := gui.Contexts().Tags
-	idx := (tagsCtx.TabIndex() + 1) % len(context.TagsTabs)
-	tagsCtx.CurrentTab = context.TagsTabs[idx]
-	tagsCtx.SetSelectedLineIdx(0)
-	gui.UpdateTagsTab()
-	gui.RenderTags()
-	self.UpdatePreviewForTags()
+	CycleTab(context.TagsTabs, tagsCtx.TabIndex(), func(tab context.TagsTab) {
+		tagsCtx.CurrentTab = tab
+		tagsCtx.SetSelectedLineIdx(0)
+	}, func() {
+		gui.UpdateTagsTab()
+		gui.RenderTags()
+		self.UpdatePreviewForTags()
+	})
 }
 
 // SwitchTagsTabByIndex handles mouse clicks on tab headers.
 func (self *TagsHelper) SwitchTagsTabByIndex(tabIndex int) error {
-	if tabIndex < 0 || tabIndex >= len(context.TagsTabs) {
-		return nil
-	}
 	gui := self.c.GuiCommon()
 	tagsCtx := gui.Contexts().Tags
-	tagsCtx.CurrentTab = context.TagsTabs[tabIndex]
-	tagsCtx.SetSelectedLineIdx(0)
-	gui.UpdateTagsTab()
-	gui.RenderTags()
-	self.UpdatePreviewForTags()
-	gui.PushContextByKey("tags")
+	SwitchTab(context.TagsTabs, tabIndex, func(tab context.TagsTab) {
+		tagsCtx.CurrentTab = tab
+		tagsCtx.SetSelectedLineIdx(0)
+	}, func() {
+		gui.UpdateTagsTab()
+		gui.RenderTags()
+		self.UpdatePreviewForTags()
+		gui.PushContextByKey("tags")
+	})
 	return nil
 }
 
@@ -93,15 +88,7 @@ func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 		return nil
 	}
 
-	tagName := tag.Name
-	source := context.CardListSource{
-		Query: tagName,
-		Requery: func(filterText string) ([]models.Note, error) {
-			o := self.c.Helpers().Preview().BuildSearchOptions()
-			combined := strings.TrimSpace(tagName + " " + filterText)
-			return self.c.RuinCmd().Search.Search(combined, o)
-		},
-	}
+	source := self.c.Helpers().Preview().NewSearchSource(tag.Name, "")
 
 	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.c.Helpers().Preview().ShowCardList("Tag: "+tag.Name, notes, source)
