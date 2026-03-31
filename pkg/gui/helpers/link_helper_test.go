@@ -82,6 +82,7 @@ func TestParseLinkContent(t *testing.T) {
 		url         string
 		wantTitle   string
 		wantComment string
+		wantTags    []string
 	}{
 		{
 			name:        "full resolved content",
@@ -98,11 +99,12 @@ func TestParseLinkContent(t *testing.T) {
 			wantComment: "Some comment.",
 		},
 		{
-			name:        "tags excluded from comment",
+			name:        "tags extracted from content",
 			content:     "# Example Page\n\nhttps://example.com\n\nSummary here.\n\n#reading #tech",
 			url:         "https://example.com",
 			wantTitle:   "Example Page",
 			wantComment: "Summary here.",
+			wantTags:    []string{"reading", "tech"},
 		},
 		{
 			name:        "url only",
@@ -111,16 +113,31 @@ func TestParseLinkContent(t *testing.T) {
 			wantTitle:   "",
 			wantComment: "",
 		},
+		{
+			name:     "tags added after resolve",
+			content:  "# My Title\n\nhttps://example.com\n\n#new-tag #another",
+			url:      "https://example.com",
+			wantTitle: "My Title",
+			wantTags:  []string{"new-tag", "another"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTitle, gotComment := h.parseLinkContent(tt.content, tt.url)
+			gotTitle, gotComment, gotTags := h.parseLinkContent(tt.content, tt.url)
 			if gotTitle != tt.wantTitle {
 				t.Errorf("title = %q, want %q", gotTitle, tt.wantTitle)
 			}
 			if gotComment != tt.wantComment {
 				t.Errorf("comment = %q, want %q", gotComment, tt.wantComment)
+			}
+			if len(gotTags) != len(tt.wantTags) {
+				t.Fatalf("tags = %v, want %v", gotTags, tt.wantTags)
+			}
+			for i := range gotTags {
+				if gotTags[i] != tt.wantTags[i] {
+					t.Errorf("tags[%d] = %q, want %q", i, gotTags[i], tt.wantTags[i])
+				}
 			}
 		})
 	}

@@ -84,7 +84,7 @@ func (self *LinkHelper) saveImmediate(url string, tags []string) error {
 	}
 
 	self.c.Helpers().InputPopup().CloseInputPopup()
-	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }
@@ -280,15 +280,17 @@ func (self *LinkHelper) SubmitLinkCapture(content string) error {
 		return nil
 	}
 
-	title, comment := self.parseLinkContent(content, url)
+	title, comment, contentTags := self.parseLinkContent(content, url)
 
 	opts := commands.LinkNewOpts{
 		Title:   title,
 		Comment: comment,
 		NoFetch: true,
 	}
-	if len(ctx.LinkTags) > 0 {
-		opts.Tags = strings.Join(ctx.LinkTags, ",")
+	// Content tags are authoritative — they reflect the user's edits in the
+	// capture popup, which may differ from the original ctx.LinkTags.
+	if len(contentTags) > 0 {
+		opts.Tags = strings.Join(contentTags, ",")
 	}
 	if ctx.LinkParent != "" {
 		opts.Parent = ctx.LinkParent
@@ -309,12 +311,12 @@ func (self *LinkHelper) SubmitLinkCapture(content string) error {
 	}
 
 	self.c.Helpers().Capture().CloseCapture()
-	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }
 
-func (self *LinkHelper) parseLinkContent(content, url string) (title, comment string) {
+func (self *LinkHelper) parseLinkContent(content, url string) (title, comment string, tags []string) {
 	lines := strings.Split(content, "\n")
 	var commentLines []string
 	pastURL := false
@@ -330,13 +332,18 @@ func (self *LinkHelper) parseLinkContent(content, url string) (title, comment st
 		}
 		if pastURL && trimmed != "" {
 			if isTagLine(trimmed) {
+				for _, f := range strings.Fields(trimmed) {
+					if after, ok := strings.CutPrefix(f, "#"); ok && after != "" {
+						tags = append(tags, after)
+					}
+				}
 				continue
 			}
 			commentLines = append(commentLines, trimmed)
 		}
 	}
 	comment = strings.Join(commentLines, "\n")
-	return title, comment
+	return title, comment, tags
 }
 
 // isTagLine returns true if every non-empty token on the line starts with #.
