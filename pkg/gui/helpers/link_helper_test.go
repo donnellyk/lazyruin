@@ -114,9 +114,9 @@ func TestParseLinkContent(t *testing.T) {
 			wantComment: "",
 		},
 		{
-			name:     "tags added after resolve",
-			content:  "# My Title\n\nhttps://example.com\n\n#new-tag #another",
-			url:      "https://example.com",
+			name:      "tags added after resolve",
+			content:   "# My Title\n\nhttps://example.com\n\n#new-tag #another",
+			url:       "https://example.com",
 			wantTitle: "My Title",
 			wantTags:  []string{"new-tag", "another"},
 		},

@@ -44,7 +44,7 @@ func (m *mockGuiCommon) ShowConfirm(string, string, func() error)             {}
 func (m *mockGuiCommon) ShowInput(string, string, func(string) error)         {}
 func (m *mockGuiCommon) ShowError(error)                                      {}
 func (m *mockGuiCommon) ShowMenuDialog(string, []types.MenuItem)              {}
-func (m *mockGuiCommon) ShowAbout()                                          {}
+func (m *mockGuiCommon) ShowAbout()                                           {}
 func (m *mockGuiCommon) SetCursorEnabled(bool)                                {}
 func (m *mockGuiCommon) Suspend() error                                       { return nil }
 func (m *mockGuiCommon) Resume() error                                        { return nil }
