@@ -143,7 +143,7 @@ func (self *TagsHelper) RenameTag(tag *models.Tag) error {
 			return nil
 		}
 		self.c.Helpers().Tags().RefreshTags(false)
-		self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+		self.c.Helpers().Preview().ReloadActivePreview()
 		return nil
 	})
 	return nil
@@ -163,7 +163,7 @@ func (self *TagsHelper) DeleteTag(tag *models.Tag) error {
 			return nil
 		}
 		self.c.Helpers().Tags().RefreshTags(false)
-		self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+		self.c.Helpers().Preview().ReloadActivePreview()
 		return nil
 	})
 	return nil

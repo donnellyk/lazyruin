@@ -82,7 +82,7 @@ func (self *CaptureHelper) SubmitCapture(content string, quickCapture bool) erro
 	}
 
 	self.CloseCapture()
-	self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
 }

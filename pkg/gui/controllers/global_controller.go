@@ -173,6 +173,11 @@ func (self *GlobalController) openInbox() error {
 	return self.c.Helpers().Inbox().OpenBrowser()
 }
 
+func (self *GlobalController) showAbout() error {
+	self.c.GuiCommon().ShowAbout()
+	return nil
+}
+
 func (self *GlobalController) refresh() error {
 	self.c.Helpers().Refresh().RefreshAll()
 	return nil
@@ -200,6 +205,7 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
 		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},
 		{ID: "global.inbox", Key: 'i', Handler: self.openInbox, Description: "Inbox", Category: "Global"},
+		{ID: "global.about", Handler: self.showAbout, Description: "About", Category: "Global"},
 
 		// Focus shortcuts
 		{ID: "global.focus_notes", Key: '1', Handler: self.FocusNotes, Description: "Focus Notes", Category: "Focus"},

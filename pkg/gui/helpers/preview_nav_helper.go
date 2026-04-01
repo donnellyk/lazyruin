@@ -727,16 +727,11 @@ func (self *PreviewNavHelper) OpenInEditor() error {
 		return nil
 	}
 
-	savedCursor := ns.CursorLine
-	savedScroll := ns.ScrollOffset
-
 	if err := self.c.Helpers().Editor().OpenFileInEditor(path); err != nil {
 		return err
 	}
 
 	self.c.Helpers().Preview().ReloadActivePreview()
-	ns.CursorLine = savedCursor
-	ns.ScrollOffset = savedScroll
 	self.c.GuiCommon().RenderAll()
 	return nil
 }

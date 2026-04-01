@@ -13,6 +13,7 @@ import (
 const (
 	ConfirmView = "confirm"
 	InputView   = "input"
+	AboutView   = "about"
 )
 
 // DialogState tracks the current dialog state
@@ -80,6 +81,15 @@ func (gui *Gui) showHelp() {
 	}
 }
 
+// ShowAbout displays the about splash screen.
+func (gui *Gui) ShowAbout() {
+	gui.state.Dialog = &DialogState{
+		Active: true,
+		Type:   "about",
+		Title:  "About",
+	}
+}
+
 // closeDialog closes any open dialog
 func (gui *Gui) closeDialog() {
 	if gui.state.Dialog != nil && gui.state.Dialog.OnCancel != nil {
@@ -89,6 +99,7 @@ func (gui *Gui) closeDialog() {
 	gui.g.DeleteView(ConfirmView)
 	gui.g.DeleteView(InputView)
 	gui.g.DeleteView(MenuView)
+	gui.g.DeleteView(AboutView)
 	// Restore focus to the view for the current context
 	gui.g.SetCurrentView(gui.contextToView(gui.contextMgr.Current()))
 }
@@ -327,12 +338,55 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
+// createAboutDialog renders the ASCII art about splash.
+func (gui *Gui) createAboutDialog(g *gocui.Gui, maxX, maxY int) error {
+	if gui.state.Dialog == nil || gui.state.Dialog.Type != "about" {
+		return nil
+	}
+
+	art := []string{
+		"",
+		"  ██████╗  ██╗   ██╗ ██╗ ███╗   ██╗",
+		"  ██╔══██╗ ██║   ██║ ██║ ████╗  ██║",
+		"  ██████╔╝ ██║   ██║ ██║ ██╔██╗ ██║",
+		"  ██╔══██╗ ██║   ██║ ██║ ██║╚██╗██║",
+		"  ██║  ██║ ╚██████╔╝ ██║ ██║ ╚████║",
+		"  ╚═╝  ╚═╝  ╚═════╝  ╚═╝ ╚═╝  ╚═══╝",
+		"",
+		" \"These fragments I have shored",
+		"          against my ruin\"",
+	}
+
+	width := 40
+	height := len(art) + 2 // + frame
+	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
+
+	v, err := g.SetView(AboutView, x0, y0, x1, y1, 0)
+	if err != nil && err.Error() != "unknown view" {
+		return err
+	}
+
+	setRoundedCorners(v)
+	v.FrameColor = gocui.ColorGreen
+	v.TitleColor = gocui.ColorGreen
+	v.Clear()
+
+	for _, line := range art {
+		fmt.Fprintln(v, line)
+	}
+
+	g.SetViewOnTop(AboutView)
+	g.SetCurrentView(AboutView)
+	return nil
+}
+
 // renderDialogs renders any active dialog
 func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || !gui.state.Dialog.Active {
 		g.DeleteView(ConfirmView)
 		g.DeleteView(InputView)
 		g.DeleteView(MenuView)
+		g.DeleteView(AboutView)
 		return nil
 	}
 
@@ -343,6 +397,8 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		return gui.createInputDialog(g, maxX, maxY)
 	case "menu":
 		return gui.createMenuDialog(g, maxX, maxY)
+	case "about":
+		return gui.createAboutDialog(g, maxX, maxY)
 	}
 
 	return nil
@@ -366,6 +422,20 @@ func (gui *Gui) setupDialogKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(InputView, gocui.KeyEsc, gocui.ModNone, gui.inputCancel); err != nil {
+		return err
+	}
+
+	// About dialog
+	if err := gui.g.SetKeybinding(AboutView, gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		gui.closeDialog()
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(AboutView, gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		gui.closeDialog()
+		return nil
+	}); err != nil {
 		return err
 	}
 

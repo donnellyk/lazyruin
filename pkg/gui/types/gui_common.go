@@ -62,6 +62,7 @@ type IGuiCommon interface {
 	ShowInput(title, message string, onConfirm func(string) error)
 	ShowError(err error)
 	ShowMenuDialog(title string, items []MenuItem)
+	ShowAbout()
 
 	// Search
 	SetCursorEnabled(enabled bool)

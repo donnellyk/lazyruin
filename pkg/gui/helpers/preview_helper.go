@@ -197,9 +197,45 @@ func (self *PreviewHelper) ShowCompose(title string, note models.Note, sourceMap
 
 // --- content reload ---
 
+// cursorIdentity captures the source-line identity at the current cursor
+// position so it can be restored after a reload changes the line array.
+type cursorIdentity struct {
+	uuid    string
+	lineNum int
+	valid   bool
+}
+
+func (self *PreviewHelper) saveCursorIdentity() cursorIdentity {
+	ns := self.activeCtx().NavState()
+	if ns.CursorLine >= 0 && ns.CursorLine < len(ns.Lines) {
+		sl := ns.Lines[ns.CursorLine]
+		if sl.UUID != "" && sl.LineNum > 0 {
+			return cursorIdentity{uuid: sl.UUID, lineNum: sl.LineNum, valid: true}
+		}
+	}
+	return cursorIdentity{}
+}
+
+func (self *PreviewHelper) restoreCursorIdentity(id cursorIdentity) {
+	if !id.valid {
+		return
+	}
+	ns := self.activeCtx().NavState()
+	for i, sl := range ns.Lines {
+		if sl.UUID == id.uuid && sl.LineNum == id.lineNum {
+			ns.CursorLine = i
+			self.c.GuiCommon().RenderPreview()
+			return
+		}
+	}
+	// Identity not found (line was deleted); leave cursor where reload placed it.
+}
+
 // ReloadActivePreview dispatches to the appropriate reload method based on
-// the current ActivePreviewKey.
+// the current ActivePreviewKey, preserving the cursor's source-line identity.
 func (self *PreviewHelper) ReloadActivePreview() {
+	saved := self.saveCursorIdentity()
+
 	switch self.c.GuiCommon().Contexts().ActivePreviewKey {
 	case "pickResults":
 		self.ReloadPickResults()
@@ -220,6 +256,8 @@ func (self *PreviewHelper) ReloadActivePreview() {
 	default:
 		self.ReloadContent()
 	}
+
+	self.restoreCursorIdentity(saved)
 }
 
 // ReloadPickResults re-runs the pick query and refreshes the results,
