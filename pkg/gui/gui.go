@@ -23,6 +23,8 @@ type Gui struct {
 	ruinCmd        *commands.RuinCommand
 	stopBg         chan struct{}
 	QuickCapture   bool   // when true, open capture on start and quit on save
+	QuickLink      bool   // when true, open link input on start and quit on save
+	QuickLinkURL   string // when set with QuickLink, skip input popup and resolve directly
 	OpenRef        string // note path/title or parent bookmark to open on launch
 	darkBackground bool
 

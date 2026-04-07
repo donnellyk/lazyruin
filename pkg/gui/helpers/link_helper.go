@@ -10,6 +10,8 @@ import (
 	"kvnd/lazyruin/pkg/gui/context"
 	"kvnd/lazyruin/pkg/gui/types"
 	"kvnd/lazyruin/pkg/models"
+
+	"github.com/jesseduffield/gocui"
 )
 
 type LinkHelper struct {
@@ -20,7 +22,7 @@ func NewLinkHelper(c *HelperCommon) *LinkHelper {
 	return &LinkHelper{c: c}
 }
 
-func (self *LinkHelper) CreateLink() error {
+func (self *LinkHelper) CreateLink(quickExit bool) error {
 	gui := self.c.GuiCommon()
 	if gui.PopupActive() {
 		return nil
@@ -39,18 +41,53 @@ func (self *LinkHelper) CreateLink() error {
 			url, tags := self.parseURLAndTags(raw)
 			if url == "" {
 				self.c.Helpers().InputPopup().CloseInputPopup()
+				if quickExit {
+					return gocui.ErrQuit
+				}
 				return nil
 			}
-			return self.resolveAndCapture(url, tags)
+			return self.resolveAndCapture(url, tags, quickExit)
 		},
 		OnCtrlS: func(raw string) error {
 			url, tags := self.parseURLAndTags(raw)
 			if url == "" {
 				return nil
 			}
-			return self.saveImmediate(url, tags)
+			return self.saveImmediate(url, tags, quickExit)
 		},
 	})
+	return nil
+}
+
+// CreateLinkFromURL skips the input popup and resolves the given URL directly,
+// opening the capture popup with the resolved title/summary on completion.
+// The input popup is opened in a locked state to act as a spinner UI.
+func (self *LinkHelper) CreateLinkFromURL(url string, quickExit bool) error {
+	gui := self.c.GuiCommon()
+	if gui.PopupActive() {
+		return nil
+	}
+
+	cancelled := make(chan struct{})
+	done := make(chan struct{})
+
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
+		Title:      "Resolving",
+		Locked:     true,
+		DeferClose: true,
+		OnCancel:   func() { close(cancelled) },
+	})
+
+	opts := linkResolveOpts{
+		url:       url,
+		quickExit: quickExit,
+		done:      done,
+		cancelled: cancelled,
+	}
+
+	go self.spinInputTitle(url, done)
+	go self.doResolve(opts)
+
 	return nil
 }
 
@@ -71,7 +108,8 @@ func (self *LinkHelper) parseURLAndTags(raw string) (url string, tags []string) 
 }
 
 // saveImmediate creates a link with --no-fetch and optional tags, then closes.
-func (self *LinkHelper) saveImmediate(url string, tags []string) error {
+// When quickExit is true, returns gocui.ErrQuit on success to terminate the app.
+func (self *LinkHelper) saveImmediate(url string, tags []string, quickExit bool) error {
 	opts := commands.LinkNewOpts{NoFetch: true}
 	if len(tags) > 0 {
 		opts.Tags = strings.Join(tags, ",")
@@ -84,6 +122,9 @@ func (self *LinkHelper) saveImmediate(url string, tags []string) error {
 	}
 
 	self.c.Helpers().InputPopup().CloseInputPopup()
+	if quickExit {
+		return gocui.ErrQuit
+	}
 	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
@@ -131,7 +172,7 @@ func (self *LinkHelper) ReResolveLink(note *models.Note) error {
 }
 
 // resolveAndCapture locks the input, resolves the URL, then opens capture with results.
-func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
+func (self *LinkHelper) resolveAndCapture(url string, tags []string, quickExit bool) error {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().InputPopup
 
@@ -148,6 +189,7 @@ func (self *LinkHelper) resolveAndCapture(url string, tags []string) error {
 	opts := linkResolveOpts{
 		url:       url,
 		tags:      tags,
+		quickExit: quickExit,
 		done:      done,
 		cancelled: cancelled,
 	}
@@ -164,6 +206,7 @@ type linkResolveOpts struct {
 	tags         []string
 	existingUUID string // non-empty when re-resolving
 	parent       string // parent UUID to preserve
+	quickExit    bool   // when true, downstream actions should terminate the app
 	done         chan struct{}
 	cancelled    chan struct{}
 }
@@ -271,7 +314,9 @@ func (self *LinkHelper) spinInputTitle(_ string, done chan struct{}) {
 	}
 }
 
-func (self *LinkHelper) SubmitLinkCapture(content string) error {
+// SubmitLinkCapture finalizes the link capture and creates the note.
+// When quickExit is true, returns gocui.ErrQuit on success to terminate the app.
+func (self *LinkHelper) SubmitLinkCapture(content string, quickExit bool) error {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().Capture
 
@@ -311,6 +356,9 @@ func (self *LinkHelper) SubmitLinkCapture(content string) error {
 	}
 
 	self.c.Helpers().Capture().CloseCapture()
+	if quickExit {
+		return gocui.ErrQuit
+	}
 	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil

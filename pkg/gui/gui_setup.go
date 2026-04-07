@@ -201,11 +201,13 @@ func (gui *Gui) setupCaptureContext() {
 			{Key: gocui.KeyCtrlS, Description: "Save", Handler: func() error {
 				content := strings.TrimSpace(gui.views.Capture.TextArea.GetUnwrappedContent())
 				if gui.contexts.Capture.LinkURL != "" {
-					return gui.helpers.Link().SubmitLinkCapture(content)
+					return gui.helpers.Link().SubmitLinkCapture(content, gui.QuickLink)
 				}
 				return gui.helpers.Capture().SubmitCapture(content, gui.QuickCapture)
 			}},
-			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error { return gui.helpers.Capture().CancelCapture(gui.QuickCapture) }},
+			{Key: gocui.KeyEsc, Description: "Cancel", Handler: func() error {
+				return gui.helpers.Capture().CancelCapture(gui.QuickCapture || gui.QuickLink)
+			}},
 			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
 			{Key: gocui.KeyCtrlJ, Description: "Jot to inbox", Handler: func() error {
 				return gui.helpers.Inbox().OpenInboxInput()
@@ -296,9 +298,19 @@ func (gui *Gui) setupInputPopupContext() {
 						ctx.Config.OnCancel()
 					}
 					gui.helpers.InputPopup().CloseInputPopup()
+					if gui.QuickLink {
+						return gocui.ErrQuit
+					}
 					return nil
 				}
-				return gui.helpers.InputPopup().HandleEsc()
+				completionWasActive := ctx.Completion.Active
+				if err := gui.helpers.InputPopup().HandleEsc(); err != nil {
+					return err
+				}
+				if !completionWasActive && gui.QuickLink {
+					return gocui.ErrQuit
+				}
+				return nil
 			}},
 			{Key: gocui.KeyTab, Handler: func() error {
 				ctx := gui.contexts.InputPopup

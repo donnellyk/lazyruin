@@ -946,6 +946,82 @@ func TestOpenCaptureWithParent_SetsParent(t *testing.T) {
 	}
 }
 
+// --- --link flag tests ---
+
+func TestQuickLink_OpensInputPopup(t *testing.T) {
+	tg := newTestGuiWithOpts(t, defaultMock(), testGuiOpts{QuickLink: true})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "inputPopup" {
+		t.Errorf("CurrentContext = %v, want inputPopup", tg.gui.contextMgr.Current())
+	}
+	cfg := tg.gui.contexts.InputPopup.Config
+	if cfg == nil {
+		t.Fatal("InputPopup.Config should not be nil")
+	}
+	if cfg.Title != "New Link" {
+		t.Errorf("InputPopup.Config.Title = %q, want %q", cfg.Title, "New Link")
+	}
+	if cfg.Locked {
+		t.Error("InputPopup should not be locked when no URL is provided")
+	}
+}
+
+func TestQuickLink_WithURL_OpensLockedSpinner(t *testing.T) {
+	tg := newTestGuiWithOpts(t, defaultMock(), testGuiOpts{
+		QuickLink:    true,
+		QuickLinkURL: "https://example.com",
+	})
+	defer tg.Close()
+
+	if tg.gui.contextMgr.Current() != "inputPopup" {
+		t.Errorf("CurrentContext = %v, want inputPopup", tg.gui.contextMgr.Current())
+	}
+	cfg := tg.gui.contexts.InputPopup.Config
+	if cfg == nil {
+		t.Fatal("InputPopup.Config should not be nil")
+	}
+	if !cfg.Locked {
+		t.Error("InputPopup should be locked while resolving the URL")
+	}
+}
+
+func TestQuickLink_DoesNotLoadDatePreview(t *testing.T) {
+	tg := newTestGuiWithOpts(t, defaultMock(), testGuiOpts{QuickLink: true})
+	defer tg.Close()
+
+	// In QuickLink mode the date preview should NOT have been loaded —
+	// the active preview key should remain its zero/default value.
+	if tg.gui.contextMgr.Current() == "datePreview" {
+		t.Error("QuickLink mode should not push the datePreview context")
+	}
+}
+
+func TestSubmitLinkCapture_QuickExit_ReturnsErrQuit(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// Simulate having a link capture in progress
+	tg.gui.contexts.Capture.LinkURL = "https://example.com"
+
+	err := tg.gui.helpers.Link().SubmitLinkCapture("# Title\n\nhttps://example.com\n\nbody", true)
+	if err != gocui.ErrQuit {
+		t.Errorf("SubmitLinkCapture(quickExit=true) = %v, want gocui.ErrQuit", err)
+	}
+}
+
+func TestSubmitLinkCapture_NotQuickExit_ReturnsNil(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.contexts.Capture.LinkURL = "https://example.com"
+
+	err := tg.gui.helpers.Link().SubmitLinkCapture("# Title\n\nhttps://example.com\n\nbody", false)
+	if err != nil {
+		t.Errorf("SubmitLinkCapture(quickExit=false) = %v, want nil", err)
+	}
+}
+
 // --- Quit test ---
 
 func TestQuit_ReturnsErrQuit(t *testing.T) {

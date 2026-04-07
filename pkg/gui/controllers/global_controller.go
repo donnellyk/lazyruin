@@ -158,7 +158,7 @@ func (self *GlobalController) newNote() error {
 }
 
 func (self *GlobalController) newLink() error {
-	return self.c.Helpers().Link().CreateLink()
+	return self.c.Helpers().Link().CreateLink(false)
 }
 
 func (self *GlobalController) openCalendar() error {

@@ -21,7 +21,9 @@ type testGui struct {
 
 // testGuiOpts allows configuring the test GUI before layout runs.
 type testGuiOpts struct {
-	OpenRef string
+	OpenRef      string
+	QuickLink    bool
+	QuickLinkURL string
 }
 
 // newTestGui creates a headless GUI with mock data.
@@ -37,6 +39,8 @@ func newTestGuiWithOpts(t *testing.T, mock *testutil.MockExecutor, opts testGuiO
 	cfg := &config.Config{}
 	gui := NewGui(cfg, ruin)
 	gui.OpenRef = opts.OpenRef
+	gui.QuickLink = opts.QuickLink
+	gui.QuickLinkURL = opts.QuickLinkURL
 
 	g, err := gocui.NewGui(gocui.NewGuiOpts{
 		OutputMode: gocui.OutputNormal,

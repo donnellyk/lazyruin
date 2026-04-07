@@ -79,6 +79,16 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.contexts.Capture.Completion = types.NewCompletionState()
 		gui.contextMgr.Push(gui.contexts.Capture.GetKey())
 	}
+	// Same for --link: open the link input popup directly so the view exists
+	// on the first layout call. If a URL was provided on the command line,
+	// skip the input popup and resolve immediately.
+	if !gui.state.Initialized && gui.QuickLink {
+		if gui.QuickLinkURL != "" {
+			gui.helpers.Link().CreateLinkFromURL(gui.QuickLinkURL, true)
+		} else {
+			gui.helpers.Link().CreateLink(true)
+		}
+	}
 
 	// Manage overlay views based on the current context
 	switch gui.contextMgr.Current() {
@@ -190,7 +200,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.state.lastWidth = maxX
 		gui.state.lastHeight = maxY
 		gui.RefreshAll()
-		if !gui.QuickCapture {
+		if !gui.QuickCapture && !gui.QuickLink {
 			if gui.OpenRef != "" {
 				gui.openInitialRef(gui.OpenRef)
 			} else {

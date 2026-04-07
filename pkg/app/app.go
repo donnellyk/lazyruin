@@ -19,6 +19,8 @@ type App struct {
 	RuinCmd       *commands.RuinCommand
 	Gui           *gui.Gui
 	QuickCapture  bool   // when true, open directly into new note and exit on save
+	QuickLink     bool   // when true, open directly into new link and exit on save
+	QuickLinkURL  string // when set with QuickLink, skip input popup and resolve directly
 	DebugBindings bool   // when true, print all registered bindings and exit
 	OpenRef       string // note path/title or parent bookmark to open on launch
 }
@@ -57,6 +59,8 @@ func (a *App) Run() error {
 	// Initialize GUI
 	a.Gui = gui.NewGui(a.Config, a.RuinCmd)
 	a.Gui.QuickCapture = a.QuickCapture
+	a.Gui.QuickLink = a.QuickLink
+	a.Gui.QuickLinkURL = a.QuickLinkURL
 	a.Gui.OpenRef = a.OpenRef
 
 	// Debug mode: print all registered bindings and exit without running the TUI.
