@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/inbox"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/inbox"
 )
 
 type InboxHelper struct {

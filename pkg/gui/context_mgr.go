@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sync"
 
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // ContextMgr manages the context stack with thread-safe access and O(1) key lookup.

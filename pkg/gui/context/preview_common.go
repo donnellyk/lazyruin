@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // PreviewNavState holds navigation state shared across all preview contexts.
 type PreviewNavState struct {

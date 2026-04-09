@@ -3,7 +3,7 @@ package commands
 import (
 	"testing"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 func TestQueriesCommand_List_Unit(t *testing.T) {

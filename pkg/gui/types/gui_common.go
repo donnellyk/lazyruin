@@ -1,7 +1,7 @@
 package types
 
 import (
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )

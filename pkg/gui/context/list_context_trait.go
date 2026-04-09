@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // ListContextTrait provides shared list behavior for list contexts.
 // It composes a ListCursor with render/preview callbacks.

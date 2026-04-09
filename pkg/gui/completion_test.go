@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"testing"
 	"time"
 )

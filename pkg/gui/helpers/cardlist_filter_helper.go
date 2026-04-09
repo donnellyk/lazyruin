@@ -1,6 +1,6 @@
 package helpers
 
-import "kvnd/lazyruin/pkg/gui/context"
+import "github.com/donnellyk/lazyruin/pkg/gui/context"
 
 // CardListFilterHelper manages the filter dialog and filter state for both
 // CardList and PickResults preview modes via the Filterable interface.

@@ -1,8 +1,8 @@
 package context
 
 import (
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
-	"kvnd/lazyruin/pkg/gui/types"
 )
 
 // BaseContext provides the common infrastructure for all contexts.

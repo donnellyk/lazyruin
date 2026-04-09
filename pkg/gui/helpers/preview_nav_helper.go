@@ -3,9 +3,9 @@ package helpers
 import (
 	"strings"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )

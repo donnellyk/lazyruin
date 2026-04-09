@@ -1,10 +1,10 @@
 package helpers
 
 import (
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/config"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // IGuiCommon extends types.IGuiCommon with Contexts(), which can't live

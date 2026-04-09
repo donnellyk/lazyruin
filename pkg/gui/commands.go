@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	helpers "kvnd/lazyruin/pkg/gui/helpers"
-	"kvnd/lazyruin/pkg/gui/types"
+	helpers "github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 )

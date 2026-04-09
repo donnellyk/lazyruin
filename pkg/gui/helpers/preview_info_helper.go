@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // PreviewInfoHelper handles the info dialog: parent structure and TOC.

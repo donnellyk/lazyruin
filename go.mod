@@ -1,4 +1,4 @@
-module kvnd/lazyruin
+module github.com/donnellyk/lazyruin
 
 go 1.26
 

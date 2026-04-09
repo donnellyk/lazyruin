@@ -1,8 +1,8 @@
 package context
 
 import (
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // ComposeState holds state specific to the compose preview mode.

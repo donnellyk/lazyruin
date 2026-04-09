@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 func TestSearchCommand_Today_Unit(t *testing.T) {

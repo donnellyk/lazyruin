@@ -3,8 +3,8 @@ package gui
 import (
 	"time"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // openInitialRef resolves the --open reference and shows it in the preview.

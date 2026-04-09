@@ -3,8 +3,8 @@ package helpers
 import (
 	"strings"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // SearchHelper manages search execution and query management.

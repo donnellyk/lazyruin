@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )

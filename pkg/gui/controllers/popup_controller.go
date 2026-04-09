@@ -1,6 +1,6 @@
 package controllers
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // PopupController is a generic controller for popup contexts
 // that need a fixed set of keybindings (e.g. Enter/Esc/Tab).

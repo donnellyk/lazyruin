@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // ContextTree provides typed access to all context instances.
 type ContextTree struct {

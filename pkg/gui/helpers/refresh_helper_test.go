@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 )

@@ -1,8 +1,8 @@
 package context
 
 import (
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // CalendarState holds the runtime state of the calendar dialog.

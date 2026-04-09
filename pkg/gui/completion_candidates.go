@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // TagCandidates delegates to CompletionHelper.

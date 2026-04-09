@@ -1,6 +1,6 @@
 package controllers
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // FilterablePreviewTrait provides shared filter bindings for preview controllers
 // that support card-list filtering (CardList, PickResults).

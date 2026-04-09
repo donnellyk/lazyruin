@@ -3,7 +3,7 @@ package commands
 import (
 	"strings"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 type PickCommand struct {

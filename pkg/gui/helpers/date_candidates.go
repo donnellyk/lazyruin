@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 
 	anytime "github.com/ijt/go-anytime"
 )

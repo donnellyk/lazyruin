@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // ListAdapter implements types.IList by composing data-source functions
 // and a ListContextTrait for cursor state. This replaces the per-context

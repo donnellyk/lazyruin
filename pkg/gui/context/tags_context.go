@@ -3,8 +3,8 @@ package context
 import (
 	"slices"
 
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // TagsTab represents the sub-tabs within the Tags panel.

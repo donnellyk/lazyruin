@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 func TestParentCommand_List_Unit(t *testing.T) {

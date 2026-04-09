@@ -1,6 +1,6 @@
 package controllers
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // AttachController wires a controller's keybinding/focus/render producers
 // into its context's aggregation points.

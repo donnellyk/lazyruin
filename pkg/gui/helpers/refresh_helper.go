@@ -1,6 +1,6 @@
 package helpers
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // RefreshHelper handles data refreshing with selection preservation.
 // It uses stable IDs (GetSelectedItemId + FindIndexById) to preserve

@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // CompletionHelper provides completion candidate functions that were previously

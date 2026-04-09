@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 type DatePreviewHelper struct {

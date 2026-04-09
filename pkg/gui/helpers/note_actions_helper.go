@@ -3,7 +3,7 @@ package helpers
 import (
 	"strings"
 
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // NoteActionsHelper handles note-level mutations (tags, parents, bookmarks).

@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
 type CaptureParentInfo struct {

@@ -3,8 +3,8 @@ package controllers
 import (
 	"testing"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // simpleList implements context.ICursorList.

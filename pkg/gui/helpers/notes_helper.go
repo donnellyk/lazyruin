@@ -3,8 +3,8 @@ package helpers
 import (
 	"time"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // NotesHelper encapsulates note domain operations.

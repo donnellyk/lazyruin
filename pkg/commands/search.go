@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 	"strconv"
 )
 

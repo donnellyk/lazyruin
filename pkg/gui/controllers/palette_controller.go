@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
 )
 
 // PaletteController handles keybindings for the command palette popup.

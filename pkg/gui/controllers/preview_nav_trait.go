@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
-	"kvnd/lazyruin/pkg/gui/helpers"
-	"kvnd/lazyruin/pkg/gui/types"
 )
 
 // PreviewNavTrait provides shared navigation bindings for all preview modes

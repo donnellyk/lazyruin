@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 func TestISOWeekday(t *testing.T) {

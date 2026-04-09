@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 func TestDepthTreePrefixes(t *testing.T) {

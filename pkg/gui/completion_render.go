@@ -2,7 +2,7 @@ package gui
 
 import (
 	"fmt"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"strings"
 
 	"github.com/jesseduffield/gocui"

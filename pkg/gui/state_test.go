@@ -3,8 +3,8 @@ package gui
 import (
 	"testing"
 
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 func TestNewGuiState_Defaults(t *testing.T) {

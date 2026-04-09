@@ -5,7 +5,7 @@ package commands
 import (
 	"testing"
 
-	"kvnd/lazyruin/pkg/testutil"
+	"github.com/donnellyk/lazyruin/pkg/testutil"
 )
 
 func TestQueriesCommand_List(t *testing.T) {

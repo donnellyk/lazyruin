@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/helpers"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
 
 // IGuiCommon is a type alias for the authoritative interface in types/.

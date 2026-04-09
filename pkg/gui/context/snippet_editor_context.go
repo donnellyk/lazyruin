@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // SnippetEditorContext owns the snippet editor popup panel and its state.
 // The popup has two stacked views: name (top) and expansion (bottom).

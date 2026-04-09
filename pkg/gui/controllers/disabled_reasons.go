@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // requireLinkNote returns a disabled-reason check that fails when the current

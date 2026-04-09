@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // GlobalContext owns global keybindings that fire regardless of focused view.
 // Its view name is "" (the gocui global view), so bindings register everywhere.

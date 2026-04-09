@@ -1,6 +1,6 @@
 package context
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // InputPopupContext owns the generic input popup panel and its state.
 type InputPopupContext struct {

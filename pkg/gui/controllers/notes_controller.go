@@ -1,10 +1,10 @@
 package controllers
 
 import (
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 	"github.com/jesseduffield/gocui"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/types"
-	"kvnd/lazyruin/pkg/models"
 )
 
 // NotesController handles all Notes panel keybindings and behavior.

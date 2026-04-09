@@ -1,6 +1,6 @@
 package commands
 
-import "kvnd/lazyruin/pkg/models"
+import "github.com/donnellyk/lazyruin/pkg/models"
 
 type ParentCommand struct {
 	ruin *RuinCommand

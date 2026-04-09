@@ -3,9 +3,9 @@ package gui
 import (
 	"testing"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/config"
-	"kvnd/lazyruin/pkg/testutil"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/testutil"
 
 	"github.com/jesseduffield/gocui"
 )

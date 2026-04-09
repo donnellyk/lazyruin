@@ -1,6 +1,6 @@
 package helpers
 
-import "kvnd/lazyruin/pkg/gui/types"
+import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // ConfirmationHelper manages confirmation, input, and error dialogs.
 type ConfirmationHelper struct {

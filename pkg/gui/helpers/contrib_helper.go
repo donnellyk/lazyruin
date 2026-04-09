@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // ContribHelper encapsulates domain logic for the contribution chart dialog.
