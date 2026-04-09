@@ -168,9 +168,9 @@ lazyruin/
 │   └── keybinding-test.sh           # Keyboard shortcut smoke test (90 assertions, 69 sections)
 │
 └── docs/
-    ├── ARCHITECTURE.md              # This file
-    ├── ABSTRACTIONS.md              # Reusable abstraction patterns
-    └── KEYBINDINGS.md               # Complete keybinding reference
+    ├── architecture.md              # This file
+    ├── abstractions.md              # Reusable abstraction patterns
+    └── keybindings.md               # Complete keybinding reference
 ```
 
 ## Core Components

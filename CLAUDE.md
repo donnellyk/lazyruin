@@ -12,9 +12,9 @@ LazyRuin is a TUI (Terminal User Interface) for the `ruin` notes CLI, heavily in
 
 ## Key Documentation
 
-- `docs/ARCHITECTURE.md` - Layer architecture, package structure, data flow
-- `docs/ABSTRACTIONS.md` - Reusable abstraction patterns
-- `docs/KEYBINDINGS.md` - Complete keybinding reference
+- `docs/architecture.md` - Layer architecture, package structure, data flow
+- `docs/abstractions.md` - Reusable abstraction patterns
+- `docs/keybindings.md` - Complete keybinding reference
 
 ## Module
 
