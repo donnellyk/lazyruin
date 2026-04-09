@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"kvnd/lazyruin/pkg/app"
+	"github.com/donnellyk/lazyruin/pkg/app"
 )
+
+// version is injected at build time via ldflags (see .goreleaser.yml).
+// Dev builds show "dev".
+var version = "dev"
 
 // linkFlag is a hybrid bool/string flag.
 //   - "--link"        → set=true, url=""    (open the link input popup)
@@ -36,7 +40,13 @@ func main() {
 	flag.Var(&link, "link", "Open directly into new link capture, exit on save.\n  --link             open the link input popup\n  --link=<url>       skip the popup and resolve <url> immediately")
 	debugBindings := flag.Bool("debug-bindings", false, "Print all registered keybindings and exit")
 	openRef := flag.String("open", "", "Open a specific note (path/title) or parent bookmark on launch")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("lazyruin %s\n", version)
+		return
+	}
 
 	a, err := app.NewApp(*vaultPath, *ruinBin)
 	if err != nil {

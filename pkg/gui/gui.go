@@ -3,12 +3,12 @@ package gui
 import (
 	"time"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/config"
-	"kvnd/lazyruin/pkg/gui/context"
-	"kvnd/lazyruin/pkg/gui/controllers"
-	helperspkg "kvnd/lazyruin/pkg/gui/helpers"
-	"kvnd/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/controllers"
+	helperspkg "github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/muesli/termenv"
@@ -109,6 +109,7 @@ func (gui *Gui) runMainLoop() error {
 
 	gui.stopBg = make(chan struct{})
 	go gui.backgroundRefresh()
+	go gui.startupWarningTimer()
 
 	err = g.MainLoop()
 	close(gui.stopBg)
@@ -246,4 +247,40 @@ func (gui *Gui) overlayActive() bool {
 
 func (gui *Gui) contextToView(ctx types.ContextKey) string {
 	return gui.contexts.ViewNameForKey(ctx)
+}
+
+// SetStartupWarning records a persistent warning shown in the status bar at
+// startup. Called once from app.Run after the ruin version check.
+func (gui *Gui) SetStartupWarning(msg string) {
+	gui.state.StartupWarning = msg
+}
+
+// DismissStartupWarning clears any startup warning so it stops rendering.
+func (gui *Gui) DismissStartupWarning() {
+	if gui.state.StartupWarning == "" {
+		return
+	}
+	gui.state.StartupWarning = ""
+	if gui.views.Status != nil {
+		gui.UpdateStatusBar()
+	}
+}
+
+// startupWarningTimer auto-dismisses the startup warning after a short delay
+// so it doesn't clutter the status bar for the whole session. Runs in a
+// goroutine started by runMainLoop. Abandons early if the bg stop channel
+// fires before the timer.
+func (gui *Gui) startupWarningTimer() {
+	if gui.state.StartupWarning == "" {
+		return
+	}
+	select {
+	case <-time.After(10 * time.Second):
+		gui.g.Update(func(g *gocui.Gui) error {
+			gui.DismissStartupWarning()
+			return nil
+		})
+	case <-gui.stopBg:
+		return
+	}
 }

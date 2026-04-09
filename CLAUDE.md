@@ -2,10 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Important
-- Always use `--vault /tmp/ruin-test-vault` (create it first with `ruin dev seed /tmp/ruin-test-vault` if needed). Never run against the user's real vault.
-- Never modify `~/.config/ruin`. Use `--vault`. Do not run `config vault_path ~/path`. Stop before changing vault path.
-
 ## Project Overview
 
 LazyRuin is a TUI (Terminal User Interface) for the `ruin` notes CLI, heavily inspired by lazygit's architecture and UX patterns. It uses the jesseduffield/gocui framework.
@@ -18,7 +14,7 @@ LazyRuin is a TUI (Terminal User Interface) for the `ruin` notes CLI, heavily in
 
 ## Module
 
-`kvnd/lazyruin`
+`github.com/donnellyk/lazyruin`
 
 # Build Commands
 

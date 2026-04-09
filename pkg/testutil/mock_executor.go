@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"strings"
 
-	"kvnd/lazyruin/pkg/models"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // MockExecutor provides canned responses for testing.
 type MockExecutor struct {
-	vaultPath string
-	notes     []models.Note
-	tags      []models.Tag
-	queries   []models.Query
-	parents   []models.ParentBookmark
-	compose   []byte // raw JSON for compose tree
-	linkJSON  []byte // raw JSON for link command responses
-	err       error
-	Calls     [][]string // recorded argument lists from Execute calls
+	vaultPath     string
+	notes         []models.Note
+	tags          []models.Tag
+	queries       []models.Query
+	parents       []models.ParentBookmark
+	compose       []byte // raw JSON for compose tree
+	linkJSON      []byte // raw JSON for link command responses
+	versionOutput string // raw output for `ruin --version`
+	err           error
+	Calls         [][]string // recorded argument lists from Execute calls
 }
 
 // NewMockExecutor creates a new mock executor.
@@ -64,6 +65,13 @@ func (m *MockExecutor) WithLinkJSON(data []byte) *MockExecutor {
 	return m
 }
 
+// WithVersion sets the raw output returned for `ruin --version` calls.
+// The default is "ruin version 0.1.0\n" when not set.
+func (m *MockExecutor) WithVersion(output string) *MockExecutor {
+	m.versionOutput = output
+	return m
+}
+
 // WithError sets an error to return.
 func (m *MockExecutor) WithError(err error) *MockExecutor {
 	m.err = err
@@ -80,6 +88,13 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 
 	if len(args) == 0 {
 		return nil, fmt.Errorf("no command provided")
+	}
+
+	if args[0] == "--version" {
+		if m.versionOutput != "" {
+			return []byte(m.versionOutput), nil
+		}
+		return []byte("ruin version 0.1.0\n"), nil
 	}
 
 	cmd := args[0]

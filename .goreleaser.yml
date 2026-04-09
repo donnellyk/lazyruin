@@ -1,0 +1,36 @@
+version: 2
+
+builds:
+  - main: .
+    binary: lazyruin
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: "lazyruin-{{.Os}}-{{.Arch}}"
+
+brews:
+  - name: lazyruin
+    homepage: https://github.com/donnellyk/lazyruin
+    description: "TUI for the ruin note-taking CLI"
+    license: MIT
+    repository:
+      owner: donnellyk
+      name: homebrew-ruin
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: Kevin Donnelly
+    dependencies:
+      - name: ruin-cli
+    install: |
+      bin.install "lazyruin"
+
+changelog:
+  disable: true

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"kvnd/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -33,7 +33,15 @@ func (gui *Gui) UpdateStatusBar() {
 
 	gui.views.Status.Clear()
 
-	for i, h := range gui.statusBarHints() {
+	hints := gui.statusBarHints()
+	if gui.state.StartupWarning != "" {
+		fmt.Fprintf(gui.views.Status, " %s⚠ %s%s", AnsiYellow, gui.state.StartupWarning, AnsiReset)
+		if len(hints) > 0 {
+			fmt.Fprint(gui.views.Status, " | ")
+		}
+	}
+
+	for i, h := range hints {
 		if i > 0 {
 			fmt.Fprint(gui.views.Status, " | ")
 		}

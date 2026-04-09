@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kvnd/lazyruin/pkg/commands"
-	"kvnd/lazyruin/pkg/config"
-	"kvnd/lazyruin/pkg/gui"
+	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/gui"
 )
 
 // App is the main application struct that bootstraps and runs lazyruin.
@@ -52,7 +52,23 @@ func NewApp(vaultOverride, ruinBin string) (*App, error) {
 
 // Run starts the application.
 func (a *App) Run() error {
+	// Check ruin CLI version first — an outdated ruin binary may cause
+	// CheckVault to fail (e.g., if `ruin today` returns a different error
+	// format), so users deserve to see the upgrade hint rather than an
+	// opaque vault error. Warning only, never blocks startup.
+	versionWarning := ""
+	if ok, got, err := a.RuinCmd.CheckVersion(); !ok {
+		if err != nil {
+			versionWarning = "could not determine ruin version — run `ruin --version` to check"
+		} else {
+			versionWarning = fmt.Sprintf("ruin %s < %s — run `brew upgrade ruin-cli`", got, commands.MinRuinVersion)
+		}
+	}
+
 	if err := a.RuinCmd.CheckVault(); err != nil {
+		if versionWarning != "" {
+			return fmt.Errorf("%s\n%w", versionWarning, err)
+		}
 		return err
 	}
 
@@ -62,6 +78,9 @@ func (a *App) Run() error {
 	a.Gui.QuickLink = a.QuickLink
 	a.Gui.QuickLinkURL = a.QuickLinkURL
 	a.Gui.OpenRef = a.OpenRef
+	if versionWarning != "" {
+		a.Gui.SetStartupWarning(versionWarning)
+	}
 
 	// Debug mode: print all registered bindings and exit without running the TUI.
 	if a.DebugBindings {
