@@ -112,8 +112,11 @@ func (gui *Gui) searchOrFilterTriggers() []types.CompletionTrigger {
 }
 
 // captureTriggers returns the completion triggers for the capture popup.
+// The embed trigger (`![[`) comes before abbreviationTrigger (`!`) and
+// wikiLinkTrigger (`[[`) so detectTrigger matches the longer prefix first.
 func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
+		gui.embedTrigger(),
 		gui.abbreviationTrigger(),
 		gui.wikiLinkTrigger(),
 		gui.tagTrigger(),

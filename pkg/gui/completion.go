@@ -51,12 +51,73 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 		t := &triggers[i]
 		if strings.HasPrefix(token, t.Prefix) {
 			filter := token[len(t.Prefix):]
+			// Negation handling: a leading `!` followed by another trigger
+			// prefix (e.g. `!#foo`, `!@today`, `!created:today`) should fire
+			// the inner trigger with the leading `!` stripped so users get
+			// suggestions while building negated query terms. Only applies
+			// when the matched trigger is the `!` abbreviation trigger.
+			if t.Prefix == "!" && len(filter) > 0 {
+				if inner, innerFilter, ok := matchInnerTrigger(filter, triggers); ok {
+					return inner, innerFilter, tokenStart + 1
+				}
+			}
 			return t, filter, tokenStart
 		}
 	}
 
-	// Fallback: scan for unclosed [[ before cursor (allows spaces in filter)
 	cp := min(cursorPos, len(content))
+
+	// Fallback: scan backward on the current line for `#` at a boundary
+	// (start-of-line, whitespace, or `!` for negation). This handles the
+	// `!#foo` case where extractTokenAtCursor returns `!#foo` and the
+	// standard prefix scan against `#` fails. Must run before the `![[`
+	// fallback so it can fire inside embed queries.
+	for i := cp - 1; i >= 0; i-- {
+		ch := content[i]
+		if ch == '\n' {
+			break
+		}
+		if ch == '#' {
+			prev := byte(0)
+			if i > 0 {
+				prev = content[i-1]
+			}
+			boundary := i == 0 || prev == ' ' || prev == '\t' || prev == '!'
+			if boundary {
+				for j := range triggers {
+					if triggers[j].Prefix == "#" {
+						after := content[i+1 : cp]
+						// Require the after-text to be a plausible tag segment
+						// (no spaces) to avoid matching headings or mid-word `#`.
+						if !strings.ContainsAny(after, " \t") {
+							return &triggers[j], after, i
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// Fallback: scan for unclosed ![[ on the current line (embed trigger,
+	// longer prefix — must win over the plain `[[` scan below). Limited to
+	// the current line because the reference spec requires dynamic embeds to
+	// be standalone lines; matching across newlines would confuse completion
+	// dispatch with insideDynamicEmbed which is also line-scoped.
+	lineStart := strings.LastIndexByte(content[:cp], '\n') + 1
+	if idx := strings.LastIndex(content[lineStart:cp], "![["); idx >= 0 {
+		absIdx := lineStart + idx
+		after := content[absIdx+3 : cp]
+		if !strings.Contains(after, "]]") {
+			for i := range triggers {
+				if triggers[i].Prefix == "![[" {
+					return &triggers[i], after, absIdx
+				}
+			}
+		}
+	}
+
+	// Fallback: scan for unclosed [[ before cursor (allows spaces in filter)
 	if idx := strings.LastIndex(content[:cp], "[["); idx >= 0 {
 		after := content[idx+2 : cp]
 		if !strings.Contains(after, "]]") {
@@ -118,11 +179,55 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 	return nil, "", 0
 }
 
+// matchInnerTrigger scans the given text for any trigger prefix (except `!`)
+// that matches at position 0. Used by detectTrigger to handle the `!<prefix>`
+// negation pattern: `!#foo` should fire the `#` trigger, not `!`.
+func matchInnerTrigger(text string, triggers []types.CompletionTrigger) (*types.CompletionTrigger, string, bool) {
+	for i := range triggers {
+		t := &triggers[i]
+		if t.Prefix == "!" {
+			continue
+		}
+		if strings.HasPrefix(text, t.Prefix) {
+			return t, text[len(t.Prefix):], true
+		}
+	}
+	return nil, "", false
+}
+
 // updateCompletion is called after every keystroke. It checks whether a trigger
 // is active and updates the types.CompletionState accordingly.
 func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigger, state *types.CompletionState) {
 	content := v.TextArea.GetUnwrappedContent()
 	cursorPos := viewCursorBytePos(v)
+
+	// Dynamic-embed aware dispatch. Inside an unclosed `![[...`:
+	//   - options phase (`| key=value`): offer option key/value candidates
+	//   - `query:` / `compose:` types: offer saved-query / bookmark candidates
+	//   - `search:` / `pick:` or no type yet: fall through to normal triggers,
+	//     after suppressing the abbreviation trigger (since `!` means negation
+	//     inside embed queries, not abbreviation).
+	es := insideDynamicEmbed(content, cursorPos)
+	if es.inEmbed {
+		if items, start, ok := gui.dynamicEmbedCandidates(content, cursorPos, es); ok {
+			if len(items) > 0 {
+				state.Active = true
+				state.TriggerStart = start
+				state.Items = items
+				if state.SelectedIndex >= len(items) {
+					state.SelectedIndex = 0
+				}
+				return
+			}
+			// Embed dispatch fired but returned no items. Still dismiss so
+			// we don't leave a stale dropdown open.
+			state.Active = false
+			state.Items = nil
+			state.SelectedIndex = 0
+			return
+		}
+		triggers = withoutAbbreviationTrigger(triggers)
+	}
 
 	trigger, filter, tokenStart := detectTrigger(content, cursorPos, triggers)
 	if trigger != nil {

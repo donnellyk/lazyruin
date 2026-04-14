@@ -7,11 +7,7 @@ import (
 	"strings"
 )
 
-// MinRuinVersion is the minimum ruin CLI version lazyruin expects. Bump this
-// when lazyruin starts using a ruin feature that requires a newer version.
-// A runtime check compares the installed ruin binary's --version output
-// against this value and surfaces a warning in the status bar if below.
-const MinRuinVersion = "0.1.0"
+const MinRuinVersion = "0.2.0"
 
 // Version runs `ruin --version` and returns the parsed version string.
 // Expected output format: "ruin version X.Y.Z" (release) or

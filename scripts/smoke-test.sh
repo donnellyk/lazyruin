@@ -373,7 +373,13 @@ echo "[21] Capture"
 send n
 assert_contains "capture popup" "New Note"
 assert_contains "save hint" "<c-s> to save"
-send Escape
+# Dynamic embed type-ahead: typing ![[ offers type prefixes
+send "![["
+assert_contains "embed type prefix search:" "search:"
+assert_contains "embed type prefix pick:" "pick:"
+send Escape  # dismiss completion dropdown
+settle
+send Escape  # close capture popup
 assert_not_contains "capture closed" "New Note"
 
 # =============================================

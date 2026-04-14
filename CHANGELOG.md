@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Pre-1.0 breaking changes bump MINOR. Breaking CLI contract changes will be
 called out here.
 
+## [0.2.0] - 2026-04-14
+
+### Added
+- Type-ahead completion for dynamic embeds in the New Note capture popup.
+  - Type `![[` to see search / pick / query / compose type prefixes
+
+### Changed
+- Updated minimum ruin-cli version to v0.2.0
+
 ## [0.1.0] - 2026-04-09
 
 First tagged release. See [README.md](README.md) for installation and quick-start.
