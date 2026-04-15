@@ -28,6 +28,7 @@ type Helpers struct {
 	link             *LinkHelper
 	cardListFilter   *CardListFilterHelper
 	inbox            *InboxHelper
+	titleCache       *TitleCacheHelper
 }
 
 // NewHelpers creates a new Helpers aggregator.
@@ -59,6 +60,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		link:             NewLinkHelper(common),
 		cardListFilter:   NewCardListFilterHelper(common),
 		inbox:            NewInboxHelper(common),
+		titleCache:       NewTitleCacheHelper(common),
 	}
 	common.SetHelpers(h)
 	return h
@@ -92,3 +94,4 @@ func (h *Helpers) DatePreview() *DatePreviewHelper           { return h.datePrev
 func (h *Helpers) Link() *LinkHelper                         { return h.link }
 func (h *Helpers) CardListFilter() *CardListFilterHelper     { return h.cardListFilter }
 func (h *Helpers) Inbox() *InboxHelper                       { return h.inbox }
+func (h *Helpers) TitleCache() *TitleCacheHelper             { return h.titleCache }

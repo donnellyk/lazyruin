@@ -153,6 +153,8 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	contexts.ActivePreviewKey = "cardList"
+	self.c.Helpers().TitleCache().PutNotes(cards)
+	self.c.Helpers().TitleCache().ResolveUnknownParents(cards)
 	self.c.GuiCommon().RenderPreview()
 }
 

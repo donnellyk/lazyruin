@@ -27,7 +27,11 @@ func (self *NotesHelper) FetchNotesForCurrentTab(preserve bool) {
 		func() ([]models.Note, error) {
 			return self.loadNotesForTab(notesCtx.CurrentTab)
 		},
-		func(notes []models.Note) { notesCtx.Items = notes },
+		func(notes []models.Note) {
+			notesCtx.Items = notes
+			self.c.Helpers().TitleCache().PutNotes(notes)
+			self.c.Helpers().TitleCache().ResolveUnknownParents(notes)
+		},
 		notesCtx.GetList(),
 		preserve,
 	)

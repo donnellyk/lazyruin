@@ -40,6 +40,8 @@ func (self *DatePreviewHelper) LoadDatePreview(date string) error {
 	dp.TagPicks = tagPicks
 	dp.TodoPicks = todoPicks
 	dp.Notes = notes
+	self.c.Helpers().TitleCache().PutNotes(notes)
+	self.c.Helpers().TitleCache().ResolveUnknownParents(notes)
 	dp.SelectedCardIdx = 0
 	ns := dp.NavState()
 	ns.CursorLine = 1
@@ -71,6 +73,8 @@ func (self *DatePreviewHelper) ReloadDatePreview() {
 	created, _ := self.c.RuinCmd().Search.Search("created:"+dp.TargetDate, opts)
 	updated, _ := self.c.RuinCmd().Search.Search("updated:"+dp.TargetDate, opts)
 	dp.Notes = DeduplicateNotes(created, updated)
+	self.c.Helpers().TitleCache().PutNotes(dp.Notes)
+	self.c.Helpers().TitleCache().ResolveUnknownParents(dp.Notes)
 
 	total := len(dp.TagPicks) + len(dp.TodoPicks) + len(dp.Notes)
 	if savedIdx >= total {
