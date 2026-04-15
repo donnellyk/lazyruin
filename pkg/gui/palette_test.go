@@ -313,6 +313,97 @@ func TestOpenPalette_BlockedWhenAlreadyOpen(t *testing.T) {
 	}
 }
 
+func TestOpenQuickOpen_SeedsQuickOpenMode(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	if err := tg.gui.openQuickOpen(tg.g, nil); err != nil {
+		t.Fatalf("openQuickOpen: %v", err)
+	}
+	// The view is created and the Seed is consumed in the layout pass.
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout: %v", err)
+	}
+
+	if !tg.gui.popupActive() {
+		t.Error("popupActive() should be true after openQuickOpen")
+	}
+	if tg.gui.contextMgr.Current() != "palette" {
+		t.Errorf("currentContext() = %v, want palette", tg.gui.contextMgr.Current())
+	}
+	if tg.gui.contexts.Palette.Palette == nil {
+		t.Fatal("Palette state should not be nil")
+	}
+	if tg.gui.views.Palette == nil {
+		t.Fatal("Palette view should exist after layout")
+	}
+	if tg.gui.views.Palette.Title != " Open " {
+		t.Errorf("palette view Title = %q, want %q", tg.gui.views.Palette.Title, " Open ")
+	}
+	got := strings.TrimSpace(tg.gui.views.Palette.TextArea.GetContent())
+	if got != ":" {
+		t.Errorf("palette buffer = %q, want %q", got, ":")
+	}
+	if tg.gui.contexts.Palette.Seed != "" {
+		t.Errorf("Seed should be cleared after consumption, got %q", tg.gui.contexts.Palette.Seed)
+	}
+}
+
+func TestOpenQuickOpen_BlockedDuringCapture(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCapture()
+	tg.gui.openQuickOpen(tg.g, nil)
+
+	if tg.gui.contextMgr.Current() != "capture" {
+		t.Error("currentContext should remain capture, not switch to palette")
+	}
+}
+
+func TestOpenPalette_DoesNotCarryOverQuickOpenSeed(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// First: open in Quick Open mode, lay out, then close.
+	if err := tg.gui.openQuickOpen(tg.g, nil); err != nil {
+		t.Fatalf("openQuickOpen: %v", err)
+	}
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout (quick open): %v", err)
+	}
+	tg.gui.closePalette()
+	// In real usage the event loop runs a layout between close and any
+	// subsequent open — that layout is what deletes the stale palette view
+	// so the next open creates a fresh empty one. Replicate that here.
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout (after close): %v", err)
+	}
+
+	// Now open via the regular palette path — buffer should be empty and
+	// the view should be in Command Palette mode.
+	if err := tg.gui.openPalette(tg.g, nil); err != nil {
+		t.Fatalf("openPalette: %v", err)
+	}
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout (palette): %v", err)
+	}
+
+	if tg.gui.views.Palette == nil {
+		t.Fatal("Palette view should exist after layout")
+	}
+	got := strings.TrimSpace(tg.gui.views.Palette.TextArea.GetContent())
+	if got != "" {
+		t.Errorf("palette buffer = %q, want empty (seed should not carry over)", got)
+	}
+	if tg.gui.views.Palette.Title != " Command Palette " {
+		t.Errorf("palette view Title = %q, want %q", tg.gui.views.Palette.Title, " Command Palette ")
+	}
+	if tg.gui.contexts.Palette.Seed != "" {
+		t.Errorf("Seed should be empty on fresh palette open, got %q", tg.gui.contexts.Palette.Seed)
+	}
+}
+
 func TestClosePalette_RestoresContext(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()

@@ -14,6 +14,7 @@
 | `<c-r>` | Refresh |
 | `?` | Keybindings help |
 | `:` | Command palette |
+| `<c-o>` | Quick Open |
 | `1` / `2` / `3` | Focus Notes / Queries / Tags (repeat to cycle tabs) |
 | `0` | Focus Search Filter (when active) |
 | `Tab` / `Shift-Tab` | Next / previous panel |

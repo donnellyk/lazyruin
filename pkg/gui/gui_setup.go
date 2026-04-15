@@ -345,11 +345,12 @@ func (gui *Gui) setupGlobalContext() {
 	gui.contextMgr.Register(globalCtx)
 
 	ctrl := controllers.NewGlobalController(controllers.GlobalControllerOpts{
-		Common:     gui.controllerCommon,
-		GetContext: func() *context.GlobalContext { return gui.contexts.Global },
-		OnQuit:     func() error { return gui.quit(gui.g, nil) },
-		OnHelp:     func() error { gui.showHelp(); return nil },
-		OnPalette:  func() error { return gui.openPalette(gui.g, nil) },
+		Common:      gui.controllerCommon,
+		GetContext:  func() *context.GlobalContext { return gui.contexts.Global },
+		OnQuit:      func() error { return gui.quit(gui.g, nil) },
+		OnHelp:      func() error { gui.showHelp(); return nil },
+		OnPalette:   func() error { return gui.openPalette(gui.g, nil) },
+		OnQuickOpen: func() error { return gui.openQuickOpen(nil, nil) },
 	})
 	gui.globalController = ctrl
 	controllers.AttachController(ctrl)

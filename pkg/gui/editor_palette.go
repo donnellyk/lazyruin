@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"strings"
-
 	"github.com/jesseduffield/gocui"
 )
 
@@ -32,17 +30,6 @@ func (e *paletteEditor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mo
 	// Delegate to SimpleEditor for text input
 	handled := gocui.SimpleEditor(v, key, ch, mod)
 
-	// Re-filter based on current text; ":" prefix switches to Quick Open mode
-	content := strings.TrimSpace(v.TextArea.GetContent())
-	if after, ok := strings.CutPrefix(content, ":"); ok {
-		e.gui.filterQuickOpenItems(after)
-		e.gui.views.Palette.Title = " Open "
-	} else {
-		e.gui.filterPaletteCommands(content)
-		e.gui.views.Palette.Title = " Command Palette "
-	}
-	e.gui.renderPaletteList()
-	e.gui.scrollPaletteToSelection()
-
+	e.gui.refreshPaletteFromBuffer(v)
 	return handled
 }

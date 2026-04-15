@@ -129,9 +129,30 @@ func (gui *Gui) closePalette() {
 		return
 	}
 	gui.contexts.Palette.SeedDone = false
+	gui.contexts.Palette.Seed = ""
 	gui.contexts.Palette.Palette = nil
 	gui.g.Cursor = false
 	gui.popContext()
+}
+
+func (gui *Gui) openQuickOpen(g *gocui.Gui, v *gocui.View) error {
+	gui.contexts.Palette.Seed = ":"
+	return gui.openPalette(g, v)
+}
+
+// Re-filter based on current text; ":" prefix switches to Quick Open mode
+func (gui *Gui) refreshPaletteFromBuffer(v *gocui.View) {
+	content := strings.TrimSpace(v.TextArea.GetContent())
+	if after, ok := strings.CutPrefix(content, ":"); ok {
+		gui.filterQuickOpenItems(after)
+		gui.views.Palette.Title = " Open "
+	} else {
+		gui.filterPaletteCommands(content)
+		gui.views.Palette.Title = " Command Palette "
+	}
+
+	gui.renderPaletteList()
+	gui.scrollPaletteToSelection()
 }
 
 // executePaletteCommand closes the palette and runs the selected command.

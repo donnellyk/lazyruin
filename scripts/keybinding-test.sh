@@ -920,6 +920,19 @@ send Escape; settle
 assert_not_contains "capture closed" "New Note"
 
 # =============================================
+# 78. Quick Open
+# =============================================
+echo "[78] Quick Open"
+send 1; settle
+send C-o
+# Frame title becomes " Open " in Quick Open mode (spaces included so we
+# don't match "Open URL" / "Open in Editor" elsewhere in the UI).
+assert_contains "Ctrl-O opens palette in Quick Open mode" " Open "
+send Escape
+settle
+assert_not_contains "palette closed" " Open "
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

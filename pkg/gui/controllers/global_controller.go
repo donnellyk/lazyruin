@@ -14,9 +14,10 @@ type GlobalController struct {
 	getContext func() *context.GlobalContext
 
 	// Callbacks for actions not yet migrated to helpers.
-	onQuit    func() error
-	onHelp    func() error
-	onPalette func() error
+	onQuit      func() error
+	onHelp      func() error
+	onPalette   func() error
+	onQuickOpen func() error
 }
 
 var _ types.IController = &GlobalController{}
@@ -26,19 +27,21 @@ type GlobalControllerOpts struct {
 	Common     *ControllerCommon
 	GetContext func() *context.GlobalContext
 	// Callbacks for actions not yet migrated to helpers.
-	OnQuit    func() error
-	OnHelp    func() error
-	OnPalette func() error
+	OnQuit      func() error
+	OnHelp      func() error
+	OnPalette   func() error
+	OnQuickOpen func() error
 }
 
 // NewGlobalController creates a GlobalController.
 func NewGlobalController(opts GlobalControllerOpts) *GlobalController {
 	return &GlobalController{
-		c:          opts.Common,
-		getContext: opts.GetContext,
-		onQuit:     opts.OnQuit,
-		onHelp:     opts.OnHelp,
-		onPalette:  opts.OnPalette,
+		c:           opts.Common,
+		getContext:  opts.GetContext,
+		onQuit:      opts.OnQuit,
+		onHelp:      opts.OnHelp,
+		onPalette:   opts.OnPalette,
+		onQuickOpen: opts.OnQuickOpen,
 	}
 }
 
@@ -202,6 +205,7 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{ID: "global.refresh", Key: gocui.KeyCtrlR, Handler: self.refresh, Description: "Refresh", Category: "Global"},
 		{ID: "global.help", Key: '?', Handler: self.onHelp, Description: "Keybindings", Category: "Global", DisplayOnScreen: true, StatusBarLabel: "Keys"},
 		{ID: "global.palette", Key: ':', Handler: self.onPalette}, // no Description = not in palette
+		{ID: "global.quick_open", Key: gocui.KeyCtrlO, Handler: self.onQuickOpen, Description: "Quick Open", Category: "Global"},
 		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
 		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},
 		{ID: "global.inbox", Key: 'i', Handler: self.openInbox, Description: "Inbox", Category: "Global"},

@@ -6,6 +6,7 @@ import "github.com/donnellyk/lazyruin/pkg/gui/types"
 type PaletteContext struct {
 	BaseContext
 	SeedDone bool
+	Seed     string
 	Palette  *types.PaletteState
 }
 

@@ -673,8 +673,14 @@ func (gui *Gui) createPalettePopup(g *gocui.Gui, maxX, maxY int) error {
 	// Start in Command Palette mode; typing ":" switches to Quick Open
 	if !gui.contexts.Palette.SeedDone {
 		gui.contexts.Palette.SeedDone = true
-		v.Title = " Command Palette "
-		gui.filterPaletteCommands("")
+		if gui.contexts.Palette.Seed != "" {
+			v.TextArea.TypeString(gui.contexts.Palette.Seed)
+			gui.contexts.Palette.Seed = ""
+			gui.refreshPaletteFromBuffer(v)
+		} else {
+			v.Title = " Command Palette "
+			gui.filterPaletteCommands("")
+		}
 	}
 
 	v.RenderTextArea()
