@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
@@ -19,6 +20,46 @@ func writeNote(t *testing.T, dir, name, content string) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+func TestOpenCaptureForEdit_DismissesCompletionAfterPrefill(t *testing.T) {
+	// Regression: when the prefilled content ends with a trigger character
+	// (e.g. a note whose body ends in `#followup`), the layout's TypeString
+	// must leave completion state dismissed so the user's first Esc closes
+	// the popup rather than just dismissing a stale dropdown.
+	dir := t.TempDir()
+	notePath := writeNote(t, dir, "tagged.md", "---\nuuid: tag-1\n---\n\nsome content #followup\n")
+
+	mock := defaultMock().WithNotes(
+		models.Note{UUID: "tag-1", Title: "Tagged Note", Path: notePath, Created: time.Now()},
+	)
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	note := tg.gui.contexts.Notes.Items[0]
+	if err := tg.gui.helpers.Capture().OpenCaptureForEdit(&note); err != nil {
+		t.Fatalf("OpenCaptureForEdit: %v", err)
+	}
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout: %v", err)
+	}
+
+	// PrefillContent should have been consumed by layout and the completion
+	// state should be dismissed, even though the prefilled body ends with `#followup`.
+	if tg.gui.contexts.Capture.Completion.Active {
+		t.Errorf("completion should be dismissed after prefill; items: %v",
+			labelsFromCompletionItems(tg.gui.contexts.Capture.Completion.Items))
+	}
+}
+
+// labelsFromCompletionItems mirrors `labels` in the embed integration test —
+// duplicated here to keep this file self-contained.
+func labelsFromCompletionItems(items []types.CompletionItem) []string {
+	out := make([]string, 0, len(items))
+	for _, it := range items {
+		out = append(out, it.Label)
+	}
+	return out
 }
 
 func TestOpenCaptureForEdit_PopulatesContent(t *testing.T) {

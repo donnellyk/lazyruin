@@ -572,6 +572,10 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	if gui.contexts.Capture.PrefillContent != "" {
 		v.TextArea.TypeString(gui.contexts.Capture.PrefillContent)
 		gui.contexts.Capture.PrefillContent = ""
+		// TypeString may have left a trigger active (e.g. the prefill ends
+		// with `#tag` and so tag completion would fire on open). Dismiss so
+		// the first Esc closes the popup rather than just the dropdown.
+		gui.contexts.Capture.Completion.Dismiss()
 	}
 	gui.updateCaptureFooter()
 	gui.renderCaptureTextArea(v) // render with syntax highlighting

@@ -8,6 +8,24 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
+// isTriggerBoundary reports whether position i in content is a valid
+// start-of-trigger boundary. Trigger characters (e.g. `#`, `@`) only fire
+// completion when preceded by a boundary so we don't match inside words.
+//
+// Boundaries are: start-of-string, whitespace, `!` (for negation like
+// `!#tag`), and option separators `=`, `,`, `|` (so completion fires
+// inside embed option values like `![[pick: ... | filter=#tag`).
+func isTriggerBoundary(content string, i int) bool {
+	if i == 0 {
+		return true
+	}
+	switch content[i-1] {
+	case ' ', '\t', '\n', '!', '=', ',', '|':
+		return true
+	}
+	return false
+}
+
 // extractTokenAtCursor scans backward from cursorPos to find the current token
 // (delimited by whitespace or start of string). Returns the token and its start position.
 func extractTokenAtCursor(content string, cursorPos int) (string, int) {
@@ -67,23 +85,17 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 
 	cp := min(cursorPos, len(content))
 
-	// Fallback: scan backward on the current line for `#` at a boundary
-	// (start-of-line, whitespace, or `!` for negation). This handles the
-	// `!#foo` case where extractTokenAtCursor returns `!#foo` and the
-	// standard prefix scan against `#` fails. Must run before the `![[`
-	// fallback so it can fire inside embed queries.
+	// Fallback: scan backward on the current line for `#` at a trigger
+	// boundary (start-of-line, whitespace, `!` for negation, or `=`, `,`,
+	// `|` for use inside embed option values like `![[pick:... | filter=#tag`).
+	// Must run before the `![[` fallback so it can fire inside embed queries.
 	for i := cp - 1; i >= 0; i-- {
 		ch := content[i]
 		if ch == '\n' {
 			break
 		}
 		if ch == '#' {
-			prev := byte(0)
-			if i > 0 {
-				prev = content[i-1]
-			}
-			boundary := i == 0 || prev == ' ' || prev == '\t' || prev == '!'
-			if boundary {
+			if isTriggerBoundary(content, i) {
 				for j := range triggers {
 					if triggers[j].Prefix == "#" {
 						after := content[i+1 : cp]
@@ -96,6 +108,33 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 				}
 			}
 			break
+		}
+	}
+
+	// Fallback: scan backward for date-style prefixes whose filter may contain
+	// spaces (e.g. "created:next week", "before:last monday"). Runs before
+	// the `![[` scan so date/`@` completion can fire inside embed queries
+	// like `![[pick: ... | filter=@today` without being intercepted by the
+	// embed fallback.
+	datePrefixes := []string{"created:", "updated:", "before:", "after:", "between:", "@"}
+	for _, dp := range datePrefixes {
+		for i := cp - 1; i >= 0; i-- {
+			ch := content[i]
+			if ch == '\n' {
+				break
+			}
+			// Check if dp starts at position i
+			if i+len(dp) <= cp && content[i:i+len(dp)] == dp {
+				if isTriggerBoundary(content, i) {
+					after := content[i+len(dp) : cp]
+					for j := range triggers {
+						if triggers[j].Prefix == dp {
+							return &triggers[j], after, i
+						}
+					}
+				}
+				break
+			}
 		}
 	}
 
@@ -125,31 +164,6 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 				if triggers[i].Prefix == "[[" {
 					return &triggers[i], after, idx
 				}
-			}
-		}
-	}
-
-	// Fallback: scan backward for date-style prefixes whose filter may contain spaces
-	// (e.g. "created:next week", "before:last monday")
-	datePrefixes := []string{"created:", "updated:", "before:", "after:", "between:", "@"}
-	for _, dp := range datePrefixes {
-		for i := cp - 1; i >= 0; i-- {
-			ch := content[i]
-			if ch == '\n' {
-				break
-			}
-			// Check if dp starts at position i
-			if i+len(dp) <= cp && content[i:i+len(dp)] == dp {
-				// Verify word boundary: start of string or whitespace before
-				if i == 0 || content[i-1] == ' ' || content[i-1] == '\t' || content[i-1] == '\n' {
-					after := content[i+len(dp) : cp]
-					for j := range triggers {
-						if triggers[j].Prefix == dp {
-							return &triggers[j], after, i
-						}
-					}
-				}
-				break
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
@@ -212,6 +213,41 @@ func TestEmbedOptionValueCandidates(t *testing.T) {
 	}
 }
 
+// TestEmbedOptionValueCandidates_NilContract locks in the contract used by
+// dynamicEmbedCandidates: nil means "free-form value, fall through"; a
+// non-nil empty slice means "known key with no matches, don't fall through".
+func TestEmbedOptionValueCandidates_NilContract(t *testing.T) {
+	tests := []struct {
+		name      string
+		embedType string
+		key       string
+		filter    string
+		wantNil   bool
+	}{
+		{"free-form filter=", "pick", "filter", "anything", true},
+		{"free-form limit=", "search", "limit", "5", true},
+		{"free-form depth=", "compose", "depth", "3", true},
+		{"unknown key", "search", "bogus", "", true},
+		{"known key with matches", "search", "format", "li", false},
+		{"known key with zero matches returns empty (not nil)", "search", "format", "zzz-no-match", false},
+		{"known key empty filter", "pick", "format", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := embedOptionValueCandidates(tt.embedType, tt.key, tt.filter)
+			if tt.wantNil {
+				if got != nil {
+					t.Errorf("expected nil (free-form signal), got %v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Errorf("expected non-nil (known key), got nil — this would trigger fall-through")
+			}
+		})
+	}
+}
+
 func TestDetectTrigger_EmbedPrefix(t *testing.T) {
 	embedTrigger := types.CompletionTrigger{
 		Prefix: "![[",
@@ -293,6 +329,7 @@ func TestDetectTrigger_EmbedPrefix(t *testing.T) {
 			wantFilter: "\nhello",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			trigger, filter, _ := detectTrigger(tt.content, tt.cursor, tt.triggers)
@@ -310,6 +347,76 @@ func TestDetectTrigger_EmbedPrefix(t *testing.T) {
 			}
 			if filter != tt.wantFilter {
 				t.Errorf("filter = %q, want %q", filter, tt.wantFilter)
+			}
+		})
+	}
+}
+
+func TestDetectTrigger_HashAtOptionBoundaries(t *testing.T) {
+	hashTrigger := types.CompletionTrigger{
+		Prefix: "#",
+		Candidates: func(filter string) []types.CompletionItem {
+			return []types.CompletionItem{{Label: "hash"}}
+		},
+	}
+	triggers := []types.CompletionTrigger{hashTrigger}
+
+	tests := []struct {
+		name       string
+		content    string
+		cursor     int
+		wantPrefix string
+		wantFilter string
+	}{
+		{"`#` after `=` (filter=#tag)", "filter=#r", 9, "#", "r"},
+		{"`#` after `,`", "sort=created,#foo", 17, "#", "foo"},
+		{"`#` right after `|`", "pick: a |#todo", 14, "#", "todo"},
+		{"`#` mid-word does NOT match", "word#nottag", 11, "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trigger, filter, _ := detectTrigger(tt.content, tt.cursor, triggers)
+			if tt.wantPrefix == "" {
+				if trigger != nil {
+					t.Errorf("expected nil trigger, got %q", trigger.Prefix)
+				}
+				return
+			}
+			if trigger == nil {
+				t.Fatal("expected non-nil trigger")
+			}
+			if trigger.Prefix != tt.wantPrefix {
+				t.Errorf("prefix = %q, want %q", trigger.Prefix, tt.wantPrefix)
+			}
+			if filter != tt.wantFilter {
+				t.Errorf("filter = %q, want %q", filter, tt.wantFilter)
+			}
+		})
+	}
+}
+
+func TestIsTriggerBoundary(t *testing.T) {
+	tests := []struct {
+		content string
+		i       int
+		want    bool
+	}{
+		{"abc", 0, true},   // start of string
+		{" abc", 1, true},  // after space
+		{"\tabc", 1, true}, // after tab
+		{"a\nb", 2, true},  // after newline
+		{"!tag", 1, true},  // negation
+		{"a=b", 2, true},   // after `=`
+		{"a,b", 2, true},   // after `,`
+		{"a|b", 2, true},   // after `|`
+		{"word", 2, false}, // mid-word
+		{"foo#", 3, false}, // `#` itself is not preceded by boundary
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%q/%d", tt.content, tt.i), func(t *testing.T) {
+			got := isTriggerBoundary(tt.content, tt.i)
+			if got != tt.want {
+				t.Errorf("isTriggerBoundary(%q, %d) = %v, want %v", tt.content, tt.i, got, tt.want)
 			}
 		})
 	}

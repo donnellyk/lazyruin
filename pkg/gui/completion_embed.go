@@ -193,8 +193,14 @@ func embedOptionKeyCandidates(embedType, filter string) []types.CompletionItem {
 }
 
 // embedOptionValueCandidates returns value suggestions for a given
-// (embedType, optionKey) pair. Keys like limit/depth/filter are free-form
-// and return nil here.
+// (embedType, optionKey) pair.
+//
+// Return contract:
+//   - nil: the key is free-form (limit, depth, filter, or unknown); the
+//     caller should fall through to the standard trigger scan.
+//   - non-nil (possibly empty): the key has a known enumerated value set.
+//     An empty slice means the filter matched nothing; the caller should
+//     NOT fall through.
 func embedOptionValueCandidates(embedType, key, filter string) []types.CompletionItem {
 	var items []types.CompletionItem
 
@@ -239,7 +245,10 @@ func embedOptionValueCandidates(embedType, key, filter string) []types.Completio
 		return items
 	}
 	filterLower := strings.ToLower(filter)
-	var filtered []types.CompletionItem
+	// Initialize non-nil so "known key, filter matched nothing" returns an
+	// empty slice — the caller uses nil as the free-form signal and would
+	// otherwise misinterpret a zero-match filter as "fall through".
+	filtered := []types.CompletionItem{}
 	for _, item := range items {
 		if strings.Contains(strings.ToLower(item.Label), filterLower) ||
 			strings.Contains(strings.ToLower(item.Detail), filterLower) {
@@ -340,7 +349,14 @@ func (gui *Gui) dynamicEmbedCandidates(content string, cursor int, es embedState
 	if es.insideOptions {
 		filter, optKey, optStart := dynamicEmbedFilter(content, cursor, es)
 		if optKey != "" {
-			return embedOptionValueCandidates(es.embedType, optKey, filter), optStart, true
+			items := embedOptionValueCandidates(es.embedType, optKey, filter)
+			if items == nil {
+				// Free-form value (e.g. filter=, limit=, depth=). Fall through
+				// to the standard trigger scan so `#tag`, `@date`, and field
+				// prefixes still fire while the user types inside the value.
+				return nil, 0, false
+			}
+			return items, optStart, true
 		}
 		return embedOptionKeyCandidates(es.embedType, filter), optStart, true
 	}

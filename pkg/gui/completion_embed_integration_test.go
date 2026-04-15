@@ -162,6 +162,124 @@ func labels(items []types.CompletionItem) []string {
 	return out
 }
 
+func TestEmbedOptionFreeFormValue_FallsThroughToTagTrigger(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCapture()
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout failed: %v", err)
+	}
+	v := tg.gui.views.Capture
+	if v == nil {
+		t.Fatal("Capture view should exist")
+	}
+	state := tg.gui.contexts.Capture.Completion
+
+	// Simulate the reported scenario: user is inside a pick embed's filter=
+	// option and types a `#` followed by a partial tag.
+	v.TextArea.TypeString("![[pick: #followup | filter=#d")
+	tg.gui.updateCompletion(v, tg.gui.captureTriggers(), state)
+
+	if !state.Active {
+		t.Fatalf("expected tag completion active after filter=#d, items: %v", labels(state.Items))
+	}
+	foundDaily := false
+	for _, item := range state.Items {
+		if item.Label == "#daily" {
+			foundDaily = true
+			break
+		}
+	}
+	if !foundDaily {
+		t.Errorf("expected `#daily` in tag candidates, got %v", labels(state.Items))
+	}
+}
+
+func TestEmbedOptionFreeFormValue_FallsThroughToDateTrigger(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCapture()
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout failed: %v", err)
+	}
+	v := tg.gui.views.Capture
+	state := tg.gui.contexts.Capture.Completion
+
+	// `@` inside filter= should fire the date trigger (via the date-prefix
+	// fallback scan, which also uses isTriggerBoundary).
+	v.TextArea.TypeString("![[pick: #followup | filter=@to")
+	tg.gui.updateCompletion(v, tg.gui.captureTriggers(), state)
+
+	if !state.Active {
+		t.Fatalf("expected date completion active after filter=@to, items: %v", labels(state.Items))
+	}
+	foundToday := false
+	for _, item := range state.Items {
+		if item.Label == "@today" {
+			foundToday = true
+			break
+		}
+	}
+	if !foundToday {
+		t.Errorf("expected `@today` in date candidates, got %v", labels(state.Items))
+	}
+}
+
+func TestEmbedOption_MultipleOptions_LastSegmentCompletes(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCapture()
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout failed: %v", err)
+	}
+	v := tg.gui.views.Capture
+	state := tg.gui.contexts.Capture.Completion
+
+	// Multi-option case: earlier option (sort=created:desc) is complete,
+	// cursor is in the free-form filter= value with a tag partial.
+	v.TextArea.TypeString("![[pick: #followup | sort=created:desc, filter=#d")
+	tg.gui.updateCompletion(v, tg.gui.captureTriggers(), state)
+
+	if !state.Active {
+		t.Fatalf("expected tag completion active in last option, items: %v", labels(state.Items))
+	}
+	foundDaily := false
+	for _, item := range state.Items {
+		if item.Label == "#daily" {
+			foundDaily = true
+			break
+		}
+	}
+	if !foundDaily {
+		t.Errorf("expected `#daily` candidate after multi-option filter=#d, got %v", labels(state.Items))
+	}
+}
+
+func TestEmbedOption_KnownKeyZeroMatches_Dismisses(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.helpers.Capture().OpenCapture()
+	if err := tg.g.ForceLayoutAndRedraw(); err != nil {
+		t.Fatalf("layout failed: %v", err)
+	}
+	v := tg.gui.views.Capture
+	state := tg.gui.contexts.Capture.Completion
+
+	// `format=` is a known key, but `zzz` matches no valid format value.
+	// This must NOT fall through to the `![[` / note-title scan — it must
+	// dismiss cleanly so the user isn't shown unrelated candidates.
+	v.TextArea.TypeString("![[search: #daily | format=zzz")
+	tg.gui.updateCompletion(v, tg.gui.captureTriggers(), state)
+
+	if state.Active {
+		t.Errorf("expected dismissal for known-key zero-match, got active with items: %v", labels(state.Items))
+	}
+}
+
 func TestEmbedTypePrefix_PreservesBrackets(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
