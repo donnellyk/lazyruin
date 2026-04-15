@@ -382,6 +382,15 @@ settle
 send Escape  # close capture popup
 assert_not_contains "capture closed" "New Note"
 
+# Edit-in-popup: `e` on a note opens capture populated with the note's body,
+# popup title becomes the note's title.
+echo "[21b] Edit in popup"
+send 1; settle; send g; settle
+send e
+assert_not_contains "edit popup title is not New Note" "New Note"
+assert_contains "edit popup save hint" "<c-s> to save"
+send Escape  # close without saving
+
 # =============================================
 # 22. Calendar → Date Preview
 # =============================================

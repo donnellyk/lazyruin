@@ -33,7 +33,8 @@
 | Key | Action |
 |-----|--------|
 | `Enter` | View in preview |
-| `E` | Open in editor |
+| `E` | Open in external editor ($EDITOR) |
+| `e` | Edit in popup (save with `<c-s>`, discard with `Esc`) |
 | `d` | Delete note |
 | `y` | Copy note path |
 | `t` / `T` | Add / remove tag |
@@ -91,7 +92,8 @@ Shared across all preview modes: Card List, Pick Results, Compose, Date Preview.
 
 | Key | Action |
 |-----|--------|
-| `E` | Open in editor |
+| `E` | Open in external editor ($EDITOR) |
+| `e` | Edit in popup (save with `<c-s>`, discard with `Esc`) |
 | `d` | Delete card |
 | `m` | Move card |
 | `M` | Merge notes |

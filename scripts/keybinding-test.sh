@@ -274,6 +274,18 @@ TOTAL=$((TOTAL + 1))
 echo "  PASS: E key exists (tested via unit tests)"
 
 # =============================================
+# 15b. Notes: e (edit in popup)
+# =============================================
+echo "[15b] Notes: e (edit in popup)"
+send 1; settle; send g; settle
+send e
+# The popup title becomes the note's title (not "New Note")
+assert_not_contains "edit popup title is not New Note" "New Note"
+assert_contains "edit popup save hint" "<c-s> to save"
+send Escape
+assert_not_contains "edit popup closed via Esc" "<c-s> to save"
+
+# =============================================
 # 16. Notes: d (delete note - confirm dialog)
 # =============================================
 echo "[16] Notes: d (delete)"

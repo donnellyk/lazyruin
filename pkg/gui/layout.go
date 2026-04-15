@@ -554,9 +554,12 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	gui.views.Capture = v
-	if gui.contexts.Capture.LinkTitle != "" {
+	switch {
+	case gui.contexts.Capture.EditingTitle != "":
+		v.Title = " " + gui.contexts.Capture.EditingTitle + " "
+	case gui.contexts.Capture.LinkTitle != "":
 		v.Title = gui.contexts.Capture.LinkTitle
-	} else {
+	default:
 		v.Title = " New Note "
 	}
 	v.Subtitle = " <c-s> to save "

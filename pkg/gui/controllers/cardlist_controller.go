@@ -50,6 +50,10 @@ func (self *CardListController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 			DisplayOnScreen: true, StatusBarLabel: "Editor",
 		},
 		&types.Binding{
+			ID: "cardList.edit_inline", Key: 'e',
+			Handler: self.editInline, Description: "Edit in Popup", Category: "Preview",
+		},
+		&types.Binding{
 			ID: "cardList.move_card", Key: 'm',
 			Handler: self.mutations().MoveCardDialog, Description: "Move Card", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "Move",
@@ -114,6 +118,14 @@ func (self *CardListController) openURL() error {
 		return nil
 	}
 	return self.c.Helpers().Link().OpenLinkURL(card)
+}
+
+func (self *CardListController) editInline() error {
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	return self.c.Helpers().Capture().OpenCaptureForEdit(card)
 }
 
 func (self *CardListController) reResolveLink() error {

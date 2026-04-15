@@ -1,6 +1,10 @@
 package context
 
-import "github.com/donnellyk/lazyruin/pkg/gui/types"
+import (
+	"time"
+
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+)
 
 // CaptureParentInfo tracks the parent selected via > completion in the capture dialog.
 type CaptureParentInfo struct {
@@ -30,9 +34,12 @@ type CaptureContext struct {
 	LinkURL          string
 	LinkTitle        string
 	LinkTags         []string
-	LinkExistingUUID string // non-empty when re-resolving an existing link note
-	LinkParent       string // parent UUID to preserve on re-resolve
-	PrefillContent   string // pre-filled text (e.g. from inbox promote)
+	LinkExistingUUID string    // non-empty when re-resolving an existing link note
+	LinkParent       string    // parent UUID to preserve on re-resolve
+	PrefillContent   string    // pre-filled text (e.g. from inbox promote)
+	EditingPath      string    // non-empty when editing an existing note; overrides save flow
+	EditingTitle     string    // title of the note being edited, shown as popup title
+	EditingMtime     time.Time // modification time of the file when the popup opened; used to detect external edits
 	ResolveState     LinkResolveState
 	ResolveResult    *LinkResolveResult
 	ResolveDone      chan struct{}

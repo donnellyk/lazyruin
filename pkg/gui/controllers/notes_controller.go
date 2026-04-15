@@ -78,6 +78,14 @@ func (self *NotesController) GetKeybindings(opts types.KeybindingsOpts) []*types
 			StatusBarLabel:    "Editor",
 		},
 		{
+			ID:                "notes.edit_inline",
+			Key:               'e',
+			Handler:           self.withItem(self.editInline),
+			GetDisabledReason: self.require(self.singleItemSelected()),
+			Description:       "Edit in Popup",
+			Category:          "Notes",
+		},
+		{
 			ID:                "notes.delete",
 			Key:               'd',
 			Handler:           self.withItem(self.deleteNote),
@@ -187,6 +195,10 @@ func (self *NotesController) viewInPreview(note models.Note) error {
 
 func (self *NotesController) editNote(note models.Note) error {
 	return self.c.Helpers().Editor().OpenInEditor(note.Path)
+}
+
+func (self *NotesController) editInline(note models.Note) error {
+	return self.c.Helpers().Capture().OpenCaptureForEdit(&note)
 }
 
 func (self *NotesController) deleteNote(note models.Note) error {
