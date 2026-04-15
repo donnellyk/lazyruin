@@ -6,16 +6,11 @@
 [![License](https://img.shields.io/github/license/donnellyk/lazyruin)](LICENSE)
 
 A terminal UI for the [`ruin`](https://github.com/donnellyk/ruin-note-cli)
-note-taking CLI, inspired by lazygit's architecture and UX.
+note-taking CLI. 
+
+Don't organize; compose. Write small, atomic notes saved as simple markdown files. Later, compose them into different "documents", depending on your needs. This probably has an audience of one (me) or zero (turns out, not me); time will tell.
 
 <!-- TODO: add screenshot or asciinema demo -->
-
-## Requirements
-
-- The [`ruin` CLI](https://github.com/donnellyk/ruin-note-cli). Installed
-  automatically when you `brew install` lazyruin. For other install methods,
-  install `ruin` yourself first.
-- A terminal with 256-color support (any modern terminal will do).
 
 ## Installation
 
@@ -50,7 +45,7 @@ mise run install
 ## Quick start
 
 ```
-lazyruin
+$ lazyruin
 ```
 
 First launch opens the TUI against the vault configured via `ruin config
@@ -67,15 +62,16 @@ Core keys:
 | `<c-l>` | New link             |
 | `p`     | Pick (tag filter)    |
 | `:`     | Command palette      |
+| '::'    | Quick Open           |
 | `?`     | Keybindings help     |
 | `Tab`   | Next panel           |
 
-Direct-launch modes (exit on save):
+Quick direct-launch modes, which exit on save or close:
 
 ```
 lazyruin --new                 # straight into new-note capture
 lazyruin --link                # open the new-link input popup
-lazyruin --link=https://...    # skip the popup, resolve the URL directly
+lazyruin --link=https://...    # resolve the URL directly
 ```
 
 See [`docs/keybindings.md`](docs/keybindings.md) for the full reference.
@@ -90,3 +86,6 @@ See [`docs/keybindings.md`](docs/keybindings.md) for the full reference.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## AI Usage
+Claude Code was used extensively on this project. All code was read, tested, reviewed, and committed by a human.
