@@ -45,6 +45,24 @@ run = "go test -tags=integration ./..."
 description = "Run all tests (unit + integration)"
 run = "go test -tags=integration ./..."
 
+[tasks.test-smoke]
+description = "Run the TUI smoke test (requires tmux + ruin CLI)"
+run = """
+go build -o bin/lazyruin .
+./scripts/smoke-test.sh ./bin/lazyruin
+"""
+
+[tasks.test-keybindings]
+description = "Run the keybinding regression test (requires tmux + ruin CLI)"
+run = """
+go build -o bin/lazyruin .
+./scripts/keybinding-test.sh ./bin/lazyruin
+"""
+
+[tasks.test-tui]
+description = "Run both TUI regression scripts (smoke + keybindings)"
+depends = ["test-smoke", "test-keybindings"]
+
 [tasks.clean]
 description = "Remove build artifacts"
 run = "rm -rf bin/"
