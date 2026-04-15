@@ -2,11 +2,11 @@ package helpers
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/donnellyk/lazyruin/pkg/commands"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/ruin-note-cli/pkg/notetext"
 )
 
 // CompletionHelper provides completion candidate functions that were previously
@@ -68,12 +68,12 @@ func (self *CompletionHelper) CurrentCardTagCandidates(filter string) []types.Co
 	return items
 }
 
-// inlineTagPattern matches #tag tokens in note content.
-var inlineTagPattern = regexp.MustCompile(`#[\w-]+`)
-
 // ScopedInlineTags returns the unique inline tags found in the underlying
 // preview document (compose note or cardList card). Each tag includes the
 // leading # prefix. Returns nil when no scoped content is available.
+//
+// Uses the shared notetext extractor so tags inside code spans, fenced code
+// blocks, and markdown links are excluded — same rules `ruin log` applies.
 func (self *CompletionHelper) ScopedInlineTags() []string {
 	gui := self.c.GuiCommon()
 	var content string
@@ -89,20 +89,7 @@ func (self *CompletionHelper) ScopedInlineTags() []string {
 	if content == "" {
 		return nil
 	}
-
-	seen := make(map[string]bool)
-	var tags []string
-	for _, m := range inlineTagPattern.FindAllString(content, -1) {
-		lower := strings.ToLower(m)
-		if !seen[lower] {
-			seen[lower] = true
-			if !strings.HasPrefix(m, "#") {
-				m = "#" + m
-			}
-			tags = append(tags, m)
-		}
-	}
-	return tags
+	return notetext.ExtractTags(content)
 }
 
 // ScopedInlineTagCandidates returns tag completion items limited to inline tags

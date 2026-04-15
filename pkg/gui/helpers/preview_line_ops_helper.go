@@ -8,6 +8,7 @@ import (
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
+	"github.com/donnellyk/ruin-note-cli/pkg/notetext"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -157,8 +158,8 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 
 	srcLine, _, _ := readSourceLine(target.Path, target.LineNum)
 	existingTags := make(map[string]bool)
-	for _, m := range models.InlineTagRe.FindAllString(srcLine, -1) {
-		existingTags[strings.ToLower(m)] = true
+	for _, tag := range notetext.ExtractTags(srcLine) {
+		existingTags[strings.ToLower(tag)] = true
 	}
 
 	uuid := target.UUID

@@ -1,18 +1,18 @@
 package models
 
 import (
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/donnellyk/ruin-note-cli/pkg/notetext"
 )
 
-// InlineTagRe matches #tag patterns (hashtag followed by word characters).
-var InlineTagRe = regexp.MustCompile(`#[\w-]+`)
-
-// HasDoneTag returns true if the line contains a #done inline tag (case-insensitive).
+// HasDoneTag returns true if the line contains a #done inline tag
+// (case-insensitive). Uses the shared notetext extractor so tags inside
+// code spans, fenced code blocks, and markdown links are correctly ignored.
 func HasDoneTag(line string) bool {
-	for _, m := range InlineTagRe.FindAllString(line, -1) {
-		if strings.EqualFold(m, "#done") {
+	for _, tag := range notetext.ExtractTags(line) {
+		if strings.EqualFold(tag, "#done") {
 			return true
 		}
 	}

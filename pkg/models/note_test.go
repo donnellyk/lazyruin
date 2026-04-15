@@ -125,6 +125,16 @@ func TestHasDoneTag(t *testing.T) {
 		{"", false},
 		{"#doing something", false},
 		{"undone", false},
+		// notetext integration: tags inside code spans and markdown links
+		// are no longer counted, matching what `ruin log` actually records.
+		{"see `#done` in code span", false},
+		{"[link text #done](https://example.com)", false},
+		{"plain #done beats code `#nope`", true},
+		// CLI tag semantics treat `-` as a token delimiter (underscore is
+		// part of a tag word), so `#done-later` extracts as `#done` while
+		// `#done_soon` extracts as `#done_soon`. Match the CLI verbatim.
+		{"follow up #done-later", true},
+		{"revisit #done_soon maybe", false},
 	}
 	for _, tt := range tests {
 		got := HasDoneTag(tt.line)

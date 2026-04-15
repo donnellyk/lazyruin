@@ -7,6 +7,7 @@ import (
 
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
+	"github.com/donnellyk/ruin-note-cli/pkg/notetext"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -748,17 +749,11 @@ func (gui *Gui) updateCaptureFooter() {
 
 	date := time.Now().Format("Jan 02")
 
-	// Extract inline tags from current capture content
+	// Extract inline tags from current capture content. Uses the shared
+	// notetext extractor so the footer matches exactly what `ruin log` will
+	// actually record — code blocks, markdown links, and embeds are skipped.
 	content := gui.views.Capture.TextArea.GetContent()
-	tagMatches := models.InlineTagRe.FindAllString(content, -1)
-	seen := make(map[string]bool)
-	var tags []string
-	for _, t := range tagMatches {
-		if !seen[t] {
-			seen[t] = true
-			tags = append(tags, t)
-		}
-	}
+	tags := notetext.ExtractTags(content)
 
 	var tagsStr string
 	if len(tags) > 0 {
