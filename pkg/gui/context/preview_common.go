@@ -22,6 +22,7 @@ type PreviewDisplayState struct {
 	RenderMarkdown  bool
 	DimDone         bool
 	HideDone        bool
+	ShowCompose     bool
 }
 
 // SharedNavHistory holds the navigation history stack shared across all three preview contexts.

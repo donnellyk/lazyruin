@@ -149,6 +149,9 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 	} else {
 		cl.Source = context.CardListSource{}
 	}
+	cl.DisplayState().ShowCompose = false
+	cl.ComposedNote = nil
+	cl.ComposedSourceMap = nil
 	ns := cl.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
@@ -414,6 +417,7 @@ func (self *PreviewHelper) ToggleFrontmatter() error {
 func (self *PreviewHelper) ToggleTitle() error {
 	ds := self.activeCtx().DisplayState()
 	ds.ShowTitle = !ds.ShowTitle
+	self.reloadComposeIfActive()
 	self.ReloadContent()
 	return nil
 }
@@ -422,6 +426,7 @@ func (self *PreviewHelper) ToggleTitle() error {
 func (self *PreviewHelper) ToggleGlobalTags() error {
 	ds := self.activeCtx().DisplayState()
 	ds.ShowGlobalTags = !ds.ShowGlobalTags
+	self.reloadComposeIfActive()
 	self.ReloadContent()
 	return nil
 }
@@ -463,6 +468,56 @@ func (self *PreviewHelper) ToggleHideDone() error {
 	return nil
 }
 
+// ToggleCompose toggles the compose view for the currently selected card.
+// When turned on, fetches the composed/embed-expanded version of the note.
+// Cleared automatically when navigating to a new note (see ShowCardList).
+func (self *PreviewHelper) ToggleCompose() error {
+	gui := self.c.GuiCommon()
+	cl := gui.Contexts().CardList
+	ds := cl.DisplayState()
+
+	if ds.ShowCompose {
+		ds.ShowCompose = false
+		cl.ComposedNote = nil
+		cl.ComposedSourceMap = nil
+		gui.RenderPreview()
+		return nil
+	}
+
+	note := self.CurrentPreviewCard()
+	if note == nil || note.UUID == "" {
+		return nil
+	}
+
+	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(note.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
+	if err != nil {
+		gui.ShowError(err)
+		return nil
+	}
+
+	cl.ComposedNote = &composed
+	cl.ComposedSourceMap = sourceMap
+	ds.ShowCompose = true
+	gui.RenderPreview()
+	return nil
+}
+
+// reloadComposeIfActive re-fetches the composed note with current display settings.
+// Called when ShowTitle or ShowGlobalTags change while ShowCompose is active.
+func (self *PreviewHelper) reloadComposeIfActive() {
+	cl := self.c.GuiCommon().Contexts().CardList
+	ds := cl.DisplayState()
+	if !ds.ShowCompose || cl.ComposedNote == nil {
+		return
+	}
+	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(cl.ComposedNote.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
+	if err != nil {
+		return
+	}
+	cl.ComposedNote = &composed
+	cl.ComposedSourceMap = sourceMap
+}
+
 // ViewOptionsDialog shows the view options menu.
 func (self *PreviewHelper) ViewOptionsDialog() error {
 	ds := self.activeCtx().DisplayState()
@@ -491,14 +546,24 @@ func (self *PreviewHelper) ViewOptionsDialog() error {
 		hideLabel = "Show #done lines"
 	}
 
-	self.c.GuiCommon().ShowMenuDialog("View Options", []types.MenuItem{
+	items := []types.MenuItem{
 		{Label: fmLabel, Key: "f", OnRun: func() error { return self.ToggleFrontmatter() }},
 		{Label: titleLabel, Key: "t", OnRun: func() error { return self.ToggleTitle() }},
 		{Label: tagsLabel, Key: "T", OnRun: func() error { return self.ToggleGlobalTags() }},
 		{Label: mdLabel, Key: "M", OnRun: func() error { return self.ToggleMarkdown() }},
 		{Label: doneLabel, Key: "d", OnRun: func() error { return self.ToggleDimDone() }},
 		{Label: hideLabel, Key: "h", OnRun: func() error { return self.ToggleHideDone() }},
-	})
+	}
+
+	if self.c.GuiCommon().Contexts().ActivePreviewKey == "cardList" {
+		composeLabel := "View compose"
+		if ds.ShowCompose {
+			composeLabel = "View raw"
+		}
+		items = append(items, types.MenuItem{Label: composeLabel, Key: "c", OnRun: func() error { return self.ToggleCompose() }})
+	}
+
+	self.c.GuiCommon().ShowMenuDialog("View Options", items)
 	return nil
 }
 

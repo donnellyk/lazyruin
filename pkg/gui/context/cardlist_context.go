@@ -21,6 +21,9 @@ type CardListState struct {
 	FilterText      string
 	Source          CardListSource
 	UnfilteredCount int
+
+	ComposedNote      *models.Note
+	ComposedSourceMap []models.SourceMapEntry
 }
 
 func (s *CardListState) FilterActive() bool {

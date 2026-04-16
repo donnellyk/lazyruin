@@ -74,6 +74,22 @@ func (p *ParentCommand) enrichNoteMetadata(note *models.Note) error {
 	return nil
 }
 
+// ComposeNote composes a single note by UUID, expanding all dynamic embeds.
+func (p *ParentCommand) ComposeNote(uuid string, stripTitle, stripGlobalTags bool) (models.Note, []models.SourceMapEntry, error) {
+	args := []string{"compose", uuid, "--expand-embeds"}
+	if stripTitle {
+		args = append(args, "--strip-title")
+	}
+	if stripGlobalTags {
+		args = append(args, "--strip-global-tags")
+	}
+	result, err := ExecuteAndUnmarshal[composeResult](p.ruin, args...)
+	if err != nil {
+		return models.Note{}, nil, err
+	}
+	return p.buildComposeNote(result, result.Title)
+}
+
 // Save creates a parent bookmark via `parent save <name> <note>`.
 func (p *ParentCommand) Save(name, noteRef string) error {
 	_, err := p.ruin.Execute("parent", "save", name, noteRef, "--force")
