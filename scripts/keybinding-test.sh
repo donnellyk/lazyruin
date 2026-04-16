@@ -875,19 +875,57 @@ assert_contains "confirm reappears" "[y] Yes"
 send Escape  # Esc also cancels
 assert_not_contains "Esc cancels confirm" "[y] Yes"
 
+# Helper: open the first parent bookmark in compose view. Assumes the
+# queries panel's sub-tab is currently Queries (the default); if called
+# after a test that left it on Parents, reset first with send 2 (cycle).
+# The seed vault provides 5 bookmarks (alpha/beta/infra/docs/platform).
+open_first_parent_compose() {
+  reset_to_notes
+  send 2; sleep 0.3                         # focus Queries panel
+  send 2; sleep 0.3                         # cycle to Parents tab
+  send Enter; sleep 0.3                     # open first parent → compose
+}
+
 # =============================================
 # 73. Compose: Ctrl-N (new child note)
 # =============================================
 echo "[73] Compose: Ctrl-N (new child note)"
-reset_to_notes
-send 2; sleep 0.3                           # focus Queries panel
-send 2; sleep 0.3                           # cycle to Parents tab
-send Enter; sleep 0.3                       # open parent → compose view
+open_first_parent_compose
 assert_status "compose visible" "New Child"
 send C-n
 assert_contains "Ctrl-N opens capture" "New Note"
 send Escape; settle  # close capture
 send Escape; settle  # back from compose
+send 2; settle       # cycle queries back to Queries tab for next section
+
+# =============================================
+# 73b. Compose: Enter (open source note in cardList)
+# =============================================
+# Compose's default cursor (line 1) lands on the first resolvable content
+# line of the first child, so Enter/e work without any j/k movement.
+# cardList's status bar includes "Del: d" which compose does not, so it's
+# a reliable differentiator.
+echo "[73b] Compose: Enter opens source note in cardList"
+open_first_parent_compose
+assert_status "compose visible" "New Child"
+send Enter; settle                          # drill into source note
+assert_status "cardList after Enter" "Del: d"
+send Escape; settle                         # back to compose
+send Escape; settle                         # exit compose
+send 2; settle                              # cycle queries back to Queries tab
+
+# =============================================
+# 73c. Compose: e (edit child in popup)
+# =============================================
+echo "[73c] Compose: e opens capture for child"
+open_first_parent_compose
+assert_status "compose visible" "New Child"
+send e; settle
+assert_contains "e opens edit popup for child" "<c-s> to save"
+assert_not_contains "edit popup is not New Note" "New Note"
+send Escape; settle                         # cancel capture
+send Escape; settle                         # exit compose
+send 2; settle                              # cycle queries back to Queries tab
 
 # =============================================
 # 74. Global: Ctrl-L (New Link popup)

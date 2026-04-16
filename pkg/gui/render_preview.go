@@ -477,11 +477,11 @@ func (gui *Gui) buildComposeLineMap(contentLines []string, sourceMap []models.So
 				continue
 			}
 
-			composedNorm := stripHeaderPrefix(composedTrimmed)
+			composedNorm := normalizeLineForMatch(composedTrimmed)
 			matched := false
 			for childIdx < len(child.lines) {
 				childTrimmed := strings.TrimSpace(child.lines[childIdx])
-				childNorm := stripHeaderPrefix(childTrimmed)
+				childNorm := normalizeLineForMatch(childTrimmed)
 				if composedNorm != "" && composedNorm == childNorm {
 					identities[srcIdx] = lineIdentity{
 						uuid:    entry.UUID,
@@ -502,6 +502,20 @@ func (gui *Gui) buildComposeLineMap(contentLines []string, sourceMap []models.So
 	}
 }
 
+// normalizeLineForMatch strips leading markdown decoration (header hashes,
+// list bullet, blockquote marker, task checkbox) from a trimmed line so
+// composed output can be forward-matched against its source note file.
+// Compose normalizes headers (# → ##), pick prefixes extracted lines with
+// "- ", and task-list renderers add "[ ]"/"[x]" — all of these decorate
+// the source text without changing its identity. Applying symmetrically
+// to both composed and source lines keeps the comparison stable.
+func normalizeLineForMatch(s string) string {
+	s = stripHeaderPrefix(s)
+	s = stripListPrefix(s)
+	s = stripTaskCheckbox(s)
+	return s
+}
+
 // stripHeaderPrefix removes leading '#' characters and the following space
 // from a string, normalizing markdown headers for cross-level comparison
 // (e.g. "## Title" and "### Title" both become "Title").
@@ -514,6 +528,36 @@ func stripHeaderPrefix(s string) string {
 		return s
 	}
 	return strings.TrimLeft(s[i:], " ")
+}
+
+// stripListPrefix removes a single leading list bullet ("-", "*", "+") or
+// blockquote marker (">") plus the following space. Ordered-list markers
+// like "1." are left alone — they carry identity (the number) and are
+// rarely injected as decoration.
+func stripListPrefix(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	switch s[0] {
+	case '-', '*', '+', '>':
+		if s[1] == ' ' {
+			return s[2:]
+		}
+	}
+	return s
+}
+
+// stripTaskCheckbox removes a leading "[ ]" or "[x]" (case-insensitive)
+// followed by a space, which markdown renderers inject for task lists.
+func stripTaskCheckbox(s string) string {
+	if len(s) < 4 || s[0] != '[' || s[2] != ']' || s[3] != ' ' {
+		return s
+	}
+	switch s[1] {
+	case ' ', 'x', 'X':
+		return s[4:]
+	}
+	return s
 }
 
 // renderCardInto renders a single note card (upper separator, body, lower separator)

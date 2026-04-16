@@ -41,6 +41,10 @@ func (self *ComposeController) GetKeybindings(opts types.KeybindingsOpts) []*typ
 			Handler: self.newChildNote, Description: "New child note", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "New Child",
 		},
+		&types.Binding{
+			ID: "compose.edit_inline", Key: 'e',
+			Handler: self.editInline, Description: "Edit Child in Popup", Category: "Preview",
+		},
 	)
 }
 
@@ -55,6 +59,18 @@ func (self *ComposeController) newChildNote() error {
 		return nil
 	}
 	return self.c.Helpers().Capture().OpenCaptureWithParent(target.UUID, note.Title)
+}
+
+func (self *ComposeController) editInline() error {
+	target := self.c.Helpers().PreviewLineOps().ResolveTarget()
+	if target == nil {
+		return nil
+	}
+	note, err := self.c.RuinCmd().Search.Get(target.UUID, commands.SearchOptions{})
+	if err != nil || note == nil {
+		return nil
+	}
+	return self.c.Helpers().Capture().OpenCaptureForEdit(note)
 }
 
 func (self *ComposeController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

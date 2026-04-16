@@ -213,6 +213,122 @@ func TestBuildCardContent_ComposeSourceIdentity(t *testing.T) {
 	}
 }
 
+// TestBuildCardContent_ComposePickEmbedIdentity covers the pick-embed
+// pattern where the CLI prefixes every extracted line with "- " as a
+// list item. Forward-scan must strip that decoration to match the source
+// line; otherwise Enter/e/E silently no-op on the extracted content.
+func TestBuildCardContent_ComposePickEmbedIdentity(t *testing.T) {
+	dir := t.TempDir()
+
+	// Source note — a meeting note with an extractable #work line.
+	sourcePath := filepath.Join(dir, "meeting-053.md")
+	os.WriteFile(sourcePath, []byte(
+		"---\nuuid: test-uuid-053\n---\n"+
+			"# Meeting - Feature flag rollout plan\n"+
+			"\n"+
+			"Discussed timelines and priorities. #work\n",
+	), 0644)
+
+	// Composed output as pick produces it: H2 header injected, content
+	// line prefixed with "- " list marker.
+	composedContent := "## Meeting - Feature flag rollout plan\n" +
+		"- Discussed timelines and priorities. #work"
+
+	sourceMap := []models.SourceMapEntry{
+		{UUID: "test-uuid-053", Path: sourcePath, Title: "Meeting", StartLine: 1, EndLine: 1},
+		{UUID: "test-uuid-053", Path: sourcePath, Title: "Meeting", StartLine: 2, EndLine: 2},
+	}
+
+	navHistory := context.NewSharedNavHistory()
+	gui := &Gui{
+		state:      NewGuiState(),
+		contextMgr: NewContextMgr(),
+		contexts: &context.ContextTree{
+			Compose:          context.NewComposeContext(navHistory),
+			CardList:         context.NewCardListContext(navHistory),
+			ActivePreviewKey: "compose",
+		},
+	}
+	gui.contexts.Compose.Note = models.Note{
+		UUID:    "parent-uuid",
+		Path:    filepath.Join(dir, "parent.md"),
+		Content: composedContent,
+	}
+	gui.contexts.Compose.SourceMap = sourceMap
+	gui.contexts.Compose.RenderMarkdown = false
+
+	lines := gui.BuildCardContent(gui.contexts.Compose.Note, 80)
+
+	// Source file content lines (after frontmatter):
+	//   L1: # Meeting - Feature flag rollout plan
+	//   L2: (blank)
+	//   L3: Discussed timelines and priorities. #work
+	want := map[string]int{
+		"## Meeting - Feature flag rollout plan":      1,
+		"- Discussed timelines and priorities. #work": 3,
+	}
+	for text, wantLine := range want {
+		found := false
+		for _, sl := range lines {
+			trimmed := stripAnsi(sl.Text)
+			if len(trimmed) > 0 {
+				trimmed = trimmed[1:] // strip leading space added by BuildCardContent
+			}
+			if trimmed == text {
+				found = true
+				if sl.LineNum != wantLine {
+					t.Errorf("line %q: LineNum = %d, want %d", text, sl.LineNum, wantLine)
+				}
+				if sl.UUID != "test-uuid-053" {
+					t.Errorf("line %q: UUID = %q, want test-uuid-053", text, sl.UUID)
+				}
+				break
+			}
+		}
+		if !found {
+			t.Errorf("line %q not found in SourceLines", text)
+		}
+	}
+}
+
+func TestNormalizeLineForMatch(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		// Header decoration
+		{"# Foo", "Foo"},
+		{"### Foo", "Foo"},
+		// List bullet decoration
+		{"- Foo", "Foo"},
+		{"* Foo", "Foo"},
+		{"+ Foo", "Foo"},
+		// Blockquote decoration
+		{"> Foo", "Foo"},
+		// Task checkbox decoration
+		{"[ ] Foo", "Foo"},
+		{"[x] Foo", "Foo"},
+		{"[X] Foo", "Foo"},
+		// Header + list decoration both strip (both directions symmetric)
+		{"## - Foo", "Foo"},
+		// Identity preservation
+		{"Foo bar", "Foo bar"},
+		{"", ""},
+		// Non-decoration: single-char lines, ordered-list markers
+		{"-", "-"},
+		{"1. Foo", "1. Foo"},
+		// stripHeaderPrefix strips leading '#' regardless of trailing space
+		// (so "#tag" → "tag") — the forward-scan matcher applies this
+		// symmetrically to both sides, so match stability is preserved.
+		{"#tag", "tag"},
+	}
+	for _, tt := range tests {
+		got := normalizeLineForMatch(tt.in)
+		if got != tt.want {
+			t.Errorf("normalizeLineForMatch(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
 func TestIsHeaderLine(t *testing.T) {
 	tests := []struct {
 		line string

@@ -248,9 +248,33 @@ func (self *PreviewNavHelper) PreviewEnter() error {
 		return self.OpenDatePreviewResult()
 	case "cardList":
 		return self.FocusNote()
+	case "compose":
+		return self.OpenSourceAtCursor()
 	default:
 		return nil
 	}
+}
+
+// OpenSourceAtCursor opens the source note attributed to the cursor line
+// (via the compose source map) in card-list view, with the cursor
+// pre-positioned on the matched source line. No-op if the cursor line has
+// no resolvable source identity (separator, blank, or a dynamic-embed line
+// the CLI did not attribute to a resolvable source).
+func (self *PreviewNavHelper) OpenSourceAtCursor() error {
+	target := self.c.Helpers().PreviewLineOps().ResolveTarget()
+	if target == nil {
+		return nil
+	}
+	opts := self.c.Helpers().Preview().BuildSearchOptions()
+	note, err := self.c.RuinCmd().Search.Get(target.UUID, opts)
+	if err != nil || note == nil {
+		return nil
+	}
+	self.PushNavHistory()
+	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
+	self.c.GuiCommon().PushContextByKey("cardList")
+	self.positionCursorAtContentLine(note, target.LineNum)
+	return nil
 }
 
 // OpenDatePreviewResult opens the currently selected item in the date preview.

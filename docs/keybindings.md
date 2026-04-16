@@ -116,9 +116,15 @@ Shared across all preview modes: Card List, Pick Results, Compose, Date Preview.
 
 ### Compose
 
+The cursor line resolves to a source child note via the compose `source_map`.
+Blank lines and injected separators are unresolvable and Enter / `e` / `E`
+no-op on those.
+
 | Key | Action |
 |-----|--------|
-| `E` | Open in editor |
+| `Enter` | Open source note of line under cursor in card list |
+| `e` | Edit source note of line under cursor in popup |
+| `E` | Open source note of line under cursor in `$EDITOR` |
 | `<c-n>` | New child note |
 
 ### Date Preview
