@@ -203,12 +203,25 @@ func (gui *Gui) filterPaletteCommands(filter string) {
 		}
 	}
 
-	sort.Slice(available, func(i, j int) bool {
-		return available[i].Name < available[j].Name
-	})
-	sort.Slice(unavailable, func(i, j int) bool {
-		return unavailable[i].Name < unavailable[j].Name
-	})
+	sortCmds := func(cmds []types.PaletteCommand) {
+		if lower == "" {
+			sort.Slice(cmds, func(i, j int) bool {
+				return cmds[i].Name < cmds[j].Name
+			})
+			return
+		}
+		inputLen := len(lower)
+		sort.Slice(cmds, func(i, j int) bool {
+			di := len(cmds[i].Name) - inputLen
+			dj := len(cmds[j].Name) - inputLen
+			if di != dj {
+				return di < dj
+			}
+			return cmds[i].Name < cmds[j].Name
+		})
+	}
+	sortCmds(available)
+	sortCmds(unavailable)
 
 	gui.contexts.Palette.Palette.Filtered = append(available, unavailable...)
 
