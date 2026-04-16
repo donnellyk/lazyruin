@@ -44,7 +44,19 @@ func (self *DatePreviewController) GetKeybindings(opts types.KeybindingsOpts) []
 			Handler: self.nav().OpenInEditor, Description: "Open in Editor", Category: "Preview",
 			DisplayOnScreen: true, StatusBarLabel: "Editor",
 		},
+		&types.Binding{
+			ID: "datePreview.edit_inline", Key: 'e',
+			Handler: self.editInline, Description: "Edit in Popup", Category: "Preview",
+		},
 	)
+}
+
+func (self *DatePreviewController) editInline() error {
+	card := self.c.Helpers().Preview().CurrentPreviewCard()
+	if card == nil {
+		return nil
+	}
+	return self.c.Helpers().Capture().OpenCaptureForEdit(card)
 }
 
 func (self *DatePreviewController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
