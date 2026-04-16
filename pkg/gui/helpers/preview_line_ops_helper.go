@@ -184,16 +184,10 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 				return append(onLine, rest...)
 			}}}
 		},
-		OnAccept: func(_ string, item *types.CompletionItem) error {
-			tag := ""
-			if item != nil {
-				tag = item.Label
-			}
+		OnAccept: func(raw string, item *types.CompletionItem) error {
+			tag := resolveTypedTag(raw, item)
 			if tag == "" {
 				return nil
-			}
-			if !strings.HasPrefix(tag, "#") {
-				tag = "#" + tag
 			}
 
 			if existingTags[strings.ToLower(tag)] {

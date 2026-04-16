@@ -4,7 +4,31 @@ import (
 	"strings"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/ruin-note-cli/pkg/notetext"
 )
+
+// resolveTypedTag returns the tag to act on given an input popup result.
+// If the user accepted a completion item, its Label wins; otherwise the
+// raw input is parsed via notetext.ExtractTags so creation of new tags
+// uses the same semantics as the CLI. Returns "" when neither yields a
+// usable tag.
+func resolveTypedTag(raw string, item *types.CompletionItem) string {
+	if item != nil && item.Label != "" {
+		return item.Label
+	}
+	typed := strings.TrimSpace(raw)
+	if typed == "" {
+		return ""
+	}
+	if !strings.HasPrefix(typed, "#") {
+		typed = "#" + typed
+	}
+	tags := notetext.ExtractTags(typed)
+	if len(tags) == 0 {
+		return ""
+	}
+	return tags[0]
+}
 
 // NoteActionsHelper handles note-level mutations (tags, parents, bookmarks).
 type NoteActionsHelper struct {
@@ -31,11 +55,8 @@ func (self *NoteActionsHelper) AddGlobalTag() error {
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{{Prefix: "#", Candidates: self.c.Helpers().Completion().TagCandidates}}
 		},
-		OnAccept: func(_ string, item *types.CompletionItem) error {
-			tag := ""
-			if item != nil {
-				tag = item.Label
-			}
+		OnAccept: func(raw string, item *types.CompletionItem) error {
+			tag := resolveTypedTag(raw, item)
 			if tag == "" {
 				return nil
 			}
