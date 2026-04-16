@@ -130,11 +130,14 @@ func TestHasDoneTag(t *testing.T) {
 		{"see `#done` in code span", false},
 		{"[link text #done](https://example.com)", false},
 		{"plain #done beats code `#nope`", true},
-		// CLI tag semantics treat `-` as a token delimiter (underscore is
-		// part of a tag word), so `#done-later` extracts as `#done` while
-		// `#done_soon` extracts as `#done_soon`. Match the CLI verbatim.
-		{"follow up #done-later", true},
+		// CLI tag semantics allow `-` and `_` inside tag words, so
+		// `#done-later` and `#done_soon` are distinct tags — neither
+		// matches `#done`. Match the CLI verbatim.
+		{"follow up #done-later", false},
 		{"revisit #done_soon maybe", false},
+		// A trailing `-` is stripped by the CLI, so `#done-` extracts
+		// as `#done`.
+		{"wrap it up #done-", true},
 	}
 	for _, tt := range tests {
 		got := HasDoneTag(tt.line)

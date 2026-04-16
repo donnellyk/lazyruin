@@ -39,16 +39,16 @@ type sectionRange struct {
 // A section with zero non-blank direct content lines (header only) is
 // NOT fully-done — avoids dimming empty scaffolding.
 //
-// Fenced code blocks delimited by start-of-line triple backticks are
-// tracked locally so `# comment` inside code isn't misread as a header.
-// TODO: switch to notetext.FindCodeRanges once it is exported.
+// Fenced and inline code ranges from notetext.FindCodeRanges are
+// projected onto per-line flags so `# comment` inside code isn't
+// misread as a header.
 func computeDoneSections(contentLines []string) []bool {
 	result := make([]bool, len(contentLines))
 	if len(contentLines) == 0 {
 		return result
 	}
 
-	inCode := codeFenceFlags(contentLines)
+	inCode := codeLineFlags(contentLines)
 	sections := buildSectionRanges(contentLines, inCode)
 
 	done := make([]bool, len(sections))
@@ -170,20 +170,31 @@ func findSubSectionAtLine(sections []sectionRange, parentIdx, line int) int {
 	return -1
 }
 
-// codeFenceFlags returns a flag per line indicating "this line is inside a
-// fenced code block." Only start-of-line triple backticks are recognized.
-// An opening fence with no close consumes the rest of the file.
-func codeFenceFlags(contentLines []string) []bool {
+// codeLineFlags returns a flag per line indicating "any part of this
+// line lies inside a code span or fenced code block," using the CLI's
+// notetext.FindCodeRanges as the source of truth. A line is flagged if
+// any byte of it falls within a code range.
+func codeLineFlags(contentLines []string) []bool {
 	flags := make([]bool, len(contentLines))
-	inCode := false
+	if len(contentLines) == 0 {
+		return flags
+	}
+	content := strings.Join(contentLines, "\n")
+	ranges := notetext.FindCodeRanges(content)
+	if len(ranges) == 0 {
+		return flags
+	}
+	offset := 0
 	for i, line := range contentLines {
-		trimmed := strings.TrimLeft(line, " \t")
-		if strings.HasPrefix(trimmed, "```") {
-			flags[i] = true
-			inCode = !inCode
-			continue
+		lineStart := offset
+		lineEnd := offset + len(line)
+		for _, r := range ranges {
+			if r[0] < lineEnd && r[1] > lineStart {
+				flags[i] = true
+				break
+			}
 		}
-		flags[i] = inCode
+		offset = lineEnd + 1 // +1 for the joining newline
 	}
 	return flags
 }

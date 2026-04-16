@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0
-	github.com/donnellyk/ruin-note-cli v0.2.2-0.20260415215452-dafc8afbb9a2
+	github.com/donnellyk/ruin-note-cli v0.2.2-0.20260416165123-a0279aa9ab28
 	github.com/ijt/go-anytime v1.9.2
 	github.com/jesseduffield/gocui v0.3.1-0.20260128194906-9d8c3cdfac18
 	github.com/muesli/reflow v0.3.0
