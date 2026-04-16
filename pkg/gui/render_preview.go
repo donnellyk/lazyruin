@@ -199,6 +199,66 @@ func highlightSpan(line string, col, length int) string {
 	return sb.String()
 }
 
+// collapseConsecutiveBlanks returns lines with runs of visually-blank
+// entries (ANSI stripped) at index ≥ start collapsed to a single blank.
+// Used only when HideDone strips source lines; without this the blank
+// lines that surrounded a hidden line stack up and look like dead space.
+func collapseConsecutiveBlanks(lines []types.SourceLine, start int) []types.SourceLine {
+	if start >= len(lines) {
+		return lines
+	}
+	out := make([]types.SourceLine, 0, len(lines))
+	out = append(out, lines[:start]...)
+	prevBlank := false
+	for _, l := range lines[start:] {
+		blank := strings.TrimSpace(stripAnsi(l.Text)) == ""
+		if blank && prevBlank {
+			continue
+		}
+		out = append(out, l)
+		prevBlank = blank
+	}
+	return out
+}
+
+// bodyHasNoVisibleContent reports whether every line at or after start is
+// visually blank once ANSI escapes are stripped.
+func bodyHasNoVisibleContent(lines []types.SourceLine, start int) bool {
+	for i := start; i < len(lines); i++ {
+		if strings.TrimSpace(stripAnsi(lines[i].Text)) != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// firstNonBlankLine returns the index of the first non-whitespace line in
+// contentLines, or (-1, false) if none exists.
+func firstNonBlankLine(contentLines []string) (int, bool) {
+	for i, l := range contentLines {
+		if strings.TrimSpace(l) != "" {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// buildFallbackLine produces a dimmed SourceLine used by hide-safety (D7)
+// to keep a card visible when all body content would otherwise hide.
+func buildFallbackLine(line string, id lineIdentity, contentWidth int) types.SourceLine {
+	wrapped := wordwrap.String(line, contentWidth)
+	first := wrapped
+	if nl := strings.IndexByte(wrapped, '\n'); nl >= 0 {
+		first = wrapped[:nl]
+	}
+	return types.SourceLine{
+		Text:    dimLine(" " + first),
+		UUID:    id.uuid,
+		LineNum: id.lineNum,
+		Path:    id.path,
+	}
+}
+
 // BuildCardContent returns the rendered lines for a single card's body content.
 // Each SourceLine carries both the rendered text and the source identity
 // (UUID, 1-indexed content line number, file path), so callers never need
@@ -237,6 +297,18 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 		}
 	}
 
+	// Pre-compute section-level done-ness once per card so every visual
+	// line can cheaply answer "am I dim/hidden." D6/D7 apply here.
+	doneSection := computeDoneSections(contentLines)
+	srcLineDone := func(srcIdx int) bool {
+		if srcIdx < 0 || srcIdx >= len(contentLines) {
+			return false
+		}
+		return doneSection[srcIdx] || models.HasDoneTag(contentLines[srcIdx])
+	}
+
+	bodyStart := len(lines)
+
 	// Render content lines and tag each with its source identity.
 	// Both paths process line-by-line so each visual line can be tagged
 	// with the source content line it came from.
@@ -246,8 +318,12 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 		highlighted := gui.highlightMarkdown(content)
 		highlightedLines := strings.Split(highlighted, "\n")
 		for srcIdx, hl := range highlightedLines {
+			done := srcLineDone(srcIdx)
+			if ds.HideDone && done {
+				continue
+			}
 			id := identities[srcIdx]
-			isDone := ds.DimDone && srcIdx < len(contentLines) && models.HasDoneTag(contentLines[srcIdx])
+			isDone := ds.DimDone && done
 			wrapped := wordwrap.String(hl, contentWidth)
 			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
@@ -264,8 +340,12 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 		}
 	} else {
 		for srcIdx, l := range contentLines {
+			done := srcLineDone(srcIdx)
+			if ds.HideDone && done {
+				continue
+			}
 			id := identities[srcIdx]
-			isDone := ds.DimDone && models.HasDoneTag(l)
+			isDone := ds.DimDone && done
 			wrapped := wordwrap.String(l, contentWidth)
 			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
@@ -279,6 +359,21 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 					Path:    id.path,
 				})
 			}
+		}
+	}
+
+	// When HideDone removes a line with blank lines on either side, the
+	// body is left with runs of consecutive blanks. Collapse them so the
+	// rendered card stays tight.
+	if ds.HideDone {
+		lines = collapseConsecutiveBlanks(lines, bodyStart)
+	}
+
+	// D7 hide safety: if HideDone collapsed the body to nothing, keep the
+	// first non-blank source line (dimmed) so the card is still locatable.
+	if ds.HideDone && bodyHasNoVisibleContent(lines, bodyStart) {
+		if srcIdx, ok := firstNonBlankLine(contentLines); ok {
+			lines = append(lines, buildFallbackLine(contentLines[srcIdx], identities[srcIdx], contentWidth))
 		}
 	}
 

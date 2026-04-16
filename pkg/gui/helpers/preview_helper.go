@@ -434,6 +434,35 @@ func (self *PreviewHelper) ToggleDimDone() error {
 	return nil
 }
 
+// ToggleHideDone toggles hiding of #done lines and fully-done sections.
+// Persists the new value in config so it survives restarts, and applies
+// it to every preview context so switching panels mid-session doesn't
+// show stale state.
+func (self *PreviewHelper) ToggleHideDone() error {
+	next := !self.activeCtx().DisplayState().HideDone
+	contexts := self.c.GuiCommon().Contexts()
+	for _, ctx := range []context.IPreviewContext{
+		contexts.CardList,
+		contexts.PickResults,
+		contexts.Compose,
+		contexts.DatePreview,
+	} {
+		if ctx == nil {
+			continue
+		}
+		ctx.DisplayState().HideDone = next
+	}
+	cfg := self.c.Config()
+	if cfg != nil {
+		cfg.ViewOptions.HideDone = next
+		if err := cfg.Save(); err != nil {
+			self.c.GuiCommon().ShowError(err)
+		}
+	}
+	self.c.GuiCommon().RenderPreview()
+	return nil
+}
+
 // ViewOptionsDialog shows the view options menu.
 func (self *PreviewHelper) ViewOptionsDialog() error {
 	ds := self.activeCtx().DisplayState()
@@ -457,6 +486,10 @@ func (self *PreviewHelper) ViewOptionsDialog() error {
 	if ds.DimDone {
 		doneLabel = "Undim #done lines"
 	}
+	hideLabel := "Hide #done lines"
+	if ds.HideDone {
+		hideLabel = "Show #done lines"
+	}
 
 	self.c.GuiCommon().ShowMenuDialog("View Options", []types.MenuItem{
 		{Label: fmLabel, Key: "f", OnRun: func() error { return self.ToggleFrontmatter() }},
@@ -464,6 +497,7 @@ func (self *PreviewHelper) ViewOptionsDialog() error {
 		{Label: tagsLabel, Key: "T", OnRun: func() error { return self.ToggleGlobalTags() }},
 		{Label: mdLabel, Key: "M", OnRun: func() error { return self.ToggleMarkdown() }},
 		{Label: doneLabel, Key: "d", OnRun: func() error { return self.ToggleDimDone() }},
+		{Label: hideLabel, Key: "h", OnRun: func() error { return self.ToggleHideDone() }},
 	})
 	return nil
 }

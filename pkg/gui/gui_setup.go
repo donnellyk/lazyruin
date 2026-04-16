@@ -144,6 +144,29 @@ func (gui *Gui) setupPreviewContext() {
 				func() *context.DatePreviewContext { return gui.contexts.DatePreview })
 		},
 	)
+
+	gui.seedPreviewDisplayStateFromConfig()
+}
+
+// seedPreviewDisplayStateFromConfig applies persisted view options to every
+// preview context after construction. Call after all preview contexts are
+// registered; safe with nil config (no-op).
+func (gui *Gui) seedPreviewDisplayStateFromConfig() {
+	if gui.config == nil {
+		return
+	}
+	hide := gui.config.ViewOptions.HideDone
+	for _, ctx := range []context.IPreviewContext{
+		gui.contexts.CardList,
+		gui.contexts.PickResults,
+		gui.contexts.Compose,
+		gui.contexts.DatePreview,
+	} {
+		if ctx == nil {
+			continue
+		}
+		ctx.DisplayState().HideDone = hide
+	}
 }
 
 // registerPopupContext is a helper that handles the common registration

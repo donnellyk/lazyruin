@@ -7,12 +7,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ViewOptions holds preview display preferences that persist across runs.
+// Each field has an explicit YAML key so zero-values map cleanly to the
+// "unset → default" case when a config file is older than a field.
+type ViewOptions struct {
+	HideDone bool `yaml:"hide_done"`
+}
+
 // Config holds the application configuration.
 type Config struct {
 	VaultPath     string                       `yaml:"vault_path"`
 	Editor        string                       `yaml:"editor"`
 	ChromaTheme   string                       `yaml:"chroma_theme"`
 	Abbreviations map[string]map[string]string `yaml:"abbreviations,omitempty"`
+	ViewOptions   ViewOptions                  `yaml:"view_options,omitempty"`
 }
 
 // VaultAbbreviations returns the snippet map for the given vault.

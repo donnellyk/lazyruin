@@ -498,6 +498,7 @@ echo "[38] Preview: v (view options)"
 send v
 assert_contains "v opens view options" "View"
 assert_contains "v shows dim done option" "done"
+assert_contains "v shows hide done option" "Hide #done"
 send Escape; settle
 
 # =============================================

@@ -3,9 +3,11 @@ package gui
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
@@ -238,6 +240,156 @@ func TestIsHeaderLine(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("isHeaderLine(%q) = %v, want %v", tt.line, got, tt.want)
 		}
+	}
+}
+
+// buildCardContentFixture constructs a minimal Gui suitable for calling
+// BuildCardContent directly, without any of the GUI lifecycle. Returns the
+// gui and the note whose content is the provided `content` string.
+func buildCardContentFixture(t *testing.T, content string) (*Gui, models.Note) {
+	t.Helper()
+	dir := t.TempDir()
+	notePath := filepath.Join(dir, "note.md")
+	if err := os.WriteFile(notePath, []byte(content), 0644); err != nil {
+		t.Fatalf("write note: %v", err)
+	}
+
+	navHistory := context.NewSharedNavHistory()
+	gui := &Gui{
+		state:      NewGuiState(),
+		contextMgr: NewContextMgr(),
+		contexts: &context.ContextTree{
+			CardList:         context.NewCardListContext(navHistory),
+			Compose:          context.NewComposeContext(navHistory),
+			ActivePreviewKey: "cardList",
+		},
+	}
+	// Disable markdown rendering so tests don't require chroma init.
+	gui.contexts.CardList.RenderMarkdown = false
+
+	note := models.Note{
+		UUID:    "test-uuid",
+		Path:    notePath,
+		Title:   "Test",
+		Content: content,
+	}
+	return gui, note
+}
+
+func extractTexts(lines []types.SourceLine) []string {
+	out := make([]string, 0, len(lines))
+	for _, l := range lines {
+		out = append(out, strings.TrimSpace(stripAnsi(l.Text)))
+	}
+	return out
+}
+
+func TestBuildCardContent_DimDoneSection(t *testing.T) {
+	content := strings.Join([]string{
+		"# Wrap up #done",
+		"still linked",
+		"more stuff",
+	}, "\n")
+	gui, note := buildCardContentFixture(t, content)
+	ds := gui.contexts.ActivePreview().DisplayState()
+	ds.DimDone = true
+	ds.HideDone = false
+
+	lines := gui.BuildCardContent(note, 80)
+	if len(lines) == 0 {
+		t.Fatal("expected at least one rendered line")
+	}
+	for _, l := range lines {
+		if !strings.Contains(l.Text, AnsiDim) {
+			t.Errorf("expected every line in done section to contain AnsiDim, got %q", l.Text)
+		}
+	}
+}
+
+func TestBuildCardContent_HideDoneSection(t *testing.T) {
+	content := strings.Join([]string{
+		"# Done bucket #done",
+		"finished item",
+		"# Active",
+		"keep working",
+	}, "\n")
+	gui, note := buildCardContentFixture(t, content)
+	ds := gui.contexts.ActivePreview().DisplayState()
+	ds.HideDone = true
+
+	lines := gui.BuildCardContent(note, 80)
+	texts := extractTexts(lines)
+
+	for _, want := range []string{"# Active", "keep working"} {
+		found := false
+		for _, got := range texts {
+			if got == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected to see %q in output, got %v", want, texts)
+		}
+	}
+	for _, banned := range []string{"# Done bucket #done", "finished item"} {
+		for _, got := range texts {
+			if got == banned {
+				t.Errorf("expected %q to be hidden, still appeared in %v", banned, texts)
+			}
+		}
+	}
+}
+
+func TestBuildCardContent_HideDoneCollapsesWhitespace(t *testing.T) {
+	content := strings.Join([]string{
+		"# title",
+		"",
+		"hidden line #done",
+		"",
+		"Second line",
+	}, "\n")
+	gui, note := buildCardContentFixture(t, content)
+	ds := gui.contexts.ActivePreview().DisplayState()
+	ds.HideDone = true
+
+	lines := gui.BuildCardContent(note, 80)
+	texts := extractTexts(lines)
+
+	// The surviving body should be: "# title", one blank, "Second line".
+	// Without collapse we'd have two blanks between them, but leading
+	// blanks are trimmed by BuildCardContent — the regression is the
+	// trailing gap between "# title" and "Second line".
+	want := []string{"# title", "", "Second line"}
+	if len(texts) != len(want) {
+		t.Fatalf("text count = %d, want %d. got: %v", len(texts), len(want), texts)
+	}
+	for i, w := range want {
+		if texts[i] != w {
+			t.Errorf("line %d = %q, want %q (full: %v)", i, texts[i], w, texts)
+		}
+	}
+}
+
+func TestBuildCardContent_HideDoneSafety_PreservesFirstLine(t *testing.T) {
+	// Entire body is #done — without safety the body would collapse to nothing.
+	content := strings.Join([]string{
+		"only line #done",
+	}, "\n")
+	gui, note := buildCardContentFixture(t, content)
+	ds := gui.contexts.ActivePreview().DisplayState()
+	ds.HideDone = true
+
+	lines := gui.BuildCardContent(note, 80)
+	if len(lines) == 0 {
+		t.Fatal("hide safety should preserve at least one line")
+	}
+	first := strings.TrimSpace(stripAnsi(lines[0].Text))
+	if first != "only line #done" {
+		t.Errorf("first preserved line = %q, want %q", first, "only line #done")
+	}
+	if !strings.Contains(lines[0].Text, AnsiDim) {
+		t.Errorf("safety-preserved line should be dimmed, got %q", lines[0].Text)
 	}
 }
 
