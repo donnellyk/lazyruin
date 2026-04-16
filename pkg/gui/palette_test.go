@@ -7,6 +7,7 @@ import (
 
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 
 	"github.com/jesseduffield/gocui"
 )
@@ -717,6 +718,43 @@ func TestPaletteCommands_SharedPreviewBindingsDeduped(t *testing.T) {
 			t.Errorf("%q appears %d times, want 1", name, count)
 		}
 	}
+}
+
+// TestQuickOpenItems_TagsNotDoublePrefixed guards against rendering tags as
+// "##name" in the Quick Open dialog. Ruin returns tag names with a leading
+// "#" already (e.g. "#daily"), so the palette must not prepend another one.
+func TestQuickOpenItems_TagsNotDoublePrefixed(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// Simulate the real ruin CLI output, where tag names include the leading '#'.
+	tg.gui.contexts.Tags.Items = []models.Tag{
+		{Name: "#daily", Count: 3, Scope: []string{"global"}},
+		{Name: "#followup", Count: 2, Scope: []string{"inline"}},
+	}
+
+	items := tg.gui.quickOpenItems()
+
+	seen := map[string]bool{}
+	for _, item := range items {
+		seen[item.Name] = true
+		if strings.HasPrefix(item.Name, "##") {
+			t.Errorf("quick open item has doubled hash prefix: %q", item.Name)
+		}
+	}
+	for _, want := range []string{"#daily", "#followup"} {
+		if !seen[want] {
+			t.Errorf("expected quick open item %q, got items = %v", want, itemNames(items))
+		}
+	}
+}
+
+func itemNames(items []types.PaletteCommand) []string {
+	names := make([]string, len(items))
+	for i, it := range items {
+		names[i] = it.Name
+	}
+	return names
 }
 
 func TestKeyDisplayString(t *testing.T) {

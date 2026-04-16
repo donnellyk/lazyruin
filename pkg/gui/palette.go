@@ -359,7 +359,10 @@ func (gui *Gui) quickOpenItems() []types.PaletteCommand {
 	// Tags
 	for _, t := range gui.contexts.Tags.Items {
 		tag := t
-		name := "#" + tag.Name
+		name := tag.Name
+		if !strings.HasPrefix(name, "#") {
+			name = "#" + name
+		}
 		if slices.Contains(tag.Scope, "inline") {
 			items = append(items, types.PaletteCommand{
 				Name:     name,
