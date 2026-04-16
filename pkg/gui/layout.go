@@ -577,6 +577,10 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 		// with `#tag` and so tag completion would fire on open). Dismiss so
 		// the first Esc closes the popup rather than just the dropdown.
 		gui.contexts.Capture.Completion.Dismiss()
+		if gui.contexts.Capture.CursorLine > 0 {
+			v.TextArea.SetCursor2D(0, gui.contexts.Capture.CursorLine)
+			gui.contexts.Capture.CursorLine = 0
+		}
 	}
 	gui.updateCaptureFooter()
 	gui.renderCaptureTextArea(v) // render with syntax highlighting

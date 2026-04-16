@@ -70,7 +70,7 @@ func (self *ComposeController) editInline() error {
 	if err != nil || note == nil {
 		return nil
 	}
-	return self.c.Helpers().Capture().OpenCaptureForEdit(note)
+	return self.c.Helpers().Capture().OpenCaptureForEditAtLine(note, target.LineNum)
 }
 
 func (self *ComposeController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {

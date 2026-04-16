@@ -56,6 +56,10 @@ func (self *DatePreviewController) editInline() error {
 	if card == nil {
 		return nil
 	}
+	target := self.c.Helpers().PreviewLineOps().ResolveTarget()
+	if target != nil && target.UUID == card.UUID {
+		return self.c.Helpers().Capture().OpenCaptureForEditAtLine(card, target.LineNum)
+	}
 	return self.c.Helpers().Capture().OpenCaptureForEdit(card)
 }
 

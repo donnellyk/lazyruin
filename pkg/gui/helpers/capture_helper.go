@@ -42,6 +42,7 @@ func resetCaptureState(ctx *context.CaptureContext) {
 	ctx.LinkExistingUUID = ""
 	ctx.LinkParent = ""
 	ctx.PrefillContent = ""
+	ctx.CursorLine = 0
 	ctx.EditingPath = ""
 	ctx.EditingTitle = ""
 	ctx.EditingMtime = time.Time{}
@@ -89,6 +90,14 @@ func (self *CaptureHelper) OpenCaptureWithContent(text string) error {
 // note's title instead of "New Note". On Ctrl+S the file is rewritten and
 // reindexed via `ruin doctor`; Esc closes without saving.
 func (self *CaptureHelper) OpenCaptureForEdit(note *models.Note) error {
+	return self.OpenCaptureForEditAtLine(note, 0)
+}
+
+// OpenCaptureForEditAtLine is OpenCaptureForEdit but positions the cursor
+// at the line corresponding to rawLineNum (1-indexed line number in the
+// note's post-frontmatter content, as returned by ResolveTarget). Pass 0
+// to leave the cursor at the end (default).
+func (self *CaptureHelper) OpenCaptureForEditAtLine(note *models.Note, rawLineNum int) error {
 	if note == nil || note.Path == "" {
 		return nil
 	}
@@ -107,8 +116,44 @@ func (self *CaptureHelper) OpenCaptureForEdit(note *models.Note) error {
 	ctx.EditingPath = note.Path
 	ctx.EditingTitle = note.Title
 	ctx.EditingMtime = mtime
+	if rawLineNum > 0 {
+		ctx.CursorLine = bodyLineForRaw(note.Path, rawLineNum)
+	}
 	gui.PushContextByKey("capture")
 	return nil
+}
+
+// bodyLineForRaw converts a 1-indexed raw-post-frontmatter line number
+// (as used by ResolveTarget / readSourceLine) to a 0-indexed line number
+// in the capture body, accounting for the leading blank-line stripping
+// performed by readNoteBodyAndMtime.
+func bodyLineForRaw(path string, rawLineNum int) int {
+	if rawLineNum < 1 {
+		return 0
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+	fileLines := strings.Split(string(data), "\n")
+	contentStart := 0
+	if len(fileLines) > 0 && strings.HasPrefix(fileLines[0], "---") {
+		for i := 1; i < len(fileLines); i++ {
+			if strings.TrimSpace(fileLines[i]) == "---" {
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+	bodyStart := contentStart
+	for bodyStart < len(fileLines) && fileLines[bodyStart] == "" {
+		bodyStart++
+	}
+	bodyLine := contentStart + rawLineNum - 1 - bodyStart
+	if bodyLine < 0 {
+		return 0
+	}
+	return bodyLine
 }
 
 // saveEdit writes newContent back to path, preserving the original
