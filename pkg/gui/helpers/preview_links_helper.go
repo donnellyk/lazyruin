@@ -128,10 +128,12 @@ func (self *PreviewLinksHelper) FollowLink(link context.PreviewLink) error {
 		if err != nil || note == nil {
 			return nil
 		}
-		nav := self.c.Helpers().PreviewNav()
-		nav.PushNavHistory()
-		self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
-		return nil
+		noteCopy := *note
+		return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+			source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
+			self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+			return nil
+		})
 	}
 
 	if strings.HasPrefix(text, "http://") || strings.HasPrefix(text, "https://") {

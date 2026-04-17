@@ -221,5 +221,19 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		// Panel navigation (no Description = not in palette)
 		{Key: gocui.KeyTab, Handler: self.NextPanel},
 		{Key: gocui.KeyBacktab, Handler: self.PrevPanel},
+
+		// Navigation history — bound globally so [ / ] work from any panel.
+		// Preview controllers don't need their own binding; this one wins for
+		// any view that doesn't override it.
+		{ID: "global.nav_back", Key: '[', Handler: self.navBack, Description: "Go Back", Category: "Navigation"},
+		{ID: "global.nav_forward", Key: ']', Handler: self.navForward, Description: "Go Forward", Category: "Navigation"},
 	}
+}
+
+func (self *GlobalController) navBack() error {
+	return self.c.Helpers().Navigator().Back()
+}
+
+func (self *GlobalController) navForward() error {
+	return self.c.Helpers().Navigator().Forward()
 }

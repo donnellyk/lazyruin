@@ -248,15 +248,16 @@ func (self *CalendarHelper) InputClick() error {
 	return nil
 }
 
-// LoadInPreview loads the Date Preview for the selected date.
+// LoadInPreview loads the Date Preview for the selected date as a committed
+// navigation.
 func (self *CalendarHelper) LoadInPreview() {
 	date := self.SelectedDate()
-	self.c.Helpers().PreviewNav().PushNavHistory()
 	self.Close()
-	self.c.Helpers().DatePreview().LoadDatePreview(date)
+	_ = self.c.Helpers().DatePreview().LoadDatePreview(date)
 }
 
-// LoadNoteInPreview loads a single note into the preview.
+// LoadNoteInPreview loads a single note into the preview as a committed
+// navigation.
 func (self *CalendarHelper) LoadNoteInPreview(index int) {
 	s := self.state()
 	if index >= len(s.Notes) {
@@ -272,12 +273,13 @@ func (self *CalendarHelper) LoadNoteInPreview(index int) {
 		return
 	}
 
-	title := full.Title
-	gui := self.c.GuiCommon()
-	self.c.Helpers().PreviewNav().PushNavHistory()
+	fullCopy := *full
 	self.Close()
-	self.c.Helpers().Preview().ShowCardList(title, []models.Note{*full})
-	gui.PushContextByKey("cardList")
+	_ = self.c.Helpers().Navigator().NavigateTo("cardList", fullCopy.Title, func() error {
+		source := self.c.Helpers().Preview().NewSingleNoteSource(fullCopy.UUID)
+		self.c.Helpers().Preview().ShowCardList(fullCopy.Title, []models.Note{fullCopy}, source)
+		return nil
+	})
 }
 
 // fetchNotesForDate fetches notes created or updated on the given date (YYYY-MM-DD format).

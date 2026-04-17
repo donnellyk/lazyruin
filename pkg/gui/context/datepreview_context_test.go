@@ -102,7 +102,7 @@ func TestLocalCardIdx(t *testing.T) {
 }
 
 func TestDatePreviewContext_CardCount(t *testing.T) {
-	ctx := NewDatePreviewContext(NewSharedNavHistory())
+	ctx := NewDatePreviewContext()
 	ctx.DatePreviewState.TargetDate = "2026-02-23"
 
 	if ctx.CardCount() != 0 {

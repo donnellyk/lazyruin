@@ -797,15 +797,23 @@ assert_contains "help shows Global section" "Global"
 send Escape; settle
 
 # =============================================
-# 67. Preview: [ / ] nav history
+# 67. Nav history: [ / ] bound globally (works from side panes too)
 # =============================================
-echo "[67] Preview: nav history"
-send 1; settle; send g; settle
-send Enter; wait_for "Back: esc" || true
-# Navigate forward into something, then use [ to go back
-send '['; settle; send ']'; settle
+echo "[67] Nav history global binding"
+# Build up some history by navigating from Notes.
+send 1; settle
+send j; send Enter; settle     # commit view A
+send 1; settle
+send j; send j; send Enter; settle  # commit view B
+# From the preview pane, [ must take us back.
+send '['; settle
 TOTAL=$((TOTAL + 1))
-echo "  PASS: [/] nav history (no crash)"
+echo "  PASS: [ from preview does not crash"
+# From a side panel, [ must also work (bound in GlobalController).
+send 1; settle
+send '['; settle
+TOTAL=$((TOTAL + 1))
+echo "  PASS: [ from side panel does not crash"
 send Escape; settle
 
 # =============================================

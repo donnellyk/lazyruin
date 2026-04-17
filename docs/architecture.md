@@ -80,13 +80,13 @@ lazyruin/
 │   │   │   ├── base_context.go      # BaseContext (aggregates controller bindings, focus hooks)
 │   │   │   ├── list_cursor.go       # ListCursor implementing IListCursor
 │   │   │   ├── list_context_trait.go # Shared list selection + render/preview callbacks
-│   │   │   ├── preview_common.go    # PreviewNavState, PreviewDisplayState, IPreviewContext, SharedNavHistory
+│   │   │   ├── preview_common.go    # PreviewNavState, PreviewDisplayState, IPreviewContext
 │   │   │   ├── global_context.go    # GlobalContext (GLOBAL_CONTEXT kind, view="")
 │   │   │   ├── notes_context.go     # Owns Items []Note, cursor, CurrentTab
 │   │   │   ├── tags_context.go      # Owns Items []Tag, cursor, CurrentTab
 │   │   │   ├── queries_context.go   # Owns Queries + Parents, cursor, CurrentTab
-│   │   │   ├── preview_context.go   # Embeds *PreviewState, owns NavHistory
-│   │   │   ├── preview_state.go     # PreviewState, PreviewLink, NavEntry, PreviewMode
+│   │   │   ├── preview_context.go   # Embeds *PreviewState, implements Snapshotter
+│   │   │   ├── preview_state.go     # PreviewState, PreviewLink, PreviewMode
 │   │   │   ├── datepreview_context.go # MAIN_CONTEXT — date preview with 3 sections (tags, todos, notes)
 │   │   │   ├── search_context.go    # PERSISTENT_POPUP — search completion state
 │   │   │   ├── capture_context.go   # PERSISTENT_POPUP — capture state + completion
@@ -126,8 +126,9 @@ lazyruin/
 │   │   │   ├── note_actions_helper.go # AddGlobalTag, RemoveTag, SetParent, Bookmark
 │   │   │   ├── tags_helper.go       # RefreshTags, tab switching
 │   │   │   ├── queries_helper.go    # RefreshQueries, RefreshParents
-│   │   │   ├── preview_helper.go    # Nav history, content reload, card mutations,
+│   │   │   ├── preview_helper.go    # Content reload, card mutations,
 │   │   │   │                        #   display toggles, line ops, links, info dialog
+│   │   │   ├── navigator.go         # Navigator helper: NavigateTo, ShowHover, ReplaceCurrent, Back, Forward
 │   │   │   ├── editor_helper.go     # SuspendAndEdit, editor command
 │   │   │   ├── confirmation_helper.go # Confirm/Menu/Prompt dialogs
 │   │   │   ├── search_helper.go     # ExecuteSearch, SaveQuery
@@ -215,7 +216,7 @@ type DatePreviewContext struct {
 }
 ```
 
-**Multiple preview contexts**: Preview and DatePreview both share the `preview` view and implement `IPreviewContext`. The active context is tracked by `ActivePreviewKey` in `ContextTree`. Both share `PreviewNavState` for scroll/cursor/links and `SharedNavHistory` for back/forward navigation.
+**Multiple preview contexts**: Preview and DatePreview both share the `preview` view and implement `IPreviewContext`. The active context is tracked by `ActivePreviewKey` in `ContextTree`. Both share `PreviewNavState` for scroll/cursor/links. Back/forward navigation is managed by the `Navigator` helper and `NavigationManager` history stack (see section 10).
 
 ### 2. Controller System
 
@@ -254,7 +255,8 @@ Helpers encapsulate domain operations. They access the GUI through an `IGuiCommo
 | `NoteActionsHelper` | `AddGlobalTag`, `RemoveTag`, `SetParentDialog`, `ToggleBookmark` |
 | `TagsHelper` | `RefreshTags`, tab switching |
 | `QueriesHelper` | `RefreshQueries`, `RefreshParents` |
-| `PreviewHelper` | Nav history, content reload, card navigation, card mutations (delete/move/merge/order), display toggles, line operations (todo/done/inline tag/date), link handling, info dialog, scroll |
+| `PreviewHelper` | Content reload, card navigation, card mutations (delete/move/merge/order), display toggles, line operations (todo/done/inline tag/date), link handling, info dialog, scroll |
+| `Navigator` | Single entry point for all preview pane transitions: `NavigateTo`, `ShowHover`, `ReplaceCurrent`, `Back`, `Forward`; owns capture-on-departure logic |
 | `PreviewNavHelper` | Shared preview navigation: card/line/header/section jump, Enter handler, link highlight — works across Preview and DatePreview via `IPreviewContext` |
 | `DatePreviewHelper` | `LoadDatePreview`, `ReloadDatePreview`, date utilities (`CurrentWeekday`, `ISOWeekday`), `DeduplicateNotes`, `filterOutTodoLines`, `sortDonePicksLast` |
 | `EditorHelper` | Suspend and edit in `$EDITOR` |
@@ -299,7 +301,7 @@ All panel-specific and popup-specific state lives in the respective context stru
 - Notes items/cursor/tab → `NotesContext`
 - Tags items/cursor/tab → `TagsContext`
 - Queries/Parents items/cursor/tab → `QueriesContext`
-- Preview cards/mode/cursor/scroll/links/nav history → `PreviewContext`
+- Preview cards/mode/cursor/scroll/links → `PreviewContext`; nav history → `NavigationManager` (via `Navigator` helper)
 - Date preview target date/tag picks/todo picks/notes/section ranges → `DatePreviewContext`
 - Capture parent/completion → `CaptureContext`
 - Pick query/anyMode/completion → `PickContext`
@@ -321,7 +323,8 @@ type IPreviewContext interface {
     SelectedCardIndex() int
     SetSelectedCardIndex(int)
     CardCount() int
-    NavHistory() *SharedNavHistory
+    CaptureSnapshot() Snapshot
+    RestoreSnapshot(Snapshot)
 }
 ```
 
@@ -357,6 +360,28 @@ type RuinCommand struct {
 ```
 
 The `Executor` interface enables test mocking via `testutil.MockExecutor`.
+
+### 10. Navigator + NavigationManager + Snapshotter
+
+**Files:** `helpers/navigator.go`, `context/nav_manager.go`, `types/snapshot.go`
+
+The `Navigator` helper is the single entry point for all preview pane transitions.
+
+**NavigationManager** (`context/nav_manager.go`) is the history stack. It holds `NavigationEvent` entries (ContextKey, Title, Snapshot, Timestamp) with a 50-entry cap.
+
+**Snapshotter interface** (`types/snapshot.go`): every preview context implements `CaptureSnapshot()` / `RestoreSnapshot()`. Each context is responsible for serialising and restoring its own state.
+
+**Navigator API**:
+- `NavigateTo(destination, title, load)` — committed navigation; records a history entry; pushes context for preview destinations.
+- `ShowHover(destination, title, load)` — hover (no history entry); title rendered in italics via ANSI escape codes.
+- `ReplaceCurrent(destination, title, load)` — like `NavigateTo` but replaces rather than pushes the context stack (used by search, execute-pick).
+- `Back()` / `Forward()` — rewind/advance history; re-run the Requery closure via the Snapshotter so renames/edits/deletes are reflected automatically.
+
+**Capture-on-departure**: Navigator carries a `currentIsCommitted` flag. Every method snapshots the current preview context (if committed) into the current history entry before doing anything else. Toggle, scroll, and filter handlers never need to know about Navigator.
+
+**Re-query on restore**: each context's snapshot carries a Requery closure (via `CardListSource.Requery`, `PickResultsSource.Requery`, `ComposeContext.Requery`, `DatePreviewContext.Requery`). Restore re-runs the query so the data is fresh; frozen data is a fallback only.
+
+**Two independent stacks**: the context stack (`Esc` → `popContext`) and the nav history stack (`[` / `]` → `Navigator.Back` / `Forward`) are separate by design. `Esc` in the preview pane returns focus to the last side pane; it never touches history.
 
 ## Data Flow
 

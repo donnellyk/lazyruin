@@ -13,6 +13,10 @@ const (
 	SectionNotes     DatePreviewSection = 2
 )
 
+// DatePreviewRequery re-runs the three queries that populate the date preview
+// (tag picks, todo picks, notes).
+type DatePreviewRequery func() (tagPicks, todoPicks []models.PickResult, notes []models.Note, err error)
+
 type DatePreviewState struct {
 	TargetDate         string
 	TagPicks           []models.PickResult
@@ -21,6 +25,7 @@ type DatePreviewState struct {
 	SectionRanges      [3][2]int
 	SectionLineRanges  [3][2]int
 	SectionHeaderLines []int
+	Requery            DatePreviewRequery // closure to re-fetch all three sections for TargetDate
 }
 
 type DatePreviewContext struct {
@@ -29,7 +34,7 @@ type DatePreviewContext struct {
 	*DatePreviewState
 }
 
-func NewDatePreviewContext(navHistory *SharedNavHistory) *DatePreviewContext {
+func NewDatePreviewContext() *DatePreviewContext {
 	return &DatePreviewContext{
 		BaseContext: NewBaseContext(NewBaseContextOpts{
 			Kind:      types.MAIN_CONTEXT,
@@ -38,7 +43,7 @@ func NewDatePreviewContext(navHistory *SharedNavHistory) *DatePreviewContext {
 			Focusable: true,
 			Title:     "Date Preview",
 		}),
-		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		PreviewContextTrait: NewPreviewContextTrait(),
 		DatePreviewState:    &DatePreviewState{},
 	}
 }
@@ -73,5 +78,71 @@ func (s *DatePreviewState) LocalCardIdx(globalIdx int) int {
 	return globalIdx - s.SectionRanges[sec][0]
 }
 
+// datePreviewSnapshot carries view params (TargetDate + Requery closure) and
+// view state for DatePreview restoration.
+type datePreviewSnapshot struct {
+	Title           string
+	TargetDate      string
+	Requery         DatePreviewRequery
+	FrozenTagPicks  []models.PickResult
+	FrozenTodoPicks []models.PickResult
+	FrozenNotes     []models.Note
+	SelectedCardIdx int
+	CursorLine      int
+	ScrollOffset    int
+	Display         PreviewDisplayState
+}
+
+func (self *DatePreviewContext) CaptureSnapshot() types.Snapshot {
+	ns := self.NavState()
+	return &datePreviewSnapshot{
+		Title:           self.Title(),
+		TargetDate:      self.TargetDate,
+		Requery:         self.Requery,
+		FrozenTagPicks:  append([]models.PickResult(nil), self.TagPicks...),
+		FrozenTodoPicks: append([]models.PickResult(nil), self.TodoPicks...),
+		FrozenNotes:     append([]models.Note(nil), self.Notes...),
+		SelectedCardIdx: self.SelectedCardIdx,
+		CursorLine:      ns.CursorLine,
+		ScrollOffset:    ns.ScrollOffset,
+		Display:         *self.DisplayState(),
+	}
+}
+
+func (self *DatePreviewContext) RestoreSnapshot(s types.Snapshot) error {
+	snap, ok := s.(*datePreviewSnapshot)
+	if !ok || snap == nil {
+		return nil
+	}
+	self.SetTitle(snap.Title)
+	self.TargetDate = snap.TargetDate
+	self.Requery = snap.Requery
+	*self.DisplayState() = snap.Display
+
+	if snap.Requery != nil {
+		tag, todo, notes, err := snap.Requery()
+		if err == nil {
+			self.TagPicks = tag
+			self.TodoPicks = todo
+			self.Notes = notes
+		} else {
+			self.TagPicks = append([]models.PickResult(nil), snap.FrozenTagPicks...)
+			self.TodoPicks = append([]models.PickResult(nil), snap.FrozenTodoPicks...)
+			self.Notes = append([]models.Note(nil), snap.FrozenNotes...)
+		}
+	} else {
+		self.TagPicks = append([]models.PickResult(nil), snap.FrozenTagPicks...)
+		self.TodoPicks = append([]models.PickResult(nil), snap.FrozenTodoPicks...)
+		self.Notes = append([]models.Note(nil), snap.FrozenNotes...)
+	}
+
+	self.SelectedCardIdx = snap.SelectedCardIdx
+	ns := self.NavState()
+	ns.CursorLine = snap.CursorLine
+	ns.ScrollOffset = snap.ScrollOffset
+	return nil
+}
+
 var _ types.Context = &DatePreviewContext{}
 var _ IPreviewContext = &DatePreviewContext{}
+var _ types.Snapshotter = &DatePreviewContext{}

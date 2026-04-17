@@ -124,8 +124,7 @@ func TestContextMgr_SetStack(t *testing.T) {
 }
 
 func TestCardListContext_Defaults(t *testing.T) {
-	navHistory := context.NewSharedNavHistory()
-	cl := context.NewCardListContext(navHistory)
+	cl := context.NewCardListContext()
 
 	if cl.SelectedCardIdx != 0 {
 		t.Errorf("SelectedCardIdx = %d, want 0", cl.SelectedCardIdx)
@@ -146,8 +145,7 @@ func TestCardListContext_Defaults(t *testing.T) {
 }
 
 func TestDisplayState_FrontmatterToggle(t *testing.T) {
-	navHistory := context.NewSharedNavHistory()
-	cl := context.NewCardListContext(navHistory)
+	cl := context.NewCardListContext()
 	ds := cl.DisplayState()
 
 	if ds.ShowFrontmatter {

@@ -109,7 +109,9 @@ func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
 	}
 }
 
-// UpdatePreviewForNotes updates the preview pane to show the selected note.
+// UpdatePreviewForNotes updates the preview pane to show the selected note
+// as a hover preview — the view is not committed to history and the title
+// is italicized.
 func (self *PreviewHelper) UpdatePreviewForNotes() {
 	notes := self.c.GuiCommon().Contexts().Notes
 	if len(notes.Items) == 0 {
@@ -120,18 +122,41 @@ func (self *PreviewHelper) UpdatePreviewForNotes() {
 		return
 	}
 	note := notes.Items[idx]
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.ShowCardList(note.Title, []models.Note{note})
+	_ = self.c.Helpers().Navigator().ShowHover("cardList", note.Title, func() error {
+		self.ShowCardList(note.Title, []models.Note{note}, self.NewSingleNoteSource(note.UUID))
+		return nil
+	})
 }
 
-// UpdatePreviewCardList loads a card list into the preview.
+// UpdatePreviewCardList loads a card list into the preview as a hover
+// preview. Does not record a history entry.
 func (self *PreviewHelper) UpdatePreviewCardList(title string, loadFn func() ([]models.Note, error)) {
-	notes, err := loadFn()
-	if err != nil {
-		return
+	_ = self.c.Helpers().Navigator().ShowHover("cardList", title, func() error {
+		notes, err := loadFn()
+		if err != nil {
+			return err
+		}
+		self.ShowCardList(title, notes)
+		return nil
+	})
+}
+
+// NewSingleNoteSource builds a CardListSource that re-queries a single note
+// by UUID — used when a single note is shown in card-list view (hover,
+// wiki-link follow, etc.) so re-query on history restore stays in sync
+// with edits made to the underlying file.
+func (self *PreviewHelper) NewSingleNoteSource(uuid string) context.CardListSource {
+	return context.CardListSource{
+		Query: uuid,
+		Requery: func(_ string) ([]models.Note, error) {
+			o := self.BuildSearchOptions()
+			note, err := self.c.RuinCmd().Search.Get(uuid, o)
+			if err != nil || note == nil {
+				return nil, err
+			}
+			return []models.Note{*note}, nil
+		},
 	}
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.ShowCardList(title, notes)
 }
 
 // ShowCardList sets the preview to card-list mode with the given cards and title,

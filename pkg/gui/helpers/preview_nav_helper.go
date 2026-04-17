@@ -1,8 +1,6 @@
 package helpers
 
 import (
-	"strings"
-
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
@@ -10,8 +8,9 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// PreviewNavHelper handles preview navigation: history stack, cursor movement,
-// scrolling, and interaction (click, back, focus, editor).
+// PreviewNavHelper handles preview cursor movement, scrolling, and
+// interaction (click, back, focus, editor). Preview navigation history
+// (back/forward between committed views) lives in the Navigator helper.
 type PreviewNavHelper struct {
 	c *HelperCommon
 }
@@ -39,204 +38,6 @@ func (self *PreviewNavHelper) renderActive() {
 	} else {
 		gui.RenderPreview()
 	}
-}
-
-// --- nav history ---
-
-// PushNavHistory captures the current preview state onto the nav history stack.
-func (self *PreviewNavHelper) PushNavHistory() {
-	ctx := self.activeCtx()
-	if ctx.CardCount() == 0 {
-		return
-	}
-
-	entry := self.captureCurrentNavEntry()
-	nh := ctx.NavHistory()
-
-	// Truncate any forward entries
-	if nh.Index >= 0 && nh.Index < len(nh.Entries)-1 {
-		nh.Entries = nh.Entries[:nh.Index+1]
-	}
-
-	nh.Entries = append(nh.Entries, entry)
-	nh.Index = len(nh.Entries) - 1
-
-	// Cap at 50 entries
-	if len(nh.Entries) > 50 {
-		nh.Entries = nh.Entries[len(nh.Entries)-50:]
-		nh.Index = len(nh.Entries) - 1
-	}
-}
-
-func (self *PreviewNavHelper) captureCurrentNavEntry() context.NavEntry {
-	contexts := self.c.GuiCommon().Contexts()
-	ctx := self.activeCtx()
-	ns := ctx.NavState()
-
-	entry := context.NavEntry{
-		SelectedCardIndex: ctx.SelectedCardIndex(),
-		CursorLine:        ns.CursorLine,
-		ScrollOffset:      ns.ScrollOffset,
-		Title:             ctx.Title(),
-		ContextKey:        contexts.ActivePreviewKey,
-	}
-
-	switch contexts.ActivePreviewKey {
-	case "pickResults":
-		pr := contexts.PickResults
-		entry.PickResults = append([]models.PickResult(nil), pr.Results...)
-	case "compose":
-		comp := contexts.Compose
-		entry.Cards = []models.Note{comp.Note}
-		entry.SourceMap = append([]models.SourceMapEntry(nil), comp.SourceMap...)
-		entry.Parent = comp.Parent
-	case "datePreview":
-		dp := contexts.DatePreview
-		entry.DateTargetDate = dp.TargetDate
-		entry.DateTagPicks = append([]models.PickResult(nil), dp.TagPicks...)
-		entry.DateTodoPicks = append([]models.PickResult(nil), dp.TodoPicks...)
-		entry.DateNotes = append([]models.Note(nil), dp.Notes...)
-	default:
-		cl := contexts.CardList
-		entry.Cards = append([]models.Note(nil), cl.Cards...)
-	}
-
-	return entry
-}
-
-func (self *PreviewNavHelper) restoreNavEntry(entry context.NavEntry) {
-	contexts := self.c.GuiCommon().Contexts()
-	gui := self.c.GuiCommon()
-
-	targetKey := entry.ContextKey
-	if targetKey == "" {
-		targetKey = "cardList"
-	}
-
-	switch targetKey {
-	case "pickResults":
-		pr := contexts.PickResults
-		pr.Results = append([]models.PickResult(nil), entry.PickResults...)
-		pr.SelectedCardIdx = entry.SelectedCardIndex
-		ns := pr.NavState()
-		ns.CursorLine = entry.CursorLine
-		ns.ScrollOffset = entry.ScrollOffset
-	case "compose":
-		comp := contexts.Compose
-		if len(entry.Cards) > 0 {
-			comp.Note = entry.Cards[0]
-		}
-		comp.SourceMap = append([]models.SourceMapEntry(nil), entry.SourceMap...)
-		comp.Parent = entry.Parent
-		comp.SelectedCardIdx = entry.SelectedCardIndex
-		ns := comp.NavState()
-		ns.CursorLine = entry.CursorLine
-		ns.ScrollOffset = entry.ScrollOffset
-	case "datePreview":
-		dp := contexts.DatePreview
-		dp.TargetDate = entry.DateTargetDate
-		dp.TagPicks = append([]models.PickResult(nil), entry.DateTagPicks...)
-		dp.TodoPicks = append([]models.PickResult(nil), entry.DateTodoPicks...)
-		dp.Notes = append([]models.Note(nil), entry.DateNotes...)
-		dp.SelectedCardIdx = entry.SelectedCardIndex
-		ns := dp.NavState()
-		ns.CursorLine = entry.CursorLine
-		ns.ScrollOffset = entry.ScrollOffset
-	default:
-		cl := contexts.CardList
-		cl.Cards = append([]models.Note(nil), entry.Cards...)
-		cl.SelectedCardIdx = entry.SelectedCardIndex
-		ns := cl.NavState()
-		ns.CursorLine = entry.CursorLine
-		ns.ScrollOffset = entry.ScrollOffset
-	}
-
-	contexts.ActivePreviewKey = targetKey
-
-	// Restore the title into the context state; layout reads it on next draw.
-	activeCtx := gui.Contexts().ActivePreview()
-	activeCtx.SetTitle(entry.Title)
-
-	if v := self.view(); v != nil {
-		v.SetOrigin(0, entry.ScrollOffset)
-	}
-
-	// Switch to the correct preview context for the restored entry
-	if context.IsPreviewContextKey(targetKey) {
-		if gui.CurrentContextKey() != targetKey {
-			gui.ReplaceContextByKey(targetKey)
-		}
-	}
-	gui.RenderPreview()
-}
-
-// NavBack navigates backward in history.
-func (self *PreviewNavHelper) NavBack() error {
-	nh := self.activeCtx().NavHistory()
-	if nh.Index < 0 || len(nh.Entries) == 0 {
-		return nil
-	}
-
-	nh.Entries[nh.Index] = self.captureCurrentNavEntry()
-
-	if nh.Index == len(nh.Entries)-1 {
-		nh.Entries = append(nh.Entries, self.captureCurrentNavEntry())
-	}
-
-	if nh.Index <= 0 {
-		return nil
-	}
-
-	nh.Index--
-	self.restoreNavEntry(nh.Entries[nh.Index])
-	return nil
-}
-
-// NavForward navigates forward in history.
-func (self *PreviewNavHelper) NavForward() error {
-	nh := self.activeCtx().NavHistory()
-	if nh.Index >= len(nh.Entries)-1 {
-		return nil
-	}
-
-	nh.Entries[nh.Index] = self.captureCurrentNavEntry()
-
-	nh.Index++
-	self.restoreNavEntry(nh.Entries[nh.Index])
-	return nil
-}
-
-// ShowNavHistory shows the navigation history stack in a menu dialog.
-func (self *PreviewNavHelper) ShowNavHistory() error {
-	nh := self.activeCtx().NavHistory()
-	if len(nh.Entries) == 0 {
-		return nil
-	}
-
-	var items []types.MenuItem
-	for i := len(nh.Entries) - 1; i >= 0; i-- {
-		entry := nh.Entries[i]
-		label := strings.TrimSpace(entry.Title)
-		if label == "" {
-			label = "(untitled)"
-		}
-		if i == nh.Index {
-			label = "> " + label
-		}
-		idx := i
-		items = append(items, types.MenuItem{
-			Label: label,
-			OnRun: func() error {
-				nh.Entries[nh.Index] = self.captureCurrentNavEntry()
-				nh.Index = idx
-				self.restoreNavEntry(nh.Entries[idx])
-				return nil
-			},
-		})
-	}
-
-	self.c.GuiCommon().ShowMenuDialog("Navigation History", items)
-	return nil
 }
 
 // PreviewEnter dispatches Enter based on the active preview context.
@@ -270,11 +71,14 @@ func (self *PreviewNavHelper) OpenSourceAtCursor() error {
 	if err != nil || note == nil {
 		return nil
 	}
-	self.PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
-	self.c.GuiCommon().PushContextByKey("cardList")
-	self.positionCursorAtContentLine(note, target.LineNum)
-	return nil
+	noteCopy := *note
+	targetLine := target.LineNum
+	return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+		source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
+		self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		self.positionCursorAtContentLine(&noteCopy, targetLine)
+		return nil
+	})
 }
 
 // OpenDatePreviewResult opens the currently selected item in the date preview.
@@ -309,9 +113,11 @@ func (self *PreviewNavHelper) OpenDatePreviewResult() error {
 		localIdx := dp.LocalCardIdx(idx)
 		if localIdx < len(dp.Notes) {
 			note := dp.Notes[localIdx]
-			self.PushNavHistory()
-			self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{note})
-			gui.PushContextByKey("cardList")
+			return self.c.Helpers().Navigator().NavigateTo("cardList", note.Title, func() error {
+				source := self.c.Helpers().Preview().NewSingleNoteSource(note.UUID)
+				self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{note}, source)
+				return nil
+			})
 		}
 	}
 	return nil
@@ -324,10 +130,12 @@ func (self *PreviewNavHelper) OpenNoteByUUID(uuid string) error {
 	if err != nil || note == nil {
 		return nil
 	}
-	self.PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
-	self.c.GuiCommon().PushContextByKey("cardList")
-	return nil
+	noteCopy := *note
+	return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+		source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
+		self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		return nil
+	})
 }
 
 // openPickResultFrom is the shared implementation for opening a pick result
@@ -349,18 +157,19 @@ func (self *PreviewNavHelper) openPickResultFrom(results []models.PickResult, ct
 	if err != nil || note == nil {
 		return nil
 	}
+	noteCopy := *note
 
 	if beforeNav != nil {
 		beforeNav()
 	}
-	self.PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{*note})
-	self.c.GuiCommon().PushContextByKey("cardList")
-
-	if lineTarget != nil {
-		self.positionCursorAtContentLine(note, lineTarget.LineNum)
-	}
-	return nil
+	return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+		source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
+		self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		if lineTarget != nil {
+			self.positionCursorAtContentLine(&noteCopy, lineTarget.LineNum)
+		}
+		return nil
+	})
 }
 
 // OpenPickResult opens the currently selected pick result as a full note in
@@ -724,13 +533,9 @@ func (self *PreviewNavHelper) FocusNote() error {
 	card := cl.Cards[cl.SelectedCardIdx]
 	gui := self.c.GuiCommon()
 	notes := gui.Contexts().Notes
-	for i, note := range notes.Items {
-		if note.UUID == card.UUID {
-			notes.SetSelectedLineIdx(i)
-			gui.PushContextByKey("notes")
-			gui.RenderNotes()
-			return nil
-		}
+	if notes.SelectByUUID(card.UUID) {
+		gui.PushContextByKey("notes")
+		gui.RenderNotes()
 	}
 	return nil
 }

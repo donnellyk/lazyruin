@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/donnellyk/lazyruin/pkg/commands"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
@@ -16,7 +17,22 @@ func NewDatePreviewHelper(c *HelperCommon) *DatePreviewHelper {
 	return &DatePreviewHelper{c: c}
 }
 
+// LoadDatePreview loads the date preview for the given date as a committed
+// navigation: capture-on-departure, fetch data, record a new history entry.
 func (self *DatePreviewHelper) LoadDatePreview(date string) error {
+	t, _ := time.Parse("2006-01-02", date)
+	title := t.Format("Monday, January 2 2006")
+
+	return self.c.Helpers().Navigator().NavigateTo("datePreview", title, func() error {
+		self.loadDatePreviewState(date)
+		return nil
+	})
+}
+
+// loadDatePreviewState populates DatePreview context state for the given
+// date without touching history or context focus. Used as the load closure
+// for Navigator.NavigateTo.
+func (self *DatePreviewHelper) loadDatePreviewState(date string) {
 	tagPicks, _ := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{Date: "@" + date, All: true})
 	tagPicks = filterOutTodoLines(tagPicks)
 	tagPicks = sortDonePicksLast(tagPicks)
@@ -47,13 +63,35 @@ func (self *DatePreviewHelper) LoadDatePreview(date string) error {
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	gui.Contexts().ActivePreviewKey = "datePreview"
+	dp.Requery = self.dateRequery(date)
 
 	t, _ := time.Parse("2006-01-02", date)
 	dp.SetTitle(t.Format("Monday, January 2 2006"))
 
 	gui.RenderPreview()
-	gui.PushContextByKey("datePreview")
-	return nil
+}
+
+// dateRequery returns a closure that re-fetches the three sections for the
+// given date, used as DatePreviewContext.Requery on history restore.
+func (self *DatePreviewHelper) dateRequery(date string) context.DatePreviewRequery {
+	return func() ([]models.PickResult, []models.PickResult, []models.Note, error) {
+		tagPicks, err := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{Date: "@" + date, All: true})
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		tagPicks = sortDonePicksLast(filterOutTodoLines(tagPicks))
+
+		todoPicks, _ := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{
+			Date: "@" + date, Todo: true, All: true,
+		})
+		opts := commands.SearchOptions{
+			Sort: "created", Limit: 100, IncludeContent: true, StripTitle: true,
+		}
+		created, _ := self.c.RuinCmd().Search.Search("created:"+date, opts)
+		updated, _ := self.c.RuinCmd().Search.Search("updated:"+date, opts)
+		notes := DeduplicateNotes(created, updated)
+		return tagPicks, todoPicks, notes, nil
+	}
 }
 
 func (self *DatePreviewHelper) ReloadDatePreview() {

@@ -111,40 +111,39 @@ func (self *PickHelper) ExecutePick(raw string) error {
 		return self.executePickDialog(raw, ctx)
 	}
 
-	tags, date, filter, flags := ParsePickQuery(raw)
-	anyMode := ctx.AnyMode || flags.Any
-	todoMode := ctx.TodoMode || flags.Todo
-	results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{
-		Any: anyMode, Todo: todoMode,
-		Date: date, Filter: filter,
+	return self.c.Helpers().Navigator().ReplaceCurrent("pickResults", "Pick: "+raw, func() error {
+		tags, date, filter, flags := ParsePickQuery(raw)
+		anyMode := ctx.AnyMode || flags.Any
+		todoMode := ctx.TodoMode || flags.Todo
+		results, err := self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{
+			Any: anyMode, Todo: todoMode,
+			Date: date, Filter: filter,
+		})
+
+		ctx.Query = raw
+		ctx.Completion = types.NewCompletionState()
+		gui.SetCursorEnabled(false)
+
+		if err != nil {
+			results = nil
+		}
+
+		capturedRaw := raw
+		source := context.PickResultsSource{
+			Query: raw,
+			Requery: func(filterText string) ([]models.PickResult, error) {
+				combined := strings.TrimSpace(capturedRaw + " " + filterText)
+				t, d, f, fl := ParsePickQuery(combined)
+				return self.c.RuinCmd().Pick.Pick(t, commands.PickOpts{
+					Any: anyMode || fl.Any, Todo: todoMode || fl.Todo,
+					Date: d, Filter: f,
+				})
+			},
+		}
+
+		self.c.Helpers().Preview().ShowPickResults("Pick: "+raw, results, source)
+		return nil
 	})
-
-	// Always close the pick dialog
-	ctx.Query = raw
-	ctx.Completion = types.NewCompletionState()
-	gui.SetCursorEnabled(false)
-
-	if err != nil {
-		results = nil
-	}
-
-	capturedRaw := raw
-	source := context.PickResultsSource{
-		Query: raw,
-		Requery: func(filterText string) ([]models.PickResult, error) {
-			combined := strings.TrimSpace(capturedRaw + " " + filterText)
-			t, d, f, fl := ParsePickQuery(combined)
-			return self.c.RuinCmd().Pick.Pick(t, commands.PickOpts{
-				Any: anyMode || fl.Any, Todo: todoMode || fl.Todo,
-				Date: d, Filter: f,
-			})
-		},
-	}
-
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+raw, results, source)
-	gui.ReplaceContextByKey("pickResults")
-	return nil
 }
 
 // scopedPickOpts builds PickOpts with context-appropriate scoping:

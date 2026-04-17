@@ -88,7 +88,8 @@ func (self *QueriesHelper) LoadDataForQueriesTab() {
 	}
 }
 
-// RunQuery runs the selected query (or views the selected parent) and shows results in preview.
+// RunQuery runs the selected query (or views the selected parent) and shows
+// results in preview as a committed navigation.
 func (self *QueriesHelper) RunQuery() error {
 	gui := self.c.GuiCommon()
 	queriesCtx := gui.Contexts().Queries
@@ -99,20 +100,19 @@ func (self *QueriesHelper) RunQuery() error {
 	if query == nil {
 		return nil
 	}
+	queryCopy := *query
 
-	opts := self.c.Helpers().Preview().BuildSearchOptions()
-	notes, err := self.c.RuinCmd().Queries.Run(query.Name, opts)
-	if err != nil {
-		gui.ShowError(err)
+	return self.c.Helpers().Navigator().NavigateTo("cardList", "Query: "+queryCopy.Name, func() error {
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
+		notes, err := self.c.RuinCmd().Queries.Run(queryCopy.Name, opts)
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
+		source := self.c.Helpers().Preview().NewSearchSource(queryCopy.Query, "")
+		self.c.Helpers().Preview().ShowCardList("Query: "+queryCopy.Name, notes, source)
 		return nil
-	}
-
-	source := self.c.Helpers().Preview().NewSearchSource(query.Query, "")
-
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Query: "+query.Name, notes, source)
-	gui.PushContextByKey("cardList")
-	return nil
+	})
 }
 
 // DeleteQuery shows confirmation and deletes the selected query (or parent).
@@ -141,16 +141,18 @@ func (self *QueriesHelper) ViewParent() error {
 	if parent == nil {
 		return nil
 	}
+	parentCopy := *parent
 
-	composed, sourceMap, err := self.composeParent(parent)
-	if err != nil {
-		gui.ShowError(err)
+	return self.c.Helpers().Navigator().NavigateTo("compose", "Parent: "+parentCopy.Name, func() error {
+		composed, sourceMap, err := self.composeParent(&parentCopy)
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
+		self.c.Helpers().Preview().ShowCompose("Parent: "+parentCopy.Name, composed, sourceMap, parentCopy)
+		gui.Contexts().Compose.Requery = self.parentRequery(parentCopy)
 		return nil
-	}
-
-	self.ShowComposedNote(composed, sourceMap, parent)
-	gui.PushContextByKey("compose")
-	return nil
+	})
 }
 
 // DeleteParent shows confirmation and deletes the selected parent bookmark.
@@ -186,20 +188,25 @@ func (self *QueriesHelper) UpdatePreviewForQueries() {
 	})
 }
 
-// UpdatePreviewForParents updates the preview for the selected parent.
+// UpdatePreviewForParents updates the preview for the selected parent as a
+// hover preview — no history entry recorded.
 func (self *QueriesHelper) UpdatePreviewForParents() {
 	gui := self.c.GuiCommon()
 	parent := gui.Contexts().Queries.SelectedParent()
 	if parent == nil {
 		return
 	}
+	parentCopy := *parent
 
-	composed, sourceMap, err := self.composeParent(parent)
-	if err != nil {
-		return
-	}
-
-	self.ShowComposedNote(composed, sourceMap, parent)
+	_ = self.c.Helpers().Navigator().ShowHover("compose", "Parent: "+parentCopy.Name, func() error {
+		composed, sourceMap, err := self.composeParent(&parentCopy)
+		if err != nil {
+			return err
+		}
+		self.c.Helpers().Preview().ShowCompose("Parent: "+parentCopy.Name, composed, sourceMap, parentCopy)
+		gui.Contexts().Compose.Requery = self.parentRequery(parentCopy)
+		return nil
+	})
 }
 
 // composeParent runs compose for a parent bookmark.
@@ -207,8 +214,10 @@ func (self *QueriesHelper) composeParent(parent *models.ParentBookmark) (models.
 	return self.c.RuinCmd().Parent.Compose(*parent)
 }
 
-// ShowComposedNote puts a single composed note into the preview as a compose view.
-func (self *QueriesHelper) ShowComposedNote(note models.Note, sourceMap []models.SourceMapEntry, parent *models.ParentBookmark) {
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCompose("Parent: "+parent.Name, note, sourceMap, *parent)
+// parentRequery returns a closure that re-composes the given parent. Used as
+// the ComposeContext.Requery to re-run on history restore.
+func (self *QueriesHelper) parentRequery(parent models.ParentBookmark) context.ComposeRequery {
+	return func() (models.Note, []models.SourceMapEntry, error) {
+		return self.c.RuinCmd().Parent.Compose(parent)
+	}
 }

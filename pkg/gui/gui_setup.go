@@ -100,16 +100,14 @@ func registerPreviewContext[C types.Context](
 }
 
 // setupPreviewContext initializes the four preview contexts (cardList,
-// pickResults, compose, datePreview) that share a single nav history.
+// pickResults, compose, datePreview). Navigation history is managed by the
+// NavigationManager owned by the Navigator helper.
 func (gui *Gui) setupPreviewContext() {
 	gui.contexts.ActivePreviewKey = "cardList"
 
-	// Shared nav history across all four preview contexts
-	navHistory := context.NewSharedNavHistory()
-
 	onPreviewFocus := func(_ types.OnFocusOpts) { gui.RenderPreview() }
 
-	registerPreviewContext(gui, context.NewCardListContext(navHistory),
+	registerPreviewContext(gui, context.NewCardListContext(),
 		func(ctx *context.CardListContext) { gui.contexts.CardList = ctx },
 		onPreviewFocus,
 		func() types.IController {
@@ -118,7 +116,7 @@ func (gui *Gui) setupPreviewContext() {
 		},
 	)
 
-	registerPreviewContext(gui, context.NewPickResultsContext(navHistory),
+	registerPreviewContext(gui, context.NewPickResultsContext(),
 		func(ctx *context.PickResultsContext) { gui.contexts.PickResults = ctx },
 		onPreviewFocus,
 		func() types.IController {
@@ -127,7 +125,7 @@ func (gui *Gui) setupPreviewContext() {
 		},
 	)
 
-	registerPreviewContext(gui, context.NewComposeContext(navHistory),
+	registerPreviewContext(gui, context.NewComposeContext(),
 		func(ctx *context.ComposeContext) { gui.contexts.Compose = ctx },
 		onPreviewFocus,
 		func() types.IController {
@@ -136,7 +134,7 @@ func (gui *Gui) setupPreviewContext() {
 		},
 	)
 
-	registerPreviewContext(gui, context.NewDatePreviewContext(navHistory),
+	registerPreviewContext(gui, context.NewDatePreviewContext(),
 		func(ctx *context.DatePreviewContext) { gui.contexts.DatePreview = ctx },
 		onPreviewFocus,
 		func() types.IController {

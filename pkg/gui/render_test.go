@@ -133,13 +133,12 @@ func TestBuildCardContent_ComposeSourceIdentity(t *testing.T) {
 		{UUID: "child-b-uuid", Path: childBPath, Title: "Child B Title", StartLine: 5, EndLine: 8},
 	}
 
-	navHistory := context.NewSharedNavHistory()
 	gui := &Gui{
 		state:      NewGuiState(),
 		contextMgr: NewContextMgr(),
 		contexts: &context.ContextTree{
-			Compose:          context.NewComposeContext(navHistory),
-			CardList:         context.NewCardListContext(navHistory),
+			Compose:          context.NewComposeContext(),
+			CardList:         context.NewCardListContext(),
 			ActivePreviewKey: "compose",
 		},
 	}
@@ -239,13 +238,12 @@ func TestBuildCardContent_ComposePickEmbedIdentity(t *testing.T) {
 		{UUID: "test-uuid-053", Path: sourcePath, Title: "Meeting", StartLine: 2, EndLine: 2},
 	}
 
-	navHistory := context.NewSharedNavHistory()
 	gui := &Gui{
 		state:      NewGuiState(),
 		contextMgr: NewContextMgr(),
 		contexts: &context.ContextTree{
-			Compose:          context.NewComposeContext(navHistory),
-			CardList:         context.NewCardListContext(navHistory),
+			Compose:          context.NewComposeContext(),
+			CardList:         context.NewCardListContext(),
 			ActivePreviewKey: "compose",
 		},
 	}
@@ -370,13 +368,12 @@ func buildCardContentFixture(t *testing.T, content string) (*Gui, models.Note) {
 		t.Fatalf("write note: %v", err)
 	}
 
-	navHistory := context.NewSharedNavHistory()
 	gui := &Gui{
 		state:      NewGuiState(),
 		contextMgr: NewContextMgr(),
 		contexts: &context.ContextTree{
-			CardList:         context.NewCardListContext(navHistory),
-			Compose:          context.NewComposeContext(navHistory),
+			CardList:         context.NewCardListContext(),
+			Compose:          context.NewComposeContext(),
 			ActivePreviewKey: "cardList",
 		},
 	}

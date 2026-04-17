@@ -72,9 +72,9 @@ Shared across all preview modes: Card List, Pick Results, Compose, Date Preview.
 | `J` / `K` | Jump between cards |
 | `{` / `}` | Previous / next header |
 | `l` / `L` | Highlight next / previous link |
-| `[` / `]` | Nav history back / forward |
+| `[` / `]` | Navigate history back / forward |
 | `Enter` | Enter (focus note or open card) |
-| `Esc` | Back |
+| `Esc` | Return focus to side pane |
 
 ### Actions
 
@@ -144,7 +144,6 @@ no-op on those.
 | Toggle Markdown | Raw / rendered markdown |
 | Toggle Dim Done | Dim completed items |
 | Order Cards | Persist card order to frontmatter |
-| View History | Show nav history |
 
 ## Search
 

@@ -42,16 +42,26 @@ func (gui *Gui) openInitialRef(ref string) {
 }
 
 func (gui *Gui) openNote(note *models.Note) {
-	gui.helpers.Preview().ShowCardList(note.Title, []models.Note{*note})
-	gui.pushContextByKey("cardList")
+	noteCopy := *note
+	_ = gui.helpers.Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+		source := gui.helpers.Preview().NewSingleNoteSource(noteCopy.UUID)
+		gui.helpers.Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		return nil
+	})
 }
 
 func (gui *Gui) openParentBookmark(parent *models.ParentBookmark) {
-	composed, sourceMap, err := gui.ruinCmd.Parent.Compose(*parent)
+	parentCopy := *parent
+	composed, sourceMap, err := gui.ruinCmd.Parent.Compose(parentCopy)
 	if err != nil {
 		gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
 		return
 	}
-	gui.helpers.Preview().ShowCompose("Parent: "+parent.Name, composed, sourceMap, *parent)
-	gui.pushContextByKey("compose")
+	_ = gui.helpers.Navigator().NavigateTo("compose", "Parent: "+parentCopy.Name, func() error {
+		gui.helpers.Preview().ShowCompose("Parent: "+parentCopy.Name, composed, sourceMap, parentCopy)
+		gui.contexts.Compose.Requery = func() (models.Note, []models.SourceMapEntry, error) {
+			return gui.ruinCmd.Parent.Compose(parentCopy)
+		}
+		return nil
+	})
 }

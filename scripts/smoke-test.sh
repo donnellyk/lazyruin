@@ -479,6 +479,43 @@ send y; settle  # confirm
 send Escape; settle
 
 # =============================================
+# 27. Preview nav history: hover vs commit, [/]
+# =============================================
+echo "[27] Nav history"
+
+# Focus Notes, move to the first note, then hover with j — hover title
+# should have the "~ " prefix.
+send 1; settle
+send j; settle
+assert_contains "hover title prefix" "~ "
+
+# Enter commits — the "~ " prefix should be gone on the committed view.
+send Enter; settle
+assert_not_contains "committed title no prefix" "~ "
+
+# Navigate to a second committed view with a different note.
+send 1; settle
+send j; send j; send j; settle
+send Enter; settle
+# Capture the currently visible preview title (between "╭─ " and " ─"):
+TITLE_2=$(cap | grep -m1 '╭─ ' | head -1 | sed 's/.*╭─ \(.*\) ─.*/\1/')
+
+# Press [ — the displayed title must change (back-nav happened).
+send '['; settle
+TITLE_AFTER_BACK=$(cap | grep -m1 '╭─ ' | head -1 | sed 's/.*╭─ \(.*\) ─.*/\1/')
+TOTAL=$((TOTAL + 1))
+if [ -n "$TITLE_2" ] && [ "$TITLE_AFTER_BACK" != "$TITLE_2" ]; then
+  echo "  PASS: back navigated to a different view"
+else
+  echo "  FAIL: back did not change title (was '$TITLE_2', still '$TITLE_AFTER_BACK')"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Forward should return us to the second view.
+send ']'; settle
+assert_contains "forward restored view" "$TITLE_2"
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

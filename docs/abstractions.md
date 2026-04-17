@@ -105,9 +105,15 @@ Controllers access helpers through the `IHelpers` interface, which provides type
 
 ## 13. Preview Navigation History
 
-**Files:** `helpers/preview_helper.go`, `context/preview_state.go`
+**Files:** `helpers/navigator.go`, `context/nav_manager.go`, `types/snapshot.go`
 
-The preview pane maintains a navigation history stack (`NavHistory []NavEntry`) in a `SharedNavHistory` struct shared across all preview contexts. Each entry captures the full preview state (cards, mode, cursor, scroll, title, and for date preview: target date, tag picks, todo picks, notes). `PushNavHistory()` snapshots before navigating, `NavBack()`/`NavForward()` restore entries. The history caps at 50 entries and supports `ShowNavHistory()` to jump to any entry via a menu dialog.
+The `Navigator` helper is the single entry point for all preview pane transitions. `NavigationManager` (`context/nav_manager.go`) is the history stack, holding `NavigationEvent` entries (ContextKey, Title, Snapshot, Timestamp) capped at 50. Each preview context implements the `Snapshotter` interface (`CaptureSnapshot()` / `RestoreSnapshot()`), making every context responsible for its own state serialisation.
+
+**Navigator API**: `NavigateTo` (committed; records history; pushes context), `ShowHover` (no history; italic title), `ReplaceCurrent` (replaces context stack entry; used by search and execute-pick), `Back` / `Forward` (rewind/advance; re-runs the Requery closure so stale data is never shown). Navigator carries a `currentIsCommitted` flag and snapshots the current view on every method call before transitioning (capture-on-departure), so toggle/scroll/filter handlers need no knowledge of navigation.
+
+Re-query on restore: each snapshot carries a Requery closure. Restore re-runs the query so renames, edits, and deletes are reflected automatically; frozen snapshot data is a fallback only.
+
+`[` / `]` bindings call `Navigator.Back` / `Navigator.Forward`. `Esc` in the preview pane calls `popContext` (returns focus to the last side pane) and never touches history.
 
 ## 14. IPreviewContext Interface
 
@@ -123,7 +129,8 @@ type IPreviewContext interface {
     SelectedCardIndex() int
     SetSelectedCardIndex(int)
     CardCount() int
-    NavHistory() *SharedNavHistory
+    CaptureSnapshot() Snapshot
+    RestoreSnapshot(Snapshot)
 }
 ```
 
@@ -133,7 +140,7 @@ Both preview contexts share `PreviewNavState` (scroll, cursor, card line ranges,
 
 **Files:** `controllers/datepreview_controller.go`, `helpers/preview_nav_helper.go`
 
-`PreviewNavTrait` provides shared preview keybindings (card jump J/K, line scroll j/k, header jump {/}, nav history [/], link highlight l/L, line operations) that work across preview contexts via `IPreviewContext`. Concrete controllers embed the trait and add context-specific bindings — e.g., `DatePreviewController` adds section jump `)` / `(`.
+`PreviewNavTrait` provides shared preview keybindings (card jump J/K, line scroll j/k, header jump {/}, history back/forward [/] via `Navigator.Back`/`Forward`, link highlight l/L, line operations) that work across preview contexts via `IPreviewContext`. Concrete controllers embed the trait and add context-specific bindings — e.g., `DatePreviewController` adds section jump `)` / `(`.
 
 `PreviewNavHelper` provides the underlying navigation logic: `MoveDown`/`MoveUp`, `NextCard`/`PrevCard`, `NextHeader`/`PrevHeader`, `NextSection`/`PrevSection`, `PreviewEnter`, and all line operation handlers (todo toggle, done, inline tag, date, delete card, etc.).
 

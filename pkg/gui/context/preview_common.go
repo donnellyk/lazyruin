@@ -25,17 +25,6 @@ type PreviewDisplayState struct {
 	ShowCompose     bool
 }
 
-// SharedNavHistory holds the navigation history stack shared across all three preview contexts.
-type SharedNavHistory struct {
-	Entries []NavEntry
-	Index   int // -1 = no history
-}
-
-// NewSharedNavHistory creates a SharedNavHistory.
-func NewSharedNavHistory() *SharedNavHistory {
-	return &SharedNavHistory{Index: -1}
-}
-
 // PreviewState bundles navigation and display state shared by all preview contexts.
 type PreviewState struct {
 	PreviewNavState
@@ -44,22 +33,20 @@ type PreviewState struct {
 }
 
 // PreviewContextTrait provides the IPreviewContext delegation methods that are
-// identical across CardList, PickResults, Compose, and DatePreview.  Each
+// identical across CardList, PickResults, Compose, and DatePreview. Each
 // concrete preview context embeds this trait instead of reimplementing the
-// five common accessors.
+// common accessors.
 type PreviewContextTrait struct {
 	PreviewState
-	navHistory *SharedNavHistory
 }
 
 // NewPreviewContextTrait creates a PreviewContextTrait with sensible defaults.
-func NewPreviewContextTrait(navHistory *SharedNavHistory) PreviewContextTrait {
+func NewPreviewContextTrait() PreviewContextTrait {
 	return PreviewContextTrait{
 		PreviewState: PreviewState{
 			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
 			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
 		},
-		navHistory: navHistory,
 	}
 }
 
@@ -67,10 +54,10 @@ func (t *PreviewContextTrait) NavState() *PreviewNavState         { return &t.Pr
 func (t *PreviewContextTrait) DisplayState() *PreviewDisplayState { return &t.PreviewDisplayState }
 func (t *PreviewContextTrait) SelectedCardIndex() int             { return t.SelectedCardIdx }
 func (t *PreviewContextTrait) SetSelectedCardIndex(idx int)       { t.SelectedCardIdx = idx }
-func (t *PreviewContextTrait) NavHistory() *SharedNavHistory      { return t.navHistory }
 
 // IPreviewContext is the interface that all preview contexts implement,
-// allowing helpers to work generically across CardList, PickResults, Compose, and DatePreview.
+// allowing helpers to work generically across CardList, PickResults, Compose,
+// and DatePreview.
 type IPreviewContext interface {
 	types.Context
 
@@ -79,7 +66,6 @@ type IPreviewContext interface {
 	SelectedCardIndex() int
 	SetSelectedCardIndex(int)
 	CardCount() int
-	NavHistory() *SharedNavHistory
 	SetTitle(string)
 }
 

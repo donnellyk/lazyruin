@@ -43,8 +43,8 @@ type CardListContext struct {
 	*CardListState
 }
 
-// NewCardListContext creates a CardListContext with a shared nav history.
-func NewCardListContext(navHistory *SharedNavHistory) *CardListContext {
+// NewCardListContext creates a CardListContext.
+func NewCardListContext() *CardListContext {
 	return &CardListContext{
 		BaseContext: NewBaseContext(NewBaseContextOpts{
 			Kind:      types.MAIN_CONTEXT,
@@ -53,7 +53,7 @@ func NewCardListContext(navHistory *SharedNavHistory) *CardListContext {
 			Focusable: true,
 			Title:     "Preview",
 		}),
-		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		PreviewContextTrait: NewPreviewContextTrait(),
 		CardListState:       &CardListState{},
 	}
 }
@@ -85,6 +85,78 @@ func (self *CardListContext) RequeryAndApply(filterText string) error {
 	return nil
 }
 
+// cardListSnapshot is the CardListContext-specific snapshot. Carries enough
+// view params to re-run the query (Source with a Requery closure) and enough
+// view state to reconstruct the exact visual position on restore.
+type cardListSnapshot struct {
+	Title             string
+	Source            CardListSource
+	FilterText        string
+	FrozenCards       []models.Note
+	SelectedCardIdx   int
+	CursorLine        int
+	ScrollOffset      int
+	Display           PreviewDisplayState
+	ComposedNote      *models.Note
+	ComposedSourceMap []models.SourceMapEntry
+}
+
+// CaptureSnapshot captures the CardList's current state.
+func (self *CardListContext) CaptureSnapshot() types.Snapshot {
+	ns := self.NavState()
+	return &cardListSnapshot{
+		Title:             self.Title(),
+		Source:            self.Source,
+		FilterText:        self.FilterText,
+		FrozenCards:       append([]models.Note(nil), self.Cards...),
+		SelectedCardIdx:   self.SelectedCardIdx,
+		CursorLine:        ns.CursorLine,
+		ScrollOffset:      ns.ScrollOffset,
+		Display:           *self.DisplayState(),
+		ComposedNote:      self.ComposedNote,
+		ComposedSourceMap: self.ComposedSourceMap,
+	}
+}
+
+// RestoreSnapshot restores CardList state from a previously captured snapshot,
+// re-running the Source query (when available) to pick up any data changes.
+func (self *CardListContext) RestoreSnapshot(s types.Snapshot) error {
+	snap, ok := s.(*cardListSnapshot)
+	if !ok || snap == nil {
+		return nil
+	}
+	self.SetTitle(snap.Title)
+	self.Source = snap.Source
+	self.FilterText = snap.FilterText
+	*self.DisplayState() = snap.Display
+	self.ComposedNote = snap.ComposedNote
+	self.ComposedSourceMap = snap.ComposedSourceMap
+
+	if snap.Source.Requery != nil {
+		notes, err := snap.Source.Requery(snap.FilterText)
+		if err == nil {
+			self.Cards = notes
+		} else {
+			self.Cards = append([]models.Note(nil), snap.FrozenCards...)
+		}
+	} else {
+		self.Cards = append([]models.Note(nil), snap.FrozenCards...)
+	}
+
+	if snap.SelectedCardIdx < len(self.Cards) {
+		self.SelectedCardIdx = snap.SelectedCardIdx
+	} else if len(self.Cards) > 0 {
+		self.SelectedCardIdx = len(self.Cards) - 1
+	} else {
+		self.SelectedCardIdx = 0
+	}
+	ns := self.NavState()
+	ns.CursorLine = snap.CursorLine
+	ns.ScrollOffset = snap.ScrollOffset
+	return nil
+}
+
 var _ types.Context = &CardListContext{}
 var _ IPreviewContext = &CardListContext{}
 var _ Filterable = &CardListContext{}
+var _ types.Snapshotter = &CardListContext{}

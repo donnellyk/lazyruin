@@ -35,7 +35,8 @@ func (self *SearchHelper) OpenSearch() error {
 }
 
 // ExecuteSearch runs the search and displays results in the preview pane.
-// Returns true if the search was executed, false if the input was empty (caller should cancel).
+// Returns true if the search was executed, false if the input was empty
+// (caller should cancel).
 func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 	gui := self.c.GuiCommon()
 	if raw == "" {
@@ -43,24 +44,29 @@ func (self *SearchHelper) ExecuteSearch(raw string) (executed bool) {
 	}
 
 	query, sort := ExtractSort(raw)
-	opts := self.c.Helpers().Preview().BuildSearchOptions()
-	opts.Sort = sort
-	notes, err := self.c.RuinCmd().Search.Search(query, opts)
-	if err != nil {
-		gui.ShowError(err)
-		return true
-	}
 
-	sc := self.searchCtx()
-	sc.Query = raw
-	sc.Completion = types.NewCompletionState()
-	gui.SetCursorEnabled(false)
+	// "executed=true" means "input was non-empty and we attempted the
+	// search" — the caller uses it to decide whether to dismiss the popup.
+	// On search failure we still report executed=true so the popup stays
+	// open and the user can retry (matches pre-Navigator behavior).
+	_ = self.c.Helpers().Navigator().ReplaceCurrent("cardList", "Search: "+query, func() error {
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
+		opts.Sort = sort
+		notes, err := self.c.RuinCmd().Search.Search(query, opts)
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
 
-	source := self.c.Helpers().Preview().NewSearchSourceWithExtractSort(raw)
+		sc := self.searchCtx()
+		sc.Query = raw
+		sc.Completion = types.NewCompletionState()
+		gui.SetCursorEnabled(false)
 
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Search: "+query, notes, source)
-	gui.ReplaceContextByKey("cardList")
+		source := self.c.Helpers().Preview().NewSearchSourceWithExtractSort(raw)
+		self.c.Helpers().Preview().ShowCardList("Search: "+query, notes, source)
+		return nil
+	})
 	return true
 }
 

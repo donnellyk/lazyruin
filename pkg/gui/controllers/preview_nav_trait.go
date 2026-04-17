@@ -82,20 +82,6 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			DisplayOnScreen: true,
 			StatusBarLabel:  "Back",
 		},
-		{
-			ID:          "preview.nav_back",
-			Key:         '[',
-			Handler:     t.nav().NavBack,
-			Description: "Go Back",
-			Category:    "Preview",
-		},
-		{
-			ID:          "preview.nav_forward",
-			Key:         ']',
-			Handler:     t.nav().NavForward,
-			Description: "Go Forward",
-			Category:    "Preview",
-		},
 		// Palette-only display toggles
 		{
 			ID:          "preview.toggle_title",
@@ -119,12 +105,6 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			ID:          "preview.toggle_dim_done",
 			Handler:     t.preview().ToggleDimDone,
 			Description: "Toggle Dim Done",
-			Category:    "Preview",
-		},
-		{
-			ID:          "preview.show_nav_history",
-			Handler:     t.nav().ShowNavHistory,
-			Description: "View History",
 			Category:    "Preview",
 		},
 		// Pick dialog (inline pick without leaving preview)

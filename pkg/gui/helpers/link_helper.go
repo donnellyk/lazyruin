@@ -409,28 +409,28 @@ func isTagLine(line string) bool {
 }
 
 func (self *LinkHelper) BrowseLinks() error {
-	opts := self.c.Helpers().Preview().BuildSearchOptions()
-	opts.Limit = 50
-	opts.Link = true
-	notes, err := self.c.RuinCmd().Search.Search("", opts)
-	if err != nil {
+	return self.c.Helpers().Navigator().NavigateTo("cardList", "Links", func() error {
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
+		opts.Limit = 50
+		opts.Link = true
+		notes, err := self.c.RuinCmd().Search.Search("", opts)
+		if err != nil {
+			return err
+		}
+
+		source := context.CardListSource{
+			Query: "",
+			Requery: func(filterText string) ([]models.Note, error) {
+				o := self.c.Helpers().Preview().BuildSearchOptions()
+				o.Limit = 50
+				o.Link = true
+				return self.c.RuinCmd().Search.Search(strings.TrimSpace(filterText), o)
+			},
+		}
+
+		self.c.Helpers().Preview().ShowCardList("Links", notes, source)
 		return nil
-	}
-
-	source := context.CardListSource{
-		Query: "",
-		Requery: func(filterText string) ([]models.Note, error) {
-			o := self.c.Helpers().Preview().BuildSearchOptions()
-			o.Limit = 50
-			o.Link = true
-			return self.c.RuinCmd().Search.Search(strings.TrimSpace(filterText), o)
-		},
-	}
-
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Links", notes, source)
-	self.c.GuiCommon().PushContextByKey("cardList")
-	return nil
+	})
 }
 
 func (self *LinkHelper) OpenLinkURL(note *models.Note) error {

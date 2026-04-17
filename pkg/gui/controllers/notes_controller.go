@@ -189,8 +189,11 @@ func (self *NotesController) viewInPreview(note models.Note) error {
 	if len(self.getContext().Items) == 0 {
 		return nil
 	}
-	self.c.GuiCommon().PushContextByKey("cardList")
-	return nil
+	return self.c.Helpers().Navigator().NavigateTo("cardList", note.Title, func() error {
+		source := self.c.Helpers().Preview().NewSingleNoteSource(note.UUID)
+		self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{note}, source)
+		return nil
+	})
 }
 
 func (self *NotesController) editNote(note models.Note) error {

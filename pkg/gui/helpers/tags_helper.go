@@ -81,49 +81,49 @@ func (self *TagsHelper) FilterByTag(tag *models.Tag) error {
 // FilterByTagSearch searches for notes with the given tag.
 func (self *TagsHelper) FilterByTagSearch(tag *models.Tag) error {
 	gui := self.c.GuiCommon()
-	opts := self.c.Helpers().Preview().BuildSearchOptions()
-	notes, err := self.c.RuinCmd().Search.Search(tag.Name, opts)
-	if err != nil {
-		gui.ShowError(err)
+	tagName := tag.Name
+
+	return self.c.Helpers().Navigator().NavigateTo("cardList", "Tag: "+tagName, func() error {
+		opts := self.c.Helpers().Preview().BuildSearchOptions()
+		notes, err := self.c.RuinCmd().Search.Search(tagName, opts)
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
+		source := self.c.Helpers().Preview().NewSearchSource(tagName, "")
+		self.c.Helpers().Preview().ShowCardList("Tag: "+tagName, notes, source)
 		return nil
-	}
-
-	source := self.c.Helpers().Preview().NewSearchSource(tag.Name, "")
-
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowCardList("Tag: "+tag.Name, notes, source)
-	gui.PushContextByKey("cardList")
-	return nil
+	})
 }
 
 // FilterByTagPick runs a pick query for the given tag.
 func (self *TagsHelper) FilterByTagPick(tag *models.Tag) error {
 	gui := self.c.GuiCommon()
-	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, commands.PickOpts{})
-	if err != nil {
-		gui.ShowError(err)
-		return nil
-	}
-
-	// Store query so ReloadPickResults can re-run it after line edits.
-	pickCtx := gui.Contexts().Pick
-	pickCtx.Query = tag.Name
-	pickCtx.AnyMode = false
-
 	tagName := tag.Name
-	source := context.PickResultsSource{
-		Query: tagName,
-		Requery: func(filterText string) ([]models.PickResult, error) {
-			combined := strings.TrimSpace(tagName + " " + filterText)
-			tags, _, _, _ := ParsePickQuery(combined)
-			return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
-		},
-	}
 
-	self.c.Helpers().PreviewNav().PushNavHistory()
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results, source)
-	gui.PushContextByKey("pickResults")
-	return nil
+	return self.c.Helpers().Navigator().NavigateTo("pickResults", "Pick: "+tagName, func() error {
+		results, err := self.c.RuinCmd().Pick.Pick([]string{tagName}, commands.PickOpts{})
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
+
+		pickCtx := gui.Contexts().Pick
+		pickCtx.Query = tagName
+		pickCtx.AnyMode = false
+
+		source := context.PickResultsSource{
+			Query: tagName,
+			Requery: func(filterText string) ([]models.PickResult, error) {
+				combined := strings.TrimSpace(tagName + " " + filterText)
+				tags, _, _, _ := ParsePickQuery(combined)
+				return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
+			},
+		}
+
+		self.c.Helpers().Preview().ShowPickResults("Pick: "+tagName, results, source)
+		return nil
+	})
 }
 
 // RenameTag prompts for a new name and renames the tag.
@@ -188,28 +188,31 @@ func (self *TagsHelper) UpdatePreviewForTags() {
 	})
 }
 
-// UpdatePreviewPickResults runs a pick for the given tag and shows results in preview.
+// UpdatePreviewPickResults runs a pick for the given tag and shows results
+// in the preview as a hover — no history entry recorded.
 func (self *TagsHelper) UpdatePreviewPickResults(tag *models.Tag) {
 	gui := self.c.GuiCommon()
-	results, err := self.c.RuinCmd().Pick.Pick([]string{tag.Name}, commands.PickOpts{})
-	if err != nil {
-		return
-	}
-
-	// Store query so ReloadPickResults can re-run it after line edits.
-	pickCtx := gui.Contexts().Pick
-	pickCtx.Query = tag.Name
-	pickCtx.AnyMode = false
-
 	tagName := tag.Name
-	source := context.PickResultsSource{
-		Query: tagName,
-		Requery: func(filterText string) ([]models.PickResult, error) {
-			combined := strings.TrimSpace(tagName + " " + filterText)
-			tags, _, _, _ := ParsePickQuery(combined)
-			return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
-		},
-	}
+	_ = self.c.Helpers().Navigator().ShowHover("pickResults", "Pick: "+tagName, func() error {
+		results, err := self.c.RuinCmd().Pick.Pick([]string{tagName}, commands.PickOpts{})
+		if err != nil {
+			return err
+		}
 
-	self.c.Helpers().Preview().ShowPickResults("Pick: "+tag.Name, results, source)
+		pickCtx := gui.Contexts().Pick
+		pickCtx.Query = tagName
+		pickCtx.AnyMode = false
+
+		source := context.PickResultsSource{
+			Query: tagName,
+			Requery: func(filterText string) ([]models.PickResult, error) {
+				combined := strings.TrimSpace(tagName + " " + filterText)
+				tags, _, _, _ := ParsePickQuery(combined)
+				return self.c.RuinCmd().Pick.Pick(tags, commands.PickOpts{})
+			},
+		}
+
+		self.c.Helpers().Preview().ShowPickResults("Pick: "+tagName, results, source)
+		return nil
+	})
 }

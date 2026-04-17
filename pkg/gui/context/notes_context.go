@@ -103,5 +103,19 @@ func (self *NotesContext) GetSelectedItemId() string {
 	return self.list.GetSelectedItemId()
 }
 
+// SelectByUUID moves the cursor to the note with the given UUID. Returns
+// true if a match was found and the cursor was moved, false otherwise.
+func (self *NotesContext) SelectByUUID(uuid string) bool {
+	if uuid == "" {
+		return false
+	}
+	idx := self.list.FindIndexById(uuid)
+	if idx < 0 {
+		return false
+	}
+	self.SetSelectedLineIdx(idx)
+	return true
+}
+
 // Verify interface compliance at compile time.
 var _ types.IListContext = &NotesContext{}

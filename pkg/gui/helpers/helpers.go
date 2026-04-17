@@ -1,5 +1,7 @@
 package helpers
 
+import "github.com/donnellyk/lazyruin/pkg/gui/context"
+
 // Helpers aggregates all helper instances for easy access from controllers.
 type Helpers struct {
 	refresh          *RefreshHelper
@@ -29,10 +31,26 @@ type Helpers struct {
 	cardListFilter   *CardListFilterHelper
 	inbox            *InboxHelper
 	titleCache       *TitleCacheHelper
+	navigator        *Navigator
 }
 
-// NewHelpers creates a new Helpers aggregator.
+// NewHelpersOpts configures helper construction. NavigationManager is
+// required; if nil, a fresh manager is created (primarily for tests).
+type NewHelpersOpts struct {
+	NavManager *context.NavigationManager
+}
+
+// NewHelpers creates a new Helpers aggregator with default options.
 func NewHelpers(common *HelperCommon) *Helpers {
+	return NewHelpersWithOpts(common, NewHelpersOpts{})
+}
+
+// NewHelpersWithOpts creates a new Helpers aggregator with explicit options.
+func NewHelpersWithOpts(common *HelperCommon, opts NewHelpersOpts) *Helpers {
+	mgr := opts.NavManager
+	if mgr == nil {
+		mgr = context.NewNavigationManager()
+	}
 	h := &Helpers{
 		refresh:          NewRefreshHelper(common),
 		notes:            NewNotesHelper(common),
@@ -61,6 +79,7 @@ func NewHelpers(common *HelperCommon) *Helpers {
 		cardListFilter:   NewCardListFilterHelper(common),
 		inbox:            NewInboxHelper(common),
 		titleCache:       NewTitleCacheHelper(common),
+		navigator:        NewNavigator(common, mgr),
 	}
 	common.SetHelpers(h)
 	return h
@@ -95,3 +114,4 @@ func (h *Helpers) Link() *LinkHelper                         { return h.link }
 func (h *Helpers) CardListFilter() *CardListFilterHelper     { return h.cardListFilter }
 func (h *Helpers) Inbox() *InboxHelper                       { return h.inbox }
 func (h *Helpers) TitleCache() *TitleCacheHelper             { return h.titleCache }
+func (h *Helpers) Navigator() *Navigator                     { return h.navigator }

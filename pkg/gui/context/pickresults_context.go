@@ -41,8 +41,8 @@ type PickResultsContext struct {
 	*PickResultsState
 }
 
-// NewPickResultsContext creates a PickResultsContext with a shared nav history.
-func NewPickResultsContext(navHistory *SharedNavHistory) *PickResultsContext {
+// NewPickResultsContext creates a PickResultsContext.
+func NewPickResultsContext() *PickResultsContext {
 	return &PickResultsContext{
 		BaseContext: NewBaseContext(NewBaseContextOpts{
 			Kind:      types.MAIN_CONTEXT,
@@ -51,7 +51,7 @@ func NewPickResultsContext(navHistory *SharedNavHistory) *PickResultsContext {
 			Focusable: true,
 			Title:     "Pick Results",
 		}),
-		PreviewContextTrait: NewPreviewContextTrait(navHistory),
+		PreviewContextTrait: NewPreviewContextTrait(),
 		PickResultsState:    &PickResultsState{},
 	}
 }
@@ -83,8 +83,6 @@ func (self *PickResultsContext) RequeryAndApply(filterText string) error {
 	return nil
 }
 
-var pickDialogNavHistory = &SharedNavHistory{Index: -1}
-
 // NewPickDialogContext creates a PickResultsContext configured as a dialog overlay.
 func NewPickDialogContext() *PickResultsContext {
 	return &PickResultsContext{
@@ -95,11 +93,73 @@ func NewPickDialogContext() *PickResultsContext {
 			Focusable: true,
 			Title:     "Pick Dialog",
 		}),
-		PreviewContextTrait: NewPreviewContextTrait(pickDialogNavHistory),
+		PreviewContextTrait: NewPreviewContextTrait(),
 		PickResultsState:    &PickResultsState{},
 	}
+}
+
+// pickResultsSnapshot carries view params (Source with Requery closure) and
+// view state for PickResults restoration.
+type pickResultsSnapshot struct {
+	Title           string
+	Source          PickResultsSource
+	FilterText      string
+	FrozenResults   []models.PickResult
+	SelectedCardIdx int
+	CursorLine      int
+	ScrollOffset    int
+	Display         PreviewDisplayState
+}
+
+func (self *PickResultsContext) CaptureSnapshot() types.Snapshot {
+	ns := self.NavState()
+	return &pickResultsSnapshot{
+		Title:           self.Title(),
+		Source:          self.Source,
+		FilterText:      self.FilterText,
+		FrozenResults:   append([]models.PickResult(nil), self.Results...),
+		SelectedCardIdx: self.SelectedCardIdx,
+		CursorLine:      ns.CursorLine,
+		ScrollOffset:    ns.ScrollOffset,
+		Display:         *self.DisplayState(),
+	}
+}
+
+func (self *PickResultsContext) RestoreSnapshot(s types.Snapshot) error {
+	snap, ok := s.(*pickResultsSnapshot)
+	if !ok || snap == nil {
+		return nil
+	}
+	self.SetTitle(snap.Title)
+	self.Source = snap.Source
+	self.FilterText = snap.FilterText
+	*self.DisplayState() = snap.Display
+
+	if snap.Source.Requery != nil {
+		results, err := snap.Source.Requery(snap.FilterText)
+		if err == nil {
+			self.Results = results
+		} else {
+			self.Results = append([]models.PickResult(nil), snap.FrozenResults...)
+		}
+	} else {
+		self.Results = append([]models.PickResult(nil), snap.FrozenResults...)
+	}
+
+	if snap.SelectedCardIdx < len(self.Results) {
+		self.SelectedCardIdx = snap.SelectedCardIdx
+	} else if len(self.Results) > 0 {
+		self.SelectedCardIdx = len(self.Results) - 1
+	} else {
+		self.SelectedCardIdx = 0
+	}
+	ns := self.NavState()
+	ns.CursorLine = snap.CursorLine
+	ns.ScrollOffset = snap.ScrollOffset
+	return nil
 }
 
 var _ types.Context = &PickResultsContext{}
 var _ IPreviewContext = &PickResultsContext{}
 var _ Filterable = &PickResultsContext{}
+var _ types.Snapshotter = &PickResultsContext{}
