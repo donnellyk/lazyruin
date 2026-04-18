@@ -119,9 +119,18 @@ func (gui *Gui) renderSuggestionView(g *gocui.Gui, viewName string, state *types
 
 	for i := startIdx; i < endIdx; i++ {
 		item := state.Items[i]
+
+		if item.IsHeader {
+			label := " " + item.Label
+			visualLen := len([]rune(label))
+			pad := strings.Repeat(" ", max(innerWidth-visualLen, 0))
+			fmt.Fprintf(v, "%s%s%s%s\n", AnsiDim, label, pad, AnsiReset)
+			continue
+		}
+
 		selected := i == state.SelectedIndex
 
-		label := " " + item.Label
+		label := "  " + item.Label
 		detail := item.Detail
 
 		// Pad label to reach detail column

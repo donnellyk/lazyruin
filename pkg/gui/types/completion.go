@@ -8,6 +8,18 @@ type CompletionItem struct {
 	ContinueCompleting bool   // if true, don't add trailing space -- allows chaining into next trigger
 	Value              string // opaque data (e.g. UUID) for use by accept handlers
 	PrependToLine      bool   // if true, prepend InsertText to existing line content instead of replacing trigger
+	IsHeader           bool   // if true, renders as a non-selectable section header
+}
+
+// FirstSelectable returns the index of the first non-header item in items,
+// or 0 if items contains only headers (or is empty).
+func FirstSelectable(items []CompletionItem) int {
+	for i, it := range items {
+		if !it.IsHeader {
+			return i
+		}
+	}
+	return 0
 }
 
 // CompletionTrigger defines a prefix that activates completion with a candidate provider.

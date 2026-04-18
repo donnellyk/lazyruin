@@ -147,12 +147,14 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *types.CompletionState, tr
 	}
 
 	item := state.Items[state.SelectedIndex]
+	if item.IsHeader {
+		return
+	}
 	state.ParentDrill = append(state.ParentDrill, types.ParentDrillEntry{
 		Name: item.Label,
 		UUID: item.Value,
 	})
 
-	content := v.TextArea.GetUnwrappedContent()
 	cursorPos := viewCursorBytePos(v)
 
 	// Backspace from cursor to trigger start
@@ -161,14 +163,9 @@ func (gui *Gui) drillParentChild(v *gocui.View, state *types.CompletionState, tr
 		v.TextArea.BackSpaceChar()
 	}
 
-	// Rebuild the path from the drill stack, preserving >> prefix
+	// Rebuild the path from the drill stack
 	var path strings.Builder
-	prefix := ">"
-	triggerEnd := state.TriggerStart + 2
-	if triggerEnd <= len(content) && content[state.TriggerStart:triggerEnd] == ">>" {
-		prefix = ">>"
-	}
-	path.WriteString(prefix)
+	path.WriteByte('>')
 	for _, entry := range state.ParentDrill {
 		path.WriteString(entry.Name)
 		path.WriteByte('/')
@@ -194,6 +191,9 @@ func (gui *Gui) acceptParentCompletion(v *gocui.View, state *types.CompletionSta
 	}
 
 	item := state.Items[state.SelectedIndex]
+	if item.IsHeader {
+		return
+	}
 
 	gui.contexts.Capture.Parent = &context.CaptureParentInfo{
 		UUID:  item.Value,

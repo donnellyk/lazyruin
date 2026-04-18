@@ -113,7 +113,7 @@ func (self *NoteActionsHelper) RemoveTag() error {
 	return nil
 }
 
-// SetParentDialog opens the input popup with > / >> parent completion.
+// SetParentDialog opens the input popup with > parent completion.
 func (self *NoteActionsHelper) SetParentDialog() error {
 	gui := self.c.GuiCommon()
 	card := self.c.Helpers().Preview().CurrentPreviewCard()
@@ -123,7 +123,7 @@ func (self *NoteActionsHelper) SetParentDialog() error {
 	uuid := card.UUID
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
 		Title:  "Set Parent",
-		Footer: " > bookmarks | >> all notes | / drill | Tab: accept | Esc: cancel ",
+		Footer: " > parent | / drill | Tab: accept | Esc: cancel ",
 		Seed:   ">",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{

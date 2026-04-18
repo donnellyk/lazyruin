@@ -121,21 +121,14 @@ func (self *CompletionHelper) ParentCandidatesFor(completionState *types.Complet
 	return func(filter string) []types.CompletionItem {
 		state := completionState
 
-		// Detect >> mode (all notes) and strip the extra > for path parsing
-		allNotesMode := strings.HasPrefix(filter, ">")
-		workingFilter := filter
-		if allNotesMode {
-			workingFilter = filter[1:]
-		}
-
 		// Determine the typing filter (text after the last /)
-		typingFilter := workingFilter
-		if idx := strings.LastIndex(workingFilter, "/"); idx >= 0 {
-			typingFilter = workingFilter[idx+1:]
+		typingFilter := filter
+		if idx := strings.LastIndex(filter, "/"); idx >= 0 {
+			typingFilter = filter[idx+1:]
 		}
 
 		// Sync drill stack: if user backspaced past a /, truncate the stack
-		slashCount := strings.Count(workingFilter, "/")
+		slashCount := strings.Count(filter, "/")
 		if slashCount < len(state.ParentDrill) {
 			state.ParentDrill = state.ParentDrill[:slashCount]
 		}
@@ -143,23 +136,7 @@ func (self *CompletionHelper) ParentCandidatesFor(completionState *types.Complet
 		typingFilter = strings.ToLower(typingFilter)
 
 		if len(state.ParentDrill) == 0 {
-			if allNotesMode {
-				return self.allNoteCandidates(typingFilter)
-			}
-			// Top level: show bookmarked parents
-			var items []types.CompletionItem
-			for _, p := range self.c.GuiCommon().Contexts().Queries.Parents {
-				if typingFilter != "" && !strings.Contains(strings.ToLower(p.Name), typingFilter) &&
-					!strings.Contains(strings.ToLower(p.Title), typingFilter) {
-					continue
-				}
-				items = append(items, types.CompletionItem{
-					Label:  p.Name,
-					Detail: p.Title,
-					Value:  p.UUID,
-				})
-			}
-			return items
+			return self.topLevelParentCandidates(typingFilter)
 		}
 
 		// Drilled: fetch children of the last drilled parent
@@ -187,23 +164,53 @@ func (self *CompletionHelper) ParentCandidatesFor(completionState *types.Complet
 	}
 }
 
-// allNoteCandidates returns all notes as parent candidates (for >> mode).
-func (self *CompletionHelper) allNoteCandidates(filter string) []types.CompletionItem {
+// topLevelParentCandidates returns two sections — bookmarks and all notes —
+// filtered by the given typing filter. Empty sections are omitted; notes
+// whose title matches a bookmark in the first section are skipped in the
+// second so they aren't listed twice.
+func (self *CompletionHelper) topLevelParentCandidates(filter string) []types.CompletionItem {
+	gui := self.c.GuiCommon()
+
+	var bookmarks []types.CompletionItem
+	bookmarkedUUIDs := make(map[string]bool)
+	for _, p := range gui.Contexts().Queries.Parents {
+		bookmarkedUUIDs[p.UUID] = true
+		if filter != "" && !strings.Contains(strings.ToLower(p.Name), filter) &&
+			!strings.Contains(strings.ToLower(p.Title), filter) {
+			continue
+		}
+		bookmarks = append(bookmarks, types.CompletionItem{
+			Label:  p.Name,
+			Detail: p.Title,
+			Value:  p.UUID,
+		})
+	}
+
+	var notes []types.CompletionItem
 	seen := make(map[string]bool)
-	var items []types.CompletionItem
-	for _, note := range self.c.GuiCommon().Contexts().Notes.Items {
-		if note.Title == "" || seen[note.Title] {
+	for _, note := range gui.Contexts().Notes.Items {
+		if note.Title == "" || seen[note.Title] || bookmarkedUUIDs[note.UUID] {
 			continue
 		}
 		if filter != "" && !strings.Contains(strings.ToLower(note.Title), filter) {
 			continue
 		}
 		seen[note.Title] = true
-		items = append(items, types.CompletionItem{
+		notes = append(notes, types.CompletionItem{
 			Label:  note.Title,
 			Detail: note.ShortDate(),
 			Value:  note.UUID,
 		})
+	}
+
+	var items []types.CompletionItem
+	if len(bookmarks) > 0 {
+		items = append(items, types.CompletionItem{Label: "Bookmarks", IsHeader: true})
+		items = append(items, bookmarks...)
+	}
+	if len(notes) > 0 {
+		items = append(items, types.CompletionItem{Label: "Notes", IsHeader: true})
+		items = append(items, notes...)
 	}
 	return items
 }

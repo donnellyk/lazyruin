@@ -221,8 +221,8 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigg
 			state.Active = true
 			state.TriggerStart = tokenStart
 			state.Items = items
-			if state.SelectedIndex >= len(items) {
-				state.SelectedIndex = 0
+			if state.SelectedIndex >= len(items) || state.Items[state.SelectedIndex].IsHeader {
+				state.SelectedIndex = types.FirstSelectable(items)
 			}
 			return
 		}
@@ -260,6 +260,9 @@ func (gui *Gui) acceptCompletion(v *gocui.View, state *types.CompletionState, tr
 	}
 
 	item := state.Items[state.SelectedIndex]
+	if item.IsHeader {
+		return
+	}
 
 	if item.PrependToLine {
 		gui.acceptPrependCompletion(v, state, item)
@@ -373,23 +376,29 @@ func (gui *Gui) completionEnter(state func() *types.CompletionState, triggers fu
 	}
 }
 
-// completionDown moves the selection down in the completion list.
+// completionDown moves the selection down in the completion list, skipping headers.
 func completionDown(state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
-	if state.SelectedIndex < len(state.Items)-1 {
-		state.SelectedIndex++
+	for i := state.SelectedIndex + 1; i < len(state.Items); i++ {
+		if !state.Items[i].IsHeader {
+			state.SelectedIndex = i
+			return
+		}
 	}
 }
 
-// completionUp moves the selection up in the completion list.
+// completionUp moves the selection up in the completion list, skipping headers.
 func completionUp(state *types.CompletionState) {
 	if !state.Active || len(state.Items) == 0 {
 		return
 	}
-	if state.SelectedIndex > 0 {
-		state.SelectedIndex--
+	for i := state.SelectedIndex - 1; i >= 0; i-- {
+		if !state.Items[i].IsHeader {
+			state.SelectedIndex = i
+			return
+		}
 	}
 }
 

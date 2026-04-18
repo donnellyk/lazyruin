@@ -6,9 +6,7 @@ Work through this checklist to learn the basics. `[` / `]` navigate back / forwa
 
 ## Punchlist
 - Default to compose everywhere, but togglable (invert vh, basically)
-- Remove `>>`, just rank the bookmarked parents higher. Two sections?
 - Compose link
-- clicking into Preview should commit
 - F isnt working?
  
 ## Tutorial

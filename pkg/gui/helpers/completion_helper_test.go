@@ -61,7 +61,7 @@ func newTestCompletionHelper(mock *testutil.MockExecutor, gui *mockGuiCommon) *C
 }
 
 func TestParentCandidates_BookmarkTopLevel(t *testing.T) {
-	// > mode, no drill: should return bookmarked parents
+	// > mode, no drill: should return Bookmarks section with bookmarked parents
 	mock := testutil.NewMockExecutor()
 	gui := &mockGuiCommon{
 		contexts: &context.ContextTree{
@@ -78,11 +78,107 @@ func TestParentCandidates_BookmarkTopLevel(t *testing.T) {
 	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
 
 	items := candidates("")
-	if len(items) != 2 {
-		t.Fatalf("expected 2 bookmarks, got %d", len(items))
+	// expect: Bookmarks header + alpha + beta
+	if len(items) != 3 {
+		t.Fatalf("expected 3 items (1 header + 2 bookmarks), got %d", len(items))
 	}
-	if items[0].Label != "alpha" || items[0].Value != "uuid-1" {
-		t.Errorf("first item = %+v, want alpha/uuid-1", items[0])
+	if !items[0].IsHeader || items[0].Label != "Bookmarks" {
+		t.Errorf("first item = %+v, want Bookmarks header", items[0])
+	}
+	if items[1].Label != "alpha" || items[1].Value != "uuid-1" {
+		t.Errorf("second item = %+v, want alpha/uuid-1", items[1])
+	}
+}
+
+func TestParentCandidates_TopLevelShowsBookmarksAndNotes(t *testing.T) {
+	// > mode, no drill: should show both Bookmarks and Notes sections
+	mock := testutil.NewMockExecutor()
+	gui := &mockGuiCommon{
+		contexts: &context.ContextTree{
+			Queries: context.NewQueriesContext(noop, noop, noop, noop),
+			Notes:   context.NewNotesContext(noop, noop),
+		},
+	}
+	gui.contexts.Queries.Parents = []models.ParentBookmark{
+		{Name: "alpha", UUID: "uuid-1", Title: "Alpha Note"},
+	}
+	gui.contexts.Notes.Items = []models.Note{
+		{UUID: "uuid-1", Title: "Alpha Note"}, // bookmarked — should be skipped in Notes
+		{UUID: "n2", Title: "Note B"},
+	}
+
+	state := types.NewCompletionState()
+	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
+
+	items := candidates("")
+	// expect: Bookmarks header + alpha + Notes header + Note B
+	if len(items) != 4 {
+		t.Fatalf("expected 4 items, got %d: %+v", len(items), items)
+	}
+	if !items[0].IsHeader || items[0].Label != "Bookmarks" {
+		t.Errorf("items[0] = %+v, want Bookmarks header", items[0])
+	}
+	if items[1].Label != "alpha" {
+		t.Errorf("items[1] = %+v, want alpha", items[1])
+	}
+	if !items[2].IsHeader || items[2].Label != "Notes" {
+		t.Errorf("items[2] = %+v, want Notes header", items[2])
+	}
+	if items[3].Label != "Note B" {
+		t.Errorf("items[3] = %+v, want Note B", items[3])
+	}
+}
+
+func TestParentCandidates_HidesEmptyBookmarksSection(t *testing.T) {
+	// No bookmarks, only notes: should omit the Bookmarks header
+	mock := testutil.NewMockExecutor()
+	gui := &mockGuiCommon{
+		contexts: &context.ContextTree{
+			Queries: context.NewQueriesContext(noop, noop, noop, noop),
+			Notes:   context.NewNotesContext(noop, noop),
+		},
+	}
+	gui.contexts.Notes.Items = []models.Note{
+		{UUID: "n1", Title: "Note A"},
+	}
+
+	state := types.NewCompletionState()
+	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
+
+	items := candidates("")
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items (Notes header + Note A), got %d: %+v", len(items), items)
+	}
+	if !items[0].IsHeader || items[0].Label != "Notes" {
+		t.Errorf("items[0] = %+v, want Notes header", items[0])
+	}
+	if items[1].Label != "Note A" {
+		t.Errorf("items[1] = %+v, want Note A", items[1])
+	}
+}
+
+func TestParentCandidates_HidesEmptyNotesSection(t *testing.T) {
+	// Only bookmarks, no notes: should omit the Notes header
+	mock := testutil.NewMockExecutor()
+	gui := &mockGuiCommon{
+		contexts: &context.ContextTree{
+			Queries: context.NewQueriesContext(noop, noop, noop, noop),
+			Notes:   context.NewNotesContext(noop, noop),
+		},
+	}
+	gui.contexts.Queries.Parents = []models.ParentBookmark{
+		{Name: "alpha", UUID: "uuid-1", Title: "Alpha Note"},
+	}
+
+	state := types.NewCompletionState()
+	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
+
+	items := candidates("")
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items (Bookmarks header + alpha), got %d: %+v", len(items), items)
+	}
+	if !items[0].IsHeader || items[0].Label != "Bookmarks" {
+		t.Errorf("items[0] = %+v, want Bookmarks header", items[0])
 	}
 }
 
@@ -115,62 +211,9 @@ func TestParentCandidates_BookmarkDrilled(t *testing.T) {
 	}
 }
 
-func TestParentCandidates_AllNotesTopLevel(t *testing.T) {
-	// >> mode, no drill: should return all notes
-	mock := testutil.NewMockExecutor()
-	gui := &mockGuiCommon{
-		contexts: &context.ContextTree{
-			Queries: context.NewQueriesContext(noop, noop, noop, noop),
-			Notes:   context.NewNotesContext(noop, noop),
-		},
-	}
-	gui.contexts.Notes.Items = []models.Note{
-		{UUID: "n1", Title: "Note A"},
-		{UUID: "n2", Title: "Note B"},
-	}
-
-	state := types.NewCompletionState()
-	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
-
-	items := candidates(">")
-	if len(items) != 2 {
-		t.Fatalf("expected 2 notes, got %d", len(items))
-	}
-}
-
-func TestParentCandidates_AllNotesDrilled(t *testing.T) {
-	// >> mode, drilled into alpha: should return children of uuid-1, NOT all notes
-	child := models.Note{UUID: "child-1", Title: "Child One", Parent: "uuid-1"}
-	other := models.Note{UUID: "n2", Title: "Other Note", Parent: "uuid-99"}
-
-	mock := testutil.NewMockExecutor().WithNotes(child, other)
-	gui := &mockGuiCommon{
-		contexts: &context.ContextTree{
-			Queries: context.NewQueriesContext(noop, noop, noop, noop),
-			Notes:   context.NewNotesContext(noop, noop),
-		},
-	}
-	gui.contexts.Notes.Items = []models.Note{
-		{UUID: "n1", Title: "Note A"},
-		{UUID: "n2", Title: "Note B"},
-	}
-
-	state := types.NewCompletionState()
-	state.ParentDrill = []types.ParentDrillEntry{{Name: "alpha", UUID: "uuid-1"}}
-	candidates := newTestCompletionHelper(mock, gui).ParentCandidatesFor(state)
-
-	items := candidates(">alpha/")
-	if len(items) != 1 {
-		t.Fatalf("expected 1 child, got %d", len(items))
-	}
-	if items[0].Label != "Child One" {
-		t.Errorf("item label = %q, want Child One", items[0].Label)
-	}
-}
-
 func TestParentCandidates_DrillStackSyncOnBackspace(t *testing.T) {
 	// User backspaced past the slash: filter has no slashes but drill stack has an entry.
-	// Should truncate drill stack and return bookmarks.
+	// Should truncate drill stack and return top-level sections.
 	mock := testutil.NewMockExecutor()
 	gui := &mockGuiCommon{
 		contexts: &context.ContextTree{
@@ -191,9 +234,9 @@ func TestParentCandidates_DrillStackSyncOnBackspace(t *testing.T) {
 	if len(state.ParentDrill) != 0 {
 		t.Errorf("ParentDrill len = %d, want 0", len(state.ParentDrill))
 	}
-	// Should return bookmarks, not children
-	if len(items) != 1 || items[0].Label != "alpha" {
-		t.Errorf("expected bookmark [alpha], got %+v", items)
+	// Should return Bookmarks section (header + alpha), not children
+	if len(items) != 2 || items[1].Label != "alpha" {
+		t.Errorf("expected [Bookmarks header, alpha], got %+v", items)
 	}
 }
 
