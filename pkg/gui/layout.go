@@ -316,7 +316,7 @@ func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.Queries = v
 	v.TitlePrefix = "[2]"
-	v.Tabs = []string{"Queries", "Parents"}
+	v.Tabs = []string{"Parents", "Queries"}
 	v.SelFgColor = gocui.ColorGreen
 	v.Highlight = false
 	gui.UpdateQueriesTab()

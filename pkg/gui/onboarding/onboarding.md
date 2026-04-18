@@ -8,8 +8,6 @@ Work through this checklist to learn the basics. `[` / `]` navigate back / forwa
 - Default to compose everywhere, but togglable (invert vh, basically)
 - Remove `>>`, just rank the bookmarked parents higher. Two sections?
 - Compose link
-- Remove ! for now.
-- Swap parent and query order.
 - clicking into Preview should commit
 - F isnt working?
  

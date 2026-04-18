@@ -14,7 +14,7 @@ const (
 )
 
 // QueriesTabs maps tab indices to QueriesTab values.
-var QueriesTabs = []QueriesTab{QueriesTabQueries, QueriesTabParents}
+var QueriesTabs = []QueriesTab{QueriesTabParents, QueriesTabQueries}
 
 // QueriesContext owns all Queries panel state: queries, parents, cursors, and tab.
 // The panel shows either the Queries list or the Parents list depending on CurrentTab.
