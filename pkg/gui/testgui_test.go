@@ -36,7 +36,9 @@ func newTestGuiWithOpts(t *testing.T, mock *testutil.MockExecutor, opts testGuiO
 	t.Helper()
 
 	ruin := commands.NewRuinCommandWithExecutor(mock, mock.VaultPath())
-	cfg := &config.Config{}
+	// Suppress the empty-vault onboarding prompt in tests. Tests that want to
+	// exercise the prompt flow should override this flag before layout runs.
+	cfg := &config.Config{OnboardingOffered: true}
 	gui := NewGui(cfg, ruin)
 	gui.OpenRef = opts.OpenRef
 	gui.QuickLink = opts.QuickLink

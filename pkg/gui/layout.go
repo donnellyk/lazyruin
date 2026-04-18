@@ -207,6 +207,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			} else {
 				gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
 			}
+			gui.maybeOfferOnboarding()
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {
 		gui.state.lastWidth = maxX

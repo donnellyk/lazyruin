@@ -21,6 +21,11 @@ type Config struct {
 	ChromaTheme   string                       `yaml:"chroma_theme"`
 	Abbreviations map[string]map[string]string `yaml:"abbreviations,omitempty"`
 	ViewOptions   ViewOptions                  `yaml:"view_options,omitempty"`
+
+	// OnboardingOffered is flipped to true after the empty-vault onboarding
+	// prompt has been shown once (either accepted or declined), so we do not
+	// re-prompt on subsequent launches against empty vaults.
+	OnboardingOffered bool `yaml:"onboarding_offered,omitempty"`
 }
 
 // VaultAbbreviations returns the snippet map for the given vault.

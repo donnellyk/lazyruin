@@ -15,6 +15,7 @@ type MockExecutor struct {
 	tags          []models.Tag
 	queries       []models.Query
 	parents       []models.ParentBookmark
+	pickResults   []models.PickResult
 	compose       []byte // raw JSON for compose tree
 	linkJSON      []byte // raw JSON for link command responses
 	versionOutput string // raw output for `ruin --version`
@@ -75,6 +76,12 @@ func (m *MockExecutor) WithVersion(output string) *MockExecutor {
 // WithError sets an error to return.
 func (m *MockExecutor) WithError(err error) *MockExecutor {
 	m.err = err
+	return m
+}
+
+// WithPickResults sets the results returned for `ruin pick` commands.
+func (m *MockExecutor) WithPickResults(results ...models.PickResult) *MockExecutor {
+	m.pickResults = results
 	return m
 }
 
@@ -185,6 +192,17 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 
 	case "link":
 		return m.handleLink(args)
+
+	case "log":
+		return []byte("{}"), nil
+
+	case "pick":
+		return json.Marshal(m.pickResults)
+
+	case "note":
+		// Handles note delete / note set / note append — returns empty
+		// success. Tests assert on m.Calls for behavior.
+		return []byte("{}"), nil
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)

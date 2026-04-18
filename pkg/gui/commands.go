@@ -54,6 +54,14 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 		{Name: "Browse Links", Category: "Links", OnRun: func() error {
 			return gui.helpers.Link().BrowseLinks()
 		}},
+
+		// Onboarding
+		{Name: "Add walkthrough", Category: "Onboarding", OnRun: func() error {
+			return gui.InstallOnboarding()
+		}},
+		{Name: "Cleanup", Category: "Onboarding", OnRun: func() error {
+			return gui.CleanupOnboarding()
+		}},
 	}
 }
 
