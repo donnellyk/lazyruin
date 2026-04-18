@@ -511,8 +511,11 @@ func (self *PreviewNavHelper) Click() error {
 	}
 	ns.CursorLine = clickLine
 
-	// Push the appropriate preview context based on ActivePreviewKey
+	// Push the appropriate preview context based on ActivePreviewKey.
+	// Focusing a hover preview via click commits it to navigation history,
+	// matching the committed-focus semantics of Enter.
 	gui := self.c.GuiCommon()
+	self.c.Helpers().Navigator().CommitHover()
 	gui.PushContextByKey(gui.Contexts().ActivePreviewKey)
 	gui.RenderPreview()
 	return nil

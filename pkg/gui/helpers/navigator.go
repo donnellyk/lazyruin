@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"strings"
+
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 )
@@ -134,6 +136,25 @@ func (n *Navigator) Forward() error {
 	}
 	n.currentIsCommitted = true
 	return nil
+}
+
+// CommitHover promotes the current hover view to a committed history entry.
+// Strips the hover-title decoration and records a new entry at the current
+// active preview context. No-op if the current view is already committed or
+// no preview context is active.
+func (n *Navigator) CommitHover() {
+	if n.currentIsCommitted {
+		return
+	}
+	ctx := n.c.GuiCommon().Contexts().ActivePreview()
+	if ctx == nil {
+		return
+	}
+	title := strings.TrimPrefix(ctx.Title(), "~ ")
+	ctx.SetTitle(title)
+	destination := n.c.GuiCommon().Contexts().ActivePreviewKey
+	n.recordCurrent(destination, title)
+	n.currentIsCommitted = true
 }
 
 // HoverTitle decorates a title to signal the view is a hover (not committed

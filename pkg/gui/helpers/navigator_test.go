@@ -97,6 +97,55 @@ func TestNavigator_ShowHoverDoesNotRecord(t *testing.T) {
 	}
 }
 
+func TestNavigator_CommitHoverRecordsEntryAndStripsDecoration(t *testing.T) {
+	nav, gui, _ := newNavigatorFixture()
+
+	_ = nav.ShowHover("cardList", "hover", func() error {
+		gui.contexts.CardList.Cards = []models.Note{{UUID: "x"}}
+		return nil
+	})
+	if nav.Manager().Len() != 0 {
+		t.Fatalf("precondition: history len = %d, want 0", nav.Manager().Len())
+	}
+	if nav.IsCurrentCommitted() {
+		t.Fatal("precondition: expected hover state to be uncommitted")
+	}
+
+	nav.CommitHover()
+
+	if !nav.IsCurrentCommitted() {
+		t.Error("after CommitHover: expected currentIsCommitted = true")
+	}
+	if nav.Manager().Len() != 1 {
+		t.Errorf("after CommitHover: history len = %d, want 1", nav.Manager().Len())
+	}
+	if title := gui.contexts.CardList.Title(); title != "hover" {
+		t.Errorf("after CommitHover: title = %q, want %q (decoration stripped)", title, "hover")
+	}
+}
+
+func TestNavigator_CommitHoverNoOpWhenAlreadyCommitted(t *testing.T) {
+	nav, gui, _ := newNavigatorFixture()
+
+	_ = nav.NavigateTo("cardList", "A", func() error {
+		gui.contexts.CardList.Cards = []models.Note{{UUID: "a"}}
+		gui.contexts.CardList.SetTitle("A")
+		return nil
+	})
+	if nav.Manager().Len() != 1 {
+		t.Fatalf("precondition: history len = %d, want 1", nav.Manager().Len())
+	}
+
+	nav.CommitHover()
+
+	if nav.Manager().Len() != 1 {
+		t.Errorf("after CommitHover on committed view: history len = %d, want 1 (no-op)", nav.Manager().Len())
+	}
+	if gui.contexts.CardList.Title() != "A" {
+		t.Errorf("after CommitHover on committed view: title = %q, want %q", gui.contexts.CardList.Title(), "A")
+	}
+}
+
 func TestNavigator_HoverDoesNotCorruptPriorCommittedEntry(t *testing.T) {
 	nav, gui, _ := newNavigatorFixture()
 
