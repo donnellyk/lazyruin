@@ -126,6 +126,7 @@ func flagCandidates(filter string) []types.CompletionItem {
 	items := []types.CompletionItem{
 		{Label: "--any", InsertText: "--any", Detail: "match any tag"},
 		{Label: "--todo", InsertText: "--todo", Detail: "only todo lines"},
+		{Label: "--all", InsertText: "--all", Detail: "include done todos"},
 		{Label: "--all-tags", InsertText: "--all-tags", Detail: "all scoped inline tags"},
 	}
 	if filter == "" {

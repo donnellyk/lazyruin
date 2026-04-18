@@ -123,6 +123,23 @@ func TestParsePickQuery(t *testing.T) {
 			wantDate:  "@today",
 			wantFlags: PickFlags{AllTags: true},
 		},
+		{
+			name:      "--all flag alone",
+			raw:       "#followup --all",
+			wantTags:  []string{"#followup"},
+			wantFlags: PickFlags{All: true},
+		},
+		{
+			name:      "--all with --todo",
+			raw:       "#followup --todo --all",
+			wantTags:  []string{"#followup"},
+			wantFlags: PickFlags{Todo: true, All: true},
+		},
+		{
+			name:      "--all is distinct from --all-tags",
+			raw:       "--all --all-tags",
+			wantFlags: PickFlags{All: true, AllTags: true},
+		},
 	}
 
 	for _, tt := range tests {
@@ -289,7 +306,7 @@ func TestAllTagsExpansion(t *testing.T) {
 				anyMode = true
 			}
 
-			resolved := buildResolvedQuery(tags, date, anyMode, todoMode)
+			resolved := buildResolvedQuery(tags, date, anyMode, todoMode, flags.All)
 
 			// --- Verify resolved query has no --all-tags ---
 			if tt.wantNoAllTags {
