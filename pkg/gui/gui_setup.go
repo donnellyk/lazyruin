@@ -210,6 +210,14 @@ func (gui *Gui) setupSearchContext() {
 			{Key: gocui.KeyTab, Description: "Complete", Handler: func() error {
 				return gui.completionTab(searchState, gui.searchOrFilterTriggers)(gui.g, gui.views.Search)
 			}},
+			{Key: gocui.KeyCtrlS, Description: "Save query", Handler: func() error {
+				ctx := gui.contexts.Search
+				if ctx.InFilterMode() {
+					return nil
+				}
+				raw := strings.TrimSpace(gui.views.Search.TextArea.GetUnwrappedContent())
+				return searchHelper().PromptSaveQuery(raw)
+			}},
 		},
 	)
 }

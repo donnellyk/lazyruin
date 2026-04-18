@@ -33,6 +33,14 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 			gui.helpers.Search().ClearSearch()
 			return nil
 		}},
+		{Name: "Save Query", Category: "Search", OnRun: func() error {
+			raw := gui.contexts.Search.Query
+			if raw == "" {
+				gui.ShowError(fmt.Errorf("no active search query to save"))
+				return nil
+			}
+			return gui.helpers.Search().PromptSaveQuery(raw)
+		}},
 
 		// Date preview (palette-only)
 		{Name: "Today", Category: "Date", OnRun: dp(time.Now().Format("2006-01-02"))},

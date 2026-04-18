@@ -104,6 +104,34 @@ func (self *SearchHelper) ClearSearch() {
 	gui.PushContextByKey("notes")
 }
 
+// PromptSaveQuery dismisses the search popup and opens an input popup asking
+// for a name under which to save the current query string.
+func (self *SearchHelper) PromptSaveQuery(raw string) error {
+	raw = strings.TrimSpace(raw)
+	gui := self.c.GuiCommon()
+	if raw == "" {
+		return nil
+	}
+	self.CancelSearch()
+	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
+		Title:  "Save Query",
+		Footer: " Enter: save | Esc: cancel ",
+		OnAccept: func(name string, _ *types.CompletionItem) error {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				return nil
+			}
+			if err := self.c.RuinCmd().Queries.Save(name, raw); err != nil {
+				gui.ShowError(err)
+				return nil
+			}
+			self.c.Helpers().Queries().RefreshQueries(false)
+			return nil
+		},
+	})
+	return nil
+}
+
 // FocusSearchFilter re-runs the current search and focuses the filter pane.
 func (self *SearchHelper) FocusSearchFilter() error {
 	gui := self.c.GuiCommon()
