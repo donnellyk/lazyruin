@@ -307,6 +307,7 @@ func (self *PreviewNavHelper) CardDown() error {
 	if next < len(ranges) {
 		ns.CursorLine = ranges[next][0] + 1
 	}
+	self.c.Helpers().Preview().RefreshComposedForSelectedCard()
 	self.renderActive()
 	return nil
 }
@@ -325,6 +326,7 @@ func (self *PreviewNavHelper) CardUp() error {
 	if prev < len(ranges) {
 		ns.CursorLine = ranges[prev][0] + 1
 	}
+	self.c.Helpers().Preview().RefreshComposedForSelectedCard()
 	self.renderActive()
 	return nil
 }

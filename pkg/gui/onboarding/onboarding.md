@@ -72,6 +72,18 @@ That's enough to get you started. See the [repo](link) for more documentation.
 
 Clean up this onboarding with `:cleanup` (or just delete it in the Files panel with `d`). You can add it back at any time with `:add walkthrough`. 
 
+Want to learn more? A more advanced tutorial is below.
+
+### Advanced Features
+
+#### Navigation
+
+#### Tags
+
+#### Parent
+
+#### Compose / Embeds
+
 
 ### Basic Navigation
 - [ ] In lists, press `j` / `k` or arrow keys to navigate. Scrolling with a mouse also works.

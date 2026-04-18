@@ -174,7 +174,6 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 	} else {
 		cl.Source = context.CardListSource{}
 	}
-	cl.DisplayState().ShowCompose = false
 	cl.ComposedNote = nil
 	cl.ComposedSourceMap = nil
 	ns := cl.NavState()
@@ -183,6 +182,7 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 	contexts.ActivePreviewKey = "cardList"
 	self.c.Helpers().TitleCache().PutNotes(cards)
 	self.c.Helpers().TitleCache().ResolveUnknownParents(cards)
+	self.RefreshComposedForSelectedCard()
 	self.c.GuiCommon().RenderPreview()
 }
 
@@ -430,32 +430,6 @@ func (self *PreviewHelper) ToggleMarkdown() error {
 	return nil
 }
 
-// ToggleFrontmatter toggles frontmatter display.
-func (self *PreviewHelper) ToggleFrontmatter() error {
-	ds := self.activeCtx().DisplayState()
-	ds.ShowFrontmatter = !ds.ShowFrontmatter
-	self.c.GuiCommon().RenderPreview()
-	return nil
-}
-
-// ToggleTitle toggles title display.
-func (self *PreviewHelper) ToggleTitle() error {
-	ds := self.activeCtx().DisplayState()
-	ds.ShowTitle = !ds.ShowTitle
-	self.reloadComposeIfActive()
-	self.ReloadContent()
-	return nil
-}
-
-// ToggleGlobalTags toggles global tags display.
-func (self *PreviewHelper) ToggleGlobalTags() error {
-	ds := self.activeCtx().DisplayState()
-	ds.ShowGlobalTags = !ds.ShowGlobalTags
-	self.reloadComposeIfActive()
-	self.ReloadContent()
-	return nil
-}
-
 // ToggleDimDone toggles dimming of lines with #done.
 func (self *PreviewHelper) ToggleDimDone() error {
 	ds := self.activeCtx().DisplayState()
@@ -493,75 +467,68 @@ func (self *PreviewHelper) ToggleHideDone() error {
 	return nil
 }
 
-// ToggleCompose toggles the compose view for the currently selected card.
-// When turned on, fetches the composed/embed-expanded version of the note.
-// Cleared automatically when navigating to a new note (see ShowCardList).
-func (self *PreviewHelper) ToggleCompose() error {
-	gui := self.c.GuiCommon()
-	cl := gui.Contexts().CardList
-	ds := cl.DisplayState()
-
-	if ds.ShowCompose {
-		ds.ShowCompose = false
-		cl.ComposedNote = nil
-		cl.ComposedSourceMap = nil
-		gui.RenderPreview()
-		return nil
-	}
-
-	note := self.CurrentPreviewCard()
-	if note == nil || note.UUID == "" {
-		return nil
-	}
-
-	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(note.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
-	if err != nil {
-		gui.ShowError(err)
-		return nil
-	}
-
-	cl.ComposedNote = &composed
-	cl.ComposedSourceMap = sourceMap
-	ds.ShowCompose = true
-	gui.RenderPreview()
-	return nil
-}
-
-// reloadComposeIfActive re-fetches the composed note with current display settings.
-// Called when ShowTitle or ShowGlobalTags change while ShowCompose is active.
-func (self *PreviewHelper) reloadComposeIfActive() {
+// RefreshComposedForSelectedCard fetches the composed form of the currently
+// selected card when ShowCompose is on, storing it in ComposedNote /
+// ComposedSourceMap. Silent no-op when compose is off, there's no selected
+// card, or the compose command fails — the render path falls back to raw in
+// those cases.
+func (self *PreviewHelper) RefreshComposedForSelectedCard() {
 	cl := self.c.GuiCommon().Contexts().CardList
 	ds := cl.DisplayState()
-	if !ds.ShowCompose || cl.ComposedNote == nil {
+	if !ds.ShowCompose {
+		cl.ComposedNote = nil
+		cl.ComposedSourceMap = nil
 		return
 	}
-	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(cl.ComposedNote.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
+	note := self.CurrentPreviewCard()
+	if note == nil || note.UUID == "" {
+		cl.ComposedNote = nil
+		cl.ComposedSourceMap = nil
+		return
+	}
+	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(note.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
 	if err != nil {
+		cl.ComposedNote = nil
+		cl.ComposedSourceMap = nil
 		return
 	}
 	cl.ComposedNote = &composed
 	cl.ComposedSourceMap = sourceMap
+}
+
+// isViewingRawFile reports whether the current display-state has all four
+// "raw" bits set: frontmatter, title, and global tags shown, compose off.
+func isViewingRawFile(ds *context.PreviewDisplayState) bool {
+	return ds.ShowFrontmatter && ds.ShowTitle && ds.ShowGlobalTags && !ds.ShowCompose
+}
+
+// ToggleViewRaw flips between raw-file view (frontmatter/title/tags shown,
+// compose off) and rendered view (those hidden, compose on). Applies to
+// whichever preview context is active; compose refresh only applies to
+// cardList.
+func (self *PreviewHelper) ToggleViewRaw() error {
+	ds := self.activeCtx().DisplayState()
+	raw := !isViewingRawFile(ds)
+	ds.ShowFrontmatter = raw
+	ds.ShowTitle = raw
+	ds.ShowGlobalTags = raw
+	ds.ShowCompose = !raw
+
+	if self.c.GuiCommon().Contexts().ActivePreviewKey == "cardList" {
+		self.RefreshComposedForSelectedCard()
+	}
+	self.c.GuiCommon().RenderPreview()
+	return nil
 }
 
 // ViewOptionsDialog shows the view options menu.
 func (self *PreviewHelper) ViewOptionsDialog() error {
 	ds := self.activeCtx().DisplayState()
-	fmLabel := "Show frontmatter"
-	if ds.ShowFrontmatter {
-		fmLabel = "Hide frontmatter"
+	rawLabel := "View raw file"
+	if isViewingRawFile(ds) {
+		rawLabel = "View rendered file"
 	}
-	titleLabel := "Show title"
-	if ds.ShowTitle {
-		titleLabel = "Hide title"
-	}
-	tagsLabel := "Show global tags"
-	if ds.ShowGlobalTags {
-		tagsLabel = "Hide global tags"
-	}
-	mdLabel := "Render markdown"
-	if ds.RenderMarkdown {
-		mdLabel = "Raw markdown"
-	}
+	fmtLabel := "Toggle formatting"
 	doneLabel := "Dim #done lines"
 	if ds.DimDone {
 		doneLabel = "Undim #done lines"
@@ -572,20 +539,10 @@ func (self *PreviewHelper) ViewOptionsDialog() error {
 	}
 
 	items := []types.MenuItem{
-		{Label: fmLabel, Key: "f", OnRun: func() error { return self.ToggleFrontmatter() }},
-		{Label: titleLabel, Key: "t", OnRun: func() error { return self.ToggleTitle() }},
-		{Label: tagsLabel, Key: "T", OnRun: func() error { return self.ToggleGlobalTags() }},
-		{Label: mdLabel, Key: "M", OnRun: func() error { return self.ToggleMarkdown() }},
+		{Label: rawLabel, Key: "r", OnRun: func() error { return self.ToggleViewRaw() }},
+		{Label: fmtLabel, Key: "f", OnRun: func() error { return self.ToggleMarkdown() }},
 		{Label: doneLabel, Key: "d", OnRun: func() error { return self.ToggleDimDone() }},
 		{Label: hideLabel, Key: "h", OnRun: func() error { return self.ToggleHideDone() }},
-	}
-
-	if self.c.GuiCommon().Contexts().ActivePreviewKey == "cardList" {
-		composeLabel := "View compose"
-		if ds.ShowCompose {
-			composeLabel = "View raw"
-		}
-		items = append(items, types.MenuItem{Label: composeLabel, Key: "c", OnRun: func() error { return self.ToggleCompose() }})
 	}
 
 	self.c.GuiCommon().ShowMenuDialog("View Options", items)

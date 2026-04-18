@@ -733,26 +733,6 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 
 // --- Preview toggle tests ---
 
-func TestToggleFrontmatter(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	ds := tg.gui.contexts.ActivePreview().DisplayState()
-	if ds.ShowFrontmatter {
-		t.Fatal("ShowFrontmatter should default to false")
-	}
-
-	tg.gui.helpers.Preview().ToggleFrontmatter()
-	if !ds.ShowFrontmatter {
-		t.Error("ShowFrontmatter should be true after toggle")
-	}
-
-	tg.gui.helpers.Preview().ToggleFrontmatter()
-	if ds.ShowFrontmatter {
-		t.Error("ShowFrontmatter should be false after second toggle")
-	}
-}
-
 func TestToggleMarkdown(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
@@ -762,30 +742,6 @@ func TestToggleMarkdown(t *testing.T) {
 	tg.gui.helpers.Preview().ToggleMarkdown()
 	if ds.RenderMarkdown == initial {
 		t.Error("RenderMarkdown should have toggled")
-	}
-}
-
-func TestToggleTitle(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	ds := tg.gui.contexts.ActivePreview().DisplayState()
-	initial := ds.ShowTitle
-	tg.gui.helpers.Preview().ToggleTitle()
-	if ds.ShowTitle == initial {
-		t.Error("ShowTitle should have toggled")
-	}
-}
-
-func TestToggleGlobalTags(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	ds := tg.gui.contexts.ActivePreview().DisplayState()
-	initial := ds.ShowGlobalTags
-	tg.gui.helpers.Preview().ToggleGlobalTags()
-	if ds.ShowGlobalTags == initial {
-		t.Error("ShowGlobalTags should have toggled")
 	}
 }
 

@@ -706,7 +706,7 @@ func TestPaletteCommands_SharedPreviewBindingsDeduped(t *testing.T) {
 
 	// Shared preview commands that exist in all 4 preview contexts
 	// should each appear exactly once.
-	shared := []string{"Toggle Frontmatter", "View Options", "Open Link"}
+	shared := []string{"View Options", "Open Link"}
 	for _, name := range shared {
 		count := 0
 		for _, cmd := range cmds {

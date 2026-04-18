@@ -45,7 +45,7 @@ func NewPreviewContextTrait() PreviewContextTrait {
 	return PreviewContextTrait{
 		PreviewState: PreviewState{
 			PreviewNavState:     PreviewNavState{HighlightedLink: -1},
-			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true},
+			PreviewDisplayState: PreviewDisplayState{RenderMarkdown: true, DimDone: true, ShowCompose: true},
 		},
 	}
 }

@@ -57,7 +57,9 @@ func (gui *Gui) RenderPreview() {
 		gui.renderDatePreview(v, dp, ns, gui.isPreviewActive())
 	default:
 		cl := gui.contexts.CardList
-		if cl.DisplayState().ShowCompose && cl.ComposedNote != nil {
+		if cl.DisplayState().ShowCompose && cl.ComposedNote != nil &&
+			cl.SelectedCardIdx < len(cl.Cards) &&
+			cl.Cards[cl.SelectedCardIdx].UUID == cl.ComposedNote.UUID {
 			gui.renderSeparatorCards(v, []models.Note{*cl.ComposedNote}, ns, nil)
 		} else {
 			gui.renderSeparatorCards(v, cl.Cards, ns, cl.TemporarilyMoved)
@@ -297,7 +299,10 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 	switch {
 	case gui.contexts.ActivePreviewKey == "compose" && len(gui.contexts.Compose.SourceMap) > 0:
 		gui.buildComposeLineMap(contentLines, gui.contexts.Compose.SourceMap, identities)
-	case gui.contexts.ActivePreviewKey != "compose" && cl.DisplayState().ShowCompose && len(cl.ComposedSourceMap) > 0:
+	case gui.contexts.ActivePreviewKey != "compose" && cl.DisplayState().ShowCompose &&
+		cl.ComposedNote != nil && len(cl.ComposedSourceMap) > 0 &&
+		cl.SelectedCardIdx < len(cl.Cards) &&
+		cl.Cards[cl.SelectedCardIdx].UUID == cl.ComposedNote.UUID:
 		gui.buildComposeLineMap(contentLines, cl.ComposedSourceMap, identities)
 	default:
 		rawLineMap := gui.buildRawLineMap(note)

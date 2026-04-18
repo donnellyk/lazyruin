@@ -48,12 +48,6 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 		},
 		// Display toggles
 		{
-			ID:          "preview.toggle_frontmatter",
-			Handler:     t.preview().ToggleFrontmatter,
-			Description: "Toggle Frontmatter",
-			Category:    "Preview",
-		},
-		{
 			ID:              "preview.view_options",
 			Key:             'v',
 			Handler:         t.preview().ViewOptionsDialog,
@@ -83,24 +77,6 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			StatusBarLabel:  "Back",
 		},
 		// Palette-only display toggles
-		{
-			ID:          "preview.toggle_title",
-			Handler:     t.preview().ToggleTitle,
-			Description: "Toggle Title",
-			Category:    "Preview",
-		},
-		{
-			ID:          "preview.toggle_global_tags",
-			Handler:     t.preview().ToggleGlobalTags,
-			Description: "Toggle Global Tags",
-			Category:    "Preview",
-		},
-		{
-			ID:          "preview.toggle_markdown",
-			Handler:     t.preview().ToggleMarkdown,
-			Description: "Toggle Markdown",
-			Category:    "Preview",
-		},
 		{
 			ID:          "preview.toggle_dim_done",
 			Handler:     t.preview().ToggleDimDone,
