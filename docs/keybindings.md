@@ -158,7 +158,6 @@ no-op on those.
 | Prefix | Completes |
 |--------|-----------|
 | `#` | Tags |
-| `!` | Abbreviation snippets |
 | `@` | Dates |
 | `created:` | Creation date filter |
 | `updated:` | Update date filter |
@@ -184,7 +183,6 @@ no-op on those.
 | Prefix | Completes |
 |--------|-----------|
 | `#` | Tags |
-| `!` | Abbreviation snippets |
 | `[[` | Wiki-links (then `#` for headers) |
 | `>` | Parent (then `/` to drill into children) |
 | `@` | Dates |
@@ -232,14 +230,6 @@ Tags can be added inline with `#` (e.g. `https://example.com #reading #tech`).
 | `Enter` | Open date preview |
 | `Tab` | Cycle focus (grid, notes) |
 | `Esc` | Close |
-
-## Snippet Editor
-
-| Key | Action |
-|-----|--------|
-| `Tab` | Toggle name/expansion focus or accept completion |
-| `Enter` | Save snippet or accept completion |
-| `Esc` | Dismiss completion or close |
 
 ## Command Palette
 

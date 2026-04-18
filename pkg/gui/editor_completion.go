@@ -16,7 +16,7 @@ const (
 
 // completionEditor is a configurable gocui.Editor that handles completion
 // navigation and drill-down for any popup with a types.CompletionState.
-// It replaces the four near-identical editors (search, pick, inputPopup, snippet).
+// It replaces the three near-identical editors (search, pick, inputPopup).
 type completionEditor struct {
 	gui        *Gui
 	state      func() *types.CompletionState

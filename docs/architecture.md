@@ -61,7 +61,7 @@ lazyruin/
 │   │   └── pick.go                  # PickMatch + PickResult (tag intersection results)
 │   │
 │   ├── config/
-│   │   └── config.go                # Configuration loading (vault path, snippets)
+│   │   └── config.go                # Configuration loading (vault path)
 │   │
 │   ├── gui/                         # GUI orchestration
 │   │   ├── types/                   # Pure interface + data type definitions
@@ -93,7 +93,6 @@ lazyruin/
 │   │   │   ├── pick_context.go      # TEMPORARY_POPUP — pick state + completion
 │   │   │   ├── input_popup_context.go # TEMPORARY_POPUP — input popup state + completion
 │   │   │   ├── palette_context.go   # TEMPORARY_POPUP — palette state
-│   │   │   ├── snippet_editor_context.go # TEMPORARY_POPUP — snippet editor state + completion
 │   │   │   ├── calendar_context.go  # TEMPORARY_POPUP — calendar state (year/month/day/notes)
 │   │   │   ├── contrib_context.go   # TEMPORARY_POPUP — contribution chart state
 │   │   │   └── context_tree.go      # ContextTree: typed accessors + All() + ActivePreviewKey
@@ -113,7 +112,6 @@ lazyruin/
 │   │   │   ├── pick_controller.go   # enter/esc/tab/ctrl+a
 │   │   │   ├── input_popup_controller.go # enter/esc/tab
 │   │   │   ├── palette_controller.go # enter/esc; mouse click on list
-│   │   │   ├── snippet_editor_controller.go # esc/tab; enter dispatched per view
 │   │   │   ├── calendar_controller.go # grid h/j/k/l, input enter/esc, notes j/k
 │   │   │   ├── contrib_controller.go # grid h/j/k/l/enter, notes j/k
 │   │   │   └── datepreview_controller.go # section nav )/( + PreviewNavTrait (card/line/header)
@@ -136,7 +134,6 @@ lazyruin/
 │   │   │   ├── capture_helper.go    # OpenCapture, SubmitCapture, CancelCapture
 │   │   │   ├── pick_helper.go       # OpenPick, ExecutePick, TogglePickAny
 │   │   │   ├── input_popup_helper.go # OpenInputPopup, HandleEnter, HandleEsc
-│   │   │   ├── snippet_helper.go    # ListSnippets, CreateSnippet, DeleteSnippet, SaveSnippet
 │   │   │   ├── datepreview_helper.go # LoadDatePreview, ReloadDatePreview, date/pick utilities
 │   │   │   ├── preview_nav_helper.go # Shared preview nav: card/line/header/section, Enter, links
 │   │   │   └── view_helper.go       # ListClickIndex, ScrollViewport (used by controllers)
@@ -184,7 +181,7 @@ Each panel has a **Context** that owns its state and view identity. Contexts imp
 - `SIDE_CONTEXT` — Notes, Tags, Queries panels
 - `MAIN_CONTEXT` — Preview, DatePreview panels
 - `PERSISTENT_POPUP` — Search, Capture (can return to previous context)
-- `TEMPORARY_POPUP` — Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib (ephemeral overlays)
+- `TEMPORARY_POPUP` — Pick, Palette, InputPopup, Calendar, Contrib (ephemeral overlays)
 - `GLOBAL_CONTEXT` — Bindings that fire in any view (view name `""`)
 
 **Context stack** (`GuiState.ContextStack []ContextKey`) manages focus. `pushContext()` / `popContext()` manage the stack. `popupActive()` uses `GetKind()` to check whether the top-of-stack is a popup.
@@ -266,7 +263,6 @@ Helpers encapsulate domain operations. They access the GUI through an `IGuiCommo
 | `CaptureHelper` | `OpenCapture`, `SubmitCapture`, `CancelCapture` |
 | `PickHelper` | `OpenPick`, `ExecutePick`, `TogglePickAny` |
 | `InputPopupHelper` | `OpenInputPopup`, `HandleEnter`, `HandleEsc` |
-| `SnippetHelper` | `ListSnippets`, `CreateSnippet`, `DeleteSnippet`, `SaveSnippet` |
 
 ### 4. Keybinding Registration
 
@@ -280,7 +276,7 @@ Helpers encapsulate domain operations. They access the GUI through an `IGuiCommo
 
 The palette aggregates entries from two sources:
 1. **Controller bindings** — any `types.Binding` with a non-empty `Description` automatically appears in the palette with its key hint and category
-2. **`paletteOnlyCommands()`** (`commands.go`) — tab switching and snippet management commands with no keybinding (palette-only access)
+2. **`paletteOnlyCommands()`** (`commands.go`) — tab switching and other commands with no keybinding (palette-only access)
 
 `palette.go` merges both sources into the rendered palette list.
 
@@ -307,7 +303,6 @@ All panel-specific and popup-specific state lives in the respective context stru
 - Pick query/anyMode/completion → `PickContext`
 - Input popup config/completion → `InputPopupContext`
 - Palette state/seedDone → `PaletteContext`
-- Snippet editor focus/completion → `SnippetEditorContext`
 - Calendar year/month/day/notes → `CalendarContext`
 - Contribution chart dayCounts/selectedDate/notes → `ContribContext`
 

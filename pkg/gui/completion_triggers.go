@@ -21,7 +21,6 @@ func triggerHints(triggers []types.CompletionTrigger) []types.CompletionItem {
 		"parent:":  "parent filter",
 		"sort:":    "sort results",
 		"@":        "insert date",
-		"!":        "abbreviation",
 	}
 	var items []types.CompletionItem
 	for _, t := range triggers {
@@ -52,11 +51,6 @@ func (gui *Gui) dateTrigger() types.CompletionTrigger {
 	return types.CompletionTrigger{Prefix: "@", Candidates: atDateCandidates}
 }
 
-// abbreviationTrigger returns the ! abbreviation completion trigger.
-func (gui *Gui) abbreviationTrigger() types.CompletionTrigger {
-	return types.CompletionTrigger{Prefix: "!", Candidates: gui.abbreviationCandidates}
-}
-
 // wikiLinkTrigger returns the [[ wiki-link completion trigger.
 func (gui *Gui) wikiLinkTrigger() types.CompletionTrigger {
 	return types.CompletionTrigger{Prefix: "[[", Candidates: gui.wikiLinkCandidates}
@@ -66,7 +60,6 @@ func (gui *Gui) wikiLinkTrigger() types.CompletionTrigger {
 // The "/" trigger shows an overview of all available filter prefixes.
 func (gui *Gui) searchTriggers() []types.CompletionTrigger {
 	triggers := []types.CompletionTrigger{
-		gui.abbreviationTrigger(),
 		gui.tagTrigger(),
 		gui.dateTrigger(),
 		{Prefix: "created:", Candidates: func(f string) []types.CompletionItem { return dateCandidates("created:", f) }},
@@ -112,12 +105,11 @@ func (gui *Gui) searchOrFilterTriggers() []types.CompletionTrigger {
 }
 
 // captureTriggers returns the completion triggers for the capture popup.
-// The embed trigger (`![[`) comes before abbreviationTrigger (`!`) and
-// wikiLinkTrigger (`[[`) so detectTrigger matches the longer prefix first.
+// The embed trigger (`![[`) comes before wikiLinkTrigger (`[[`) so
+// detectTrigger matches the longer prefix first.
 func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
 		gui.embedTrigger(),
-		gui.abbreviationTrigger(),
 		gui.wikiLinkTrigger(),
 		gui.tagTrigger(),
 		gui.dateTrigger(),
@@ -148,35 +140,6 @@ func (gui *Gui) pickTriggers() []types.CompletionTrigger {
 		gui.dateTrigger(),
 		{Prefix: "--", Candidates: flagCandidates},
 	}
-}
-
-// snippetExpansionTriggers returns the completion triggers for the snippet
-// expansion field. It merges search and capture triggers, excluding ! (to
-// avoid recursion) and rebinding > to use SnippetEditor's completion state.
-func (gui *Gui) snippetExpansionTriggers() []types.CompletionTrigger {
-	seen := make(map[string]bool)
-	var merged []types.CompletionTrigger
-
-	for _, t := range gui.captureTriggers() {
-		if t.Prefix == "!" {
-			continue
-		}
-		if t.Prefix == ">" {
-			t.Candidates = gui.ParentCandidatesFor(gui.contexts.SnippetEditor.Completion)
-		}
-		seen[t.Prefix] = true
-		merged = append(merged, t)
-	}
-
-	for _, t := range gui.searchTriggers() {
-		if t.Prefix == "!" || seen[t.Prefix] {
-			continue
-		}
-		seen[t.Prefix] = true
-		merged = append(merged, t)
-	}
-
-	return merged
 }
 
 // extractSort delegates to helpers.ExtractSort.

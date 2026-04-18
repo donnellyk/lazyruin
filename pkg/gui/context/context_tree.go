@@ -16,7 +16,6 @@ type ContextTree struct {
 	Pick             *PickContext
 	InputPopup       *InputPopupContext
 	Palette          *PaletteContext
-	SnippetEditor    *SnippetEditorContext
 	Calendar         *CalendarContext
 	Contrib          *ContribContext
 	PickDialog       *PickResultsContext
@@ -75,9 +74,6 @@ func (self *ContextTree) All() []types.Context {
 	}
 	if self.Palette != nil {
 		all = append(all, self.Palette)
-	}
-	if self.SnippetEditor != nil {
-		all = append(all, self.SnippetEditor)
 	}
 	if self.Calendar != nil {
 		all = append(all, self.Calendar)

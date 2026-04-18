@@ -34,11 +34,6 @@ func (gui *Gui) paletteOnlyCommands() []types.PaletteCommand {
 			return nil
 		}},
 
-		// Snippets (palette-only, no keybinding)
-		{Name: "List Snippets", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().ListSnippets() }},
-		{Name: "Create Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().CreateSnippet() }},
-		{Name: "Delete Snippet", Category: "Snippets", OnRun: func() error { return gui.helpers.Snippet().DeleteSnippet() }},
-
 		// Date preview (palette-only)
 		{Name: "Today", Category: "Date", OnRun: dp(time.Now().Format("2006-01-02"))},
 		{Name: "Yesterday", Category: "Date", OnRun: dp(time.Now().AddDate(0, 0, -1).Format("2006-01-02"))},

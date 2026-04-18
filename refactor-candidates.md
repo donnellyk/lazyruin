@@ -57,7 +57,7 @@ Contains sidebar views, popup creation, complex layouts, and orchestration all i
 - `layout.go` - Main orchestration (~230 lines)
 - `layout_sidebar.go` - Notes/Queries/Tags/Preview/SearchFilter views
 - `layout_popups.go` - Search/InputPopup/Capture/Pick/Palette popups
-- `layout_complex.go` - SnippetEditor/InboxBrowser/Calendar/Contrib/PickDialog
+- `layout_complex.go` - InboxBrowser/Calendar/Contrib/PickDialog
 
 ---
 
@@ -216,7 +216,7 @@ Every command builds args with repetitive `if opts.X != "" { args = append(args,
 
 **File:** `pkg/gui/completion_triggers.go`
 
-`searchTriggers()`, `captureTriggers()`, `pickTriggers()`, `snippetExpansionTriggers()` define overlapping trigger slices.
+`searchTriggers()`, `captureTriggers()`, `pickTriggers()` define overlapping trigger slices.
 
 **Action:** Define core triggers once, compose into context-specific sets to avoid repetition when adding new triggers.
 

@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
@@ -87,38 +86,6 @@ func markdownCandidates(filter string) []types.CompletionItem {
 // ParentCandidatesFor delegates to CompletionHelper.
 func (gui *Gui) ParentCandidatesFor(completionState *types.CompletionState) func(string) []types.CompletionItem {
 	return gui.helpers.Completion().ParentCandidatesFor(completionState)
-}
-
-// abbreviationCandidates returns user-defined abbreviation snippets filtered by key.
-func (gui *Gui) abbreviationCandidates(filter string) []types.CompletionItem {
-	abbrevs := gui.config.VaultAbbreviations(gui.ruinCmd.VaultPath())
-	if len(abbrevs) == 0 {
-		return nil
-	}
-	filter = strings.ToLower(filter)
-	keys := make([]string, 0, len(abbrevs))
-	for k := range abbrevs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	var items []types.CompletionItem
-	for _, k := range keys {
-		if filter != "" && !strings.Contains(strings.ToLower(k), filter) {
-			continue
-		}
-		expansion := abbrevs[k]
-		detail := expansion
-		if len(detail) > 40 {
-			detail = detail[:37] + "..."
-		}
-		items = append(items, types.CompletionItem{
-			Label:      "!" + k,
-			InsertText: expansion,
-			Detail:     detail,
-		})
-	}
-	return items
 }
 
 // flagCandidates returns --any and --todo flag suggestions for the pick popup.

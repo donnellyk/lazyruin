@@ -6,15 +6,15 @@ Reusable abstraction patterns in `pkg/gui/`. The pattern throughout is **composi
 
 **Files:** `editor_completion.go`
 
-`completionEditor` is a configurable `gocui.Editor` that replaces four near-identical editors (search, pick, input popup, snippet). Configured via lambdas for `state`/`triggers` and a `DrillFlags` bitmask controlling drill-down behavior (parent stacking with `/`, wiki-link headers with `#`).
+`completionEditor` is a configurable `gocui.Editor` that replaces three near-identical editors (search, pick, input popup). Configured via lambdas for `state`/`triggers` and a `DrillFlags` bitmask controlling drill-down behavior (parent stacking with `/`, wiki-link headers with `#`).
 
-The capture editor (`editor_capture.go`) remains bespoke due to markdown continuation on Enter and abbreviation-specific Tab handling.
+The capture editor (`editor_capture.go`) remains bespoke due to markdown continuation on Enter.
 
 ## 2. Completion System
 
 **Files:** `completion.go`, `completion_triggers.go`, `completion_candidates.go`, `completion_render.go`
 
-Shared completion lifecycle across 5 popups (search, capture, pick, input popup, snippet editor). Each popup defines its own trigger set (`searchTriggers`, `captureTriggers`, `pickTriggers`, etc.) mapping prefixes like `#`, `[[`, `>`, `!` to candidate provider functions.
+Shared completion lifecycle across 4 popups (search, capture, pick, input popup). Each popup defines its own trigger set (`searchTriggers`, `captureTriggers`, `pickTriggers`, etc.) mapping prefixes like `#`, `[[`, `>` to candidate provider functions.
 
 Key functions: `updateCompletion` (per-keystroke), `acceptCompletion` (apply selection), `Dismiss` (reset state), `completionUp`/`completionDown` (navigation).
 
@@ -22,7 +22,7 @@ Key functions: `updateCompletion` (per-keystroke), `acceptCompletion` (apply sel
 
 **Files:** `completion.go`
 
-Higher-order functions (`completionEsc`, `completionTab`, `completionEnter`) that check completion state before delegating to the underlying handler. Used by search, pick, and input popup bindings. Capture and snippet keep bespoke handlers due to extra logic (abbreviation acceptance, two-field Tab toggling).
+Higher-order functions (`completionEsc`, `completionTab`, `completionEnter`) that check completion state before delegating to the underlying handler. Used by search, pick, and input popup bindings. Capture keeps bespoke handlers due to markdown continuation on Enter.
 
 ## 4. Dialog System
 
@@ -75,13 +75,13 @@ The command palette aggregates from two sources:
 
 1. **Controller bindings** — any `types.Binding` with a non-empty `Description` automatically appears in the palette. The binding's `Category` and `Description` become the palette entry; `Key` is shown as the shortcut hint.
 
-2. **`paletteOnlyCommands()`** (`commands.go`) — tab-switching and snippet management commands that have no keybinding; accessible only via the palette. Returns `[]PaletteCommand` which is merged with the controller-derived entries in `handlers_palette.go`.
+2. **`paletteOnlyCommands()`** (`commands.go`) — tab-switching and other commands that have no keybinding; accessible only via the palette. Returns `[]PaletteCommand` which is merged with the controller-derived entries in `handlers_palette.go`.
 
 ## 9. Context System
 
 **Files:** `gui.go`, `state.go` (`ContextKey`)
 
-`ContextKey` enum (Notes, Queries, Tags, Preview, DatePreview, Search, SearchFilter, Capture, Pick, Palette, InputPopup, SnippetEditor, Calendar, Contrib) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions. `ContextStack` tracks the navigation path for back-navigation.
+`ContextKey` enum (Notes, Queries, Tags, Preview, DatePreview, Search, SearchFilter, Capture, Pick, Palette, InputPopup, Calendar, Contrib) controls view focus, active keybindings, palette filtering, and status bar hints. `setContext()` handles all transitions. `ContextStack` tracks the navigation path for back-navigation.
 
 ## 10. Hint Definitions
 
@@ -93,7 +93,7 @@ The command palette aggregates from two sources:
 
 **Files:** `completion_render.go` (`renderSuggestionView`)
 
-Generic suggestion dropdown renderer with scrolling and column-aligned label + detail. Used by all five completion-capable views (search, capture, pick, input popup, snippet).
+Generic suggestion dropdown renderer with scrolling and column-aligned label + detail. Used by all four completion-capable views (search, capture, pick, input popup).
 
 ## 12. IGuiCommon Interface Bridge
 

@@ -12,7 +12,6 @@ Work through this checklist to learn the basics. `[` / `]` navigate back / forwa
 - Swap parent and query order.
 - clicking into Preview should commit
 - F isnt working?
-- Add --all for pick
  
 ## Tutorial
 

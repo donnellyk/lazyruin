@@ -69,16 +69,6 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 		t := &triggers[i]
 		if strings.HasPrefix(token, t.Prefix) {
 			filter := token[len(t.Prefix):]
-			// Negation handling: a leading `!` followed by another trigger
-			// prefix (e.g. `!#foo`, `!@today`, `!created:today`) should fire
-			// the inner trigger with the leading `!` stripped so users get
-			// suggestions while building negated query terms. Only applies
-			// when the matched trigger is the `!` abbreviation trigger.
-			if t.Prefix == "!" && len(filter) > 0 {
-				if inner, innerFilter, ok := matchInnerTrigger(filter, triggers); ok {
-					return inner, innerFilter, tokenStart + 1
-				}
-			}
 			return t, filter, tokenStart
 		}
 	}
@@ -193,22 +183,6 @@ func detectTrigger(content string, cursorPos int, triggers []types.CompletionTri
 	return nil, "", 0
 }
 
-// matchInnerTrigger scans the given text for any trigger prefix (except `!`)
-// that matches at position 0. Used by detectTrigger to handle the `!<prefix>`
-// negation pattern: `!#foo` should fire the `#` trigger, not `!`.
-func matchInnerTrigger(text string, triggers []types.CompletionTrigger) (*types.CompletionTrigger, string, bool) {
-	for i := range triggers {
-		t := &triggers[i]
-		if t.Prefix == "!" {
-			continue
-		}
-		if strings.HasPrefix(text, t.Prefix) {
-			return t, text[len(t.Prefix):], true
-		}
-	}
-	return nil, "", false
-}
-
 // updateCompletion is called after every keystroke. It checks whether a trigger
 // is active and updates the types.CompletionState accordingly.
 func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigger, state *types.CompletionState) {
@@ -218,9 +192,7 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigg
 	// Dynamic-embed aware dispatch. Inside an unclosed `![[...`:
 	//   - options phase (`| key=value`): offer option key/value candidates
 	//   - `query:` / `compose:` types: offer saved-query / bookmark candidates
-	//   - `search:` / `pick:` or no type yet: fall through to normal triggers,
-	//     after suppressing the abbreviation trigger (since `!` means negation
-	//     inside embed queries, not abbreviation).
+	//   - `search:` / `pick:` or no type yet: fall through to normal triggers.
 	es := insideDynamicEmbed(content, cursorPos)
 	if es.inEmbed {
 		if items, start, ok := gui.dynamicEmbedCandidates(content, cursorPos, es); ok {
@@ -240,7 +212,6 @@ func (gui *Gui) updateCompletion(v *gocui.View, triggers []types.CompletionTrigg
 			state.SelectedIndex = 0
 			return
 		}
-		triggers = withoutAbbreviationTrigger(triggers)
 	}
 
 	trigger, filter, tokenStart := detectTrigger(content, cursorPos, triggers)
@@ -422,43 +393,6 @@ func completionUp(state *types.CompletionState) {
 	}
 }
 
-// acceptSnippetParentCompletion accepts a parent completion but keeps the >path
-// token in the content (unlike acceptParentCompletion which removes it).
-// Snippets store >path literally so it can be resolved when the abbreviation is expanded.
-func (gui *Gui) acceptSnippetParentCompletion(v *gocui.View, state *types.CompletionState) {
-	if !state.Active || len(state.Items) == 0 {
-		return
-	}
-
-	item := state.Items[state.SelectedIndex]
-	cursorPos := viewCursorBytePos(v)
-	content := v.TextArea.GetUnwrappedContent()
-
-	charsToDelete := cursorPos - state.TriggerStart
-	for range charsToDelete {
-		v.TextArea.BackSpaceChar()
-	}
-
-	prefix := ">"
-	triggerEnd := state.TriggerStart + 2
-	if triggerEnd <= len(content) && content[state.TriggerStart:triggerEnd] == ">>" {
-		prefix = ">>"
-	}
-	var path strings.Builder
-	path.WriteString(prefix)
-	for _, entry := range state.ParentDrill {
-		path.WriteString(entry.Name)
-		path.WriteByte('/')
-	}
-	path.WriteString(item.Label)
-
-	v.TextArea.TypeString(path.String() + " ")
-
-	state.Dismiss()
-
-	v.RenderTextArea()
-}
-
 // captureTab handles Tab in the capture popup, accepting the active completion.
 func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	state := gui.contexts.Capture.Completion
@@ -477,9 +411,7 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 				})
 			}
 		}
-		if isAbbreviationCompletion(v, state) {
-			gui.acceptAbbreviationInCapture(v, state)
-		} else if isParentCompletion(v, state) {
+		if isParentCompletion(v, state) {
 			gui.acceptParentCompletion(v, state)
 		} else {
 			gui.acceptCompletion(v, state, gui.captureTriggers())

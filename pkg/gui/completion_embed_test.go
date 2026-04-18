@@ -261,12 +261,6 @@ func TestDetectTrigger_EmbedPrefix(t *testing.T) {
 			return []types.CompletionItem{{Label: "wiki"}}
 		},
 	}
-	abbrevTrigger := types.CompletionTrigger{
-		Prefix: "!",
-		Candidates: func(filter string) []types.CompletionItem {
-			return []types.CompletionItem{{Label: "abbr"}}
-		},
-	}
 
 	tests := []struct {
 		name       string
@@ -283,14 +277,6 @@ func TestDetectTrigger_EmbedPrefix(t *testing.T) {
 			cursor:     6,
 			wantPrefix: "![[",
 			wantFilter: "foo",
-		},
-		{
-			name:       "embed wins over abbreviation when prefix order is embed-first",
-			triggers:   []types.CompletionTrigger{embedTrigger, abbrevTrigger},
-			content:    "![[bar",
-			cursor:     6,
-			wantPrefix: "![[",
-			wantFilter: "bar",
 		},
 		{
 			name:       "wiki-only fires for [[ without !",
@@ -419,24 +405,6 @@ func TestIsTriggerBoundary(t *testing.T) {
 				t.Errorf("isTriggerBoundary(%q, %d) = %v, want %v", tt.content, tt.i, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestWithoutAbbreviationTrigger(t *testing.T) {
-	triggers := []types.CompletionTrigger{
-		{Prefix: "!"},
-		{Prefix: "![["},
-		{Prefix: "#"},
-		{Prefix: "@"},
-	}
-	got := withoutAbbreviationTrigger(triggers)
-	if len(got) != 3 {
-		t.Fatalf("expected 3 triggers, got %d", len(got))
-	}
-	for _, tr := range got {
-		if tr.Prefix == "!" {
-			t.Errorf("abbreviation trigger should be removed, still present")
-		}
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 )
 
 // paletteCommands builds the full palette command list from controller bindings
-// and palette-only commands (tabs, snippets, etc. without a controller home).
+// and palette-only commands (tabs, dates, etc. without a controller home).
 //
 // Preview contexts (cardList, pickResults, compose, datePreview) share many
 // identical commands (e.g. Toggle Todo, Toggle Frontmatter). To avoid

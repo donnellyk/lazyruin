@@ -114,10 +114,6 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		if err := gui.createInputPopup(g, maxX, maxY); err != nil {
 			return err
 		}
-	case "snippetName":
-		if err := gui.createSnippetEditor(g, maxX, maxY); err != nil {
-			return err
-		}
 	case "palette":
 		if err := gui.createPalettePopup(g, maxX, maxY); err != nil {
 			return err
@@ -163,11 +159,6 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	if ctx != "inputPopup" {
 		g.DeleteView(InputPopupView)
 		g.DeleteView(InputPopupSuggestView)
-	}
-	if ctx != "snippetName" {
-		g.DeleteView(SnippetNameView)
-		g.DeleteView(SnippetExpansionView)
-		g.DeleteView(SnippetSuggestView)
 	}
 	if ctx != "palette" {
 		g.DeleteView(PaletteView)
@@ -776,81 +767,6 @@ func (gui *Gui) updateCaptureFooter() {
 		footer = string(runes[:maxLen-1]) + "…"
 	}
 	gui.views.Capture.Footer = footer
-}
-
-func (gui *Gui) createSnippetEditor(g *gocui.Gui, maxX, maxY int) error {
-	nameHeight := 3
-	expansionHeight := 8
-	totalHeight := nameHeight + expansionHeight
-
-	x0, y0, x1, _ := centerPopup(maxX, maxY, 60, totalHeight, -2)
-	if y0 < 0 {
-		y0 = 0
-	}
-
-	// Name field (top)
-	ny1 := y0 + nameHeight
-	nv, nErr := g.SetView(SnippetNameView, x0, y0, x1, ny1, 0)
-	if nErr != nil && nErr.Error() != "unknown view" {
-		return nErr
-	}
-	nv.Title = " Snippet name "
-	nv.Editable = true
-	nv.Wrap = false
-	nv.Editor = gocui.EditorFunc(gocui.SimpleEditor)
-	setRoundedCorners(nv)
-
-	// Expansion field (bottom, directly below name)
-	ey0 := ny1
-	ey1 := ey0 + expansionHeight
-	ev, eErr := g.SetView(SnippetExpansionView, x0, ey0, x1, ey1, 0)
-	if eErr != nil && eErr.Error() != "unknown view" {
-		return eErr
-	}
-	ev.Title = " Expansion "
-	ev.Footer = " # > [[ / Tab: switch | Enter: save "
-	ev.Editable = true
-	ev.Wrap = false
-	ev.Editor = &completionEditor{
-		gui:        gui,
-		state:      func() *types.CompletionState { return gui.contexts.SnippetEditor.Completion },
-		triggers:   gui.snippetExpansionTriggers,
-		drillFlags: DrillParent | DrillWikiLink,
-	}
-	setRoundedCorners(ev)
-
-	// Green frame on focused view, default on other
-	if gui.contexts.SnippetEditor.Focus == 0 {
-		nv.FrameColor = gocui.ColorGreen
-		nv.TitleColor = gocui.ColorGreen
-		ev.FrameColor = gocui.ColorDefault
-		ev.TitleColor = gocui.ColorDefault
-	} else {
-		nv.FrameColor = gocui.ColorDefault
-		nv.TitleColor = gocui.ColorDefault
-		ev.FrameColor = gocui.ColorGreen
-		ev.TitleColor = gocui.ColorGreen
-	}
-
-	nv.RenderTextArea()
-	ev.RenderTextArea()
-
-	g.Cursor = true
-	g.SetViewOnTop(SnippetNameView)
-	g.SetViewOnTop(SnippetExpansionView)
-
-	if gui.contexts.SnippetEditor.Focus == 0 {
-		g.SetCurrentView(SnippetNameView)
-	} else {
-		g.SetCurrentView(SnippetExpansionView)
-	}
-
-	// Suggestion dropdown below expansion view
-	if err := gui.renderSuggestionView(g, SnippetSuggestView, gui.contexts.SnippetEditor.Completion, x0, ey1, x1-x0); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {

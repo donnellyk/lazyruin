@@ -29,7 +29,6 @@ type IHelpers interface {
 	Capture() *helpers.CaptureHelper
 	Pick() *helpers.PickHelper
 	InputPopup() *helpers.InputPopupHelper
-	Snippet() *helpers.SnippetHelper
 	Calendar() *helpers.CalendarHelper
 	Contrib() *helpers.ContribHelper
 	Completion() *helpers.CompletionHelper

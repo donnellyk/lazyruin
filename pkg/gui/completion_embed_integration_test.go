@@ -79,47 +79,12 @@ func TestComposeRefCandidates(t *testing.T) {
 	}
 }
 
-func TestAbbreviationTriggerSuppressed_InsideEmbed(t *testing.T) {
-	tg := newTestGui(t, defaultMock())
-	defer tg.Close()
-
-	triggers := tg.gui.captureTriggers()
-	// Outside embed: abbreviation trigger present
-	hasAbbrev := false
-	for _, tr := range triggers {
-		if tr.Prefix == "!" {
-			hasAbbrev = true
-			break
-		}
-	}
-	if !hasAbbrev {
-		t.Fatal("abbreviation trigger should be present outside an embed")
-	}
-
-	// Inside embed: the filtered triggers (what updateCompletion uses) should
-	// NOT include the abbreviation trigger.
-	filtered := withoutAbbreviationTrigger(triggers)
-	for _, tr := range filtered {
-		if tr.Prefix == "!" {
-			t.Errorf("abbreviation trigger should be filtered out inside embed, still present")
-		}
-	}
-
-	// Sanity check: insideDynamicEmbed reports true for a buffer that has
-	// an open embed.
-	es := insideDynamicEmbed("![[search: ", 11)
-	if !es.inEmbed {
-		t.Error("insideDynamicEmbed should report inEmbed=true for `![[search: `")
-	}
-}
-
 func TestTagCompletion_AfterNegation(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
 	// Simulate typing `!#f` outside any embed. The `#` trigger's scan-backward
-	// should win (since `#` is the most recent trigger character), and the
-	// filter should be "f".
+	// should win, and the filter should be "f".
 	content := "!#f"
 	triggers := tg.gui.captureTriggers()
 	trigger, filter, _ := detectTrigger(content, len(content), triggers)
@@ -133,15 +98,9 @@ func TestTagCompletion_AfterNegation(t *testing.T) {
 		t.Errorf("filter = %q, want `f`", filter)
 	}
 
-	// Tag completion should return candidates filtered by "f". Given the
-	// mock vault has no tags starting with "f", we expect no matches —
-	// but the behavior we care about is that the `#` trigger fires, not
-	// the abbreviation trigger.
-
-	// Inside an embed, `!` is suppressed so negation still lets `#` fire.
+	// Inside an embed, `!#d` should still fire the `#` trigger.
 	embedContent := "![[search: !#d"
-	embedTriggers := withoutAbbreviationTrigger(triggers)
-	trigger2, filter2, _ := detectTrigger(embedContent, len(embedContent), embedTriggers)
+	trigger2, filter2, _ := detectTrigger(embedContent, len(embedContent), triggers)
 	if trigger2 == nil {
 		t.Fatal("expected a trigger match inside embed for `!#d`")
 	}

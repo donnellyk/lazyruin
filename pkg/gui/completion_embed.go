@@ -371,20 +371,6 @@ func (gui *Gui) dynamicEmbedCandidates(content string, cursor int, es embedState
 	return nil, 0, false
 }
 
-// withoutAbbreviationTrigger returns a copy of triggers with the `!`
-// abbreviation trigger removed. Used inside dynamic embeds where `!` means
-// negation, not abbreviation.
-func withoutAbbreviationTrigger(triggers []types.CompletionTrigger) []types.CompletionTrigger {
-	out := make([]types.CompletionTrigger, 0, len(triggers))
-	for _, t := range triggers {
-		if t.Prefix == "!" {
-			continue
-		}
-		out = append(out, t)
-	}
-	return out
-}
-
 // dynamicEmbedFilter returns the filter text between the type prefix (and
 // optional `|` for options) and the cursor, for use by non-prefix
 // dispatch in updateCompletion. For `![[query: weekl|y`, returns ("weekly", start).
