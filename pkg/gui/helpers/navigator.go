@@ -150,7 +150,7 @@ func (n *Navigator) CommitHover() {
 	if ctx == nil {
 		return
 	}
-	title := strings.TrimPrefix(ctx.Title(), "~ ")
+	title := strings.TrimPrefix(ctx.Title(), "◌ ")
 	ctx.SetTitle(title)
 	destination := n.c.GuiCommon().Contexts().ActivePreviewKey
 	n.recordCurrent(destination, title)
@@ -159,14 +159,14 @@ func (n *Navigator) CommitHover() {
 
 // HoverTitle decorates a title to signal the view is a hover (not committed
 // to history). gocui's view-title rendering does not interpret ANSI escapes,
-// so a subtle typographic prefix is used instead of italics: a leading
-// tilde-space stands in visually for the "italics" convention in the
-// design spec.
+// so a typographic prefix is used instead of italics: U+25CC DOTTED CIRCLE
+// is the Unicode "placeholder" glyph and reads as "this view is a
+// placeholder, not committed".
 func HoverTitle(title string) string {
 	if title == "" {
 		return ""
 	}
-	return "~ " + title
+	return "◌ " + title
 }
 
 func (n *Navigator) captureOnDeparture() {
