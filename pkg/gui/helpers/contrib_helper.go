@@ -160,9 +160,10 @@ func (self *ContribHelper) LoadNoteInPreview(index int) {
 
 	fullCopy := *full
 	self.Close()
-	_ = self.c.Helpers().Navigator().NavigateTo("cardList", fullCopy.Title, func() error {
+	title := displayTitleForNote(fullCopy.Title)
+	_ = self.c.Helpers().Navigator().NavigateTo("cardList", title, func() error {
 		source := self.c.Helpers().Preview().NewSingleNoteSource(fullCopy.UUID)
-		self.c.Helpers().Preview().ShowCardList(fullCopy.Title, []models.Note{fullCopy}, source)
+		self.c.Helpers().Preview().ShowCardList(title, []models.Note{fullCopy}, source)
 		return nil
 	})
 }

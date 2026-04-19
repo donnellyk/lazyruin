@@ -73,9 +73,10 @@ func (self *PreviewNavHelper) OpenSourceAtCursor() error {
 	}
 	noteCopy := *note
 	targetLine := target.LineNum
-	return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+	title := displayTitleForNote(noteCopy.Title)
+	return self.c.Helpers().Navigator().NavigateTo("cardList", title, func() error {
 		source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
-		self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		self.c.Helpers().Preview().ShowCardList(title, []models.Note{noteCopy}, source)
 		self.positionCursorAtContentLine(&noteCopy, targetLine)
 		return nil
 	})
@@ -113,9 +114,10 @@ func (self *PreviewNavHelper) OpenDatePreviewResult() error {
 		localIdx := dp.LocalCardIdx(idx)
 		if localIdx < len(dp.Notes) {
 			note := dp.Notes[localIdx]
-			return self.c.Helpers().Navigator().NavigateTo("cardList", note.Title, func() error {
+			title := displayTitleForNote(note.Title)
+			return self.c.Helpers().Navigator().NavigateTo("cardList", title, func() error {
 				source := self.c.Helpers().Preview().NewSingleNoteSource(note.UUID)
-				self.c.Helpers().Preview().ShowCardList(note.Title, []models.Note{note}, source)
+				self.c.Helpers().Preview().ShowCardList(title, []models.Note{note}, source)
 				return nil
 			})
 		}
@@ -158,13 +160,14 @@ func (self *PreviewNavHelper) openPickResultFrom(results []models.PickResult, ct
 		return nil
 	}
 	noteCopy := *note
+	title := displayTitleForNote(noteCopy.Title)
 
 	if beforeNav != nil {
 		beforeNav()
 	}
-	return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+	return self.c.Helpers().Navigator().NavigateTo("cardList", title, func() error {
 		source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
-		self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+		self.c.Helpers().Preview().ShowCardList(title, []models.Note{noteCopy}, source)
 		if lineTarget != nil {
 			self.positionCursorAtContentLine(&noteCopy, lineTarget.LineNum)
 		}

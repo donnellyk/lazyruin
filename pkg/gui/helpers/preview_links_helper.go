@@ -129,9 +129,10 @@ func (self *PreviewLinksHelper) FollowLink(link context.PreviewLink) error {
 			return nil
 		}
 		noteCopy := *note
-		return self.c.Helpers().Navigator().NavigateTo("cardList", noteCopy.Title, func() error {
+		title := displayTitleForNote(noteCopy.Title)
+		return self.c.Helpers().Navigator().NavigateTo("cardList", title, func() error {
 			source := self.c.Helpers().Preview().NewSingleNoteSource(noteCopy.UUID)
-			self.c.Helpers().Preview().ShowCardList(noteCopy.Title, []models.Note{noteCopy}, source)
+			self.c.Helpers().Preview().ShowCardList(title, []models.Note{noteCopy}, source)
 			return nil
 		})
 	}

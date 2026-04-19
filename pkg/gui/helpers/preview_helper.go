@@ -109,9 +109,9 @@ func (self *PreviewHelper) CurrentPreviewCard() *models.Note {
 	}
 }
 
-// UpdatePreviewForNotes updates the preview pane to show the selected note
-// as a hover preview — the view is not committed to history and the title
-// is italicized.
+// UpdatePreviewForNotes updates the preview pane to show the selected note.
+// If the same note is already being previewed in cardList, upgrades from hover to committed.
+// Otherwise shows a hover preview.
 func (self *PreviewHelper) UpdatePreviewForNotes() {
 	notes := self.c.GuiCommon().Contexts().Notes
 	if len(notes.Items) == 0 {
@@ -122,8 +122,24 @@ func (self *PreviewHelper) UpdatePreviewForNotes() {
 		return
 	}
 	note := notes.Items[idx]
-	_ = self.c.Helpers().Navigator().ShowHover("cardList", note.Title, func() error {
-		self.ShowCardList(note.Title, []models.Note{note}, self.NewSingleNoteSource(note.UUID))
+
+	// Check if same note is already being previewed in cardList
+	contexts := self.c.GuiCommon().Contexts()
+	if contexts.ActivePreviewKey == "cardList" {
+		currentCard := self.CurrentPreviewCard()
+		if currentCard != nil && currentCard.UUID == note.UUID {
+			// Same note — commit if it's a hover, otherwise leave as-is
+			if !self.c.Helpers().Navigator().IsCurrentCommitted() {
+				self.c.Helpers().Navigator().CommitHover()
+			}
+			return
+		}
+	}
+
+	// Different note or not in cardList — show hover
+	title := displayTitleForNote(note.Title)
+	_ = self.c.Helpers().Navigator().ShowHover("cardList", title, func() error {
+		self.ShowCardList(title, []models.Note{note}, self.NewSingleNoteSource(note.UUID))
 		return nil
 	})
 }
@@ -139,6 +155,14 @@ func (self *PreviewHelper) UpdatePreviewCardList(title string, loadFn func() ([]
 		self.ShowCardList(title, notes)
 		return nil
 	})
+}
+
+// displayTitleForNote returns "Untitled" if the note title is empty, otherwise the title.
+func displayTitleForNote(title string) string {
+	if title == "" {
+		return "Untitled"
+	}
+	return title
 }
 
 // NewSingleNoteSource builds a CardListSource that re-queries a single note
