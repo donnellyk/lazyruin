@@ -364,6 +364,11 @@ send 3
 settle
 send Enter  # filter by tag
 assert_status "preview after tag filter" "Back: esc"
+# Regression guard: tag-filter must show multiple cards, not collapse to a
+# single composed card. Press J to jump to the next card; if the list had
+# collapsed, selection would stay at "1 of 1".
+send J; settle
+assert_contains "tag filter renders multiple cards" "2 of "
 send 1
 
 # =============================================

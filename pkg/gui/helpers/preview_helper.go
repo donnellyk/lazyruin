@@ -174,15 +174,15 @@ func (self *PreviewHelper) ShowCardList(title string, cards []models.Note, sourc
 	} else {
 		cl.Source = context.CardListSource{}
 	}
-	cl.ComposedNote = nil
-	cl.ComposedSourceMap = nil
+	cl.ComposedCards = nil
+	cl.ComposedSourceMaps = nil
 	ns := cl.NavState()
 	ns.CursorLine = 1
 	ns.ScrollOffset = 0
 	contexts.ActivePreviewKey = "cardList"
 	self.c.Helpers().TitleCache().PutNotes(cards)
 	self.c.Helpers().TitleCache().ResolveUnknownParents(cards)
-	self.RefreshComposedForSelectedCard()
+	self.RefreshComposedCards()
 	self.c.GuiCommon().RenderPreview()
 }
 
@@ -467,33 +467,33 @@ func (self *PreviewHelper) ToggleHideDone() error {
 	return nil
 }
 
-// RefreshComposedForSelectedCard fetches the composed form of the currently
-// selected card when ShowCompose is on, storing it in ComposedNote /
-// ComposedSourceMap. Silent no-op when compose is off, there's no selected
-// card, or the compose command fails — the render path falls back to raw in
-// those cases.
-func (self *PreviewHelper) RefreshComposedForSelectedCard() {
+// RefreshComposedCards composes every card in the CardList when ShowCompose
+// is on, storing per-card results in ComposedCards / ComposedSourceMaps.
+// Clears the cache when ShowCompose is off. Individual compose failures
+// leave a nil entry so the render path falls back to the raw card.
+func (self *PreviewHelper) RefreshComposedCards() {
 	cl := self.c.GuiCommon().Contexts().CardList
 	ds := cl.DisplayState()
-	if !ds.ShowCompose {
-		cl.ComposedNote = nil
-		cl.ComposedSourceMap = nil
+	if !ds.ShowCompose || len(cl.Cards) == 0 {
+		cl.ComposedCards = nil
+		cl.ComposedSourceMaps = nil
 		return
 	}
-	note := self.CurrentPreviewCard()
-	if note == nil || note.UUID == "" {
-		cl.ComposedNote = nil
-		cl.ComposedSourceMap = nil
-		return
+	composed := make([]*models.Note, len(cl.Cards))
+	maps := make([][]models.SourceMapEntry, len(cl.Cards))
+	for i, card := range cl.Cards {
+		if card.UUID == "" {
+			continue
+		}
+		c, sm, err := self.c.RuinCmd().Parent.ComposeNote(card.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
+		if err != nil {
+			continue
+		}
+		composed[i] = &c
+		maps[i] = sm
 	}
-	composed, sourceMap, err := self.c.RuinCmd().Parent.ComposeNote(note.UUID, !ds.ShowTitle, !ds.ShowGlobalTags)
-	if err != nil {
-		cl.ComposedNote = nil
-		cl.ComposedSourceMap = nil
-		return
-	}
-	cl.ComposedNote = &composed
-	cl.ComposedSourceMap = sourceMap
+	cl.ComposedCards = composed
+	cl.ComposedSourceMaps = maps
 }
 
 // isViewingRawFile reports whether the current display-state has all four
@@ -515,7 +515,7 @@ func (self *PreviewHelper) ToggleViewRaw() error {
 	ds.ShowCompose = !raw
 
 	if self.c.GuiCommon().Contexts().ActivePreviewKey == "cardList" {
-		self.RefreshComposedForSelectedCard()
+		self.RefreshComposedCards()
 	}
 	self.c.GuiCommon().RenderPreview()
 	return nil

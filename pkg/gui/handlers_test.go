@@ -731,6 +731,64 @@ func TestPreviewBack_RestoresContext(t *testing.T) {
 	}
 }
 
+// TestShowCardList_MultiCard_ComposesEachCard is a regression guard for
+// "only one card shows for search / Links / tag click". Compose is per-card:
+// each entry in Cards gets its own ComposedCards slot. Len must match so the
+// render path walks every card — a shorter ComposedCards (the old singular
+// ComposedNote model) would collapse the list to one rendered card.
+func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
+	mock := defaultMock().WithCompose([]byte(
+		`{"uuid":"x","title":"X","path":"x.md","composed_content":"# composed\n","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	cards := []models.Note{
+		{UUID: "n1", Title: "Note One"},
+		{UUID: "n2", Title: "Note Two"},
+		{UUID: "n3", Title: "Note Three"},
+	}
+	tg.gui.helpers.Preview().ShowCardList("Tag: #work", cards)
+
+	cl := tg.gui.contexts.CardList
+	if len(cl.Cards) != 3 {
+		t.Fatalf("Cards = %d, want 3", len(cl.Cards))
+	}
+	if len(cl.ComposedCards) != len(cl.Cards) {
+		t.Fatalf("ComposedCards = %d, want %d (parallel to Cards)",
+			len(cl.ComposedCards), len(cl.Cards))
+	}
+	if len(cl.ComposedSourceMaps) != len(cl.Cards) {
+		t.Errorf("ComposedSourceMaps = %d, want %d (parallel to Cards)",
+			len(cl.ComposedSourceMaps), len(cl.Cards))
+	}
+	for i, c := range cl.ComposedCards {
+		if c == nil {
+			t.Errorf("ComposedCards[%d] is nil; mock returns a valid compose response for all cards", i)
+		}
+	}
+}
+
+// TestShowCardList_SingleCard_ComposesCard verifies the single-card path:
+// compose still runs, caching the composed form for the one card.
+func TestShowCardList_SingleCard_ComposesCard(t *testing.T) {
+	mock := defaultMock().WithCompose([]byte(
+		`{"uuid":"n1","title":"Note One","path":"a.md","composed_content":"# composed\n","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	cards := []models.Note{{UUID: "n1", Title: "Note One"}}
+	tg.gui.helpers.Preview().ShowCardList("Note One", cards)
+
+	cl := tg.gui.contexts.CardList
+	ds := cl.DisplayState()
+	if !ds.ShowCompose {
+		t.Error("single-card list should default ShowCompose=true")
+	}
+	if len(cl.ComposedCards) != 1 || cl.ComposedCards[0] == nil {
+		t.Errorf("single-card list should have ComposedCards[0] populated, got %+v", cl.ComposedCards)
+	}
+}
+
 // --- Preview toggle tests ---
 
 func TestToggleMarkdown(t *testing.T) {

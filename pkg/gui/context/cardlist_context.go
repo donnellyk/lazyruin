@@ -22,8 +22,13 @@ type CardListState struct {
 	Source          CardListSource
 	UnfilteredCount int
 
-	ComposedNote      *models.Note
-	ComposedSourceMap []models.SourceMapEntry
+	// ComposedCards holds the composed (child-merged, embed-expanded) form of
+	// each card in Cards. Parallel to Cards by index. A nil entry means the
+	// card has not been composed yet (or compose failed / is off); the render
+	// path falls back to Cards[i] in that case. Len is either 0 (never
+	// composed) or len(Cards).
+	ComposedCards      []*models.Note
+	ComposedSourceMaps [][]models.SourceMapEntry
 }
 
 func (s *CardListState) FilterActive() bool {
@@ -89,32 +94,32 @@ func (self *CardListContext) RequeryAndApply(filterText string) error {
 // view params to re-run the query (Source with a Requery closure) and enough
 // view state to reconstruct the exact visual position on restore.
 type cardListSnapshot struct {
-	Title             string
-	Source            CardListSource
-	FilterText        string
-	FrozenCards       []models.Note
-	SelectedCardIdx   int
-	CursorLine        int
-	ScrollOffset      int
-	Display           PreviewDisplayState
-	ComposedNote      *models.Note
-	ComposedSourceMap []models.SourceMapEntry
+	Title              string
+	Source             CardListSource
+	FilterText         string
+	FrozenCards        []models.Note
+	SelectedCardIdx    int
+	CursorLine         int
+	ScrollOffset       int
+	Display            PreviewDisplayState
+	ComposedCards      []*models.Note
+	ComposedSourceMaps [][]models.SourceMapEntry
 }
 
 // CaptureSnapshot captures the CardList's current state.
 func (self *CardListContext) CaptureSnapshot() types.Snapshot {
 	ns := self.NavState()
 	return &cardListSnapshot{
-		Title:             self.Title(),
-		Source:            self.Source,
-		FilterText:        self.FilterText,
-		FrozenCards:       append([]models.Note(nil), self.Cards...),
-		SelectedCardIdx:   self.SelectedCardIdx,
-		CursorLine:        ns.CursorLine,
-		ScrollOffset:      ns.ScrollOffset,
-		Display:           *self.DisplayState(),
-		ComposedNote:      self.ComposedNote,
-		ComposedSourceMap: self.ComposedSourceMap,
+		Title:              self.Title(),
+		Source:             self.Source,
+		FilterText:         self.FilterText,
+		FrozenCards:        append([]models.Note(nil), self.Cards...),
+		SelectedCardIdx:    self.SelectedCardIdx,
+		CursorLine:         ns.CursorLine,
+		ScrollOffset:       ns.ScrollOffset,
+		Display:            *self.DisplayState(),
+		ComposedCards:      append([]*models.Note(nil), self.ComposedCards...),
+		ComposedSourceMaps: append([][]models.SourceMapEntry(nil), self.ComposedSourceMaps...),
 	}
 }
 
@@ -129,8 +134,8 @@ func (self *CardListContext) RestoreSnapshot(s types.Snapshot) error {
 	self.Source = snap.Source
 	self.FilterText = snap.FilterText
 	*self.DisplayState() = snap.Display
-	self.ComposedNote = snap.ComposedNote
-	self.ComposedSourceMap = snap.ComposedSourceMap
+	self.ComposedCards = append([]*models.Note(nil), snap.ComposedCards...)
+	self.ComposedSourceMaps = append([][]models.SourceMapEntry(nil), snap.ComposedSourceMaps...)
 
 	if snap.Source.Requery != nil {
 		notes, err := snap.Source.Requery(snap.FilterText)

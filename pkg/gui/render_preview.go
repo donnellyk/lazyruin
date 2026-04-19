@@ -57,13 +57,18 @@ func (gui *Gui) RenderPreview() {
 		gui.renderDatePreview(v, dp, ns, gui.isPreviewActive())
 	default:
 		cl := gui.contexts.CardList
-		if cl.DisplayState().ShowCompose && cl.ComposedNote != nil &&
-			cl.SelectedCardIdx < len(cl.Cards) &&
-			cl.Cards[cl.SelectedCardIdx].UUID == cl.ComposedNote.UUID {
-			gui.renderSeparatorCards(v, []models.Note{*cl.ComposedNote}, ns, nil)
-		} else {
-			gui.renderSeparatorCards(v, cl.Cards, ns, cl.TemporarilyMoved)
+		cards := cl.Cards
+		if cl.DisplayState().ShowCompose && len(cl.ComposedCards) == len(cl.Cards) {
+			cards = make([]models.Note, len(cl.Cards))
+			for i, raw := range cl.Cards {
+				if cl.ComposedCards[i] != nil {
+					cards[i] = *cl.ComposedCards[i]
+				} else {
+					cards[i] = raw
+				}
+			}
 		}
+		gui.renderSeparatorCards(v, cards, ns, cl.TemporarilyMoved)
 	}
 }
 
@@ -266,6 +271,22 @@ func buildFallbackLine(line string, id lineIdentity, contentWidth int) types.Sou
 	}
 }
 
+// cardListComposeMapForNote returns the per-card compose source map for the
+// card whose UUID matches note.UUID, or nil when compose output isn't cached
+// for it. Match by UUID (not by card index) so this works even when the
+// caller doesn't thread the index through render.
+func cardListComposeMapForNote(cl *context.CardListContext, note models.Note) []models.SourceMapEntry {
+	if len(cl.ComposedCards) != len(cl.Cards) {
+		return nil
+	}
+	for i, c := range cl.Cards {
+		if c.UUID == note.UUID && cl.ComposedCards[i] != nil {
+			return cl.ComposedSourceMaps[i]
+		}
+	}
+	return nil
+}
+
 // BuildCardContent returns the rendered lines for a single card's body content.
 // Each SourceLine carries both the rendered text and the source identity
 // (UUID, 1-indexed content line number, file path), so callers never need
@@ -296,14 +317,12 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 	identities := make([]lineIdentity, len(contentLines))
 
 	cl := gui.contexts.CardList
+	cardComposeMap := cardListComposeMapForNote(cl, note)
 	switch {
 	case gui.contexts.ActivePreviewKey == "compose" && len(gui.contexts.Compose.SourceMap) > 0:
 		gui.buildComposeLineMap(contentLines, gui.contexts.Compose.SourceMap, identities)
-	case gui.contexts.ActivePreviewKey != "compose" && cl.DisplayState().ShowCompose &&
-		cl.ComposedNote != nil && len(cl.ComposedSourceMap) > 0 &&
-		cl.SelectedCardIdx < len(cl.Cards) &&
-		cl.Cards[cl.SelectedCardIdx].UUID == cl.ComposedNote.UUID:
-		gui.buildComposeLineMap(contentLines, cl.ComposedSourceMap, identities)
+	case gui.contexts.ActivePreviewKey != "compose" && cl.DisplayState().ShowCompose && len(cardComposeMap) > 0:
+		gui.buildComposeLineMap(contentLines, cardComposeMap, identities)
 	default:
 		rawLineMap := gui.buildRawLineMap(note)
 		for i := range contentLines {
