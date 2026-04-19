@@ -907,6 +907,30 @@ func (gui *Gui) renderDatePreview(v *gocui.View, dp *context.DatePreviewContext,
 	v.SetOrigin(0, originY)
 }
 
+// truncWithEllipsis truncates s to at most maxRunes runes. If truncation is
+// needed, the result ends in "…" (preserving a trailing space when s had
+// one, so " Long title " becomes " Long…  "). Returns s unchanged when it
+// already fits, and an empty string when maxRunes < 1.
+func truncWithEllipsis(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	if maxRunes < 1 {
+		return ""
+	}
+	trailing := ""
+	if runes[len(runes)-1] == ' ' {
+		trailing = " "
+	}
+	// Keep: (maxRunes - 1 for "…" - len(trailing)) head runes + "…" + trailing
+	keep := maxRunes - 1 - len([]rune(trailing))
+	if keep < 0 {
+		return "…"
+	}
+	return string(runes[:keep]) + "…" + trailing
+}
+
 // buildSeparatorLine creates a separator line with optional left and right text
 func (gui *Gui) buildStraightSeparator(label string, width int) string {
 	sep := "─"
@@ -930,13 +954,18 @@ func (gui *Gui) buildSeparatorLine(upper bool, leftText, rightText string, width
 	reset := AnsiReset
 
 	sep := "─"
-	leftLen := len([]rune(leftText))
 	rightLen := len([]rune(rightText))
 
+	// Trim leftText so the whole separator fits in width. Fixed overhead is
+	// 4 runes (corner + sep on each side). Everything else is budget; any
+	// overflow makes the terminal wrap the frame to the next row, mangling
+	// card borders — so we truncate the left text with an "…" marker.
+	leftBudget := width - 4 - rightLen
+	leftText = truncWithEllipsis(leftText, leftBudget)
+	leftLen := len([]rune(leftText))
+
 	// Calculate fill length
-	fillLen := max(
-		// 4 for leading/trailing separator chars
-		width-leftLen-rightLen-4, 0)
+	fillLen := max(width-leftLen-rightLen-4, 0)
 
 	var sb strings.Builder
 	sb.WriteString(reset) // Clear any leftover foreground color from content lines

@@ -11,6 +11,57 @@ import (
 	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
+// TestBuildSeparatorLine_LongTitle_TrimsWithEllipsis is a regression guard:
+// when a card's title is longer than the viewport width, the separator line
+// must be trimmed with "…" rather than allowed to overflow and wrap the
+// card frame to the next row.
+func TestBuildSeparatorLine_LongTitle_TrimsWithEllipsis(t *testing.T) {
+	gui := &Gui{}
+	width := 40
+	longTitle := " This is a really ridiculously long note title that cannot possibly fit "
+
+	line := gui.buildSeparatorLine(true, longTitle, "", width, false)
+	if w := visibleWidth(line); w != width {
+		t.Errorf("visible width = %d, want %d (line wrapped or truncated wrong)\nline: %q", w, width, stripAnsi(line))
+	}
+	if !strings.Contains(stripAnsi(line), "…") {
+		t.Errorf("trimmed title should include '…' marker, got %q", stripAnsi(line))
+	}
+}
+
+// TestBuildSeparatorLine_LongTitleWithRight checks trimming still fits when
+// the right-side metadata (date, tags, parent) is also populated.
+func TestBuildSeparatorLine_LongTitleWithRight(t *testing.T) {
+	gui := &Gui{}
+	width := 40
+	longTitle := " Really really really really long title "
+	right := " Apr 18 · #tag "
+
+	line := gui.buildSeparatorLine(true, longTitle, right, width, false)
+	if w := visibleWidth(line); w != width {
+		t.Errorf("visible width = %d, want %d\nline: %q", w, width, stripAnsi(line))
+	}
+	// The right-side metadata must still appear intact.
+	if !strings.Contains(stripAnsi(line), strings.TrimSpace(right)) {
+		t.Errorf("right-side metadata lost from trimmed line: %q", stripAnsi(line))
+	}
+}
+
+// TestBuildSeparatorLine_ShortTitleUnchanged verifies the non-truncating
+// path still produces a perfectly-sized separator.
+func TestBuildSeparatorLine_ShortTitleUnchanged(t *testing.T) {
+	gui := &Gui{}
+	width := 40
+
+	line := gui.buildSeparatorLine(true, " Short ", "", width, false)
+	if w := visibleWidth(line); w != width {
+		t.Errorf("visible width = %d, want %d", w, width)
+	}
+	if strings.Contains(stripAnsi(line), "…") {
+		t.Errorf("short title should not be truncated: %q", stripAnsi(line))
+	}
+}
+
 func TestLoadNoteContent(t *testing.T) {
 	// Create a temp file with known content
 	dir := t.TempDir()
