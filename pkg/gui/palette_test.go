@@ -556,6 +556,25 @@ func TestPaletteViewsCreated_WhenOpen(t *testing.T) {
 	}
 }
 
+// TestPaletteListClick_NoCrash is a regression guard for a nil-deref when the
+// user clicks an item in the command palette list. The mouse-binding handler
+// wired up in setupPaletteContext calls paletteListClick with a nil view,
+// which listClickIndex() dereferences via v.Cursor(). Handler must gracefully
+// resolve the view from gui.views.
+func TestPaletteListClick_NoCrash(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.openPalette(tg.g, nil)
+	tg.g.ForceLayoutAndRedraw()
+
+	// Simulate the wire-up from setupPaletteContext (OnListClick):
+	// controller calls paletteListClick(gui.g, nil). Must not panic.
+	if err := tg.gui.paletteListClick(tg.g, nil); err != nil {
+		t.Errorf("paletteListClick returned error: %v", err)
+	}
+}
+
 func TestPaletteViewsDeleted_WhenClosed(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()

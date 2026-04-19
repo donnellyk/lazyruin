@@ -270,9 +270,17 @@ func (gui *Gui) paletteEsc(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// paletteListClick handles mouse clicks on the palette list.
+// paletteListClick handles mouse clicks on the palette list. The mouse
+// binding wiring passes a nil view, so we fall back to gui.views.PaletteList
+// (set by the layout on the frame that rendered the clicked item).
 func (gui *Gui) paletteListClick(g *gocui.Gui, v *gocui.View) error {
 	if gui.contexts.Palette.Palette == nil {
+		return nil
+	}
+	if v == nil {
+		v = gui.views.PaletteList
+	}
+	if v == nil {
 		return nil
 	}
 	idx := listClickIndex(v, 1)
