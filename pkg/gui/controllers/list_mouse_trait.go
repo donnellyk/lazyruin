@@ -17,6 +17,35 @@ type ListMouseOpts struct {
 	GuiCommon    func() IGuiCommon
 }
 
+// WheelScrollBindings returns mouse-wheel scroll bindings for a view. Use
+// for lists that need wheel scrolling but aren't wired up via the fuller
+// ListMouseBindings (e.g. popup lists like the command palette, inbox
+// browser, calendar notes, contribution notes, pick dialog).
+func WheelScrollBindings(viewName string, guiCommon func() IGuiCommon) []*gocui.ViewMouseBinding {
+	return []*gocui.ViewMouseBinding{
+		{
+			ViewName: viewName,
+			Key:      gocui.MouseWheelDown,
+			Handler: func(_ gocui.ViewMouseBindingOpts) error {
+				if v := guiCommon().GetView(viewName); v != nil {
+					helpers.ScrollViewport(v, 3)
+				}
+				return nil
+			},
+		},
+		{
+			ViewName: viewName,
+			Key:      gocui.MouseWheelUp,
+			Handler: func(_ gocui.ViewMouseBindingOpts) error {
+				if v := guiCommon().GetView(viewName); v != nil {
+					helpers.ScrollViewport(v, -3)
+				}
+				return nil
+			},
+		},
+	}
+}
+
 // ListMouseBindings returns the standard mouse bindings for a list panel:
 // click-to-select, wheel-up, and wheel-down.
 func ListMouseBindings(opts ListMouseOpts) []*gocui.ViewMouseBinding {

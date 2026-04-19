@@ -29,6 +29,10 @@ func (self *InboxBrowserController) Context() types.Context {
 	return self.getContext()
 }
 
+func (self *InboxBrowserController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
+	return WheelScrollBindings("inboxBrowser", func() IGuiCommon { return self.c.GuiCommon() })
+}
+
 func (self *InboxBrowserController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	return []*types.Binding{
 		{Key: 'j', Handler: self.nextItem},

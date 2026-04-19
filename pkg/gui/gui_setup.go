@@ -396,6 +396,7 @@ func (gui *Gui) setupPaletteContext() {
 		OnEnter:     func() error { return gui.paletteEnter(gui.g, nil) },
 		OnEsc:       func() error { return gui.paletteEsc(gui.g, nil) },
 		OnListClick: func() error { return gui.paletteListClick(gui.g, nil) },
+		GuiCommon:   func() controllers.IGuiCommon { return gui },
 	})
 	controllers.AttachController(ctrl)
 }

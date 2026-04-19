@@ -88,7 +88,8 @@ func (self *CalendarController) GetKeybindings(opts types.KeybindingsOpts) []*ty
 
 // GetMouseKeybindings returns mouse bindings for the calendar views.
 func (self *CalendarController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-	return []*gocui.ViewMouseBinding{
+	gui := func() IGuiCommon { return self.c.GuiCommon() }
+	bindings := []*gocui.ViewMouseBinding{
 		{
 			ViewName: "calendarGrid",
 			Key:      gocui.MouseLeft,
@@ -104,4 +105,6 @@ func (self *CalendarController) GetMouseKeybindings(opts types.KeybindingsOpts) 
 			},
 		},
 	}
+	bindings = append(bindings, WheelScrollBindings("calendarNotes", gui)...)
+	return bindings
 }

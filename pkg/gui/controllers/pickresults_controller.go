@@ -76,7 +76,7 @@ func (self *PickResultsController) GetKeybindings(opts types.KeybindingsOpts) []
 
 func (self *PickResultsController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
 	if self.dialogMode {
-		return nil
+		return WheelScrollBindings("pickDialog", func() IGuiCommon { return self.c.GuiCommon() })
 	}
 	return self.NavMouseBindings()
 }

@@ -13,6 +13,7 @@ type PaletteController struct {
 	onEnter     func() error
 	onEsc       func() error
 	onListClick func() error
+	guiCommon   func() IGuiCommon
 }
 
 var _ types.IController = &PaletteController{}
@@ -23,6 +24,7 @@ type PaletteControllerOpts struct {
 	OnEnter     func() error
 	OnEsc       func() error
 	OnListClick func() error
+	GuiCommon   func() IGuiCommon
 }
 
 // NewPaletteController creates a PaletteController.
@@ -32,6 +34,7 @@ func NewPaletteController(opts PaletteControllerOpts) *PaletteController {
 		onEnter:     opts.OnEnter,
 		onEsc:       opts.OnEsc,
 		onListClick: opts.OnListClick,
+		guiCommon:   opts.GuiCommon,
 	}
 }
 
@@ -50,7 +53,7 @@ func (self *PaletteController) GetKeybindings(opts types.KeybindingsOpts) []*typ
 
 // GetMouseKeybindings returns mouse bindings for the palette list.
 func (self *PaletteController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-	return []*gocui.ViewMouseBinding{
+	bindings := []*gocui.ViewMouseBinding{
 		{
 			ViewName: "paletteList",
 			Key:      gocui.MouseLeft,
@@ -59,4 +62,8 @@ func (self *PaletteController) GetMouseKeybindings(opts types.KeybindingsOpts) [
 			},
 		},
 	}
+	if self.guiCommon != nil {
+		bindings = append(bindings, WheelScrollBindings("paletteList", self.guiCommon)...)
+	}
+	return bindings
 }

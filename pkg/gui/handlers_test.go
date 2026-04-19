@@ -1323,6 +1323,50 @@ func TestMenuNavigation(t *testing.T) {
 	}
 }
 
+// TestMenuWheel_ScrollPersistsAcrossLayout guards the fix for the "?"
+// keybindings dialog wheel-scroll bug: createMenuDialog runs every layout
+// tick, and unconditionally calling scrollListView in it would snap the
+// origin back to contain the selection — undoing any wheel scroll.
+//
+// After wheeling down past the selection's visible range, a redraw must
+// leave the origin where wheel put it (up to the clamped max).
+func TestMenuWheel_ScrollPersistsAcrossLayout(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	tg.gui.showHelp()
+	tg.g.ForceLayoutAndRedraw()
+
+	menuView, err := tg.g.View(MenuView)
+	if err != nil {
+		t.Fatalf("menu view not created: %v", err)
+	}
+
+	// Wheel down a bit — may be clamped by available buffer height, but
+	// should land at some positive origin.
+	tg.gui.menuWheelDown(tg.g, menuView)
+	_, oyAfterWheel := menuView.Origin()
+
+	// Force another layout pass. Without the lastScrolledSelection guard,
+	// scrollListView would snap origin back to contain MenuSelection
+	// (which hasn't moved).
+	tg.g.ForceLayoutAndRedraw()
+
+	menuView, err = tg.g.View(MenuView)
+	if err != nil {
+		t.Fatalf("menu view missing after redraw: %v", err)
+	}
+	_, oyAfterRedraw := menuView.Origin()
+
+	if oyAfterWheel == 0 {
+		t.Skip("wheel had no effect (buffer shorter than viewport)")
+	}
+	if oyAfterRedraw != oyAfterWheel {
+		t.Errorf("origin snapped back after layout: wheel left oy=%d, redraw moved it to %d",
+			oyAfterWheel, oyAfterRedraw)
+	}
+}
+
 func TestMenuCancel_ClosesDialog(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()

@@ -47,6 +47,11 @@ func (self *ContribController) close() error {
 	return nil
 }
 
+// GetMouseKeybindings returns mouse bindings for the contribution notes list.
+func (self *ContribController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
+	return WheelScrollBindings("contribNotes", func() IGuiCommon { return self.c.GuiCommon() })
+}
+
 // GetKeybindings returns keybindings for the contribution chart dialog.
 func (self *ContribController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	gv := "contribGrid"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/donnellyk/lazyruin/pkg/gui/helpers"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 
 	"github.com/jesseduffield/gocui"
@@ -27,6 +28,10 @@ type DialogState struct {
 	InputBuffer   string
 	MenuItems     []types.MenuItem
 	MenuSelection int
+	// lastScrolledSelection records the MenuSelection that the menu view
+	// was last auto-scrolled to. The layout skips scroll-to-selection when
+	// it matches, so mouse-wheel scrolling isn't undone on the next redraw.
+	lastScrolledSelection int
 }
 
 // centerRect computes centered coordinates for a dialog of the given size.
@@ -328,9 +333,14 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 		}
 	}
 
-	// Scroll to keep selection visible
-	viewHeight := height - 2
-	scrollListView(v, gui.state.Dialog.MenuSelection, 1, viewHeight)
+	// Scroll to keep selection visible, but only when selection has moved
+	// since the last render. The layout runs every tick; re-scrolling on
+	// every tick would undo mouse-wheel scrolling.
+	if gui.state.Dialog.MenuSelection != gui.state.Dialog.lastScrolledSelection {
+		viewHeight := height - 2
+		scrollListView(v, gui.state.Dialog.MenuSelection, 1, viewHeight)
+		gui.state.Dialog.lastScrolledSelection = gui.state.Dialog.MenuSelection
+	}
 
 	g.SetViewOnTop(MenuView)
 	g.SetCurrentView(MenuView)
@@ -458,7 +468,31 @@ func (gui *Gui) setupDialogKeybindings() error {
 	if err := gui.g.SetKeybinding(MenuView, gocui.KeyEsc, gocui.ModNone, gui.menuCancel); err != nil {
 		return err
 	}
+	// Mouse wheel scrolling for long menus (e.g. the Keybindings help dialog).
+	// Scrolls the view origin without moving selection — same model as side
+	// panels. menuDown/menuUp move selection and will re-center the origin
+	// on the next j/k press.
+	if err := gui.g.SetKeybinding(MenuView, gocui.MouseWheelDown, gocui.ModNone, gui.menuWheelDown); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(MenuView, gocui.MouseWheelUp, gocui.ModNone, gui.menuWheelUp); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (gui *Gui) menuWheelDown(g *gocui.Gui, v *gocui.View) error {
+	if v != nil {
+		helpers.ScrollViewport(v, 3)
+	}
+	return nil
+}
+
+func (gui *Gui) menuWheelUp(g *gocui.Gui, v *gocui.View) error {
+	if v != nil {
+		helpers.ScrollViewport(v, -3)
+	}
 	return nil
 }
 
