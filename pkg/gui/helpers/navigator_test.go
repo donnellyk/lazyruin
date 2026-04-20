@@ -228,6 +228,39 @@ func TestNavigator_BackForwardBounds(t *testing.T) {
 	// Both should be no-ops; no assertion needed beyond "does not panic or error"
 }
 
+func TestNavigator_JumpTo(t *testing.T) {
+	nav, gui, _ := newNavigatorFixture()
+
+	load := func(uuid string) func() error {
+		return func() error {
+			gui.contexts.CardList.Cards = []models.Note{{UUID: uuid}}
+			return nil
+		}
+	}
+	_ = nav.NavigateTo("cardList", "A", load("a"))
+	_ = nav.NavigateTo("cardList", "B", load("b"))
+	_ = nav.NavigateTo("cardList", "C", load("c"))
+	// Index now at 2 (C).
+
+	if err := nav.JumpTo(0); err != nil {
+		t.Fatalf("JumpTo(0): %v", err)
+	}
+	if nav.Manager().Index() != 0 {
+		t.Errorf("Index = %d, want 0", nav.Manager().Index())
+	}
+	if got := gui.contexts.CardList.Cards[0].UUID; got != "a" {
+		t.Errorf("restored UUID = %q, want a", got)
+	}
+
+	// Out-of-range jump is a no-op.
+	if err := nav.JumpTo(99); err != nil {
+		t.Fatalf("JumpTo(99): %v", err)
+	}
+	if nav.Manager().Index() != 0 {
+		t.Errorf("Index after OOB jump = %d, want 0 (unchanged)", nav.Manager().Index())
+	}
+}
+
 func TestNavigator_NewNavigationTruncatesForward(t *testing.T) {
 	nav, gui, _ := newNavigatorFixture()
 

@@ -94,6 +94,17 @@ func (m *NavigationManager) Current() (NavigationEvent, bool) {
 	return m.entries[m.index], true
 }
 
+// JumpTo sets the index to idx and returns the new current entry, or
+// (zero, false) if idx is out of range. Used by the navigation-history
+// menu to let the user jump to an arbitrary past entry.
+func (m *NavigationManager) JumpTo(idx int) (NavigationEvent, bool) {
+	if idx < 0 || idx >= len(m.entries) {
+		return NavigationEvent{}, false
+	}
+	m.index = idx
+	return m.entries[idx], true
+}
+
 // Clear empties the history.
 func (m *NavigationManager) Clear() {
 	m.entries = nil

@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"strings"
+
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
@@ -38,6 +40,38 @@ func (self *PreviewNavHelper) renderActive() {
 	} else {
 		gui.RenderPreview()
 	}
+}
+
+// ShowNavHistory opens a menu dialog listing the preview navigation
+// history, newest entry first, with a `>` marker on the current entry.
+// Selecting an entry jumps there via Navigator.JumpTo.
+func (self *PreviewNavHelper) ShowNavHistory() error {
+	nav := self.c.Helpers().Navigator()
+	mgr := nav.Manager()
+	entries := mgr.Entries()
+	if len(entries) == 0 {
+		return nil
+	}
+	current := mgr.Index()
+
+	var items []types.MenuItem
+	for i := len(entries) - 1; i >= 0; i-- {
+		label := strings.TrimPrefix(strings.TrimSpace(entries[i].Title), "◌ ")
+		if label == "" {
+			label = "(untitled)"
+		}
+		if i == current {
+			label = "> " + label
+		}
+		idx := i
+		items = append(items, types.MenuItem{
+			Label: label,
+			OnRun: func() error { return nav.JumpTo(idx) },
+		})
+	}
+
+	self.c.GuiCommon().ShowMenuDialog("Navigation History", items)
+	return nil
 }
 
 // PreviewEnter dispatches Enter based on the active preview context.

@@ -138,6 +138,24 @@ func (n *Navigator) Forward() error {
 	return nil
 }
 
+// JumpTo restores the entry at the given index in the history. Capture-on-
+// departure saves the outgoing committed state first. No-op if idx is out
+// of range.
+func (n *Navigator) JumpTo(idx int) error {
+	n.captureOnDeparture()
+
+	evt, ok := n.mgr.JumpTo(idx)
+	if !ok {
+		return nil
+	}
+	if err := n.restore(evt); err != nil {
+		n.currentIsCommitted = false
+		return err
+	}
+	n.currentIsCommitted = true
+	return nil
+}
+
 // CommitHover promotes the current hover view to a committed history entry.
 // Strips the hover-title decoration and records a new entry at the current
 // active preview context. No-op if the current view is already committed or

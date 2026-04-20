@@ -83,6 +83,12 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 			Description: "Toggle Dim Done",
 			Category:    "Preview",
 		},
+		{
+			ID:          "preview.show_nav_history",
+			Handler:     t.nav().ShowNavHistory,
+			Description: "View History",
+			Category:    "Preview",
+		},
 		// Pick dialog (inline pick without leaving preview)
 		{
 			ID:          "preview.pick_dialog",

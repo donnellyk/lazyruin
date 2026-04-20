@@ -100,7 +100,7 @@ func NewQueriesContext(
 			Focusable: true,
 			Title:     "Queries",
 		}),
-		CurrentTab: QueriesTabQueries,
+		CurrentTab: QueriesTabParents,
 	}
 
 	ctx.queriesList = &queriesList{ctx: ctx}
