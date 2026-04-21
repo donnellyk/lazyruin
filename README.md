@@ -137,7 +137,6 @@ Yes. Nevertheless, here we are.
 
 - [`docs/keybindings.md`](docs/keybindings.md) — full keybinding reference
 - [`docs/architecture.md`](docs/architecture.md) — architecture and layer overview
-- [`docs/abstractions.md`](docs/abstractions.md) — reusable abstraction patterns
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
 
 ## License
