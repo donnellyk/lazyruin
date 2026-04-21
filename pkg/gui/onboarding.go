@@ -124,8 +124,14 @@ func (gui *Gui) openOnboardingNote() {
 // removes the tag from the index. Used by the "Onboarding: cleanup"
 // palette command.
 func (gui *Gui) CleanupOnboarding() error {
-	if _, err := onboarding.Cleanup(gui.ruinCmd); err != nil {
+	deleted, err := onboarding.Cleanup(gui.ruinCmd)
+	if err != nil {
 		return err
+	}
+	// Scrub navigation history and restore the preview if it was showing
+	// one of the walkthrough notes that just got deleted.
+	for _, uuid := range deleted {
+		gui.helpers.Navigator().NoteDeleted(uuid)
 	}
 	gui.helpers.Refresh().RefreshAll()
 	return nil
