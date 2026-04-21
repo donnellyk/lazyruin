@@ -291,6 +291,14 @@ func (n *Navigator) restore(evt context.NavigationEvent) error {
 		}
 	}
 
+	// RestoreSnapshot re-runs the Source query to refresh raw cards, but
+	// the ComposedCards cache it restores is captured from history — it
+	// can be stale after external edits / doctor reindex. Re-run compose
+	// so the rendered preview matches the re-queried raw content.
+	if target == "cardList" {
+		n.c.Helpers().Preview().RefreshComposedCards()
+	}
+
 	if context.IsPreviewContextKey(target) {
 		if gui.CurrentContextKey() != target {
 			gui.ReplaceContextByKey(target)

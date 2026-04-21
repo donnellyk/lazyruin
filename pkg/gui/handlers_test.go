@@ -772,6 +772,59 @@ func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
 	}
 }
 
+// TestBack_RefreshesComposedCardsForSingleNoteView ensures history
+// restore isn't just snapshot-replay: Back/Forward must refresh the
+// composed preview so changes made to the underlying note since the
+// snapshot was captured (external edits, doctor reindex, etc.) appear
+// instead of the stale cached compose.
+func TestBack_RefreshesComposedCardsForSingleNoteView(t *testing.T) {
+	note := models.Note{UUID: "a", Title: "A", Path: "a.md"}
+	mock := testutil.NewMockExecutor().
+		WithNotes(note).
+		WithCompose([]byte(
+			`{"uuid":"a","title":"A","path":"a.md","composed_content":"v1\n","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	// Put a single-note view in history.
+	err := tg.gui.helpers.Navigator().NavigateTo("cardList", "A", func() error {
+		src := tg.gui.helpers.Preview().NewSingleNoteSource(note.UUID)
+		tg.gui.helpers.Preview().ShowCardList("A", []models.Note{note}, src)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("NavigateTo(A) failed: %v", err)
+	}
+	cl := tg.gui.contexts.CardList
+	if len(cl.ComposedCards) != 1 || cl.ComposedCards[0] == nil ||
+		cl.ComposedCards[0].Content != "v1\n" {
+		t.Fatalf("precondition: ComposedCards[0] = %+v, want content v1", cl.ComposedCards)
+	}
+
+	// Navigate to a different preview so A becomes a history entry.
+	if err := tg.gui.helpers.DatePreview().LoadDatePreview("2026-04-21"); err != nil {
+		t.Fatalf("LoadDatePreview failed: %v", err)
+	}
+
+	// Simulate an external edit to A: compose now returns a new body.
+	mock.WithCompose([]byte(
+		`{"uuid":"a","title":"A","path":"a.md","composed_content":"v2\n","source_map":[]}`))
+
+	// Back restores A — compose should re-run, not replay the stale
+	// ComposedCards from the snapshot.
+	if err := tg.gui.helpers.Navigator().Back(); err != nil {
+		t.Fatalf("Back failed: %v", err)
+	}
+
+	cl = tg.gui.contexts.CardList
+	if len(cl.ComposedCards) != 1 || cl.ComposedCards[0] == nil {
+		t.Fatalf("after Back, ComposedCards = %+v (want 1 populated entry)", cl.ComposedCards)
+	}
+	if got := cl.ComposedCards[0].Content; got != "v2\n" {
+		t.Errorf("after Back, composed content = %q, want %q — Navigator.restore replayed stale compose cache", got, "v2\n")
+	}
+}
+
 // TestExtractLinks_HyphenBreakingURL is a regression guard for the bug
 // the user reported: reflow/wordwrap treats `-` as a breakpoint, so a URL
 // like https://github.com/donnellyk/ruin-note-cli/... gets split across
