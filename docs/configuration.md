@@ -22,6 +22,7 @@ view_options:
 | `editor` | string | `$EDITOR`, then `vim` | — | Command used when opening a note for editing |
 | `chroma_theme` | string | `catppuccin-mocha` (dark) / `catppuccin-latte` (light) | — | [Chroma](https://github.com/alecthomas/chroma) style name used for preview syntax highlighting |
 | `view_options.hide_done` | bool | `false` | — | Hide completed checkbox items in the preview pane |
+| `disable_bare_url_as_link` | bool | `false` | — | When `true`, saving a New Note whose entire body is a URL takes the plain `ruin log` path instead of routing through the link-resolution flow |
 
 Additional internal fields (e.g. `onboarding_offered`) are managed automatically by the TUI; they are written back to the file but not intended for hand-editing.
 

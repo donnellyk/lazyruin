@@ -22,6 +22,80 @@ func writeNote(t *testing.T, dir, name, content string) string {
 	return p
 }
 
+// TestSubmitCapture_BareURL_RoutesToLinkResolve: when a New Note's entire
+// content is a valid URL, saving should route through the link-resolution
+// flow (`ruin link resolve` → `ruin link new`) instead of `ruin log`, so
+// the user gets the resolved title/description + #link tag without
+// retyping in the New Link popup.
+func TestSubmitCapture_BareURL_RoutesToLinkResolve(t *testing.T) {
+	mock := defaultMock().WithLinkJSON([]byte(
+		`{"title":"Example Title","summary":"An example page."}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	err := tg.gui.helpers.Capture().SubmitCapture("https://example.com/foo", false)
+	if err != nil {
+		t.Fatalf("SubmitCapture: %v", err)
+	}
+
+	// No `ruin log` call (the New Note path) should have fired.
+	for _, call := range mock.Calls {
+		if len(call) > 0 && call[0] == "log" {
+			t.Errorf("unexpected `ruin log` call on bare-URL submit; want the link flow instead. calls=%v", mock.Calls)
+			break
+		}
+	}
+
+	// A link resolve call should have fired (async), so drive layout a
+	// few times to let the goroutine settle.
+	for i := 0; i < 10; i++ {
+		_ = tg.g.ForceLayoutAndRedraw()
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	var sawResolve bool
+	for _, call := range mock.Calls {
+		if len(call) >= 3 && call[0] == "link" && call[1] == "resolve" {
+			sawResolve = true
+			break
+		}
+	}
+	if !sawResolve {
+		t.Errorf("expected a `ruin link resolve` call after bare-URL submit; calls=%v", mock.Calls)
+	}
+}
+
+// TestSubmitCapture_BareURL_DisabledByConfig: when
+// DisableBareURLAsLink is set, submitting a URL-only body takes the
+// plain `ruin log` path instead of the link-resolve flow.
+func TestSubmitCapture_BareURL_DisabledByConfig(t *testing.T) {
+	mock := defaultMock()
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	tg.gui.config.DisableBareURLAsLink = true
+
+	if err := tg.gui.helpers.Capture().SubmitCapture("https://example.com/foo", false); err != nil {
+		t.Fatalf("SubmitCapture: %v", err)
+	}
+
+	var sawLog, sawResolve bool
+	for _, call := range mock.Calls {
+		switch {
+		case len(call) >= 2 && call[0] == "log" && call[1] == "https://example.com/foo":
+			sawLog = true
+		case len(call) >= 3 && call[0] == "link" && call[1] == "resolve":
+			sawResolve = true
+		}
+	}
+	if !sawLog {
+		t.Errorf("expected `ruin log` call when bare-URL routing is disabled; calls=%v", mock.Calls)
+	}
+	if sawResolve {
+		t.Errorf("did not expect a `ruin link resolve` call when disabled; calls=%v", mock.Calls)
+	}
+}
+
 func TestOpenCaptureForEdit_DismissesCompletionAfterPrefill(t *testing.T) {
 	// Regression: when the prefilled content ends with a trigger character
 	// (e.g. a note whose body ends in `#followup`), the layout's TypeString

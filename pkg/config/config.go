@@ -21,6 +21,12 @@ type Config struct {
 	ChromaTheme string      `yaml:"chroma_theme"`
 	ViewOptions ViewOptions `yaml:"view_options,omitempty"`
 
+	// DisableBareURLAsLink opts out of the "submitting a note whose entire
+	// body is a URL routes through the link-resolution flow" convenience.
+	// Default false (feature on); set true to always take the plain
+	// `ruin log` path regardless of content shape.
+	DisableBareURLAsLink bool `yaml:"disable_bare_url_as_link,omitempty"`
+
 	// OnboardingOffered is flipped to true after the empty-vault onboarding
 	// prompt has been shown once (either accepted or declined), so we do not
 	// re-prompt on subsequent launches against empty vaults.

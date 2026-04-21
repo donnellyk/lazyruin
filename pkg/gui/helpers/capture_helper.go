@@ -317,7 +317,10 @@ func extractFrontmatter(data []byte) []byte {
 // SubmitCapture submits the capture content and closes the popup.
 //
 // Edit mode (ctx.EditingPath set): writes the edited content back to the
-// note file and reindexes. Create mode: runs `ruin log`.
+// note file and reindexes. Create mode: runs `ruin log` — unless the
+// entire body is just a URL, in which case routes through the link
+// resolution flow so the note lands with a resolved title, summary, and
+// #link tag.
 func (self *CaptureHelper) SubmitCapture(content string, quickCapture bool) error {
 	gui := self.c.GuiCommon()
 	ctx := gui.Contexts().Capture
@@ -331,6 +334,12 @@ func (self *CaptureHelper) SubmitCapture(content string, quickCapture bool) erro
 			return gocui.ErrQuit
 		}
 		return self.CloseCapture()
+	}
+
+	if cfg := self.c.Config(); cfg == nil || !cfg.DisableBareURLAsLink {
+		if url, ok := bareURL(content); ok {
+			return self.submitAsLink(url, quickCapture)
+		}
 	}
 
 	args := []string{"log", content}
@@ -386,6 +395,32 @@ func (self *CaptureHelper) submitEdit(ctx *context.CaptureContext, content strin
 	self.c.Helpers().Preview().ReloadActivePreview()
 	self.c.Helpers().Tags().RefreshTags(false)
 	return nil
+}
+
+// bareURL reports whether content (after trimming) is nothing but a URL,
+// returning the trimmed URL when so. Content with any surrounding prose,
+// tags, or whitespace inside the URL is rejected — those paths belong to
+// the normal `ruin log` flow.
+func bareURL(content string) (string, bool) {
+	s := strings.TrimSpace(content)
+	if s == "" {
+		return "", false
+	}
+	if !strings.HasPrefix(s, "http://") && !strings.HasPrefix(s, "https://") {
+		return "", false
+	}
+	if strings.ContainsAny(s, " \t\n\r") {
+		return "", false
+	}
+	return s, true
+}
+
+// submitAsLink closes the capture popup and hands off to the link-resolve
+// flow, which re-opens an input popup in its locked "Resolving…" state
+// and then transitions into the link-capture view once the fetch returns.
+func (self *CaptureHelper) submitAsLink(url string, quickCapture bool) error {
+	_ = self.CloseCapture()
+	return self.c.Helpers().Link().CreateLinkFromURL(url, quickCapture)
 }
 
 // CancelCapture cancels the capture, dismissing completion first if active.
