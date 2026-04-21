@@ -48,9 +48,10 @@ mise run install
 $ lazyruin
 ```
 
-First launch opens the TUI against the vault configured via `ruin config
-vault_path`. Override with `--vault /path/to/vault` or the `LAZYRUIN_VAULT`
+If you don't have a `vault_path` configured, you'll have the option to create one on first launch in your current directory. Override with `--vault /path/to/vault` or the `LAZYRUIN_VAULT`
 environment variable.
+
+On launch with an empty vault, you'll be asked if you want to go through an onboarding tutorial (to explain what the hell is going on). Follow your heart.
 
 Core keys:
 
@@ -62,7 +63,7 @@ Core keys:
 | `<c-l>` | New link             |
 | `p`     | Pick (tag filter)    |
 | `:`     | Command palette      |
-| '::'    | Quick Open           |
+| `c-o`    | Quick Open           |
 | `?`     | Keybindings help     |
 | `Tab`   | Next panel           |
 
