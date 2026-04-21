@@ -112,6 +112,5 @@ go build -o /tmp/lazyruin-test ./main.go && ./scripts/keybinding-test.sh
 - Use `v.InnerSize()` instead of `v.Size()` when calculating renderable width/height — `Size()` includes the frame borders and will cause off-by-2 clipping
 - Support both keyboard and mouse navigation
 - All list panels support j/k navigation, as well as up / down arrows
-- Keybindings should be configurable via YAML
 - Handle terminal resize gracefully
 - Use `--json` for all ruin command parsing
