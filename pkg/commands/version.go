@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const MinRuinVersion = "0.2.0"
+const MinRuinVersion = "0.3.0"
 
 // Version runs `ruin --version` and returns the parsed version string.
 // Expected output format: "ruin version X.Y.Z" (release) or
