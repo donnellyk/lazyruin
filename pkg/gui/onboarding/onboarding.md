@@ -6,7 +6,7 @@
 
 Welcome to `lazyruin`. Work through this checklist to learn the basics. If at any one you are done, type `:cleanup` to remove this tutorial from your vault.
 
-Parts of the tutorial will have to navigate away from this file. You can navigation back with `[` (or `:view history` and select the correct line) to come back to the exact line you were on. Or just click the note and hit `Enter` in the Notes panel.
+Parts of the tutorial will have to navigate away from this file. You can navigate back with `[` (or `:view history` and select the correct line) to come back to the exact line you were on. Or just click the note and hit `Enter` in the Notes panel.
 
 ### Basic Navigation
 - [ ] Use `j` / `k` or arrow keys to move up and down inside a note or lists.
@@ -61,7 +61,7 @@ Both Pick and Search support robust date filtering, see `ruin search --help` and
 ### Today
 - [ ] Open the command palette with `:` then type `today`. Select `Date: Today`.
 
-This view shows all notes created or updated on the current date, allow with any inline tags or todos annoted with today's date. In the New Note dialog, you can tag a line with `@YYYY-MM-DD` or common english words like `@today`, `@tomorrow`, `@next-week`.
+This view shows all notes created or updated on the current date, along with any inline tags or todos annoted with today's date. In the New Note dialog, you can tag a line with `@YYYY-MM-DD` or common english words like `@today`, `@tomorrow`, `@next-week`.
 
 You can view any day with via the calendar `c`, contribution chart `C` or with command palette helpers like `:tomorrow`
 
@@ -129,7 +129,7 @@ In addition to parent-child relationships, you can also compose notes via the em
 Example
 ```
 ## Project A Followup
-![pick: #followup | filter=#project-a]]
+![[pick: #followup | filter=#project-a]]
 ```
 will display as 
 ```
