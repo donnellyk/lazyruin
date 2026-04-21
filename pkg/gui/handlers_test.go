@@ -596,8 +596,8 @@ func TestRunQuery_SetsPreviewCardList(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.globalController.FocusQueries()        // switch to queries context (defaults to Parents tab)
-	tg.gui.globalController.FocusQueries()        // cycle to Queries tab
+	tg.gui.globalController.FocusQueries() // switch to queries context (defaults to Parents tab)
+	tg.gui.globalController.FocusQueries() // cycle to Queries tab
 	tg.gui.helpers.Queries().RunQuery()
 
 	if tg.gui.contexts.ActivePreviewKey != "cardList" {
@@ -1168,18 +1168,18 @@ func TestFocusQueries_CyclesTabs_WhenAlreadyFocused(t *testing.T) {
 	tg := newTestGui(t, defaultMock())
 	defer tg.Close()
 
-	tg.gui.globalController.FocusQueries()        // switch to queries context (defaults to Parents tab)
-	tg.gui.globalController.FocusQueries()        // cycle to Queries tab
+	tg.gui.globalController.FocusQueries() // switch to queries context (defaults to Parents tab)
+	tg.gui.globalController.FocusQueries() // cycle to Queries tab
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
 		t.Fatalf("initial tab = %v, want Queries", tg.gui.contexts.Queries.CurrentTab)
 	}
 
-	tg.gui.globalController.FocusQueries()        // already focused → cycle to Parents
+	tg.gui.globalController.FocusQueries() // already focused → cycle to Parents
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabParents {
 		t.Errorf("tab = %v, want Parents", tg.gui.contexts.Queries.CurrentTab)
 	}
 
-	tg.gui.globalController.FocusQueries()        // cycle back to Queries
+	tg.gui.globalController.FocusQueries() // cycle back to Queries
 	if tg.gui.contexts.Queries.CurrentTab != context.QueriesTabQueries {
 		t.Errorf("tab = %v, want Queries (wrapped)", tg.gui.contexts.Queries.CurrentTab)
 	}
