@@ -10,7 +10,7 @@ note-taking CLI.
 
 Don't organize; compose. Write small, atomic notes saved as simple markdown files. Later, compose them into different "documents", depending on your needs. This probably has an audience of one (me) or zero (turns out, not me); time will tell.
 
-<!-- TODO: add screenshot or asciinema demo -->
+![lazyruin screenshot](docs/screenshot.png)
 
 ## Installation
 
