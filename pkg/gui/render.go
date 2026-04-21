@@ -75,7 +75,7 @@ func (gui *Gui) RenderNotes() {
 
 	renderList(v, len(notesCtx.Items), notesCtx.GetSelectedLineIdx(),
 		gui.contextMgr.Current() == "notes", 3,
-		"\n No notes found.\n\n Press 'n' to create a new note\n or '/' to search",
+		"\n No notes found.\n\n Press 'n' to create a new note\n or 'S' to search",
 		func(i int, _ bool) listItem {
 			note := notesCtx.Items[i]
 
