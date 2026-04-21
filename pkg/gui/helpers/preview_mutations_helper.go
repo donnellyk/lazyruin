@@ -33,14 +33,16 @@ func (self *PreviewMutationsHelper) DeleteCard() error {
 	}
 
 	gui := self.c.GuiCommon()
+	uuid := card.UUID
 	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
-		func() error { return self.c.RuinCmd().Note.Delete(card.UUID) },
+		func() error { return self.c.RuinCmd().Note.Delete(uuid) },
 		func() {
 			idx := cl.SelectedCardIdx
 			cl.Cards = append(cl.Cards[:idx], cl.Cards[idx+1:]...)
 			if cl.SelectedCardIdx >= len(cl.Cards) && cl.SelectedCardIdx > 0 {
 				cl.SelectedCardIdx--
 			}
+			self.c.Helpers().Navigator().NoteDeleted(uuid)
 			self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
 			gui.RenderPreview()
 		},

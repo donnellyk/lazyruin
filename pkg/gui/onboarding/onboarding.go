@@ -42,7 +42,8 @@ func CreateNote(ruinCmd *commands.RuinCommand) error {
 }
 
 // Cleanup deletes every note tagged #lazyruin-onboarding and then removes
-// the tag from ruin's index. Returns the number of notes deleted.
+// the tag from ruin's index. Returns the UUIDs of deleted notes so the
+// caller can scrub its own state (navigation history, preview cache).
 //
 // Cleanup intentionally deletes by tag rather than by title or UUID: that
 // catches re-added walkthroughs and any stray notes a user accidentally
@@ -52,14 +53,14 @@ func CreateNote(ruinCmd *commands.RuinCommand) error {
 // The tag is stored as a *global* tag (appears once at the top of the body
 // and is promoted to frontmatter by ruin), so `ruin search #tag` is the
 // right lookup path — `ruin pick` only matches inline line-level tags.
-func Cleanup(ruinCmd *commands.RuinCommand) (int, error) {
+func Cleanup(ruinCmd *commands.RuinCommand) ([]string, error) {
 	notes, err := ruinCmd.Search.Search("#"+Tag, commands.SearchOptions{Everything: true})
 	if err != nil {
-		return 0, fmt.Errorf("find onboarding notes: %w", err)
+		return nil, fmt.Errorf("find onboarding notes: %w", err)
 	}
 
 	seen := make(map[string]bool, len(notes))
-	deleted := 0
+	deleted := make([]string, 0, len(notes))
 	for _, n := range notes {
 		if n.UUID == "" || seen[n.UUID] {
 			continue
@@ -68,7 +69,7 @@ func Cleanup(ruinCmd *commands.RuinCommand) (int, error) {
 		if err := ruinCmd.Note.Delete(n.UUID); err != nil {
 			return deleted, fmt.Errorf("delete onboarding note %s: %w", n.UUID, err)
 		}
-		deleted++
+		deleted = append(deleted, n.UUID)
 	}
 
 	// Remove the tag from the index. If ruin has already auto-pruned it

@@ -51,6 +51,63 @@ func TestNavigationManager_RecordDedupsByID(t *testing.T) {
 	}
 }
 
+// TestNavigationManager_RemoveByID scrubs every entry whose ID matches
+// (used by the "note deleted → purge history" flow) and adjusts the
+// current index so it still points at a valid entry.
+func TestNavigationManager_RemoveByID(t *testing.T) {
+	m := NewNavigationManager()
+	m.Record(newEvtID("A", "n:a"))
+	m.Record(newEvtID("B", "n:b"))
+	m.Record(newEvtID("C", "n:c"))
+	// Go Back so the current is B, not C.
+	m.Back()
+
+	m.RemoveByID("n:a") // entry before the current
+	titles := titlesOf(m.Entries())
+	if got, want := titles, []string{"B", "C"}; !eqStrings(got, want) {
+		t.Errorf("after removing 'n:a': titles = %v, want %v", got, want)
+	}
+	if m.Index() != 0 {
+		t.Errorf("Index = %d, want 0 (B shifted from idx 1 to idx 0)", m.Index())
+	}
+
+	m.RemoveByID("n:c") // entry after the current
+	if got, want := titlesOf(m.Entries()), []string{"B"}; !eqStrings(got, want) {
+		t.Errorf("after removing 'n:c': titles = %v, want %v", got, want)
+	}
+	if m.Index() != 0 {
+		t.Errorf("Index = %d, want 0", m.Index())
+	}
+
+	m.RemoveByID("n:b") // the current entry itself
+	if m.Len() != 0 {
+		t.Errorf("Len = %d, want 0", m.Len())
+	}
+	if m.Index() != -1 {
+		t.Errorf("Index = %d, want -1 (empty)", m.Index())
+	}
+}
+
+func titlesOf(es []NavigationEvent) []string {
+	out := make([]string, 0, len(es))
+	for _, e := range es {
+		out = append(out, e.Title)
+	}
+	return out
+}
+
+func eqStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // TestNavigationManager_RecordEmptyIDDoesNotDedup ensures entries with
 // no dedup ID (e.g. multi-card search results) remain distinct even when
 // their titles match.

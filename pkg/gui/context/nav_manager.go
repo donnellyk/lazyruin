@@ -127,6 +127,44 @@ func (m *NavigationManager) Clear() {
 	m.index = -1
 }
 
+// RemoveByID scrubs every entry whose ID matches. Used after a note is
+// deleted so stale history entries can't resurrect the deleted note on
+// Back/Forward. The current index is adjusted to keep pointing at the
+// same event when possible; if the current entry itself was removed, the
+// index moves to the previous surviving entry (or -1 when empty).
+func (m *NavigationManager) RemoveByID(id string) {
+	if id == "" {
+		return
+	}
+	newEntries := make([]NavigationEvent, 0, len(m.entries))
+	newIndex := m.index
+	currentRemoved := false
+	for i, e := range m.entries {
+		if e.ID == id {
+			if i < m.index {
+				newIndex--
+			} else if i == m.index {
+				currentRemoved = true
+				newIndex--
+			}
+			continue
+		}
+		newEntries = append(newEntries, e)
+	}
+	m.entries = newEntries
+	if len(m.entries) == 0 {
+		m.index = -1
+		return
+	}
+	if currentRemoved && newIndex < 0 {
+		newIndex = 0
+	}
+	if newIndex >= len(m.entries) {
+		newIndex = len(m.entries) - 1
+	}
+	m.index = newIndex
+}
+
 // Len returns the number of entries currently in history.
 func (m *NavigationManager) Len() int { return len(m.entries) }
 

@@ -1,20 +1,22 @@
-# Welcome to LazyRuin
+# Welcome to Lazyruin
 
 #lazyruin-onboarding
 
+## Tutorial
+
 Welcome to `lazyruin`. Work through this checklist to learn the basics. If at any one you are done, type `:cleanup` to remove this tutorial from your vault.
 
-## Tutorial
+Parts of the tutorial will have to navigate away from this file. You can navigation back with `[` (or `:view history` and select the correct line) to come back to the exact line you were on. Or just click the note and hit `Enter` in the Notes panel.
 
 ### Basic Navigation
 - [ ] Use `j` / `k` or arrow keys to move up and down inside a note or lists.
+- [ ] Press `x` to mark a todo as complete. This also toggles a completed todo to be incomplete. Completed todos are moved to the bottom of the todo lists.
 - [ ] `Esc` closes most dialogs. `q` quits `lazyruin`.
-- [ ] Press `x` to toggle a todo on your current line.
 - [ ] Press `1`, `2`, `3` to focus Notes, Queries, Tags. Press the number again to switch tabs within a panel. Mouse clicks are also supported.
-- [ ] Press `Enter` to view a note, `Esc` to go back to the side panel.
+- [ ] From the side panel, press `Enter` to view a note. `Esc` to go back to the side panel.
 - [ ] See all keyboard shortcuts with `?`.
 - [ ] Use the command palette with `:`, which supports all keyboard shortcuts and a few additional commands.
-- [ ] Quick Open to specific file with `<c-o>` or by typing `:` in the command palette.
+- [ ] Use Quick Open to specific file with `<c-o>` or by typing `:` in the command palette.
 
 ### Your First Note
 - [ ] `n` to make a new Note, `<c-s>` (ctrl-s) to save, `Esc` to cancel & close the dialog.`
@@ -48,7 +50,7 @@ Within a composed note, `Enter` will jump you to the source child (or embedded) 
 ### Pick & Search
 - [ ] Search with `S`, type-ahead suggestions are available.
 - [ ] Extract specific lines via Pick `p`. Pick `#remember` or the inline tag you added to your second note.
-- [ ] Mark the line as `#done` with `<c-d>`.
+- [ ] Mark the line as `#done` with `D`.
 
 Pick can extract specific context from a note, without you needing to read (be distracted) by the rest of the note. `#done` is a special reserved tag to mark an inline tag as complete. By default, all pick commands exclude lines with `#done` in results (ie. `#tag && !#done`). Done lines can be returned with `--any`.
 
@@ -67,6 +69,8 @@ You can view any day with via the calendar `c`, contribution chart `C` or with c
 That's enough to get you started. See the [repo](link) for more documentation.
 
 Clean up this onboarding with `:cleanup` (or just delete it in the Files panel with `d`). You can add it back at any time with `:add walkthrough`. 
+
+If you want to remove the files you created during the tutorial, you can select them in the Notes panel and hit `d`.
 
 Want to learn more? A more advanced tutorial is below.
 

@@ -77,8 +77,8 @@ func TestCleanup_DeletesMatchingNotesAndTag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if deleted != 2 {
-		t.Errorf("Cleanup deleted %d notes, want 2", deleted)
+	if len(deleted) != 2 {
+		t.Errorf("Cleanup deleted %d notes, want 2", len(deleted))
 	}
 
 	var deleteCalls, tagDeleteCalls, searchCalls int
@@ -115,8 +115,8 @@ func TestCleanup_DedupesRepeatedUUIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if deleted != 1 {
-		t.Errorf("Cleanup deleted %d notes, want 1 (deduped)", deleted)
+	if len(deleted) != 1 {
+		t.Errorf("Cleanup deleted %d notes, want 1 (deduped)", len(deleted))
 	}
 }
 
@@ -126,7 +126,7 @@ func TestCleanup_EmptyVault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if deleted != 0 {
-		t.Errorf("Cleanup on empty vault deleted %d notes, want 0", deleted)
+	if len(deleted) != 0 {
+		t.Errorf("Cleanup on empty vault deleted %d notes, want 0", len(deleted))
 	}
 }

@@ -50,6 +50,87 @@ func newNavigatorFixture() (*Navigator, *navTestGui, *Helpers) {
 	return helpers.Navigator(), gui, helpers
 }
 
+// TestNavigator_NoteDeleted_RemovesHistoryAndStepsBack simulates deleting
+// the note that is currently being previewed. The note's history entries
+// (single-note views of it, identified by DedupID) should be removed and
+// the preview should fall back to the previous history entry.
+func TestNavigator_NoteDeleted_RemovesHistoryAndStepsBack(t *testing.T) {
+	nav, gui, _ := newNavigatorFixture()
+
+	// Record two single-note views: first Note A, then Note B.
+	_ = nav.NavigateTo("cardList", "Note A", func() error {
+		cl := gui.contexts.CardList
+		cl.Cards = []models.Note{{UUID: "a", Title: "Note A"}}
+		cl.Source = context.CardListSource{Query: "a"}
+		return nil
+	})
+	_ = nav.NavigateTo("cardList", "Note B", func() error {
+		cl := gui.contexts.CardList
+		cl.Cards = []models.Note{{UUID: "b", Title: "Note B"}}
+		cl.Source = context.CardListSource{Query: "b"}
+		return nil
+	})
+
+	if got := nav.Manager().Len(); got != 2 {
+		t.Fatalf("precondition: history len = %d, want 2", got)
+	}
+
+	// Delete the currently-viewed note (B).
+	nav.NoteDeleted("b")
+
+	entries := nav.Manager().Entries()
+	if len(entries) != 1 {
+		t.Fatalf("history len after deleting current note = %d, want 1: %+v", len(entries), entries)
+	}
+	if entries[0].ID != "note:a" {
+		t.Errorf("remaining entry ID = %q, want %q", entries[0].ID, "note:a")
+	}
+	if nav.Manager().Index() != 0 {
+		t.Errorf("Index = %d, want 0 (restored to prior note)", nav.Manager().Index())
+	}
+}
+
+// TestNavigator_NoteDeleted_RemovesNonCurrentEntries scrubs history of a
+// deleted note even when it's not the current view, so Back can't take
+// the user to a stale single-note view of a now-deleted note.
+func TestNavigator_NoteDeleted_RemovesNonCurrentEntries(t *testing.T) {
+	nav, gui, _ := newNavigatorFixture()
+
+	_ = nav.NavigateTo("cardList", "Note A", func() error {
+		cl := gui.contexts.CardList
+		cl.Cards = []models.Note{{UUID: "a"}}
+		cl.Source = context.CardListSource{Query: "a"}
+		return nil
+	})
+	_ = nav.NavigateTo("cardList", "Note B", func() error {
+		cl := gui.contexts.CardList
+		cl.Cards = []models.Note{{UUID: "b"}}
+		cl.Source = context.CardListSource{Query: "b"}
+		return nil
+	})
+	_ = nav.NavigateTo("cardList", "Note C", func() error {
+		cl := gui.contexts.CardList
+		cl.Cards = []models.Note{{UUID: "c"}}
+		cl.Source = context.CardListSource{Query: "c"}
+		return nil
+	})
+
+	// Delete Note A (not the current view — current is C).
+	nav.NoteDeleted("a")
+
+	entries := nav.Manager().Entries()
+	if len(entries) != 2 {
+		t.Fatalf("history len = %d, want 2", len(entries))
+	}
+	if entries[0].ID != "note:b" || entries[1].ID != "note:c" {
+		t.Errorf("remaining IDs = [%q, %q], want [note:b, note:c]",
+			entries[0].ID, entries[1].ID)
+	}
+	if nav.Manager().Index() != 1 {
+		t.Errorf("Index = %d, want 1 (still at C)", nav.Manager().Index())
+	}
+}
+
 func TestNavigator_NavigateToRecordsOneEntry(t *testing.T) {
 	nav, gui, _ := newNavigatorFixture()
 	loadCalls := 0

@@ -108,9 +108,13 @@ func (self *NotesHelper) DeleteNote(note *models.Note) error {
 	if displayName == "" {
 		displayName = note.Path
 	}
+	uuid := note.UUID
 	self.c.Helpers().Confirmation().ConfirmDelete("Note", displayName,
-		func() error { return self.c.RuinCmd().Note.Delete(note.UUID) },
-		func() { self.c.Helpers().Notes().FetchNotesForCurrentTab(false) },
+		func() error { return self.c.RuinCmd().Note.Delete(uuid) },
+		func() {
+			self.c.Helpers().Navigator().NoteDeleted(uuid)
+			self.c.Helpers().Notes().FetchNotesForCurrentTab(false)
+		},
 	)
 	return nil
 }

@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
@@ -216,6 +217,45 @@ func (n *Navigator) currentDedupID() string {
 		return d.DedupID()
 	}
 	return ""
+}
+
+// NoteDeleted cleans up navigation state after a note has been deleted.
+// It scrubs any history entries that pointed at a single-note view of
+// the deleted note, and — when the currently-displayed view is that
+// note — restores the previous history entry (falling back to the date
+// preview when there's nothing earlier to go back to) so the preview
+// pane never shows a stale view of a note that no longer exists.
+func (n *Navigator) NoteDeleted(uuid string) {
+	if uuid == "" {
+		return
+	}
+	id := "note:" + uuid
+
+	currentIsDeleted := false
+	if cur, ok := n.mgr.Current(); ok && cur.ID == id {
+		currentIsDeleted = true
+	}
+
+	if currentIsDeleted {
+		// Step back to the previous history entry *before* removing the
+		// deleted one — Back() moves the index and RemoveByID then shifts
+		// it to stay pointing at the same event.
+		if _, ok := n.mgr.Back(); ok {
+			n.mgr.RemoveByID(id)
+			if cur, ok := n.mgr.Current(); ok {
+				_ = n.restore(cur)
+				n.currentIsCommitted = true
+				return
+			}
+		}
+		// No previous entry — clear history and drop the user onto the
+		// date preview so the pane has something coherent to show.
+		n.mgr.RemoveByID(id)
+		_ = n.c.Helpers().DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
+		return
+	}
+
+	n.mgr.RemoveByID(id)
 }
 
 func (n *Navigator) currentSnapshot() (types.Snapshot, bool) {
