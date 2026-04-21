@@ -1,6 +1,7 @@
 package models
 
 import (
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +18,18 @@ func HasDoneTag(line string) bool {
 		}
 	}
 	return false
+}
+
+// checkedTodoPattern matches a checked markdown todo. Mirrors ruin-note-cli's
+// internal regex (`^(\s*[-*]\s+)\[([ xX])\]\s+(.*)`) restricted to the
+// checked states `x`/`X`.
+var checkedTodoPattern = regexp.MustCompile(`^\s*[-*]\s+\[[xX]\]\s`)
+
+// IsCheckedTodo reports whether the line is a completed markdown todo
+// ("- [x] ...", optionally indented). Lines without a leading bullet or
+// with an unchecked "[ ]" state return false.
+func IsCheckedTodo(line string) bool {
+	return checkedTodoPattern.MatchString(line)
 }
 
 type Note struct {

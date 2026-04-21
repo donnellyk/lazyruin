@@ -147,6 +147,39 @@ func TestHasDoneTag(t *testing.T) {
 	}
 }
 
+func TestIsCheckedTodo(t *testing.T) {
+	tests := []struct {
+		line string
+		want bool
+	}{
+		// Checked forms — matches the ruin CLI's todos.go regex
+		// (`^(\s*[-*]\s+)\[([ xX])\]\s+(.*)`).
+		{"- [x] done task", true},
+		{"- [X] upper-case check", true},
+		{"* [x] star bullet", true},
+		{"  - [x] indented", true},
+		{"\t- [x] tab-indented", true},
+		// Unchecked and non-checkbox
+		{"- [ ] todo", false},
+		{"- [] malformed", false},
+		{"- [ x] stray space", false},
+		{"plain text", false},
+		{"", false},
+		// Not a list item
+		{"[x] no bullet", false},
+		// Preview dim should not fire for code-span checkboxes, but those
+		// wouldn't pass the "start of line" anchor, so they're excluded
+		// naturally.
+		{"see `- [x] inline`", false},
+	}
+	for _, tt := range tests {
+		got := IsCheckedTodo(tt.line)
+		if got != tt.want {
+			t.Errorf("IsCheckedTodo(%q) = %v, want %v", tt.line, got, tt.want)
+		}
+	}
+}
+
 func TestNote_IsLink(t *testing.T) {
 	tests := []struct {
 		name string

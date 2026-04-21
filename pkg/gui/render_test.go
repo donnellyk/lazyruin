@@ -448,6 +448,45 @@ func extractTexts(lines []types.SourceLine) []string {
 	return out
 }
 
+// TestBuildCardContent_DimsCheckedTodo is a regression guard: a checked
+// markdown todo ("- [x] task") should render dim when DimDone is on, the
+// same way lines tagged #done do. Before this was wired up, only the #done
+// tag and done-section headers triggered dimming.
+func TestBuildCardContent_DimsCheckedTodo(t *testing.T) {
+	content := strings.Join([]string{
+		"- [x] finished task",
+		"- [ ] still todo",
+	}, "\n")
+	gui, note := buildCardContentFixture(t, content)
+	ds := gui.contexts.ActivePreview().DisplayState()
+	ds.DimDone = true
+	ds.HideDone = false
+
+	lines := gui.BuildCardContent(note, 80)
+	var checked, unchecked *types.SourceLine
+	for i, l := range lines {
+		txt := stripAnsi(l.Text)
+		switch {
+		case strings.Contains(txt, "[x] finished task"):
+			checked = &lines[i]
+		case strings.Contains(txt, "[ ] still todo"):
+			unchecked = &lines[i]
+		}
+	}
+	if checked == nil {
+		t.Fatalf("checked todo line not found in output: %v", extractTexts(lines))
+	}
+	if unchecked == nil {
+		t.Fatalf("unchecked todo line not found in output: %v", extractTexts(lines))
+	}
+	if !strings.Contains(checked.Text, AnsiDim) {
+		t.Errorf("checked todo should render dim, got %q", checked.Text)
+	}
+	if strings.Contains(unchecked.Text, AnsiDim) {
+		t.Errorf("unchecked todo should NOT render dim, got %q", unchecked.Text)
+	}
+}
+
 func TestBuildCardContent_DimDoneSection(t *testing.T) {
 	content := strings.Join([]string{
 		"# Wrap up #done",

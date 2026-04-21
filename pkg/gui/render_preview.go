@@ -337,7 +337,10 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 		if srcIdx < 0 || srcIdx >= len(contentLines) {
 			return false
 		}
-		return doneSection[srcIdx] || models.HasDoneTag(contentLines[srcIdx])
+		line := contentLines[srcIdx]
+		return doneSection[srcIdx] ||
+			models.HasDoneTag(line) ||
+			models.IsCheckedTodo(line)
 	}
 
 	bodyStart := len(lines)

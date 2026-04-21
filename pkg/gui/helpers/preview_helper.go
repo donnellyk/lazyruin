@@ -369,6 +369,11 @@ func (self *PreviewHelper) ReloadContent() {
 		if savedCardIdx < len(cl.Cards) {
 			cl.SelectedCardIdx = savedCardIdx
 		}
+		// reloadPreviewCards refetches the raw Cards but the per-card
+		// compose cache is independent — without this call, line edits
+		// leave ComposedCards pointing at pre-edit output and the render
+		// path keeps showing the stale content.
+		self.RefreshComposedCards()
 	}
 	gui.RenderPreview()
 }

@@ -770,6 +770,46 @@ func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
 	}
 }
 
+// TestReloadContent_RefreshesComposedCards is a regression guard: after a
+// line edit (ToggleTodo, AppendDone, ToggleInlineTag, etc.) the helper calls
+// ReloadContent via ReloadActivePreview. The cached ComposedCards entries
+// must be refreshed so the rendered preview reflects the edit. Before the
+// fix, reloadPreviewCards updated cl.Cards from a fresh search but left
+// cl.ComposedCards untouched, so the render path kept showing the stale
+// pre-edit compose output until the user navigated away and back.
+func TestReloadContent_RefreshesComposedCards(t *testing.T) {
+	mock := testutil.NewMockExecutor().
+		WithNotes(models.Note{UUID: "n1", Title: "Note One", Path: "a.md"}).
+		WithCompose([]byte(
+			`{"uuid":"n1","title":"Note One","path":"a.md","composed_content":"v1\n","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	cards := []models.Note{{UUID: "n1", Title: "Note One", Path: "a.md"}}
+	tg.gui.helpers.Preview().ShowCardList("Note One", cards)
+
+	cl := tg.gui.contexts.CardList
+	if len(cl.ComposedCards) != 1 || cl.ComposedCards[0] == nil {
+		t.Fatalf("precondition: ComposedCards not populated after ShowCardList; got %+v", cl.ComposedCards)
+	}
+	if got := cl.ComposedCards[0].Content; got != "v1\n" {
+		t.Fatalf("precondition: initial composed content = %q, want %q", got, "v1\n")
+	}
+
+	// Simulate a line edit: the underlying compose output changes.
+	mock.WithCompose([]byte(
+		`{"uuid":"n1","title":"Note One","path":"a.md","composed_content":"v2\n","source_map":[]}`))
+
+	tg.gui.helpers.Preview().ReloadContent()
+
+	if len(cl.ComposedCards) != 1 || cl.ComposedCards[0] == nil {
+		t.Fatalf("after reload, ComposedCards was cleared; got %+v", cl.ComposedCards)
+	}
+	if got := cl.ComposedCards[0].Content; got != "v2\n" {
+		t.Errorf("after reload, composed content = %q, want %q — ReloadContent did not refresh ComposedCards", got, "v2\n")
+	}
+}
+
 // TestShowCardList_SingleCard_ComposesCard verifies the single-card path:
 // compose still runs, caching the composed form for the one card.
 func TestShowCardList_SingleCard_ComposesCard(t *testing.T) {
