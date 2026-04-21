@@ -2,17 +2,13 @@
 
 #lazyruin-onboarding
 
-Work through this checklist to learn the basics. `[` / `]` navigate back / forward at any time.
+Welcome to `lazyruin`. Work through this checklist to learn the basics. If at any one you are done, type `:cleanup` to remove this tutorial from your vault.
 
-## Punchlist
-- Default to compose everywhere, but togglable (invert vh, basically)
-- Compose link
-- F isnt working?
- 
 ## Tutorial
 
 ### Basic Navigation
 - [ ] Use `j` / `k` or arrow keys to move up and down inside a note or lists.
+- [ ] `Esc` closes most dialogs. `q` quits `lazyruin`.
 - [ ] Press `x` to toggle a todo on your current line.
 - [ ] Press `1`, `2`, `3` to focus Notes, Queries, Tags. Press the number again to switch tabs within a panel. Mouse clicks are also supported.
 - [ ] Press `Enter` to view a note, `Esc` to go back to the side panel.
@@ -39,9 +35,9 @@ Make a second note, which will have two key Ruin features:
 Before you save, type `>` to see the parent menu, select your first note. The H1 was automatically extracted as the title of the note, so you can reference it throughout Ruin with that title.
 
 ### Compose
-- [ ] Go to your first note, either via the side-panel or Quick Open `<c-o>`
+- [ ] Go to your first note, either via the side-panel or Quick Open `<c-o>`.
 
-You can now see it renders the section note in addition to your first note. This is due to the parent-child relationship we defined and `ruin compose`. Embeds `![[title]]` and dynamic embeds `![[pick: #followup]]` are also supported. See (link)[link] for more info on syntax and capabilities (use `l` to highlight link then `o` to open in your browser. Or click it on supported browsers).
+You can now see it renders the section note in addition to your first note. This is due to the parent-child relationship we defined and `ruin compose`. Embeds `![[title]]` and dynamic embeds `![[pick: #followup]]` are also supported. See [advanced Compose documentation](https://github.com/donnellyk/ruin-note-cli/blob/main/docs/compose-advanced.md) for more info on syntax and capabilities (use `l` to highlight link then `o` to open in your browser. Or click it on supported browsers).
 
 - [ ] Bookmark this note with `b`. 
 
@@ -50,9 +46,9 @@ Bookmarking will make it available in the `Parent` side panel & display higher i
 Within a composed note, `Enter` will jump you to the source child (or embedded) note or directly edit that within lazyruin with `e` or with your external $EDITOR with `E`.
 
 ### Pick & Search
-- [ ] Search with `S`, type-ahead suggestions are available 
+- [ ] Search with `S`, type-ahead suggestions are available.
 - [ ] Extract specific lines via Pick `p`. Pick `#remember` or the inline tag you added to your second note.
-- [ ] Mark the line as `#done` with `<c-d>`
+- [ ] Mark the line as `#done` with `<c-d>`.
 
 Pick can extract specific context from a note, without you needing to read (be distracted) by the rest of the note. `#done` is a special reserved tag to mark an inline tag as complete. By default, all pick commands exclude lines with `#done` in results (ie. `#tag && !#done`). Done lines can be returned with `--any`.
 
@@ -61,7 +57,7 @@ Within a note, `#done` lines (and sections) are dimmed. You can toggle dimming o
 Both Pick and Search support robust date filtering, see `ruin search --help` and `ruin pick --help` for more info.
 
 ### Today
-- [ ] Open the command palette with `:` then type `today`. Select `Date: Today`
+- [ ] Open the command palette with `:` then type `today`. Select `Date: Today`.
 
 This view shows all notes created or updated on the current date, allow with any inline tags or todos annoted with today's date. In the New Note dialog, you can tag a line with `@YYYY-MM-DD` or common english words like `@today`, `@tomorrow`, `@next-week`.
 
@@ -77,36 +73,69 @@ Want to learn more? A more advanced tutorial is below.
 ### Advanced Features
 
 #### Navigation
+- [ ] In a list of cards (ie. Search or Pick results), `J` / `K` jump between cards. 
+- [ ] `}` / `{` jumps to Next / Previous header.
+- [ ] `l` / `L` jumps to Next / Previous link. `o` opens the link in your browser.
+- [ ] `]` / `[` jumps Forward and Backward in history. You can view the full history with `:View History`.
 
 #### Tags
+A few additional tag formats are supported
+- `#tags-with-dashes`
+- `#tags_with_underscores`
+- `#nested/tags`
+- `#tags with spaces#` 
 
 #### Parent
+Child cards can, themselves, be parents to other cards, creating rich structures and hierarchies. To help with this, use `/` in the `>` parent suggestion to see & select a child card. 
 
-#### Compose / Embeds
+Example
+```
+# Project A
 
+#project_a, #2026/q2
+```
 
-### Basic Navigation
-- [ ] In lists, press `j` / `k` or arrow keys to navigate. Scrolling with a mouse also works.
-- [ ] Press `[` to go back. Press `]` to go forward.
-- [ ] Press `n`. Type a note. `<c-s>` to save.
-- [ ] In the new-note popup, try completions: `#` tags, `[[` wiki-links, `@` dates, `>` parents.
-- [ ] Press `e` on a note for inline edit. `E` for `$EDITOR`.
-- [ ] Press `S`. Search for anything. Try `sort:created` or `before:2025-01-01`.
-- [ ] Press `p`. Pick by `#tag`. `<c-t>` for todo-only.
-- [ ] Press `c`. Pick a date with arrow keys, `Enter` to view.
-- [ ] Press `C`. Browse the contribution heatmap.
-- [ ] Press `:`. Fuzzy-search any command.
-- [ ] Press `<c-o>`. Jump to any note by title.
-- [ ] Focus Tags (`3`). `Enter` on a tag to filter.
-- [ ] In the preview, press `l` / `L` to cycle links; `o` to open.
-- [ ] Press `<c-l>` to create a note from a URL.
-- [ ] Try embeds in a note body: `![[Note Title]]` (static) or `![[pick:#tag]]` (dynamic).
-- [ ] On a note, press `>` to set a parent.
-- [ ] In Queries → Parents (`2`, `2`), press `b` on a parent to bookmark it, `Enter` to view as Compose.
-- [ ] From Compose, press `Enter` on any line to jump to the source note.
-- [ ] Press `i` to open the inbox.
-- [ ] Press `v` in the preview to toggle display options.
-- [ ] Press `?` to see all keybindings.
-- [ ] When done: `:` → `cleanup` → `Enter`. Deletes this note and the `#lazyruin-onboarding` tag.
+```
+## Updates
+>Project A
+```
 
-To bring this back: `:` → `add walkthrough`.
+```
+# Apr 21, 2026
+Met with #bob, need to ask him about release plan #followup
+>Project A/Updates
+```
+
+Would be displayed, with `lazyruin` as
+
+```
+# Project A
+
+## Updates
+
+### Apr 21, 2026
+Met with #bob, need to ask him about release plan #followup
+```
+
+By default, children inherit their parent's tags. So, in the above example, a search for `#project_a` would return all three notes. To disable this behavior, set `tag_inheritance: false` in `~/.config/ruin/config.yml` or run `ruin config tag_inheritance false` (which sets it for you). See [configuration documentation](https://github.com/donnellyk/ruin-note-cli/blob/main/docs/configuration.md) for more options. There are also `lazyruin` specific configuration options [here](https://github.com/donnellyk/lazyruin/blob/main/docs/configuration.md).
+
+#### Embeds
+In addition to parent-child relationships, you can also compose notes via the embed syntax. `![[title]]` embeds a specific notes (`![[title#header]]` to target a specific section). Dynamic queries like `![[search: ]]` and `![[pick: ]]` are also supported.
+
+Example
+```
+## Project A Followup
+![pick: #followup | filter=#project-a]]
+```
+will display as 
+```
+## Project A Followup
+
+### Feb 23, 2026
+- Simplify onboarding #idea #followup
+
+### Feb 15, 2026
+- Fix crash on startup when vault is empty #bug #followup
+```
+
+See [advanced Compose documentation](https://github.com/donnellyk/ruin-note-cli/blob/main/docs/compose-advanced.md) for more examples

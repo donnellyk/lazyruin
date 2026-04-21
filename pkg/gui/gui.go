@@ -26,6 +26,7 @@ type Gui struct {
 	QuickLink      bool   // when true, open link input on start and quit on save
 	QuickLinkURL   string // when set with QuickLink, skip input popup and resolve directly
 	OpenRef        string // note path/title or parent bookmark to open on launch
+	VaultSource    string // human-readable label for how the vault path was resolved
 	darkBackground bool
 
 	// New controller/context architecture (Phase 2+)
@@ -83,7 +84,16 @@ func (gui *Gui) Run() error {
 	if err != nil && err != gocui.ErrQuit {
 		return err
 	}
+	if gui.state.ExitError != nil {
+		return gui.state.ExitError
+	}
 	return nil
+}
+
+// SetNeedsInit marks the vault as uninitialized so the first-run layout
+// will prompt the user to run `ruin init` before any other onboarding.
+func (gui *Gui) SetNeedsInit() {
+	gui.state.NeedsInit = true
 }
 
 func (gui *Gui) runMainLoop() error {

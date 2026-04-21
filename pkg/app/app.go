@@ -18,6 +18,7 @@ type App struct {
 	Config        *config.Config
 	RuinCmd       *commands.RuinCommand
 	Gui           *gui.Gui
+	VaultSource   string // human-readable source of the resolved vault path
 	QuickCapture  bool   // when true, open directly into new note and exit on save
 	QuickLink     bool   // when true, open directly into new link and exit on save
 	QuickLinkURL  string // when set with QuickLink, skip input popup and resolve directly
@@ -37,7 +38,7 @@ func NewApp(vaultOverride, ruinBin string) (*App, error) {
 		ruinBin = "ruin"
 	}
 
-	vaultPath, err := resolveVaultPath(cfg, vaultOverride, ruinBin)
+	vaultPath, source, err := resolveVaultPath(cfg, vaultOverride, ruinBin)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +46,9 @@ func NewApp(vaultOverride, ruinBin string) (*App, error) {
 	ruinCmd := commands.NewRuinCommand(vaultPath, ruinBin)
 
 	return &App{
-		Config:  cfg,
-		RuinCmd: ruinCmd,
+		Config:      cfg,
+		RuinCmd:     ruinCmd,
+		VaultSource: source,
 	}, nil
 }
 
@@ -65,11 +67,17 @@ func (a *App) Run() error {
 		}
 	}
 
-	if err := a.RuinCmd.CheckVault(); err != nil {
-		if versionWarning != "" {
-			return fmt.Errorf("%s\n%w", versionWarning, err)
+	// When the vault path exists but hasn't been initialized as a ruin
+	// vault, skip CheckVault (which would fail) and let the TUI prompt
+	// the user to run `ruin init` via the init dialog.
+	needsInit := !a.RuinCmd.IsInitialized()
+	if !needsInit {
+		if err := a.RuinCmd.CheckVault(); err != nil {
+			if versionWarning != "" {
+				return fmt.Errorf("%s\n%w", versionWarning, err)
+			}
+			return err
 		}
-		return err
 	}
 
 	// Initialize GUI
@@ -78,6 +86,10 @@ func (a *App) Run() error {
 	a.Gui.QuickLink = a.QuickLink
 	a.Gui.QuickLinkURL = a.QuickLinkURL
 	a.Gui.OpenRef = a.OpenRef
+	a.Gui.VaultSource = a.VaultSource
+	if needsInit {
+		a.Gui.SetNeedsInit()
+	}
 	if versionWarning != "" {
 		a.Gui.SetStartupWarning(versionWarning)
 	}
@@ -107,28 +119,43 @@ func expandPath(path string) string {
 }
 
 // resolveVaultPath determines the vault path from CLI flag, config, env, or ruin CLI.
-func resolveVaultPath(cfg *config.Config, cliOverride, ruinBin string) (string, error) {
+// Returns a short human-readable label describing where the path came from
+// (shown in the about dialog). When no configured source yields a path,
+// falls back to the current working directory so the TUI's init dialog
+// has a concrete proposal — pressing Yes there invokes `ruin init <cwd>`
+// to properly set up the directory as a vault.
+func resolveVaultPath(cfg *config.Config, cliOverride, ruinBin string) (string, string, error) {
 	// 1. Check CLI flag (highest priority)
 	if cliOverride != "" {
-		return expandPath(cliOverride), nil
+		return expandPath(cliOverride), "--vault flag", nil
 	}
 
 	// 2. Check config
 	if cfg.VaultPath != "" {
-		return expandPath(cfg.VaultPath), nil
+		return expandPath(cfg.VaultPath), "lazyruin config", nil
 	}
 
 	// 3. Check environment
 	if envVault := os.Getenv("LAZYRUIN_VAULT"); envVault != "" {
-		return expandPath(envVault), nil
+		return expandPath(envVault), "LAZYRUIN_VAULT env", nil
 	}
 
-	// 4. Ask ruin CLI for its configured vault path
+	// 4. Ask ruin CLI for its configured vault path. The CLI exits 0 with
+	// empty output when no vault is configured globally, so treat that the
+	// same as a non-zero exit.
 	cmd := exec.Command(ruinBin, "config", "vault_path")
 	output, err := cmd.Output()
-	if err != nil {
-		return "", errors.New("could not determine vault path - set LAZYRUIN_VAULT or configure vault_path")
+	if err == nil {
+		if p := strings.TrimSpace(string(output)); p != "" {
+			return p, "ruin CLI config", nil
+		}
 	}
 
-	return strings.TrimSpace(string(output)), nil
+	// 5. No source resolved — fall back to cwd. The init dialog will
+	// propose this path and, on Yes, run `ruin init` to set it up.
+	cwd, cwdErr := os.Getwd()
+	if cwdErr != nil {
+		return "", "", errors.New("could not determine vault path - set LAZYRUIN_VAULT or configure vault_path")
+	}
+	return cwd, "current directory", nil
 }

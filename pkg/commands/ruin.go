@@ -3,7 +3,9 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -81,6 +83,39 @@ func (r *RuinCommand) VaultPath() string {
 func (r *RuinCommand) buildCommand(args ...string) *exec.Cmd {
 	fullArgs := append(args, "--vault", r.vaultPath)
 	return exec.Command(r.bin, fullArgs...)
+}
+
+// IsInitialized reports whether the vault path has been initialized as a
+// ruin vault. It checks for the presence of the `.ruin` directory, which
+// `ruin init` creates. This is a cheap, stat-only check — no subprocess.
+func (r *RuinCommand) IsInitialized() bool {
+	if r.vaultPath == "" {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(r.vaultPath, ".ruin"))
+	return err == nil && info.IsDir()
+}
+
+// Init runs `ruin init <vaultPath>` to initialize the vault. Returns the
+// combined CLI output as an error on failure so callers can surface it to
+// the user.
+func (r *RuinCommand) Init() error {
+	if r.vaultPath == "" {
+		return fmt.Errorf("no vault path configured")
+	}
+	if r.bin == "" {
+		return fmt.Errorf("ruin binary path not set")
+	}
+	cmd := exec.Command(r.bin, "init", r.vaultPath)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(out))
+		if msg != "" {
+			return fmt.Errorf("ruin init failed: %s", msg)
+		}
+		return fmt.Errorf("ruin init failed: %w", err)
+	}
+	return nil
 }
 
 // CheckVault verifies the vault is accessible, returning an error with details if not.

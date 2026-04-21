@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/helpers"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
@@ -17,6 +18,24 @@ const (
 	AboutView   = "about"
 )
 
+// ruinLogo is the RUIN wordmark rendered in the about splash and the
+// onboarding welcome dialog.
+var ruinLogo = []string{
+	"██████╗  ██╗   ██╗ ██╗ ███╗   ██╗",
+	"██╔══██╗ ██║   ██║ ██║ ████╗  ██║",
+	"██████╔╝ ██║   ██║ ██║ ██╔██╗ ██║",
+	"██╔══██╗ ██║   ██║ ██║ ██║╚██╗██║",
+	"██║  ██║ ╚██████╔╝ ██║ ██║ ╚████║",
+	"╚═╝  ╚═╝  ╚═════╝  ╚═╝ ╚═╝  ╚═══╝",
+}
+
+// ruinEpigraph is the Eliot quotation shown beneath the logo on the about
+// splash (but not in the onboarding dialog).
+var ruinEpigraph = []string{
+	"\"These fragments I have shored",
+	"against my ruin\"",
+}
+
 // DialogState tracks the current dialog state
 type DialogState struct {
 	Active        bool
@@ -28,6 +47,16 @@ type DialogState struct {
 	InputBuffer   string
 	MenuItems     []types.MenuItem
 	MenuSelection int
+	// Hero, when true, renders the RUIN banner above the confirm dialog's
+	// message. Used by the first-run onboarding prompt.
+	Hero bool
+	// Footer, when set, overrides the default "[y] Yes · [n/Esc] No"
+	// footer. Used by the init prompt to show "[y] Yes · [q/Esc] Quit".
+	Footer string
+	// QuitOnCancel, when true, causes the cancel action (n/q/Esc) to
+	// terminate the TUI rather than simply closing the dialog. The
+	// ExitError from GuiState is surfaced to the caller of Gui.Run.
+	QuitOnCancel bool
 	// lastScrolledSelection records the MenuSelection that the menu view
 	// was last auto-scrolled to. The layout skips scroll-to-selection when
 	// it matches, so mouse-wheel scrolling isn't undone on the next redraw.
@@ -49,6 +78,19 @@ func (gui *Gui) ShowConfirm(title, message string, onConfirm func() error) {
 		Title:     title,
 		Message:   message,
 		OnConfirm: onConfirm,
+	}
+}
+
+// ShowHeroConfirm displays a confirmation dialog with the RUIN banner
+// rendered above the message. Used for the first-run onboarding prompt.
+func (gui *Gui) ShowHeroConfirm(title, message string, onConfirm func() error) {
+	gui.state.Dialog = &DialogState{
+		Active:    true,
+		Type:      "confirm",
+		Title:     title,
+		Message:   message,
+		OnConfirm: onConfirm,
+		Hero:      true,
 	}
 }
 
@@ -115,7 +157,13 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
-	x0, y0, x1, y1 := centerRect(maxX, maxY, 50, 5)
+	width, height := 50, 5
+	if gui.state.Dialog.Hero {
+		msgLines := strings.Count(gui.state.Dialog.Message, "\n") + 1
+		// top blank + logo + blank + message + frame
+		height = 1 + len(ruinLogo) + 1 + msgLines + 2
+	}
+	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
 	v, err := g.SetView(ConfirmView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
@@ -123,19 +171,45 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 	}
 
 	v.Title = " " + gui.state.Dialog.Title + " "
-	v.Footer = " [y] Yes · [n/Esc] No "
+	if gui.state.Dialog.Footer != "" {
+		v.Footer = gui.state.Dialog.Footer
+	} else {
+		v.Footer = " [y] Yes · [n/Esc] No "
+	}
 	setRoundedCorners(v)
 	v.FrameColor = gocui.ColorGreen
 	v.TitleColor = gocui.ColorGreen
 	v.Clear()
 
-	fmt.Fprintln(v, "")
-	fmt.Fprintln(v, "  "+gui.state.Dialog.Message)
+	if gui.state.Dialog.Hero {
+		innerW, _ := v.InnerSize()
+		fmt.Fprintln(v, "")
+		for _, line := range ruinLogo {
+			fmt.Fprintln(v, centerLine(line, innerW))
+		}
+		fmt.Fprintln(v, "")
+		for _, line := range strings.Split(gui.state.Dialog.Message, "\n") {
+			fmt.Fprintln(v, centerLine(line, innerW))
+		}
+	} else {
+		fmt.Fprintln(v, "")
+		fmt.Fprintln(v, "  "+gui.state.Dialog.Message)
+	}
 
 	g.SetViewOnTop(ConfirmView)
 	g.SetCurrentView(ConfirmView)
 
 	return nil
+}
+
+// centerLine pads s with leading spaces so its rune content is centered
+// within width cells. Lines longer than width are returned unchanged.
+func centerLine(s string, width int) string {
+	pad := (width - utf8.RuneCountInString(s)) / 2
+	if pad < 0 {
+		pad = 0
+	}
+	return strings.Repeat(" ", pad) + s
 }
 
 // createInputDialog renders the input dialog
@@ -348,27 +422,21 @@ func (gui *Gui) createMenuDialog(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
-// createAboutDialog renders the ASCII art about splash.
+// createAboutDialog renders the ASCII art about splash along with the
+// resolved vault path, its source, and any non-default lazyruin config.
 func (gui *Gui) createAboutDialog(g *gocui.Gui, maxX, maxY int) error {
 	if gui.state.Dialog == nil || gui.state.Dialog.Type != "about" {
 		return nil
 	}
 
-	art := []string{
-		"",
-		"  ██████╗  ██╗   ██╗ ██╗ ███╗   ██╗",
-		"  ██╔══██╗ ██║   ██║ ██║ ████╗  ██║",
-		"  ██████╔╝ ██║   ██║ ██║ ██╔██╗ ██║",
-		"  ██╔══██╗ ██║   ██║ ██║ ██║╚██╗██║",
-		"  ██║  ██║ ╚██████╔╝ ██║ ██║ ╚████║",
-		"  ╚═╝  ╚═╝  ╚═════╝  ╚═╝ ╚═╝  ╚═══╝",
-		"",
-		" \"These fragments I have shored",
-		"          against my ruin\"",
-	}
+	infoLines := gui.aboutInfoLines()
 
-	width := 40
-	height := len(art) + 2 // + frame
+	width := 60
+	// leading blank + logo + blank + info (+ trailing blank if any) + epigraph + frame
+	height := 1 + len(ruinLogo) + 1 + len(infoLines) + len(ruinEpigraph) + 2
+	if len(infoLines) > 0 {
+		height++ // blank between info block and epigraph
+	}
 	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
 	v, err := g.SetView(AboutView, x0, y0, x1, y1, 0)
@@ -381,13 +449,58 @@ func (gui *Gui) createAboutDialog(g *gocui.Gui, maxX, maxY int) error {
 	v.TitleColor = gocui.ColorGreen
 	v.Clear()
 
-	for _, line := range art {
-		fmt.Fprintln(v, line)
+	innerW, _ := v.InnerSize()
+	fmt.Fprintln(v, "")
+	for _, line := range ruinLogo {
+		fmt.Fprintln(v, centerLine(line, innerW))
+	}
+	fmt.Fprintln(v, "")
+	for _, line := range infoLines {
+		fmt.Fprintln(v, centerLine(line, innerW))
+	}
+	if len(infoLines) > 0 {
+		fmt.Fprintln(v, "")
+	}
+	for _, line := range ruinEpigraph {
+		fmt.Fprintln(v, centerLine(line, innerW))
 	}
 
 	g.SetViewOnTop(AboutView)
 	g.SetCurrentView(AboutView)
 	return nil
+}
+
+// aboutInfoLines builds the vault/config block shown in the about dialog.
+// Returns an empty slice when there is nothing to show.
+func (gui *Gui) aboutInfoLines() []string {
+	var lines []string
+	if gui.ruinCmd != nil {
+		if p := gui.ruinCmd.VaultPath(); p != "" {
+			lines = append(lines, "Vault: "+p)
+		}
+	}
+	if gui.VaultSource != "" {
+		lines = append(lines, "Source: "+gui.VaultSource)
+	}
+	if gui.config != nil {
+		var cfgLines []string
+		if gui.config.Editor != "" {
+			cfgLines = append(cfgLines, "editor: "+gui.config.Editor)
+		}
+		if gui.config.ChromaTheme != "" {
+			cfgLines = append(cfgLines, "chroma_theme: "+gui.config.ChromaTheme)
+		}
+		if gui.config.ViewOptions.HideDone {
+			cfgLines = append(cfgLines, "hide_done: true")
+		}
+		if len(cfgLines) > 0 {
+			if len(lines) > 0 {
+				lines = append(lines, "")
+			}
+			lines = append(lines, cfgLines...)
+		}
+	}
+	return lines
 }
 
 // renderDialogs renders any active dialog
@@ -421,6 +534,9 @@ func (gui *Gui) setupDialogKeybindings() error {
 		return err
 	}
 	if err := gui.g.SetKeybinding(ConfirmView, 'n', gocui.ModNone, gui.confirmNo); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding(ConfirmView, 'q', gocui.ModNone, gui.confirmNo); err != nil {
 		return err
 	}
 	if err := gui.g.SetKeybinding(ConfirmView, gocui.KeyEsc, gocui.ModNone, gui.confirmNo); err != nil {
@@ -509,7 +625,11 @@ func (gui *Gui) confirmYes(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) confirmNo(g *gocui.Gui, v *gocui.View) error {
+	quit := gui.state.Dialog != nil && gui.state.Dialog.QuitOnCancel
 	gui.closeDialog()
+	if quit {
+		return gocui.ErrQuit
+	}
 	return nil
 }
 
