@@ -123,11 +123,17 @@ func (self *PreviewHelper) UpdatePreviewForNotes() {
 	}
 	note := notes.Items[idx]
 
-	// Check if same note is already being previewed in cardList
+	// Check if same note is already being previewed as a *dedicated*
+	// single-note view. The UUID-only check short-circuits incorrectly
+	// when the current view is a multi-card list (e.g. tag search) whose
+	// selected card happens to be the clicked note — gating on the
+	// NewSingleNoteSource query keeps the optimization tight.
 	contexts := self.c.GuiCommon().Contexts()
 	if contexts.ActivePreviewKey == "cardList" {
+		cl := contexts.CardList
 		currentCard := self.CurrentPreviewCard()
-		if currentCard != nil && currentCard.UUID == note.UUID {
+		if currentCard != nil && currentCard.UUID == note.UUID &&
+			cl.Source.Query == note.UUID {
 			// Same note — commit if it's a hover, otherwise leave as-is
 			if !self.c.Helpers().Navigator().IsCurrentCommitted() {
 				self.c.Helpers().Navigator().CommitHover()

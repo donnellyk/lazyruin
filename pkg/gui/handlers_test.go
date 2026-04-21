@@ -771,6 +771,57 @@ func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
 	}
 }
 
+// TestUpdatePreviewForNotes_SwitchesFromTagSearchToNote is a regression
+// guard for "clicking a note in the All pane after a tag search leaves the
+// preview stuck on the tag search title". The short-circuit in
+// UpdatePreviewForNotes ("same note — don't re-render") incorrectly fired
+// when the currently-selected card in a multi-card tag-search happened to
+// be the clicked note: UUIDs matched, so we returned early and the tag
+// title / search context remained.
+//
+// The fix narrows the short-circuit to actual single-note views (where the
+// CardList Source.Query equals the note's UUID), so a tag search with one
+// matching note correctly refreshes to a dedicated note view on click.
+func TestUpdatePreviewForNotes_SwitchesFromTagSearchToNote(t *testing.T) {
+	note := models.Note{UUID: "n1", Title: "Only Note", Path: "only.md"}
+	mock := testutil.NewMockExecutor().
+		WithNotes(note).
+		WithTags(models.Tag{Name: "tag", Count: 1}).
+		WithCompose([]byte(
+			`{"uuid":"n1","title":"Only Note","path":"only.md","composed_content":"body\n","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	// Populate the notes list so UpdatePreviewForNotes has something to read.
+	tg.gui.contexts.Notes.Items = []models.Note{note}
+	tg.gui.contexts.Notes.SetSelectedLineIdx(0)
+
+	// Simulate the state after clicking the tag: a tag-search card list
+	// whose only match happens to be the clicked note.
+	tagSearchSource := context.CardListSource{
+		Query: "#tag",
+		Requery: func(_ string) ([]models.Note, error) {
+			return []models.Note{note}, nil
+		},
+	}
+	tg.gui.helpers.Preview().ShowCardList("Tag: #tag", []models.Note{note}, tagSearchSource)
+	if got := tg.gui.contexts.CardList.Title(); got != "Tag: #tag" {
+		t.Fatalf("precondition: CardList.Title = %q, want %q", got, "Tag: #tag")
+	}
+
+	// Click (or focus) the note in the All pane. UpdatePreviewForNotes is
+	// what the click/focus handlers call.
+	tg.gui.helpers.Preview().UpdatePreviewForNotes()
+
+	cl := tg.gui.contexts.CardList
+	if got := cl.Title(); got == "Tag: #tag" {
+		t.Errorf("CardList.Title still %q after clicking note in All pane; want it to switch to the note's title", got)
+	}
+	if cl.Source.Query != note.UUID {
+		t.Errorf("CardList.Source.Query = %q after click; want %q (single-note source)", cl.Source.Query, note.UUID)
+	}
+}
+
 // TestShowCardList_LongNote_InactivePreviewStartsAtTop is a regression
 // guard: opening a long note (taller than the preview viewport) should
 // render with ScrollOffset=0 so the user sees the top of the note, not the
