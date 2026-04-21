@@ -12,6 +12,11 @@ type NavigationEvent struct {
 	Title      string
 	Snapshot   types.Snapshot
 	Timestamp  time.Time
+	// ID is an optional LRU-dedup key. When non-empty, recording a new
+	// entry with the same ID evicts the earlier occurrence from the
+	// stack so the new entry is the unique one on top. Empty IDs never
+	// dedup (used for multi-card lists, searches, etc.).
+	ID string
 }
 
 // DefaultNavHistoryCap is the default cap on the number of history entries.
@@ -32,13 +37,24 @@ func NewNavigationManager() *NavigationManager {
 }
 
 // Record appends a new entry, truncating any forward entries and applying
-// the ring-buffer cap.
+// the ring-buffer cap. When the event carries a non-empty ID, any earlier
+// entry with the same ID is removed first so the stack contains at most
+// one copy of a given view and the latest is always on top.
 func (m *NavigationManager) Record(evt NavigationEvent) {
 	if evt.Timestamp.IsZero() {
 		evt.Timestamp = time.Now()
 	}
 	if m.index >= 0 && m.index < len(m.entries)-1 {
 		m.entries = m.entries[:m.index+1]
+	}
+	if evt.ID != "" {
+		filtered := m.entries[:0]
+		for _, e := range m.entries {
+			if e.ID != evt.ID {
+				filtered = append(filtered, e)
+			}
+		}
+		m.entries = filtered
 	}
 	m.entries = append(m.entries, evt)
 	m.index = len(m.entries) - 1

@@ -10,6 +10,59 @@ func newEvt(title string) NavigationEvent {
 	}
 }
 
+func newEvtID(title, id string) NavigationEvent {
+	return NavigationEvent{
+		ContextKey: "cardList",
+		Title:      title,
+		Snapshot:   title,
+		ID:         id,
+	}
+}
+
+// TestNavigationManager_RecordDedupsByID verifies the LRU-style dedup:
+// recording an entry whose ID matches a prior entry evicts the prior
+// entry so the new one is the unique occurrence and sits at the top of
+// the stack. Entries with empty ID are never deduped.
+func TestNavigationManager_RecordDedupsByID(t *testing.T) {
+	m := NewNavigationManager()
+	m.Record(newEvtID("Note A", "n:a"))
+	m.Record(newEvtID("Note B", "n:b"))
+	m.Record(newEvtID("Note C", "n:c"))
+	m.Record(newEvtID("Note A (again)", "n:a"))
+
+	if m.Len() != 3 {
+		t.Fatalf("Len() = %d, want 3 (A should have been deduped)", m.Len())
+	}
+	titles := make([]string, 0, m.Len())
+	for _, e := range m.Entries() {
+		titles = append(titles, e.Title)
+	}
+	want := []string{"Note B", "Note C", "Note A (again)"}
+	if len(titles) != len(want) {
+		t.Fatalf("titles = %v, want %v", titles, want)
+	}
+	for i, w := range want {
+		if titles[i] != w {
+			t.Errorf("titles[%d] = %q, want %q", i, titles[i], w)
+		}
+	}
+	if m.Index() != 2 {
+		t.Errorf("Index() = %d, want 2 (A-again on top)", m.Index())
+	}
+}
+
+// TestNavigationManager_RecordEmptyIDDoesNotDedup ensures entries with
+// no dedup ID (e.g. multi-card search results) remain distinct even when
+// their titles match.
+func TestNavigationManager_RecordEmptyIDDoesNotDedup(t *testing.T) {
+	m := NewNavigationManager()
+	m.Record(newEvt("same"))
+	m.Record(newEvt("same"))
+	if m.Len() != 2 {
+		t.Errorf("Len() = %d, want 2 (empty IDs should not dedup)", m.Len())
+	}
+}
+
 func TestNavigationManager_Empty(t *testing.T) {
 	m := NewNavigationManager()
 	if m.Len() != 0 {

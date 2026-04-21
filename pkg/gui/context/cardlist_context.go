@@ -48,6 +48,23 @@ type CardListContext struct {
 	*CardListState
 }
 
+// DedupID returns an LRU-dedup key for a single-note card-list view so the
+// navigation history doesn't accumulate duplicate entries for the same
+// note. Multi-card views (tag/search results) return "" — they're not
+// deduped because two visits to the same query can still yield different
+// results worth keeping as separate history entries.
+func (self *CardListContext) DedupID() string {
+	if self == nil || self.CardListState == nil {
+		return ""
+	}
+	if self.Source.Query != "" &&
+		len(self.Cards) == 1 &&
+		self.Cards[0].UUID == self.Source.Query {
+		return "note:" + self.Source.Query
+	}
+	return ""
+}
+
 // NewCardListContext creates a CardListContext.
 func NewCardListContext() *CardListContext {
 	return &CardListContext{

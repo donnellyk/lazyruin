@@ -204,7 +204,18 @@ func (n *Navigator) recordCurrent(destination types.ContextKey, title string) {
 		ContextKey: destination,
 		Title:      title,
 		Snapshot:   snap,
+		ID:         n.currentDedupID(),
 	})
+}
+
+// currentDedupID asks the active preview context for an LRU-dedup key.
+// Empty string means no dedup.
+func (n *Navigator) currentDedupID() string {
+	ctx := n.c.GuiCommon().Contexts().ActivePreview()
+	if d, ok := ctx.(interface{ DedupID() string }); ok {
+		return d.DedupID()
+	}
+	return ""
 }
 
 func (n *Navigator) currentSnapshot() (types.Snapshot, bool) {
