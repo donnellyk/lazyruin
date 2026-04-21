@@ -531,8 +531,10 @@ func (self *PreviewNavHelper) Click() error {
 	links.ExtractLinks()
 	ns := self.activeCtx().NavState()
 	for _, link := range ns.Links {
-		if link.Line == absY && absX >= link.Col && absX < link.Col+link.Len {
-			return links.FollowLink(link)
+		for _, seg := range link.Segments {
+			if seg.Line == absY && absX >= seg.Col && absX < seg.Col+seg.Len {
+				return links.FollowLink(link)
+			}
 		}
 	}
 

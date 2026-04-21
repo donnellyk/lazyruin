@@ -136,19 +136,23 @@ func isHeaderLine(line string) bool {
 // When a link is highlighted (HighlightedLink >= 0), only the link span is highlighted
 // instead of the full line.
 func (gui *Gui) fprintPreviewLine(v *gocui.View, line string, lineNum int, highlight bool, ns *context.PreviewNavState) {
+	// Link highlight applies to every visual line the link covers — not
+	// just the cursor line — because wordwrap may have broken the link
+	// across several visual lines. Check for a link segment on this line
+	// before the cursor-line shortcut.
+	hl := ns.RenderedLink
+	if highlight && hl >= 0 && hl < len(ns.Links) {
+		for _, seg := range ns.Links[hl].Segments {
+			if seg.Line == lineNum {
+				fmt.Fprintln(v, highlightSpan(line, seg.Col, seg.Len))
+				return
+			}
+		}
+	}
+
 	if !highlight || lineNum != ns.CursorLine {
 		fmt.Fprintln(v, line)
 		return
-	}
-
-	// Check for link-only highlight (set by renderPreview snapshot)
-	hl := ns.RenderedLink
-	if hl >= 0 && hl < len(ns.Links) {
-		link := ns.Links[hl]
-		if link.Line == lineNum {
-			fmt.Fprintln(v, highlightSpan(line, link.Col, link.Len))
-			return
-		}
 	}
 
 	// Full-line highlight — inset the background by 1 on each side so it

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
 	"github.com/donnellyk/lazyruin/pkg/testutil"
 
@@ -768,6 +769,120 @@ func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
 		if c == nil {
 			t.Errorf("ComposedCards[%d] is nil; mock returns a valid compose response for all cards", i)
 		}
+	}
+}
+
+// TestExtractLinks_HyphenBreakingURL is a regression guard for the bug
+// the user reported: reflow/wordwrap treats `-` as a breakpoint, so a URL
+// like https://github.com/donnellyk/ruin-note-cli/... gets split across
+// several ns.Lines entries even before gocui's visual wrap runs. The old
+// extraction saw each visual line in isolation and captured only the
+// prefix ("https://github.com/donnellyk/ruin-"), which is the wrong URL
+// to open.
+//
+// The fix reconstructs the source line by joining consecutive ns.Lines
+// entries that share the same source identity, runs the URL regex on that
+// reconstruction, and records a PreviewLink whose Text is the full URL.
+// The PreviewLink's Segments carry per-visual-line spans so the highlight
+// still paints correctly across the wrap.
+func TestExtractLinks_HyphenBreakingURL(t *testing.T) {
+	url := "https://github.com/donnellyk/ruin-note-cli/blob/main/docs/compose-advanced.md"
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// Reflow at width 60 splits the URL at embedded hyphens. Each
+	// produced "visual line" gets the same (UUID, LineNum) because they
+	// all map back to the same source line.
+	ns := tg.gui.contexts.ActivePreview().NavState()
+	ns.Lines = []types.SourceLine{
+		{Text: " https://github.com/donnellyk/ruin-", UUID: "n1", LineNum: 1, Path: "n1.md"},
+		{Text: " note-cli/blob/main/docs/compose-", UUID: "n1", LineNum: 1, Path: "n1.md"},
+		{Text: " advanced.md", UUID: "n1", LineNum: 1, Path: "n1.md"},
+	}
+
+	tg.gui.helpers.PreviewLinks().ExtractLinks()
+
+	if len(ns.Links) != 1 {
+		t.Fatalf("want 1 link, got %d: %+v", len(ns.Links), ns.Links)
+	}
+	if ns.Links[0].Text != url {
+		t.Errorf("link text wrong\n got: %q\nwant: %q", ns.Links[0].Text, url)
+	}
+	if len(ns.Links[0].Segments) != 3 {
+		t.Errorf("expected 3 segments (one per visual line), got %d: %+v",
+			len(ns.Links[0].Segments), ns.Links[0].Segments)
+	}
+}
+
+// TestExtractLinks_AfterRealRender_LongURLIntact exercises the real
+// render path: a note containing a long URL is shown in the preview, the
+// normal RenderPreview pass runs, and then ExtractLinks walks the result.
+// The extracted link should carry the full URL even though gocui has
+// visually wrapped it.
+func TestExtractLinks_AfterRealRender_LongURLIntact(t *testing.T) {
+	longURL := "https://example.com/" + strings.Repeat("abcd/", 30) + "end"
+	content := "Some text\n" + longURL + "\nMore text\n"
+	note := models.Note{UUID: "u1", Title: "Link Note", Path: "u1.md", Content: content}
+
+	mock := testutil.NewMockExecutor().
+		WithNotes(note).
+		WithCompose(fmt.Appendf(nil,
+			`{"uuid":"u1","title":"Link Note","path":"u1.md","composed_content":%q,"source_map":[]}`, content))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	tg.gui.helpers.Preview().ShowCardList("Link Note", []models.Note{note})
+	tg.g.ForceLayoutAndRedraw()
+
+	tg.gui.helpers.PreviewLinks().ExtractLinks()
+
+	ns := tg.gui.contexts.CardList.NavState()
+	var urlLink *context.PreviewLink
+	for i := range ns.Links {
+		if strings.HasPrefix(ns.Links[i].Text, "https://") {
+			urlLink = &ns.Links[i]
+			break
+		}
+	}
+	if urlLink == nil {
+		t.Fatalf("no URL link extracted; got %+v", ns.Links)
+	}
+	if urlLink.Text != longURL {
+		t.Errorf("extracted URL mismatch after real render\n got: %q\nwant: %q", urlLink.Text, longURL)
+	}
+}
+
+// TestExtractLinks_PreservesURLAcrossVisualWrap is a regression guard for
+// "l/L highlights only the pre-wrap prefix of a URL and opens the wrong
+// URL". The preview view has v.Wrap=true, so gocui visually wraps long
+// URLs at the view width — ViewBufferLines returns the wrapped segments.
+// The old ExtractLinks read from ViewBufferLines, so the regex saw a
+// truncated URL on the first visual line and no URL on the next line.
+//
+// The fix reads links from ns.Lines (pre-wrap), so the full URL is
+// captured as one PreviewLink regardless of how gocui later wraps it for
+// display.
+func TestExtractLinks_PreservesURLAcrossVisualWrap(t *testing.T) {
+	tg := newTestGui(t, defaultMock())
+	defer tg.Close()
+
+	// Seed ns.Lines on the active preview context with a long URL that
+	// gocui would visually wrap, but that lives on a single logical line
+	// in our render data.
+	longURL := "https://example.com/" + strings.Repeat("a", 200) + "/end"
+	ns := tg.gui.contexts.ActivePreview().NavState()
+	ns.Lines = []types.SourceLine{
+		{Text: " See " + longURL + " for more.", UUID: "n1", LineNum: 1, Path: "x.md"},
+	}
+
+	tg.gui.helpers.PreviewLinks().ExtractLinks()
+
+	if len(ns.Links) != 1 {
+		t.Fatalf("ExtractLinks produced %d links, want 1; got %+v", len(ns.Links), ns.Links)
+	}
+	got := ns.Links[0].Text
+	if got != longURL {
+		t.Errorf("link.Text = %q\nwant %q\n(extraction truncated the URL)", got, longURL)
 	}
 }
 

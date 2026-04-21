@@ -7,8 +7,6 @@ import (
 
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
 	"github.com/donnellyk/lazyruin/pkg/models"
-
-	"github.com/jesseduffield/gocui"
 )
 
 // PreviewLinksHelper handles link extraction, highlighting, and following
@@ -26,38 +24,90 @@ func (self *PreviewLinksHelper) activeCtx() context.IPreviewContext {
 	return self.c.GuiCommon().Contexts().ActivePreview()
 }
 
-func (self *PreviewLinksHelper) view() *gocui.View {
-	return self.c.GuiCommon().GetView("preview")
-}
-
 // ExtractLinks parses the preview content for wiki-links and URLs.
+//
+// Source lines may be broken across several consecutive ns.Lines entries
+// by our internal wordwrap (for example at hyphens inside a URL). The
+// simple "regex each visual line" approach would capture only the prefix
+// before the break. Here we instead reconstruct each source line from its
+// contiguous ns.Lines group, match against the reconstruction, then emit
+// one PreviewLink per match — possibly with multiple Segments, one per
+// visual line it spans.
 func (self *PreviewLinksHelper) ExtractLinks() {
 	ns := self.activeCtx().NavState()
 	ns.Links = nil
-	v := self.view()
-	if v == nil {
-		return
-	}
 
-	lines := v.ViewBufferLines()
 	wikiRe := regexp.MustCompile(`\[\[([^\]]+)\]\]`)
 	urlRe := regexp.MustCompile(`https?://[^\s)\]>]+`)
 
-	for lineNum, line := range lines {
-		plain := stripAnsi(line)
-		for _, match := range wikiRe.FindAllStringIndex(plain, -1) {
-			text := plain[match[0]:match[1]]
-			ns.Links = append(ns.Links, context.PreviewLink{
-				Text: text, Line: lineNum, Col: match[0], Len: match[1] - match[0],
-			})
+	// Walk consecutive groups of ns.Lines that share the same source
+	// identity (UUID + LineNum). Lines with LineNum == 0 are synthetic
+	// (separators, blanks) and don't carry links.
+	i := 0
+	for i < len(ns.Lines) {
+		if ns.Lines[i].LineNum == 0 {
+			i++
+			continue
 		}
-		for _, match := range urlRe.FindAllStringIndex(plain, -1) {
-			text := plain[match[0]:match[1]]
-			ns.Links = append(ns.Links, context.PreviewLink{
-				Text: text, Line: lineNum, Col: match[0], Len: match[1] - match[0],
-			})
+		start := i
+		uuid := ns.Lines[i].UUID
+		ln := ns.Lines[i].LineNum
+		for i < len(ns.Lines) && ns.Lines[i].UUID == uuid && ns.Lines[i].LineNum == ln {
+			i++
+		}
+		end := i
+
+		// Per-segment plain texts. The renderer prefixes each visual line
+		// with a single leading space; strip it so reconstructed source
+		// columns align with what the regex expects.
+		segs := make([]string, end-start)
+		for j := start; j < end; j++ {
+			plain := stripAnsi(ns.Lines[j].Text)
+			segs[j-start] = strings.TrimPrefix(plain, " ")
+		}
+		source := strings.Join(segs, "")
+
+		for _, match := range wikiRe.FindAllStringIndex(source, -1) {
+			ns.Links = append(ns.Links,
+				buildLink(source[match[0]:match[1]], start, match[0], match[1], segs))
+		}
+		for _, match := range urlRe.FindAllStringIndex(source, -1) {
+			ns.Links = append(ns.Links,
+				buildLink(source[match[0]:match[1]], start, match[0], match[1], segs))
 		}
 	}
+}
+
+// buildLink maps a [matchStart, matchEnd) byte range in the reconstructed
+// source string to one or more on-screen segments. Each segment carries
+// the ns.Lines index (start + segment offset), the visible column within
+// that line (+1 for the leading space the renderer adds), and the visible
+// length it covers.
+func buildLink(text string, groupStart, matchStart, matchEnd int, segs []string) context.PreviewLink {
+	var segments []context.PreviewLinkSegment
+	offset := 0
+	for j, s := range segs {
+		segLen := len(s)
+		segStart := offset
+		segEnd := offset + segLen
+		if matchStart < segEnd && matchEnd > segStart {
+			col := matchStart - segStart
+			if col < 0 {
+				col = 0
+			}
+			end := matchEnd - segStart
+			if end > segLen {
+				end = segLen
+			}
+			segments = append(segments, context.PreviewLinkSegment{
+				Line: groupStart + j,
+				Col:  col + 1, // +1 for the renderer's leading space
+				Len:  end - col,
+			})
+		}
+		offset = segEnd
+	}
+	return context.PreviewLink{Text: text, Segments: segments}
 }
 
 // HighlightNextLink cycles to the next link.
@@ -74,7 +124,9 @@ func (self *PreviewLinksHelper) HighlightNextLink() error {
 		next = 0
 	}
 	ns.HighlightedLink = next
-	ns.CursorLine = links[next].Line
+	if len(links[next].Segments) > 0 {
+		ns.CursorLine = links[next].Segments[0].Line
+	}
 	self.c.Helpers().PreviewNav().SyncCardIndexFromCursor()
 	self.c.GuiCommon().RenderPreview()
 	return nil
@@ -94,7 +146,9 @@ func (self *PreviewLinksHelper) HighlightPrevLink() error {
 		prev = len(links) - 1
 	}
 	ns.HighlightedLink = prev
-	ns.CursorLine = links[prev].Line
+	if len(links[prev].Segments) > 0 {
+		ns.CursorLine = links[prev].Segments[0].Line
+	}
 	self.c.Helpers().PreviewNav().SyncCardIndexFromCursor()
 	self.c.GuiCommon().RenderPreview()
 	return nil
