@@ -26,7 +26,7 @@ func (t *PreviewNavTrait) NavBindings() []*types.Binding {
 		{Key: gocui.KeyArrowUp, Handler: t.nav().MoveUp},
 		{Key: 'J', Handler: t.nav().CardDown, KeyDisplay: "J/K", Description: "Jump between cards", Category: "Navigation"},
 		{Key: 'K', Handler: t.nav().CardUp},
-		{Key: '}', Handler: t.nav().NextHeader, KeyDisplay: "]/[", Description: "Next/prev header", Category: "Navigation"},
+		{Key: '}', Handler: t.nav().NextHeader, KeyDisplay: "}/{", Description: "Next/prev header", Category: "Navigation"},
 		{Key: '{', Handler: t.nav().PrevHeader},
 		{Key: 'l', Handler: t.links().HighlightNextLink, KeyDisplay: "l/L", Description: "Next/prev link", Category: "Navigation"},
 		{Key: 'L', Handler: t.links().HighlightPrevLink},
