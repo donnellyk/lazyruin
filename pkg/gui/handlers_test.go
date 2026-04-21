@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -767,6 +768,50 @@ func TestShowCardList_MultiCard_ComposesEachCard(t *testing.T) {
 		if c == nil {
 			t.Errorf("ComposedCards[%d] is nil; mock returns a valid compose response for all cards", i)
 		}
+	}
+}
+
+// TestShowCardList_LongNote_InactivePreviewStartsAtTop is a regression
+// guard: opening a long note (taller than the preview viewport) should
+// render with ScrollOffset=0 so the user sees the top of the note, not the
+// bottom. The focus is on the notes list (preview inactive) — the common
+// case when clicking a note or hovering via arrow keys.
+//
+// Before the fix, renderSeparatorCards's inactive branch scrolled to
+// `r[1] - viewHeight` whenever a card's total span exceeded the viewport,
+// which snapped a freshly-opened long note to its tail.
+func TestShowCardList_LongNote_InactivePreviewStartsAtTop(t *testing.T) {
+	// Note with enough content to exceed any reasonable preview viewport.
+	var contentLines []string
+	for i := 0; i < 200; i++ {
+		contentLines = append(contentLines, fmt.Sprintf("body line %d", i))
+	}
+	note := models.Note{
+		UUID:    "long",
+		Title:   "Long Note",
+		Path:    "long.md",
+		Content: strings.Join(contentLines, "\n"),
+	}
+	mock := defaultMock().WithCompose([]byte(
+		`{"uuid":"long","title":"Long Note","path":"long.md","composed_content":"` +
+			strings.Repeat("line\\n", 200) + `","source_map":[]}`))
+	tg := newTestGui(t, mock)
+	defer tg.Close()
+
+	// Put focus back on notes (newTestGui leaves the stack on datePreview
+	// after its initial LoadDatePreview call) so the preview renders in the
+	// inactive branch.
+	tg.gui.contextMgr.Push("notes")
+	if tg.gui.isPreviewActive() {
+		t.Fatalf("precondition: preview should be inactive (focus on notes), got active")
+	}
+
+	tg.gui.helpers.Preview().ShowCardList("Long Note", []models.Note{note})
+	tg.g.ForceLayoutAndRedraw()
+
+	ns := tg.gui.contexts.CardList.NavState()
+	if ns.ScrollOffset != 0 {
+		t.Errorf("ScrollOffset = %d after opening long note with inactive preview; want 0 (top of note visible)", ns.ScrollOffset)
 	}
 }
 

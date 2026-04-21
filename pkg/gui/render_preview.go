@@ -755,8 +755,11 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 			r := ns.CardLineRanges[idx]
 			if r[0] < originY {
 				originY = r[0]
-			} else if r[1] > originY+viewHeight {
-				originY = r[1] - viewHeight
+			} else if r[0] >= originY+viewHeight {
+				// Card's top is below the viewport — scroll down to
+				// show it. Anchor at the card's top, not r[1]-viewHeight
+				// which would snap a long note to its tail on open.
+				originY = r[0]
 			}
 		}
 	}
@@ -1068,8 +1071,8 @@ func (gui *Gui) renderPickResults(v *gocui.View, results []models.PickResult, ns
 			r := ns.CardLineRanges[selectedCardIdx]
 			if r[0] < originY {
 				originY = r[0]
-			} else if r[1] > originY+viewHeight {
-				originY = r[1] - viewHeight
+			} else if r[0] >= originY+viewHeight {
+				originY = r[0]
 			}
 		}
 	}
