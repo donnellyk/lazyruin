@@ -130,13 +130,13 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		if err := gui.createPickDialog(g, maxX, maxY); err != nil {
 			return err
 		}
-	case "inboxBrowser":
+	case "scratchpadBrowser":
 		if gui.contextMgr.Contains("capture") {
 			if err := gui.createCapturePopup(g, maxX, maxY); err != nil {
 				return err
 			}
 		}
-		if err := gui.createInboxBrowser(g, maxX, maxY); err != nil {
+		if err := gui.createScratchpadBrowser(g, maxX, maxY); err != nil {
 			return err
 		}
 	}
@@ -178,8 +178,8 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	if ctx != "pickDialog" {
 		g.DeleteView(PickDialogView)
 	}
-	if ctx != "inboxBrowser" {
-		g.DeleteView(InboxBrowserView)
+	if ctx != "scratchpadBrowser" {
+		g.DeleteView(ScratchpadBrowserView)
 	}
 
 	// Render any active dialogs
@@ -774,8 +774,8 @@ func (gui *Gui) updateCaptureFooter() {
 	gui.views.Capture.Footer = footer
 }
 
-func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
-	ctx := gui.contexts.InboxBrowser
+func (gui *Gui) createScratchpadBrowser(g *gocui.Gui, maxX, maxY int) error {
+	ctx := gui.contexts.ScratchpadBrowser
 
 	itemCount := len(ctx.Items)
 	height := max(
@@ -788,15 +788,15 @@ func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 
 	x0, y0, x1, y1 := centerPopup(maxX, maxY, 60, height, 0)
 
-	v, err := g.SetView(InboxBrowserView, x0, y0, x1, y1, 0)
+	v, err := g.SetView(ScratchpadBrowserView, x0, y0, x1, y1, 0)
 	if err != nil && err.Error() != "unknown view" {
 		return err
 	}
 
-	v.Title = " Inbox "
+	v.Title = " Scratchpad "
 	v.Highlight = false
 	setRoundedCorners(v)
-	gui.applyFocusColors(v, "inboxBrowser")
+	gui.applyFocusColors(v, "scratchpadBrowser")
 
 	if itemCount > 0 {
 		v.Footer = fmt.Sprintf("%d of %d items", ctx.SelectedIdx+1, itemCount)
@@ -804,14 +804,14 @@ func (gui *Gui) createInboxBrowser(g *gocui.Gui, maxX, maxY int) error {
 		v.Footer = "empty"
 	}
 
-	renderList(v, itemCount, ctx.SelectedIdx, true, 1, "  No inbox items",
+	renderList(v, itemCount, ctx.SelectedIdx, true, 1, "  No scratchpad items",
 		func(i int, selected bool) listItem {
 			text := ctx.Items[i].Text
 			return listItem{Lines: []string{"  " + text}}
 		})
 
-	g.SetViewOnTop(InboxBrowserView)
-	g.SetCurrentView(InboxBrowserView)
+	g.SetViewOnTop(ScratchpadBrowserView)
+	g.SetCurrentView(ScratchpadBrowserView)
 
 	return nil
 }

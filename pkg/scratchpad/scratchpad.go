@@ -1,4 +1,4 @@
-package inbox
+package scratchpad
 
 import (
 	"crypto/rand"
@@ -24,6 +24,7 @@ type Store struct {
 }
 
 func NewStoreForVault(vaultPath string) *Store {
+	migrateLegacyInboxDir()
 	return &Store{path: PathForVault(vaultPath)}
 }
 
@@ -31,12 +32,27 @@ func NewStoreWithPath(path string) *Store {
 	return &Store{path: path}
 }
 
-// PathForVault returns the inbox file path for a given vault, stored under the
-// lazyruin config directory keyed by a hash of the vault path.
+// PathForVault returns the scratchpad file path for a given vault, stored under
+// the lazyruin config directory keyed by a hash of the vault path.
 func PathForVault(vaultPath string) string {
 	hash := sha256.Sum256([]byte(vaultPath))
 	name := fmt.Sprintf("%x.json", hash[:8])
-	return filepath.Join(configDir(), "inboxes", name)
+	return filepath.Join(configDir(), "scratchpads", name)
+}
+
+// migrateLegacyInboxDir renames a pre-rename `inboxes/` directory to
+// `scratchpads/` once, on first launch. If both exist, leave them alone (let
+// the user resolve manually); if only the legacy dir exists, rename in place.
+func migrateLegacyInboxDir() {
+	legacy := filepath.Join(configDir(), "inboxes")
+	target := filepath.Join(configDir(), "scratchpads")
+	if _, err := os.Stat(legacy); err != nil {
+		return
+	}
+	if _, err := os.Stat(target); err == nil {
+		return
+	}
+	_ = os.Rename(legacy, target)
 }
 
 func (s *Store) Load() error {

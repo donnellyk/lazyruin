@@ -27,7 +27,7 @@ const (
 	ContribGridView       = "contribGrid"
 	ContribNotesView      = "contribNotes"
 	PickDialogView        = "pickDialog"
-	InboxBrowserView      = "inboxBrowser"
+	ScratchpadBrowserView = "scratchpadBrowser"
 )
 
 // Views holds references to all views.

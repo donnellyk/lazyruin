@@ -456,29 +456,29 @@ assert_status "filter hint in status bar" "Filter"
 send Escape; settle  # back from preview
 
 # =============================================
-# 26. Inbox: browser and jot
+# 26. Scratchpad: browser and jot
 # =============================================
-echo "[26] Inbox"
+echo "[26] Scratchpad"
 
-# Open inbox browser from notes panel
+# Open scratchpad browser from notes panel
 send i; settle
-assert_contains "inbox browser opens" "Inbox"
+assert_contains "scratchpad browser opens" "Scratchpad"
 send Escape; settle
-assert_not_contains "inbox browser closed" "Inbox"
+assert_not_contains "scratchpad browser closed" "Scratchpad"
 
-# Open capture, then Ctrl-J for inbox jot
+# Open capture, then Ctrl-J for scratchpad jot
 send n
 wait_for "New Note" || true
 send C-j
-assert_contains "inbox jot from capture" "Jot to Inbox"
-send -l "test inbox thought"
+assert_contains "scratchpad jot from capture" "Jot to Scratchpad"
+send -l "test scratchpad thought"
 send Enter; settle
-assert_not_contains "inbox jot closed" "Jot to Inbox"
+assert_not_contains "scratchpad jot closed" "Jot to Scratchpad"
 send Escape; settle  # close capture
 
-# Verify item appears in inbox browser
+# Verify item appears in scratchpad browser
 send i; settle
-assert_contains "inbox item visible" "test inbox thought"
+assert_contains "scratchpad item visible" "test scratchpad thought"
 send d; settle  # delete
 send y; settle  # confirm
 send Escape; settle

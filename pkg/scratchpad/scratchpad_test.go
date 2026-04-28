@@ -1,4 +1,4 @@
-package inbox
+package scratchpad
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestAddAppendsItem(t *testing.T) {
-	s := NewStoreWithPath(filepath.Join(t.TempDir(), "inbox.json"))
+	s := NewStoreWithPath(filepath.Join(t.TempDir(), "scratchpad.json"))
 	s.Add("test item")
 
 	if s.Len() != 1 {
@@ -24,7 +24,7 @@ func TestAddAppendsItem(t *testing.T) {
 }
 
 func TestDeleteRemovesItem(t *testing.T) {
-	s := NewStoreWithPath(filepath.Join(t.TempDir(), "inbox.json"))
+	s := NewStoreWithPath(filepath.Join(t.TempDir(), "scratchpad.json"))
 	s.Add("a")
 	s.Add("b")
 
@@ -37,7 +37,7 @@ func TestDeleteRemovesItem(t *testing.T) {
 }
 
 func TestDeleteUnknownIDIsNoop(t *testing.T) {
-	s := NewStoreWithPath(filepath.Join(t.TempDir(), "inbox.json"))
+	s := NewStoreWithPath(filepath.Join(t.TempDir(), "scratchpad.json"))
 	s.Add("a")
 	s.Delete("nonexistent")
 
@@ -47,9 +47,8 @@ func TestDeleteUnknownIDIsNoop(t *testing.T) {
 }
 
 func TestItemsNewestFirst(t *testing.T) {
-	s := NewStoreWithPath(filepath.Join(t.TempDir(), "inbox.json"))
+	s := NewStoreWithPath(filepath.Join(t.TempDir(), "scratchpad.json"))
 
-	// Manually inject items with distinct timestamps to test ordering.
 	now := time.Now()
 	s.items = []Item{
 		{ID: "a", Text: "first", Created: now.Add(-2 * time.Second)},
@@ -67,7 +66,7 @@ func TestItemsNewestFirst(t *testing.T) {
 }
 
 func TestSaveLoadRoundTrip(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "inbox.json")
+	path := filepath.Join(t.TempDir(), "scratchpad.json")
 	s := NewStoreWithPath(path)
 	s.Add("hello")
 	s.Add("world")
@@ -94,7 +93,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 }
 
 func TestLoadMissingFileReturnsEmpty(t *testing.T) {
-	s := NewStoreWithPath(filepath.Join(t.TempDir(), "nonexistent", "inbox.json"))
+	s := NewStoreWithPath(filepath.Join(t.TempDir(), "nonexistent", "scratchpad.json"))
 	if err := s.Load(); err != nil {
 		t.Fatalf("load on missing file should not error, got: %v", err)
 	}
@@ -107,7 +106,7 @@ func TestPathForVaultDeterministic(t *testing.T) {
 	a := PathForVault("/tmp/vault-a")
 	b := PathForVault("/tmp/vault-a")
 	if a != b {
-		t.Fatalf("same vault path should produce same inbox path: %q != %q", a, b)
+		t.Fatalf("same vault path should produce same scratchpad path: %q != %q", a, b)
 	}
 }
 
@@ -115,14 +114,14 @@ func TestPathForVaultDiffersPerVault(t *testing.T) {
 	a := PathForVault("/tmp/vault-a")
 	b := PathForVault("/tmp/vault-b")
 	if a == b {
-		t.Fatalf("different vault paths should produce different inbox paths: %q", a)
+		t.Fatalf("different vault paths should produce different scratchpad paths: %q", a)
 	}
 }
 
 func TestPathForVaultInConfigDir(t *testing.T) {
 	p := PathForVault("/some/vault")
-	if dir := filepath.Base(filepath.Dir(p)); dir != "inboxes" {
-		t.Fatalf("expected parent dir 'inboxes', got %q", dir)
+	if dir := filepath.Base(filepath.Dir(p)); dir != "scratchpads" {
+		t.Fatalf("expected parent dir 'scratchpads', got %q", dir)
 	}
 	if ext := filepath.Ext(p); ext != ".json" {
 		t.Fatalf("expected .json extension, got %q", ext)
@@ -159,7 +158,7 @@ func TestNewStoreForVaultUsesVaultPath(t *testing.T) {
 
 func TestSaveCreatesDirectory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "dir")
-	path := filepath.Join(dir, "inbox.json")
+	path := filepath.Join(dir, "scratchpad.json")
 	s := NewStoreWithPath(path)
 	s.Add("item")
 
@@ -169,5 +168,57 @@ func TestSaveCreatesDirectory(t *testing.T) {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Fatal("expected file to exist after save")
+	}
+}
+
+func TestMigrateLegacyInboxDir(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	legacy := filepath.Join(dir, "lazyruin", "inboxes")
+	if err := os.MkdirAll(legacy, 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	payload := []byte(`[{"id":"abc","text":"legacy","created":"2026-04-01T00:00:00Z"}]`)
+	hashedName := filepath.Base(PathForVault("/some/vault"))
+	if err := os.WriteFile(filepath.Join(legacy, hashedName), payload, 0o644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	migrateLegacyInboxDir()
+
+	target := filepath.Join(dir, "lazyruin", "scratchpads")
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("expected scratchpads dir to exist after migration: %v", err)
+	}
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("expected inboxes dir to be gone after migration, got: %v", err)
+	}
+	moved := filepath.Join(target, hashedName)
+	if _, err := os.Stat(moved); err != nil {
+		t.Fatalf("expected migrated file to exist: %v", err)
+	}
+}
+
+func TestMigrateLegacyInboxDirSkipsWhenBothExist(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	legacy := filepath.Join(dir, "lazyruin", "inboxes")
+	target := filepath.Join(dir, "lazyruin", "scratchpads")
+	if err := os.MkdirAll(legacy, 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	migrateLegacyInboxDir()
+
+	if _, err := os.Stat(legacy); err != nil {
+		t.Fatalf("expected legacy dir to remain when target exists: %v", err)
+	}
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("expected target dir to remain when both exist: %v", err)
 	}
 }

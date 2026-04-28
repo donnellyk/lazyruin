@@ -946,22 +946,22 @@ assert_contains "New Link footer hint" "Resolve URL"
 send Escape; settle
 
 # =============================================
-# 75. Global: i (Inbox browser)
+# 75. Global: i (Scratchpad browser)
 # =============================================
-echo "[75] Global: Inbox browser"
+echo "[75] Global: Scratchpad browser"
 reset_to_notes
 send i
-assert_contains "i opens inbox browser" "Inbox"
+assert_contains "i opens scratchpad browser" "Scratchpad"
 send Escape; settle
 
 # =============================================
-# 76. Capture: Ctrl-J (Jot to inbox)
+# 76. Capture: Ctrl-J (Jot to scratchpad)
 # =============================================
-echo "[76] Capture: Ctrl-J (Jot to inbox)"
+echo "[76] Capture: Ctrl-J (Jot to scratchpad)"
 send n
 wait_for "New Note" || true
 send C-j
-assert_contains "Ctrl-J opens inbox input" "Jot to Inbox"
+assert_contains "Ctrl-J opens scratchpad input" "Jot to Scratchpad"
 send Escape; settle
 send Escape; settle
 assert_not_contains "capture closed" "New Note"

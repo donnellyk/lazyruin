@@ -7,33 +7,33 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-type InboxBrowserController struct {
+type ScratchpadBrowserController struct {
 	baseController
 	c          *ControllerCommon
-	getContext func() *context.InboxBrowserContext
+	getContext func() *context.ScratchpadBrowserContext
 }
 
-var _ types.IController = &InboxBrowserController{}
+var _ types.IController = &ScratchpadBrowserController{}
 
-func NewInboxBrowserController(
+func NewScratchpadBrowserController(
 	c *ControllerCommon,
-	getContext func() *context.InboxBrowserContext,
-) *InboxBrowserController {
-	return &InboxBrowserController{
+	getContext func() *context.ScratchpadBrowserContext,
+) *ScratchpadBrowserController {
+	return &ScratchpadBrowserController{
 		c:          c,
 		getContext: getContext,
 	}
 }
 
-func (self *InboxBrowserController) Context() types.Context {
+func (self *ScratchpadBrowserController) Context() types.Context {
 	return self.getContext()
 }
 
-func (self *InboxBrowserController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-	return WheelScrollBindings("inboxBrowser", func() IGuiCommon { return self.c.GuiCommon() })
+func (self *ScratchpadBrowserController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
+	return WheelScrollBindings("scratchpadBrowser", func() IGuiCommon { return self.c.GuiCommon() })
 }
 
-func (self *InboxBrowserController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
+func (self *ScratchpadBrowserController) GetKeybindings(opts types.KeybindingsOpts) []*types.Binding {
 	return []*types.Binding{
 		{Key: 'j', Handler: self.nextItem},
 		{Key: 'k', Handler: self.prevItem},
@@ -45,7 +45,7 @@ func (self *InboxBrowserController) GetKeybindings(opts types.KeybindingsOpts) [
 	}
 }
 
-func (self *InboxBrowserController) nextItem() error {
+func (self *ScratchpadBrowserController) nextItem() error {
 	ctx := self.getContext()
 	if ctx.SelectedIdx < len(ctx.Items)-1 {
 		ctx.SelectedIdx++
@@ -53,7 +53,7 @@ func (self *InboxBrowserController) nextItem() error {
 	return nil
 }
 
-func (self *InboxBrowserController) prevItem() error {
+func (self *ScratchpadBrowserController) prevItem() error {
 	ctx := self.getContext()
 	if ctx.SelectedIdx > 0 {
 		ctx.SelectedIdx--
@@ -61,7 +61,7 @@ func (self *InboxBrowserController) prevItem() error {
 	return nil
 }
 
-func (self *InboxBrowserController) promoteItem() error {
+func (self *ScratchpadBrowserController) promoteItem() error {
 	ctx := self.getContext()
 	if len(ctx.Items) == 0 {
 		return nil
@@ -71,26 +71,26 @@ func (self *InboxBrowserController) promoteItem() error {
 		self.c.GuiCommon().PopContext()
 		return ctx.OnSelect(item)
 	}
-	self.c.Helpers().Inbox().DeleteItem(item.ID)
+	self.c.Helpers().Scratchpad().DeleteItem(item.ID)
 	self.c.GuiCommon().PopContext()
 	return self.c.Helpers().Capture().OpenCaptureWithContent(item.Text)
 }
 
-func (self *InboxBrowserController) deleteItem() error {
+func (self *ScratchpadBrowserController) deleteItem() error {
 	ctx := self.getContext()
 	if len(ctx.Items) == 0 {
 		return nil
 	}
 	item := ctx.Items[ctx.SelectedIdx]
-	self.c.GuiCommon().ShowConfirm("Delete inbox item?", item.Text, func() error {
-		self.c.Helpers().Inbox().DeleteItem(item.ID)
-		self.c.Helpers().Inbox().RefreshBrowser()
+	self.c.GuiCommon().ShowConfirm("Delete scratchpad item?", item.Text, func() error {
+		self.c.Helpers().Scratchpad().DeleteItem(item.ID)
+		self.c.Helpers().Scratchpad().RefreshBrowser()
 		return nil
 	})
 	return nil
 }
 
-func (self *InboxBrowserController) close() error {
+func (self *ScratchpadBrowserController) close() error {
 	self.c.GuiCommon().PopContext()
 	return nil
 }

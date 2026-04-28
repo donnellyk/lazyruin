@@ -70,8 +70,8 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupCalendarContext()
 	gui.setupContribContext()
 	gui.setupPickDialogContext()
-	gui.setupInboxBrowserContext()
-	gui.helpers.Inbox().SetTriggers(gui.inboxTriggers)
+	gui.setupScratchpadBrowserContext()
+	gui.helpers.Scratchpad().SetTriggers(gui.scratchpadTriggers)
 	return gui
 }
 

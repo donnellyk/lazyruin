@@ -19,7 +19,7 @@ type ListMouseOpts struct {
 
 // WheelScrollBindings returns mouse-wheel scroll bindings for a view. Use
 // for lists that need wheel scrolling but aren't wired up via the fuller
-// ListMouseBindings (e.g. popup lists like the command palette, inbox
+// ListMouseBindings (e.g. popup lists like the command palette, scratchpad
 // browser, calendar notes, contribution notes, pick dialog).
 func WheelScrollBindings(viewName string, guiCommon func() IGuiCommon) []*gocui.ViewMouseBinding {
 	return []*gocui.ViewMouseBinding{

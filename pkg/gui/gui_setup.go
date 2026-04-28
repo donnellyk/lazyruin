@@ -238,11 +238,11 @@ func (gui *Gui) setupCaptureContext() {
 				return gui.helpers.Capture().CancelCapture(gui.QuickCapture || gui.QuickLink)
 			}},
 			{Key: gocui.KeyTab, Handler: func() error { return gui.captureTab(gui.g, gui.views.Capture) }},
-			{Key: gocui.KeyCtrlJ, Description: "Jot to inbox", Handler: func() error {
-				return gui.helpers.Inbox().OpenInboxInput()
+			{Key: gocui.KeyCtrlJ, Description: "Jot to scratchpad", Handler: func() error {
+				return gui.helpers.Scratchpad().OpenScratchpadInput()
 			}},
-			{Key: gocui.KeyCtrlO, Description: "Insert inbox item", Handler: func() error {
-				return gui.helpers.Inbox().OpenBrowserForInsert(func(text string) {
+			{Key: gocui.KeyCtrlO, Description: "Insert scratchpad item", Handler: func() error {
+				return gui.helpers.Scratchpad().OpenBrowserForInsert(func(text string) {
 					if gui.views.Capture != nil {
 						gui.views.Capture.TextArea.TypeString(text)
 					}
@@ -426,15 +426,15 @@ func (gui *Gui) setupPickDialogContext() {
 	controllers.AttachController(ctrl)
 }
 
-// setupInboxBrowserContext initializes the inbox browser context and controller.
-func (gui *Gui) setupInboxBrowserContext() {
-	inboxCtx := context.NewInboxBrowserContext()
-	gui.contexts.InboxBrowser = inboxCtx
-	gui.contextMgr.Register(inboxCtx)
+// setupScratchpadBrowserContext initializes the scratchpad browser context and controller.
+func (gui *Gui) setupScratchpadBrowserContext() {
+	scratchpadCtx := context.NewScratchpadBrowserContext()
+	gui.contexts.ScratchpadBrowser = scratchpadCtx
+	gui.contextMgr.Register(scratchpadCtx)
 
-	ctrl := controllers.NewInboxBrowserController(
+	ctrl := controllers.NewScratchpadBrowserController(
 		gui.controllerCommon,
-		func() *context.InboxBrowserContext { return gui.contexts.InboxBrowser },
+		func() *context.ScratchpadBrowserContext { return gui.contexts.ScratchpadBrowser },
 	)
 	controllers.AttachController(ctrl)
 }

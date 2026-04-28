@@ -28,7 +28,7 @@ type Helpers struct {
 	datePreview      *DatePreviewHelper
 	link             *LinkHelper
 	cardListFilter   *CardListFilterHelper
-	inbox            *InboxHelper
+	scratchpad       *ScratchpadHelper
 	titleCache       *TitleCacheHelper
 	navigator        *Navigator
 }
@@ -75,7 +75,7 @@ func NewHelpersWithOpts(common *HelperCommon, opts NewHelpersOpts) *Helpers {
 		datePreview:      NewDatePreviewHelper(common),
 		link:             NewLinkHelper(common),
 		cardListFilter:   NewCardListFilterHelper(common),
-		inbox:            NewInboxHelper(common),
+		scratchpad:       NewScratchpadHelper(common),
 		titleCache:       NewTitleCacheHelper(common),
 		navigator:        NewNavigator(common, mgr),
 	}
@@ -109,6 +109,6 @@ func (h *Helpers) Completion() *CompletionHelper             { return h.completi
 func (h *Helpers) DatePreview() *DatePreviewHelper           { return h.datePreview }
 func (h *Helpers) Link() *LinkHelper                         { return h.link }
 func (h *Helpers) CardListFilter() *CardListFilterHelper     { return h.cardListFilter }
-func (h *Helpers) Inbox() *InboxHelper                       { return h.inbox }
+func (h *Helpers) Scratchpad() *ScratchpadHelper             { return h.scratchpad }
 func (h *Helpers) TitleCache() *TitleCacheHelper             { return h.titleCache }
 func (h *Helpers) Navigator() *Navigator                     { return h.navigator }

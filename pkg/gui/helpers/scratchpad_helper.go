@@ -2,32 +2,32 @@ package helpers
 
 import (
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
-	"github.com/donnellyk/lazyruin/pkg/inbox"
+	"github.com/donnellyk/lazyruin/pkg/scratchpad"
 )
 
-type InboxHelper struct {
+type ScratchpadHelper struct {
 	c        *HelperCommon
-	store    *inbox.Store
+	store    *scratchpad.Store
 	triggers func() []types.CompletionTrigger
 }
 
-func NewInboxHelper(c *HelperCommon) *InboxHelper {
-	store := inbox.NewStoreForVault(c.RuinCmd().VaultPath())
+func NewScratchpadHelper(c *HelperCommon) *ScratchpadHelper {
+	store := scratchpad.NewStoreForVault(c.RuinCmd().VaultPath())
 	if err := store.Load(); err != nil {
-		// Non-fatal: inbox starts empty. Could log when logging is available.
+		// Non-fatal: scratchpad starts empty. Could log when logging is available.
 	}
-	return &InboxHelper{c: c, store: store}
+	return &ScratchpadHelper{c: c, store: store}
 }
 
 // SetTriggers sets the completion trigger provider (called from gui package
 // after initialization, since trigger functions live on *Gui).
-func (self *InboxHelper) SetTriggers(fn func() []types.CompletionTrigger) {
+func (self *ScratchpadHelper) SetTriggers(fn func() []types.CompletionTrigger) {
 	self.triggers = fn
 }
 
-func (self *InboxHelper) OpenInboxInput() error {
+func (self *ScratchpadHelper) OpenScratchpadInput() error {
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
-		Title:    "Jot to Inbox",
+		Title:    "Jot to Scratchpad",
 		Footer:   " # for tags | [[ wiki-links | @ dates | Tab: complete ",
 		Triggers: self.triggers,
 		OnAccept: func(raw string, _ *types.CompletionItem) error {
@@ -41,7 +41,7 @@ func (self *InboxHelper) OpenInboxInput() error {
 	return nil
 }
 
-func (self *InboxHelper) OpenBrowser() error {
+func (self *ScratchpadHelper) OpenBrowser() error {
 	gui := self.c.GuiCommon()
 	if gui.PopupActive() {
 		return nil
@@ -50,55 +50,55 @@ func (self *InboxHelper) OpenBrowser() error {
 		gui.ShowError(err)
 		return nil
 	}
-	ctx := gui.Contexts().InboxBrowser
+	ctx := gui.Contexts().ScratchpadBrowser
 	ctx.Items = self.store.Items()
 	ctx.SelectedIdx = 0
 	ctx.OnSelect = nil
-	gui.PushContextByKey("inboxBrowser")
+	gui.PushContextByKey("scratchpadBrowser")
 	return nil
 }
 
-// OpenBrowserForInsert opens the inbox browser on top of capture. When an item
-// is selected, its text is inserted at the cursor in the capture view and the
-// item is removed from the inbox.
-func (self *InboxHelper) OpenBrowserForInsert(insertFn func(text string)) error {
+// OpenBrowserForInsert opens the scratchpad browser on top of capture. When an
+// item is selected, its text is inserted at the cursor in the capture view and
+// the item is removed from the scratchpad.
+func (self *ScratchpadHelper) OpenBrowserForInsert(insertFn func(text string)) error {
 	gui := self.c.GuiCommon()
 	if err := self.store.Load(); err != nil {
 		gui.ShowError(err)
 		return nil
 	}
-	ctx := gui.Contexts().InboxBrowser
+	ctx := gui.Contexts().ScratchpadBrowser
 	ctx.Items = self.store.Items()
 	ctx.SelectedIdx = 0
-	ctx.OnSelect = func(item inbox.Item) error {
+	ctx.OnSelect = func(item scratchpad.Item) error {
 		self.DeleteItem(item.ID)
 		insertFn(item.Text)
 		return nil
 	}
-	gui.PushContextByKey("inboxBrowser")
+	gui.PushContextByKey("scratchpadBrowser")
 	return nil
 }
 
-func (self *InboxHelper) DeleteItem(id string) {
+func (self *ScratchpadHelper) DeleteItem(id string) {
 	self.store.Delete(id)
 	if err := self.store.Save(); err != nil {
 		self.c.GuiCommon().ShowError(err)
 	}
 }
 
-func (self *InboxHelper) RefreshBrowser() {
+func (self *ScratchpadHelper) RefreshBrowser() {
 	gui := self.c.GuiCommon()
 	if err := self.store.Load(); err != nil {
 		gui.ShowError(err)
 		return
 	}
-	ctx := gui.Contexts().InboxBrowser
+	ctx := gui.Contexts().ScratchpadBrowser
 	ctx.Items = self.store.Items()
 	if ctx.SelectedIdx >= len(ctx.Items) {
 		ctx.SelectedIdx = max(0, len(ctx.Items)-1)
 	}
 }
 
-func (self *InboxHelper) HasItems() bool {
+func (self *ScratchpadHelper) HasItems() bool {
 	return self.store.Len() > 0
 }

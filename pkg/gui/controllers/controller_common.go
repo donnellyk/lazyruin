@@ -35,7 +35,7 @@ type IHelpers interface {
 	DatePreview() *helpers.DatePreviewHelper
 	Link() *helpers.LinkHelper
 	CardListFilter() *helpers.CardListFilterHelper
-	Inbox() *helpers.InboxHelper
+	Scratchpad() *helpers.ScratchpadHelper
 	Navigator() *helpers.Navigator
 }
 

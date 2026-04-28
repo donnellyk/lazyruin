@@ -118,9 +118,9 @@ func (gui *Gui) captureTriggers() []types.CompletionTrigger {
 	}
 }
 
-// inboxTriggers returns the completion triggers for the inbox input popup.
-// A subset of capture triggers: tags, wiki-links, dates.
-func (gui *Gui) inboxTriggers() []types.CompletionTrigger {
+// scratchpadTriggers returns the completion triggers for the scratchpad input
+// popup. A subset of capture triggers: tags, wiki-links, dates.
+func (gui *Gui) scratchpadTriggers() []types.CompletionTrigger {
 	return []types.CompletionTrigger{
 		gui.tagTrigger(),
 		gui.wikiLinkTrigger(),

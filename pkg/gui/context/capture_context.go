@@ -36,7 +36,7 @@ type CaptureContext struct {
 	LinkTags         []string
 	LinkExistingUUID string    // non-empty when re-resolving an existing link note
 	LinkParent       string    // parent UUID to preserve on re-resolve
-	PrefillContent   string    // pre-filled text (e.g. from inbox promote)
+	PrefillContent   string    // pre-filled text (e.g. from scratchpad promote)
 	CursorLine       int       // 0-indexed line in PrefillContent to position cursor on; 0 = end (default)
 	EditingPath      string    // non-empty when editing an existing note; overrides save flow
 	EditingTitle     string    // title of the note being edited, shown as popup title

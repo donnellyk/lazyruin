@@ -172,8 +172,8 @@ func (self *GlobalController) openContrib() error {
 	return self.c.Helpers().Contrib().Open()
 }
 
-func (self *GlobalController) openInbox() error {
-	return self.c.Helpers().Inbox().OpenBrowser()
+func (self *GlobalController) openScratchpad() error {
+	return self.c.Helpers().Scratchpad().OpenBrowser()
 }
 
 func (self *GlobalController) showAbout() error {
@@ -208,7 +208,7 @@ func (self *GlobalController) GetKeybindings(opts types.KeybindingsOpts) []*type
 		{ID: "global.quick_open", Key: gocui.KeyCtrlO, Handler: self.onQuickOpen, Description: "Quick Open", Category: "Global"},
 		{ID: "global.calendar", Key: 'c', Handler: self.openCalendar, Description: "Calendar", Category: "Global"},
 		{ID: "global.contrib", Key: 'C', Handler: self.openContrib, Description: "Contributions", Category: "Global"},
-		{ID: "global.inbox", Key: 'i', Handler: self.openInbox, Description: "Inbox", Category: "Global"},
+		{ID: "global.scratchpad", Key: 'i', Handler: self.openScratchpad, Description: "Scratchpad", Category: "Global"},
 		{ID: "global.about", Handler: self.showAbout, Description: "About", Category: "Global"},
 
 		// Focus shortcuts

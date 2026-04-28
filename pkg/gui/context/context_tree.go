@@ -4,24 +4,24 @@ import "github.com/donnellyk/lazyruin/pkg/gui/types"
 
 // ContextTree provides typed access to all context instances.
 type ContextTree struct {
-	Global           *GlobalContext
-	Notes            *NotesContext
-	Tags             *TagsContext
-	Queries          *QueriesContext
-	CardList         *CardListContext
-	PickResults      *PickResultsContext
-	Compose          *ComposeContext
-	Search           *SearchContext
-	Capture          *CaptureContext
-	Pick             *PickContext
-	InputPopup       *InputPopupContext
-	Palette          *PaletteContext
-	Calendar         *CalendarContext
-	Contrib          *ContribContext
-	PickDialog       *PickResultsContext
-	DatePreview      *DatePreviewContext
-	InboxBrowser     *InboxBrowserContext
-	ActivePreviewKey types.ContextKey // "cardList", "pickResults", "compose", or "datePreview"
+	Global            *GlobalContext
+	Notes             *NotesContext
+	Tags              *TagsContext
+	Queries           *QueriesContext
+	CardList          *CardListContext
+	PickResults       *PickResultsContext
+	Compose           *ComposeContext
+	Search            *SearchContext
+	Capture           *CaptureContext
+	Pick              *PickContext
+	InputPopup        *InputPopupContext
+	Palette           *PaletteContext
+	Calendar          *CalendarContext
+	Contrib           *ContribContext
+	PickDialog        *PickResultsContext
+	DatePreview       *DatePreviewContext
+	ScratchpadBrowser *ScratchpadBrowserContext
+	ActivePreviewKey  types.ContextKey // "cardList", "pickResults", "compose", or "datePreview"
 }
 
 // ViewNameForKey returns the primary view name for a context key,
@@ -87,8 +87,8 @@ func (self *ContextTree) All() []types.Context {
 	if self.DatePreview != nil {
 		all = append(all, self.DatePreview)
 	}
-	if self.InboxBrowser != nil {
-		all = append(all, self.InboxBrowser)
+	if self.ScratchpadBrowser != nil {
+		all = append(all, self.ScratchpadBrowser)
 	}
 	return all
 }

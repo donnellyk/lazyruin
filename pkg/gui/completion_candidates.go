@@ -65,7 +65,7 @@ func markdownCandidates(filter string) []types.CompletionItem {
 		{Label: "*italic*", InsertText: "*", Detail: "italic", ContinueCompleting: true},
 		{Label: "[link](url)", InsertText: "[]()", Detail: "link", ContinueCompleting: true},
 		{Label: "[[wikilink]]", InsertText: "[[", Detail: "wikilink", ContinueCompleting: true},
-		{Label: "inbox", InsertText: "", Detail: "insert from inbox", Value: "action:inbox"},
+		{Label: "scratchpad", InsertText: "", Detail: "insert from scratchpad", Value: "action:scratchpad"},
 	}
 
 	if filter == "" {

@@ -406,14 +406,14 @@ func completionUp(state *types.CompletionState) {
 func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	state := gui.contexts.Capture.Completion
 	if state.Active {
-		// Check for action items (e.g. /inbox)
+		// Check for action items (e.g. /scratchpad)
 		if len(state.Items) > 0 {
 			selected := state.Items[state.SelectedIndex]
-			if selected.Value == "action:inbox" {
+			if selected.Value == "action:scratchpad" {
 				state.Dismiss()
 				gui.clearTriggerToken(v, state)
 				gui.renderCaptureTextArea(v)
-				return gui.helpers.Inbox().OpenBrowserForInsert(func(text string) {
+				return gui.helpers.Scratchpad().OpenBrowserForInsert(func(text string) {
 					if gui.views.Capture != nil {
 						gui.views.Capture.TextArea.TypeString(text)
 					}
@@ -430,7 +430,7 @@ func (gui *Gui) captureTab(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// clearTriggerToken removes the trigger text (e.g. "/inbox") from the editor
+// clearTriggerToken removes the trigger text (e.g. "/scratchpad") from the editor
 // without inserting replacement text.
 func (gui *Gui) clearTriggerToken(v *gocui.View, state *types.CompletionState) {
 	cursorPos := viewCursorBytePos(v)
