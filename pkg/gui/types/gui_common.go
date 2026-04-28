@@ -81,4 +81,15 @@ type IGuiCommon interface {
 
 	// Context state
 	PreviousContextKey() ContextKey
+
+	// SetNotesOuterTab records which outer tab ("home" or "notes") is
+	// active in the Notes pane when sections_mode is enabled. Used by
+	// RenderNotes to dispatch to the correct view independent of which
+	// context currently has focus.
+	SetNotesOuterTab(tab string)
+
+	// NotesOuterTab returns the active outer tab in the Notes pane
+	// when sections_mode is enabled. Returns "home" by default. When
+	// sections_mode is off, callers should not rely on this value.
+	NotesOuterTab() string
 }

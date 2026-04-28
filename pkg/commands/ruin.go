@@ -40,6 +40,7 @@ type RuinCommand struct {
 	Pick      *PickCommand
 	Note      *NoteCommand
 	Link      *LinkCommand
+	Embed     *EmbedCommand
 }
 
 // NewRuinCommand creates a new RuinCommand with the given vault path and binary.
@@ -72,6 +73,7 @@ func (r *RuinCommand) initSubcommands() {
 	r.Pick = NewPickCommand(r)
 	r.Note = NewNoteCommand(r)
 	r.Link = NewLinkCommand(r)
+	r.Embed = NewEmbedCommand(r)
 }
 
 // VaultPath returns the configured vault path.

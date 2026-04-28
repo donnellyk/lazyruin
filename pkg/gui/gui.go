@@ -54,10 +54,20 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	}
 	// Wire shared helper/controller dependencies.
 	helperCommon := helperspkg.NewHelperCommon(ruinCmd, gui.config, gui)
-	gui.helpers = helperspkg.NewHelpers(helperCommon)
+	gui.helpers = helperspkg.NewHelpersWithOpts(helperCommon, helperspkg.NewHelpersOpts{
+		CustomSections: func() []config.NotesPaneSection {
+			if gui.config == nil {
+				return nil
+			}
+			return gui.config.NotesPane.CustomSections
+		},
+	})
 	gui.controllerCommon = controllers.NewControllerCommon(gui, ruinCmd, gui.helpers)
 
 	gui.setupNotesContext()
+	if gui.sectionsModeEnabled() {
+		gui.setupNotesHomeContext()
+	}
 	gui.setupTagsContext()
 	gui.setupQueriesContext()
 	gui.setupPreviewContext()
@@ -73,6 +83,12 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 	gui.setupScratchpadBrowserContext()
 	gui.helpers.Scratchpad().SetTriggers(gui.scratchpadTriggers)
 	return gui
+}
+
+// sectionsModeEnabled reports whether the Notes pane Home/Notes outer-tab
+// UX is active. Returns false if config is nil.
+func (gui *Gui) sectionsModeEnabled() bool {
+	return gui.config != nil && gui.config.NotesPane.SectionsMode
 }
 
 // Run starts the GUI event loop.

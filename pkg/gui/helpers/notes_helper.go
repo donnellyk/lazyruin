@@ -76,9 +76,26 @@ func (self *NotesHelper) LoadNotesForCurrentTab() {
 	self.c.Helpers().Preview().UpdatePreviewForNotes()
 }
 
-// CycleNotesTab cycles through All -> Today -> Recent tabs.
+// CycleNotesTab cycles tabs in the Notes pane. In legacy mode it walks
+// All -> Today -> Recent -> Links. In sections_mode it toggles between the
+// Home outer tab (`notesHome`) and the flat-list Notes tab (`notes`).
 func (self *NotesHelper) CycleNotesTab() {
-	notesCtx := self.c.GuiCommon().Contexts().Notes
+	gui := self.c.GuiCommon()
+	if gui.Contexts().NotesHome != nil {
+		// sections_mode enabled — outer tab toggle.
+		switch gui.CurrentContextKey() {
+		case "notesHome":
+			gui.SetNotesOuterTab("notes")
+			gui.PushContextByKey("notes")
+		default:
+			gui.SetNotesOuterTab("home")
+			gui.PushContextByKey("notesHome")
+		}
+		gui.UpdateNotesTab()
+		gui.RenderNotes()
+		return
+	}
+	notesCtx := gui.Contexts().Notes
 	CycleTab(context.NotesTabs, notesCtx.TabIndex(), func(tab context.NotesTab) {
 		notesCtx.CurrentTab = tab
 		notesCtx.SetSelectedLineIdx(0)
@@ -86,8 +103,22 @@ func (self *NotesHelper) CycleNotesTab() {
 }
 
 // SwitchNotesTabByIndex switches to a specific tab by index (for tab click).
+// In sections_mode it interprets index 0 as Home and 1 as the flat list.
 func (self *NotesHelper) SwitchNotesTabByIndex(tabIndex int) error {
 	gui := self.c.GuiCommon()
+	if gui.Contexts().NotesHome != nil {
+		switch tabIndex {
+		case 0:
+			gui.SetNotesOuterTab("home")
+			gui.PushContextByKey("notesHome")
+		default:
+			gui.SetNotesOuterTab("notes")
+			gui.PushContextByKey("notes")
+		}
+		gui.UpdateNotesTab()
+		gui.RenderNotes()
+		return nil
+	}
 	notesCtx := gui.Contexts().Notes
 	SwitchTab(context.NotesTabs, tabIndex, func(tab context.NotesTab) {
 		notesCtx.CurrentTab = tab

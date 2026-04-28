@@ -24,14 +24,30 @@ func (gui *Gui) setupNotesContext() {
 	})
 
 	gui.notesController = controllers.NewNotesController(controllers.NotesControllerOpts{
-		Common:     gui.controllerCommon,
-		GetContext: func() *context.NotesContext { return gui.contexts.Notes },
+		Common:         gui.controllerCommon,
+		GetContext:     func() *context.NotesContext { return gui.contexts.Notes },
+		GetHomeContext: func() *context.NotesHomeContext { return gui.contexts.NotesHome },
 		OnShowInfo: func(_ *models.Note) error {
 			return gui.helpers.PreviewInfo().ShowInfoDialog()
 		},
 	})
 
 	controllers.AttachController(gui.notesController)
+}
+
+// setupNotesHomeContext registers the NotesHomeContext used by the Home
+// outer tab. Only called when sections_mode is enabled in config. The Home
+// tab shares the "notes" view with the flat-list NotesContext, so its
+// keybindings live on NotesController (with outer-tab-aware dispatch)
+// rather than a separately-attached controller.
+func (gui *Gui) setupNotesHomeContext() {
+	homeCtx := context.NewNotesHomeContext()
+	gui.contexts.NotesHome = homeCtx
+	gui.contextMgr.Register(homeCtx)
+
+	homeCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
+		gui.helpers.NotesHome().Refresh()
+	})
 }
 
 // setupTagsContext initializes the new "tags" and TagsController.

@@ -49,9 +49,16 @@ func (gui *Gui) UpdateStatusBar() {
 	}
 }
 
-// notesTabIndex returns the index for the current notes tab.
-// Delegates to "notes".
+// notesTabIndex returns the index for the current notes tab. In
+// sections_mode it returns 0 when the Home outer tab is active and 1 for
+// the flat-list Notes tab. In legacy mode it returns the four-sub-tab index.
 func (gui *Gui) notesTabIndex() int {
+	if gui.sectionsModeEnabled() {
+		if gui.NotesOuterTab() == "home" {
+			return 0
+		}
+		return 1
+	}
 	return gui.contexts.Notes.TabIndex()
 }
 

@@ -18,6 +18,13 @@ type GuiState struct {
 	// an error to the terminal (e.g., the user picks "Quit" on the init
 	// prompt). Read by app.Run after Gui.Run returns.
 	ExitError error
+	// NotesOuterTab tracks which outer tab is active in the Notes pane
+	// when sections_mode is enabled. Values: "home" or "notes". Empty
+	// string defaults to "home" on first render. Used by RenderNotes to
+	// pick which content to draw, independent of which context is
+	// currently focused (the user can navigate away to Preview without
+	// switching the outer tab).
+	NotesOuterTab string
 }
 
 func NewGuiState() *GuiState {

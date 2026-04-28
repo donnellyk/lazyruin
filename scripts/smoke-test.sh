@@ -521,6 +521,62 @@ send ']'; settle
 assert_contains "forward restored view" "$TITLE_2"
 
 # =============================================
+# 28. Notes pane Home tab (sections_mode=true)
+# =============================================
+# Relaunch lazyruin with a config enabling sections_mode and one custom
+# section. Verifies: outer tabs render, hardcoded items show, custom
+# section appears, j/k skips headers/blanks, Enter activates a section
+# item, outer-tab cycle swaps to the flat list.
+echo "[28] Notes pane Home tab (sections_mode)"
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+
+SECTIONS_CFG_DIR="$(mktemp -d)"
+mkdir -p "$SECTIONS_CFG_DIR/lazyruin"
+cat > "$SECTIONS_CFG_DIR/lazyruin/config.yml" <<EOF
+notes_pane:
+  sections_mode: true
+  custom_sections:
+    - title: Smoke Custom
+      items:
+        - title: Untagged smoke
+          embed: "![[search: tags:none | limit=5]]"
+EOF
+
+trap "rm -rf $SECTIONS_CFG_DIR; cleanup" EXIT
+
+XDG_CONFIG_HOME="$SECTIONS_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$SECTIONS_CFG_DIR $BIN --vault $VAULT" 2>/dev/null
+wait_for "Home" 200 || die "sections_mode app did not start within 10s"
+
+# Outer tabs visible.
+assert_contains "outer tabs Home + Notes" "Home - Notes"
+# No legacy sub-tabs in the Notes pane title row.
+assert_not_contains "no legacy All/Today tab labels" "All - Today - Recent"
+
+# Focus the Notes pane → land on Home.
+send 1; settle
+assert_contains "Inbox item rendered"      "Inbox"
+assert_contains "Today item rendered"      "Today"
+assert_contains "Next 7 Days item rendered" "Next 7 Days"
+assert_contains "Pinned header rendered"   "Pinned"
+
+# Scroll the cursor to the bottom of the Home list — this brings the
+# custom section into view (a 40-row viewport doesn't fit everything).
+send G; settle
+assert_contains "custom section header"    "Smoke Custom"
+assert_contains "custom item rendered"     "Untagged smoke"
+
+# Activating the Untagged smoke item runs `embed eval` and updates Preview.
+send Enter; settle
+assert_contains "preview shows custom item title" "Untagged smoke"
+
+# Outer-tab toggle: 1 again cycles to the flat-list Notes outer tab.
+send 1; settle
+send 1; settle
+assert_contains "flat-list outer tab still has Home + Notes tabs" "Home - Notes"
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

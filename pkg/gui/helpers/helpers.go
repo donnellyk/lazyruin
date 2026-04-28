@@ -1,6 +1,9 @@
 package helpers
 
-import "github.com/donnellyk/lazyruin/pkg/gui/context"
+import (
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/gui/context"
+)
 
 // Helpers aggregates all helper instances for easy access from controllers.
 type Helpers struct {
@@ -29,14 +32,18 @@ type Helpers struct {
 	link             *LinkHelper
 	cardListFilter   *CardListFilterHelper
 	scratchpad       *ScratchpadHelper
+	notesHome        *NotesHomeHelper
 	titleCache       *TitleCacheHelper
 	navigator        *Navigator
 }
 
 // NewHelpersOpts configures helper construction. NavigationManager is
 // required; if nil, a fresh manager is created (primarily for tests).
+// CustomSections supplies the user-defined custom-section list for the
+// Home tab; nil is treated as empty.
 type NewHelpersOpts struct {
-	NavManager *context.NavigationManager
+	NavManager     *context.NavigationManager
+	CustomSections func() []config.NotesPaneSection
 }
 
 // NewHelpers creates a new Helpers aggregator with default options.
@@ -76,6 +83,7 @@ func NewHelpersWithOpts(common *HelperCommon, opts NewHelpersOpts) *Helpers {
 		link:             NewLinkHelper(common),
 		cardListFilter:   NewCardListFilterHelper(common),
 		scratchpad:       NewScratchpadHelper(common),
+		notesHome:        NewNotesHomeHelper(common, opts.CustomSections),
 		titleCache:       NewTitleCacheHelper(common),
 		navigator:        NewNavigator(common, mgr),
 	}
@@ -110,5 +118,6 @@ func (h *Helpers) DatePreview() *DatePreviewHelper           { return h.datePrev
 func (h *Helpers) Link() *LinkHelper                         { return h.link }
 func (h *Helpers) CardListFilter() *CardListFilterHelper     { return h.cardListFilter }
 func (h *Helpers) Scratchpad() *ScratchpadHelper             { return h.scratchpad }
+func (h *Helpers) NotesHome() *NotesHomeHelper               { return h.notesHome }
 func (h *Helpers) TitleCache() *TitleCacheHelper             { return h.titleCache }
 func (h *Helpers) Navigator() *Navigator                     { return h.navigator }

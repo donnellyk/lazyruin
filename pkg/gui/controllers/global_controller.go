@@ -100,14 +100,23 @@ func (self *GlobalController) PrevPanel() error {
 	return nil
 }
 
-// FocusNotes focuses the Notes panel, cycling tabs if already focused.
+// FocusNotes focuses the Notes panel, cycling tabs if already focused. In
+// sections_mode "already focused" includes both the Home (`notesHome`) and
+// flat-list (`notes`) outer tabs; cycling swaps which one is current.
 func (self *GlobalController) FocusNotes() error {
 	gc := self.c.GuiCommon()
-	if gc.CurrentContextKey() == "notes" {
+	cur := gc.CurrentContextKey()
+	if cur == "notes" || cur == "notesHome" {
 		self.c.Helpers().Notes().CycleNotesTab()
 		return nil
 	}
-	if ctx := gc.ContextByKey("notes"); ctx != nil {
+	// Default landing context: the Home tab if sections_mode is on (and the
+	// context exists), otherwise the flat list.
+	target := types.ContextKey("notes")
+	if ctx := gc.ContextByKey("notesHome"); ctx != nil {
+		target = "notesHome"
+	}
+	if ctx := gc.ContextByKey(target); ctx != nil {
 		gc.PushContext(ctx, types.OnFocusOpts{})
 	}
 	return nil

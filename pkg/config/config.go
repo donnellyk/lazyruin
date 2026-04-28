@@ -14,12 +14,37 @@ type ViewOptions struct {
 	HideDone bool `yaml:"hide_done"`
 }
 
+// NotesPaneSectionItem describes one selectable item inside a custom section
+// of the Home tab. The embed is sent verbatim to `ruin embed eval`.
+type NotesPaneSectionItem struct {
+	Title string `yaml:"title"`
+	Embed string `yaml:"embed"`
+}
+
+// NotesPaneSection describes one custom section in the Home tab. Title is
+// optional; an empty title renders the items without a header (a blank line
+// still separates it from neighbouring sections).
+type NotesPaneSection struct {
+	Title string                 `yaml:"title,omitempty"`
+	Items []NotesPaneSectionItem `yaml:"items"`
+}
+
+// NotesPaneConfig configures the Notes pane Home tab. SectionsMode toggles
+// the Home/Notes outer-tab UX off (default) or on. CustomSections adds
+// user-defined sections below the hardcoded ones (Inbox / Today / Next 7
+// Days / Pinned).
+type NotesPaneConfig struct {
+	SectionsMode   bool               `yaml:"sections_mode"`
+	CustomSections []NotesPaneSection `yaml:"custom_sections,omitempty"`
+}
+
 // Config holds the application configuration.
 type Config struct {
-	VaultPath   string      `yaml:"vault_path"`
-	Editor      string      `yaml:"editor"`
-	ChromaTheme string      `yaml:"chroma_theme"`
-	ViewOptions ViewOptions `yaml:"view_options,omitempty"`
+	VaultPath   string          `yaml:"vault_path"`
+	Editor      string          `yaml:"editor"`
+	ChromaTheme string          `yaml:"chroma_theme"`
+	ViewOptions ViewOptions     `yaml:"view_options,omitempty"`
+	NotesPane   NotesPaneConfig `yaml:"notes_pane,omitempty"`
 
 	// DisableBareURLAsLink opts out of the "submitting a note whose entire
 	// body is a URL routes through the link-resolution flow" convenience.

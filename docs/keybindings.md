@@ -33,7 +33,7 @@
 
 | Key | Action |
 |-----|--------|
-| `Enter` | View in preview |
+| `Enter` | View in preview (Notes tab) / Activate item (Home tab) |
 | `E` | Open in external editor ($EDITOR) |
 | `e` | Edit in popup (save with `<c-s>`, discard with `Esc`) |
 | `d` | Delete note |
@@ -44,6 +44,8 @@
 | `b` | Toggle bookmark |
 | `s` | Show info |
 | `o` | Open URL |
+
+When `notes_pane.sections_mode` is enabled (see [configuration.md](configuration.md#notes-pane-sections-mode)), the Notes pane gains a `Home`/`Notes` outer-tab toggle. Press `1` while focused on the pane to cycle outer tabs. On the Home tab `j`/`k` skip section headers; only `Enter` is meaningful (the note-action keys above are disabled and become available again on the Notes outer tab).
 
 ## Tags
 

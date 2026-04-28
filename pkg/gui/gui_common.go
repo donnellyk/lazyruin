@@ -12,6 +12,26 @@ import (
 
 func (gui *Gui) RenderAll() { gui.helpers.Refresh().RenderAll() }
 
+func (gui *Gui) SetNotesOuterTab(tab string) {
+	if gui.state == nil {
+		return
+	}
+	gui.state.NotesOuterTab = tab
+}
+
+// NotesOuterTab returns "home" or "notes" when sections_mode is enabled,
+// or "" when it isn't (signaling "no outer-tab system in play"). The
+// default outer tab is "home" until the user explicitly switches.
+func (gui *Gui) NotesOuterTab() string {
+	if !gui.sectionsModeEnabled() || gui.state == nil {
+		return ""
+	}
+	if gui.state.NotesOuterTab == "" {
+		return "home"
+	}
+	return gui.state.NotesOuterTab
+}
+
 func (gui *Gui) Update(fn func() error) {
 	if gui.g == nil {
 		return

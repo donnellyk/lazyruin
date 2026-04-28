@@ -61,9 +61,57 @@ func renderList(v *gocui.View, itemCount int, selectedIndex int, isActive bool, 
 	scrollListView(v, selLine, linesPerItem, viewHeight)
 }
 
+// renderNotesHome paints the Notes pane Home tab — section headers, items
+// (one-space indent), and blank spacer rows. The selection cursor is the
+// only non-trivial state: blanks and headers are skipped during navigation
+// so the cursor always lands on an item.
+func (gui *Gui) renderNotesHome(v *gocui.View) {
+	v.Clear()
+
+	homeCtx := gui.contexts.NotesHome
+	if homeCtx == nil || len(homeCtx.Rows) == 0 {
+		fmt.Fprintln(v, "\n No sections configured.")
+		return
+	}
+
+	width := v.InnerWidth()
+	if width < 10 {
+		width = 30
+	}
+	pad := func(s string) string {
+		return s + strings.Repeat(" ", max(0, width-len([]rune(s))))
+	}
+
+	isActive := gui.contextMgr.Current() == "notesHome"
+
+	for i, row := range homeCtx.Rows {
+		switch {
+		case row.Blank:
+			fmt.Fprintln(v)
+		case row.IsHeader:
+			fmt.Fprintf(v, "%s%s%s\n", AnsiBoldWhite, row.Title, AnsiReset)
+		default:
+			line := "  " + row.Title
+			if isActive && i == homeCtx.SelectedIdx {
+				fmt.Fprintf(v, "%s%s%s\n", AnsiBlueBgWhite, pad(line), AnsiReset)
+			} else {
+				fmt.Fprintln(v, line)
+			}
+		}
+	}
+
+	_, viewHeight := v.InnerSize()
+	scrollListView(v, homeCtx.SelectedIdx, 1, viewHeight)
+}
+
 func (gui *Gui) RenderNotes() {
 	v := gui.views.Notes
 	if v == nil {
+		return
+	}
+
+	if gui.NotesOuterTab() == "home" {
+		gui.renderNotesHome(v)
 		return
 	}
 

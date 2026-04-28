@@ -299,8 +299,11 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 
 	gui.views.Notes = v
 	v.TitlePrefix = "[1]"
-	// v.Title = "[1]"
-	v.Tabs = []string{"All", "Today", "Recent", "Links"}
+	if gui.sectionsModeEnabled() {
+		v.Tabs = []string{"Home", "Notes"}
+	} else {
+		v.Tabs = []string{"All", "Today", "Recent", "Links"}
+	}
 	v.SelFgColor = gocui.ColorGreen
 	gui.UpdateNotesTab()
 	setRoundedCorners(v)
@@ -308,9 +311,23 @@ func (gui *Gui) createNotesView(g *gocui.Gui, x0, y0, x1, y1 int) error {
 	// Notes uses manual multi-line highlighting in renderNotes()
 	v.Highlight = false
 
-	gui.applyFocusColors(v, "notes")
+	gui.applyNotesFocusColors(v)
 
 	return nil
+}
+
+// applyNotesFocusColors highlights the Notes pane border/tabs whenever
+// either the flat-list `notes` context or the Home `notesHome` context is
+// the current focused context.
+func (gui *Gui) applyNotesFocusColors(v *gocui.View) {
+	cur := gui.contextMgr.Current()
+	if cur == "notes" || cur == "notesHome" {
+		v.FrameColor = gocui.ColorGreen
+		v.TitleColor = gocui.ColorGreen
+	} else {
+		v.FrameColor = gocui.ColorDefault
+		v.TitleColor = gocui.ColorDefault
+	}
 }
 
 func (gui *Gui) createQueriesView(g *gocui.Gui, x0, y0, x1, y1 int) error {

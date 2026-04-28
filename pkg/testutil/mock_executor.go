@@ -18,6 +18,7 @@ type MockExecutor struct {
 	pickResults   []models.PickResult
 	compose       []byte // raw JSON for compose tree
 	linkJSON      []byte // raw JSON for link command responses
+	embedJSON     []byte // raw JSON envelope for `ruin embed eval`
 	versionOutput string // raw output for `ruin --version`
 	err           error
 	Calls         [][]string // recorded argument lists from Execute calls
@@ -63,6 +64,12 @@ func (m *MockExecutor) WithCompose(data []byte) *MockExecutor {
 // WithLinkJSON sets the raw JSON for link command responses.
 func (m *MockExecutor) WithLinkJSON(data []byte) *MockExecutor {
 	m.linkJSON = data
+	return m
+}
+
+// WithEmbedJSON sets the raw JSON envelope returned for `ruin embed eval`.
+func (m *MockExecutor) WithEmbedJSON(data []byte) *MockExecutor {
+	m.embedJSON = data
 	return m
 }
 
@@ -203,6 +210,12 @@ func (m *MockExecutor) Execute(args ...string) ([]byte, error) {
 		// Handles note delete / note set / note append — returns empty
 		// success. Tests assert on m.Calls for behavior.
 		return []byte("{}"), nil
+
+	case "embed":
+		if m.embedJSON != nil {
+			return m.embedJSON, nil
+		}
+		return []byte(`{"type":"search","query":"","results":[]}`), nil
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)

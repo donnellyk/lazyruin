@@ -53,6 +53,8 @@ func (m *mockGuiCommon) DeleteView(string)                                    {}
 func (m *mockGuiCommon) BuildCardContent(models.Note, int) []types.SourceLine { return nil }
 func (m *mockGuiCommon) RenderPickDialog()                                    {}
 func (m *mockGuiCommon) PreviousContextKey() types.ContextKey                 { return "" }
+func (m *mockGuiCommon) SetNotesOuterTab(string)                              {}
+func (m *mockGuiCommon) NotesOuterTab() string                                { return "home" }
 
 func newTestCompletionHelper(mock *testutil.MockExecutor, gui *mockGuiCommon) *CompletionHelper {
 	ruinCmd := commands.NewRuinCommandWithExecutor(mock, "/mock")

@@ -36,6 +36,7 @@ type IHelpers interface {
 	Link() *helpers.LinkHelper
 	CardListFilter() *helpers.CardListFilterHelper
 	Scratchpad() *helpers.ScratchpadHelper
+	NotesHome() *helpers.NotesHomeHelper
 	Navigator() *helpers.Navigator
 }
 
