@@ -264,6 +264,7 @@ func (self *NotesController) dispatchNext() error {
 		if ctx := self.homeCtxOrNil(); ctx != nil {
 			ctx.SelectedIdx = ctx.NextSelectable(ctx.SelectedIdx)
 			self.c.GuiCommon().RenderNotes()
+			self.hoverSelected()
 		}
 		return nil
 	}
@@ -275,6 +276,7 @@ func (self *NotesController) dispatchPrev() error {
 		if ctx := self.homeCtxOrNil(); ctx != nil {
 			ctx.SelectedIdx = ctx.PrevSelectable(ctx.SelectedIdx)
 			self.c.GuiCommon().RenderNotes()
+			self.hoverSelected()
 		}
 		return nil
 	}
@@ -288,6 +290,7 @@ func (self *NotesController) dispatchTop() error {
 				ctx.SelectedIdx = first
 			}
 			self.c.GuiCommon().RenderNotes()
+			self.hoverSelected()
 		}
 		return nil
 	}
@@ -305,21 +308,65 @@ func (self *NotesController) dispatchBottom() error {
 				}
 			}
 			self.c.GuiCommon().RenderNotes()
+			self.hoverSelected()
 		}
 		return nil
 	}
 	return self.ListControllerTrait.goBottom()
 }
 
-// GetMouseKeybindings returns mouse bindings for the notes panel.
+// hoverSelected runs the currently selected Home row through the hover
+// preview path (no nav-history entry). Caller has already moved the
+// cursor and re-rendered.
+func (self *NotesController) hoverSelected() {
+	ctx := self.homeCtxOrNil()
+	if ctx == nil {
+		return
+	}
+	row := ctx.Selected()
+	if row == nil {
+		return
+	}
+	self.c.Helpers().NotesHome().Hover(*row)
+}
+
+// GetMouseKeybindings returns mouse bindings for the notes panel. In
+// sections_mode, click counts/dispatch differ between the two outer
+// tabs: clicking a Home row moves the cursor + hovers (Enter still
+// commits); clicking a flat-list note moves cursor and triggers the
+// existing hover-then-commit behavior.
 func (self *NotesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
 	return ListMouseBindings(ListMouseOpts{
-		ViewName:     "notes",
-		ClickMargin:  3,
-		ItemCount:    func() int { return len(self.getContext().Items) },
-		SetSelection: func(idx int) { self.getContext().SetSelectedLineIdx(idx) },
-		GetContext:   func() types.Context { return self.getContext() },
-		GuiCommon:    func() IGuiCommon { return self.c.GuiCommon() },
+		ViewName:    "notes",
+		ClickMargin: 3,
+		ItemCount: func() int {
+			if self.homeTabActive() {
+				if ctx := self.homeCtxOrNil(); ctx != nil {
+					return len(ctx.Rows)
+				}
+				return 0
+			}
+			return len(self.getContext().Items)
+		},
+		SetSelection: func(idx int) {
+			if self.homeTabActive() {
+				ctx := self.homeCtxOrNil()
+				if ctx == nil || idx < 0 || idx >= len(ctx.Rows) {
+					return
+				}
+				r := ctx.Rows[idx]
+				if r.IsHeader || r.Blank {
+					return
+				}
+				ctx.SelectedIdx = idx
+				self.c.GuiCommon().RenderNotes()
+				self.hoverSelected()
+				return
+			}
+			self.getContext().SetSelectedLineIdx(idx)
+		},
+		GetContext: func() types.Context { return self.getContext() },
+		GuiCommon:  func() IGuiCommon { return self.c.GuiCommon() },
 	})
 }
 

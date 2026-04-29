@@ -1,6 +1,9 @@
 package helpers
 
-import "github.com/donnellyk/lazyruin/pkg/gui/types"
+import (
+	"github.com/donnellyk/lazyruin/pkg/config"
+	"github.com/donnellyk/lazyruin/pkg/gui/types"
+)
 
 // RefreshHelper handles data refreshing with selection preservation.
 // It uses stable IDs (GetSelectedItemId + FindIndexById) to preserve
@@ -68,13 +71,37 @@ func RefreshList[T any](
 	return nil
 }
 
-// RefreshAll refreshes data for all panels.
+// RefreshAll refreshes data for all panels. Programmatic callers (initial
+// layout, onboarding, background refresh) use this directly; the
+// user-triggered `<c-r>` path goes through ReloadAndRefresh below so a
+// disk re-read of config doesn't clobber test fixtures or in-flight
+// mutations.
 func (self *RefreshHelper) RefreshAll() {
 	h := self.c.Helpers()
 	h.Notes().FetchNotesForCurrentTab(false)
 	h.Tags().RefreshTags(false)
 	h.Queries().RefreshQueries(false)
 	h.Queries().RefreshParents(false)
+	if self.c.GuiCommon().Contexts().NotesHome != nil {
+		h.NotesHome().Refresh()
+	}
+}
+
+// ReloadAndRefresh re-reads `~/.config/lazyruin/config.yml` into the
+// in-memory Config and then refreshes every panel. Used by the explicit
+// `<c-r>` keybinding so users can pick up edits to
+// `notes_pane.custom_sections` (and other YAML keys) without restarting.
+// A YAML or IO error is surfaced via the status bar and the previous
+// in-memory config is left intact.
+func (self *RefreshHelper) ReloadAndRefresh() {
+	if cfg := self.c.Config(); cfg != nil {
+		if fresh, err := config.Load(); err != nil {
+			self.c.GuiCommon().ShowError(err)
+		} else {
+			*cfg = *fresh
+		}
+	}
+	self.RefreshAll()
 }
 
 // RenderAll re-renders all panels.

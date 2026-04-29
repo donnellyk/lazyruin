@@ -47,6 +47,9 @@ func (gui *Gui) setupNotesHomeContext() {
 
 	homeCtx.AddOnFocusFn(func(_ types.OnFocusOpts) {
 		gui.helpers.NotesHome().Refresh()
+		if row := homeCtx.Selected(); row != nil {
+			gui.helpers.NotesHome().Hover(*row)
+		}
 	})
 }
 

@@ -35,6 +35,11 @@ func newTestGui(t *testing.T, mock *testutil.MockExecutor) *testGui {
 func newTestGuiWithOpts(t *testing.T, mock *testutil.MockExecutor, opts testGuiOpts) *testGui {
 	t.Helper()
 
+	// Redirect the config dir to a tempdir so any Save() call from
+	// onboarding/view-option flows can't clobber the developer's real
+	// ~/.config/lazyruin/config.yml.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
 	ruin := commands.NewRuinCommandWithExecutor(mock, mock.VaultPath())
 	// Suppress the empty-vault onboarding prompt in tests. Tests that want to
 	// exercise the prompt flow should override this flag before layout runs.

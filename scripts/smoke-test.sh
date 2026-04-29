@@ -27,6 +27,9 @@ cleanup() {
   if [ -d "$VAULT" ]; then
     rm -rf "$VAULT"
   fi
+  if [ -n "${SMOKE_CFG_DIR:-}" ] && [ -d "$SMOKE_CFG_DIR" ]; then
+    rm -rf "$SMOKE_CFG_DIR"
+  fi
 }
 trap cleanup EXIT
 
@@ -126,6 +129,14 @@ assert_footer() {
 [ -f "$BIN" ]              || die "binary not found: $BIN (run: go build -o $BIN ./main.go)"
 command -v tmux >/dev/null  || die "tmux not found"
 command -v ruin >/dev/null  || die "ruin CLI not found"
+
+# Sandbox the lazyruin config dir so the test never reads or writes the
+# developer's real ~/.config/lazyruin/config.yml. The legacy [1]–[27]
+# blocks expect default config (sections_mode off); section [28]
+# overrides this with its own config later.
+SMOKE_CFG_DIR="$(mktemp -d)"
+mkdir -p "$SMOKE_CFG_DIR/lazyruin"
+export XDG_CONFIG_HOME="$SMOKE_CFG_DIR"
 
 # Seed a fresh test vault
 ruin dev seed "$VAULT" >/dev/null 2>&1 || die "failed to seed vault"

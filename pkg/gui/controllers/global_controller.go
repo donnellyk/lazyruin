@@ -191,7 +191,7 @@ func (self *GlobalController) showAbout() error {
 }
 
 func (self *GlobalController) refresh() error {
-	self.c.Helpers().Refresh().RefreshAll()
+	self.c.Helpers().Refresh().ReloadAndRefresh()
 	return nil
 }
 

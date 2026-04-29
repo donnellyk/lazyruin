@@ -169,7 +169,7 @@ func parentDisplayTitle(p models.ParentBookmark) string {
 }
 
 // Activate runs the action attached to a row and commits the result to
-// Preview as a navigation entry (no hover step).
+// Preview as a navigation entry (Enter handler).
 func (self *NotesHomeHelper) Activate(row context.NotesHomeRow) error {
 	if row.IsHeader || row.Blank {
 		return nil
@@ -188,6 +188,21 @@ func (self *NotesHomeHelper) Activate(row context.NotesHomeRow) error {
 		self.c.Helpers().Preview().ShowCardList(title, notes)
 		return nil
 	})
+}
+
+// Hover runs the row's action as a hover preview — no nav-history entry,
+// so j/k browsing through Home items doesn't pollute back/forward state.
+// Pressing Enter on the same row promotes the hover to a committed entry
+// via Activate.
+func (self *NotesHomeHelper) Hover(row context.NotesHomeRow) {
+	if row.IsHeader || row.Blank {
+		return
+	}
+	title, loadFn := self.dispatch(row)
+	if loadFn == nil {
+		return
+	}
+	self.c.Helpers().Preview().UpdatePreviewCardList(title, loadFn)
 }
 
 // dispatch returns the title and a loader function for the given row's
