@@ -198,11 +198,15 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			} else {
 				gui.helpers.DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
 			}
-			// Init prompt gates onboarding: when shown, the onboarding
-			// prompt is chained from the init flow on success rather than
-			// firing here.
-			if !gui.maybeOfferInit() {
-				gui.maybeOfferOnboarding()
+			// Migration prompt takes precedence: a registered upgrade
+			// requires re-indexing the vault before lazyruin can be
+			// usefully used. Init / onboarding only apply on a clean
+			// vault, where state.json is absent and migrations are
+			// suppressed by definition.
+			if gui.migrations == nil || !gui.migrations.Start() {
+				if !gui.maybeOfferInit() {
+					gui.maybeOfferOnboarding()
+				}
 			}
 		}
 	} else if maxX != gui.state.lastWidth || maxY != gui.state.lastHeight {

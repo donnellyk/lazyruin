@@ -588,6 +588,92 @@ send 1; settle
 assert_contains "flat-list outer tab still has Home + Notes tabs" "Home - Notes"
 
 # =============================================
+# 29. Upgrade migrations (smoketest build tag)
+# =============================================
+# The live migration registry is empty in production. The
+# `smoketest` build tag adds a synthetic migration that always
+# applies, so building with -tags=smoketest exercises the prompt
+# path. We also set ldflags so curr.Lazyruin != "dev" (dev builds
+# suppress the prompt). State.json is pre-seeded with an older
+# previous version so Detect returns the test migration as pending.
+echo "[29] Upgrade migrations"
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+
+MIG_BIN="$(mktemp -t lazyruin-mig-XXXX)"
+go build -o "$MIG_BIN" -tags=smoketest -ldflags="-X main.version=0.0.1" ./main.go || die "failed to build migration test binary"
+MIG_CFG_DIR="$(mktemp -d)"
+mkdir -p "$MIG_CFG_DIR/lazyruin"
+trap "rm -rf $MIG_CFG_DIR; rm -f $MIG_BIN; rm -rf $SECTIONS_CFG_DIR; cleanup" EXIT
+
+# Compute the SHA-256 of the vault path. shasum is in macOS/Linux
+# coreutils; avoids a python dependency in this script.
+VAULT_HASH=$(printf '%s' "$VAULT" | shasum -a 256 | awk '{print $1}')
+cat > "$MIG_CFG_DIR/lazyruin/state.json" <<EOF
+{
+  "vaults": {
+    "$VAULT_HASH": {
+      "vault_path": "$VAULT",
+      "last_lazyruin_version": "0.0.0",
+      "last_ruin_version": "0.0.0",
+      "applied_migrations": []
+    }
+  }
+}
+EOF
+
+XDG_CONFIG_HOME="$MIG_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$MIG_CFG_DIR $MIG_BIN --vault $VAULT" 2>/dev/null
+wait_for "Vault upgrade required" 200 || die "migration prompt did not appear"
+
+
+
+assert_contains "prompt header"        "Vault upgrade required"
+assert_contains "test-migration line"  "Test migration"
+assert_contains "Run now / Quit hint"  "Run now"
+
+# Quit without running — state.json should be unchanged.
+send q; settle
+sleep 0.3
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  echo "  FAIL: q did not quit lazyruin from migration prompt"
+  FAILURES=$((FAILURES + 1))
+else
+  echo "  PASS: q quit lazyruin from migration prompt"
+fi
+TOTAL=$((TOTAL + 1))
+
+# Verify state.json still has the old version (no record written).
+if grep -q '"last_ruin_version": "0.0.0"' "$MIG_CFG_DIR/lazyruin/state.json"; then
+  echo "  PASS: state.json unchanged after quit"
+else
+  echo "  FAIL: state.json was modified after quit"
+  FAILURES=$((FAILURES + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# Re-launch and accept (y) to run doctor.
+XDG_CONFIG_HOME="$MIG_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$MIG_CFG_DIR $MIG_BIN --vault $VAULT" 2>/dev/null
+wait_for "Vault upgrade required" 200 || die "migration prompt did not re-appear after relaunch"
+
+send y; settle
+# Wait for the running modal, then for it to disappear (success).
+wait_for "Running ruin doctor" 100 || true   # may flash by quickly on small vaults
+wait_gone "Vault upgrade required" 200 || die "prompt did not dismiss after run"
+
+# Once doctor finishes the modal closes and lazyruin proceeds. Confirm
+# state.json now records the test migration.
+if grep -q "test-migration" "$MIG_CFG_DIR/lazyruin/state.json"; then
+  echo "  PASS: test-migration recorded in state.json after run"
+else
+  echo "  FAIL: state.json missing test-migration after run:"
+  cat "$MIG_CFG_DIR/lazyruin/state.json"
+  FAILURES=$((FAILURES + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

@@ -57,6 +57,12 @@ type DialogState struct {
 	// terminate the TUI rather than simply closing the dialog. The
 	// ExitError from GuiState is surfaced to the caller of Gui.Run.
 	QuitOnCancel bool
+	// BlockSoftCancel, when true, makes `n` and Esc no-ops on the confirm
+	// dialog so the user has to make an explicit y/q choice. `q` still
+	// fires confirmNo regardless. Used by the migration prompt where
+	// migrations are reserved for breaking changes and skipping isn't a
+	// valid outcome.
+	BlockSoftCancel bool
 	// lastScrolledSelection records the MenuSelection that the menu view
 	// was last auto-scrolled to. The layout skips scroll-to-selection when
 	// it matches, so mouse-wheel scrolling isn't undone on the next redraw.
@@ -157,11 +163,17 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 		return nil
 	}
 
+	msgLines := strings.Count(gui.state.Dialog.Message, "\n") + 1
 	width, height := 50, 5
 	if gui.state.Dialog.Hero {
-		msgLines := strings.Count(gui.state.Dialog.Message, "\n") + 1
 		// top blank + logo + blank + message + frame
 		height = 1 + len(ruinLogo) + 1 + msgLines + 2
+	} else if msgLines > 1 {
+		// blank + message lines + frame, plus one cell of breathing room.
+		height = msgLines + 4
+		if width < 64 {
+			width = 64
+		}
 	}
 	x0, y0, x1, y1 := centerRect(maxX, maxY, width, height)
 
@@ -193,7 +205,9 @@ func (gui *Gui) createConfirmDialog(g *gocui.Gui, maxX, maxY int) error {
 		}
 	} else {
 		fmt.Fprintln(v, "")
-		fmt.Fprintln(v, "  "+gui.state.Dialog.Message)
+		for _, line := range strings.Split(gui.state.Dialog.Message, "\n") {
+			fmt.Fprintln(v, "  "+line)
+		}
 	}
 
 	g.SetViewOnTop(ConfirmView)
@@ -510,7 +524,15 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		g.DeleteView(InputView)
 		g.DeleteView(MenuView)
 		g.DeleteView(AboutView)
+		g.DeleteView(MigrationView)
 		return nil
+	}
+
+	if gui.state.Dialog.Type != "migration_running" {
+		g.DeleteView(MigrationView)
+	}
+	if gui.state.Dialog.Type != "confirm" {
+		g.DeleteView(ConfirmView)
 	}
 
 	switch gui.state.Dialog.Type {
@@ -522,6 +544,8 @@ func (gui *Gui) renderDialogs(g *gocui.Gui, maxX, maxY int) error {
 		return gui.createMenuDialog(g, maxX, maxY)
 	case "about":
 		return gui.createAboutDialog(g, maxX, maxY)
+	case "migration_running":
+		return gui.createMigrationRunningDialog(g, maxX, maxY)
 	}
 
 	return nil
@@ -536,7 +560,7 @@ func (gui *Gui) setupDialogKeybindings() error {
 	if err := gui.g.SetKeybinding(ConfirmView, 'n', gocui.ModNone, gui.confirmNo); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding(ConfirmView, 'q', gocui.ModNone, gui.confirmNo); err != nil {
+	if err := gui.g.SetKeybinding(ConfirmView, 'q', gocui.ModNone, gui.confirmHardQuit); err != nil {
 		return err
 	}
 	if err := gui.g.SetKeybinding(ConfirmView, gocui.KeyEsc, gocui.ModNone, gui.confirmNo); err != nil {
@@ -625,6 +649,22 @@ func (gui *Gui) confirmYes(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) confirmNo(g *gocui.Gui, v *gocui.View) error {
+	if gui.state.Dialog != nil && gui.state.Dialog.BlockSoftCancel {
+		return nil
+	}
+	quit := gui.state.Dialog != nil && gui.state.Dialog.QuitOnCancel
+	gui.closeDialog()
+	if quit {
+		return gocui.ErrQuit
+	}
+	return nil
+}
+
+// confirmHardQuit closes the dialog and quits when the dialog declares
+// QuitOnCancel, regardless of BlockSoftCancel. Bound to `q` so the user
+// can always escape a migration-prompt-style modal explicitly even when
+// the n/Esc soft-cancel keys are blocked.
+func (gui *Gui) confirmHardQuit(g *gocui.Gui, v *gocui.View) error {
 	quit := gui.state.Dialog != nil && gui.state.Dialog.QuitOnCancel
 	gui.closeDialog()
 	if quit {

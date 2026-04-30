@@ -2,14 +2,14 @@ package scratchpad
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/donnellyk/lazyruin/pkg/configpath"
 )
 
 type Item struct {
@@ -35,17 +35,15 @@ func NewStoreWithPath(path string) *Store {
 // PathForVault returns the scratchpad file path for a given vault, stored under
 // the lazyruin config directory keyed by a hash of the vault path.
 func PathForVault(vaultPath string) string {
-	hash := sha256.Sum256([]byte(vaultPath))
-	name := fmt.Sprintf("%x.json", hash[:8])
-	return filepath.Join(configDir(), "scratchpads", name)
+	return filepath.Join(configpath.Dir(), "scratchpads", configpath.VaultFileName(vaultPath, "json"))
 }
 
 // migrateLegacyInboxDir renames a pre-rename `inboxes/` directory to
 // `scratchpads/` once, on first launch. If both exist, leave them alone (let
 // the user resolve manually); if only the legacy dir exists, rename in place.
 func migrateLegacyInboxDir() {
-	legacy := filepath.Join(configDir(), "inboxes")
-	target := filepath.Join(configDir(), "scratchpads")
+	legacy := filepath.Join(configpath.Dir(), "inboxes")
+	target := filepath.Join(configpath.Dir(), "scratchpads")
 	if _, err := os.Stat(legacy); err != nil {
 		return
 	}
@@ -106,14 +104,6 @@ func (s *Store) Items() []Item {
 
 func (s *Store) Len() int {
 	return len(s.items)
-}
-
-func configDir() string {
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "lazyruin")
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "lazyruin")
 }
 
 func randomHex(n int) string {

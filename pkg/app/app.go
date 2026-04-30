@@ -11,24 +11,29 @@ import (
 	"github.com/donnellyk/lazyruin/pkg/commands"
 	"github.com/donnellyk/lazyruin/pkg/config"
 	"github.com/donnellyk/lazyruin/pkg/gui"
+	helperspkg "github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/migrations"
 )
 
 // App is the main application struct that bootstraps and runs lazyruin.
 type App struct {
-	Config        *config.Config
-	RuinCmd       *commands.RuinCommand
-	Gui           *gui.Gui
-	VaultSource   string // human-readable source of the resolved vault path
-	QuickCapture  bool   // when true, open directly into new note and exit on save
-	QuickLink     bool   // when true, open directly into new link and exit on save
-	QuickLinkURL  string // when set with QuickLink, skip input popup and resolve directly
-	DebugBindings bool   // when true, print all registered bindings and exit
-	OpenRef       string // note path/title or parent bookmark to open on launch
+	Config          *config.Config
+	RuinCmd         *commands.RuinCommand
+	Gui             *gui.Gui
+	VaultSource     string // human-readable source of the resolved vault path
+	LazyruinVersion string // build-time version, used to detect upgrades
+	QuickCapture    bool   // when true, open directly into new note and exit on save
+	QuickLink       bool   // when true, open directly into new link and exit on save
+	QuickLinkURL    string // when set with QuickLink, skip input popup and resolve directly
+	DebugBindings   bool   // when true, print all registered bindings and exit
+	OpenRef         string // note path/title or parent bookmark to open on launch
 }
 
 // NewApp creates a new application instance.
 // vaultOverride and ruinBin can be empty to use default resolution.
-func NewApp(vaultOverride, ruinBin string) (*App, error) {
+// lazyruinVersion is the build-time version constant (or "dev"); it
+// drives the upgrade-migration detector.
+func NewApp(vaultOverride, ruinBin, lazyruinVersion string) (*App, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -46,9 +51,10 @@ func NewApp(vaultOverride, ruinBin string) (*App, error) {
 	ruinCmd := commands.NewRuinCommand(vaultPath, ruinBin)
 
 	return &App{
-		Config:      cfg,
-		RuinCmd:     ruinCmd,
-		VaultSource: source,
+		Config:          cfg,
+		RuinCmd:         ruinCmd,
+		VaultSource:     source,
+		LazyruinVersion: lazyruinVersion,
 	}, nil
 }
 
@@ -94,6 +100,15 @@ func (a *App) Run() error {
 		a.Gui.SetStartupWarning(versionWarning)
 	}
 
+	// Detect upgrade migrations. needsInit short-circuits this — a
+	// vault that hasn't been initialized has nothing to re-index, and
+	// the init prompt will fire instead. DebugBindings also short-
+	// circuits: --debug-bindings is a read-only inspection mode and
+	// must not write state.json as a side effect.
+	if !needsInit && !a.DebugBindings {
+		a.attachMigrationsHelper()
+	}
+
 	// Debug mode: print all registered bindings and exit without running the TUI.
 	if a.DebugBindings {
 		for _, b := range a.Gui.DumpBindings() {
@@ -103,6 +118,37 @@ func (a *App) Run() error {
 	}
 
 	return a.Gui.Run()
+}
+
+// attachMigrationsHelper computes the pending migration list for the
+// current launch and either attaches a helper for the GUI to drive on
+// first layout, or records the current versions silently when nothing
+// is pending. Failures (state.json malformed, ruin --version errored)
+// fall back to "no migration" so the user can always boot lazyruin.
+func (a *App) attachMigrationsHelper() {
+	store := migrations.NewStore()
+	if err := store.Load(); err != nil {
+		// Malformed state.json — treat as "no migrations" rather than
+		// blocking startup. The user can fix or rm the file.
+		a.Gui.SetStartupWarning(fmt.Sprintf("ignoring %s — %s", "lazyruin/state.json", err))
+		return
+	}
+
+	ruinVer, _ := a.RuinCmd.Version() // empty on failure; Detect handles it
+	curr := migrations.VersionPair{Lazyruin: a.LazyruinVersion, Ruin: ruinVer}
+	prevEntry, _ := store.VaultEntry(a.RuinCmd.VaultPath())
+	prev := migrations.VersionPair{Lazyruin: prevEntry.LastLazyruinVersion, Ruin: prevEntry.LastRuinVersion}
+
+	pending := migrations.Detect(curr, prev, prevEntry.AppliedMigrations)
+
+	helper := helperspkg.NewMigrationsHelper(a.RuinCmd, a.Gui, store, a.RuinCmd.VaultPath(), prev, curr, pending)
+	if len(pending) == 0 {
+		// Nothing to do — record current versions so a future
+		// migration's Applies predicate sees an accurate "previous".
+		helper.RecordNoPending()
+		return
+	}
+	a.Gui.SetMigrationsHelper(helper)
 }
 
 // expandPath expands ~ to the user's home directory and resolves to absolute path.

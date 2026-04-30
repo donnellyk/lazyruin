@@ -1,0 +1,124 @@
+package migrations
+
+import (
+	"testing"
+
+	"github.com/donnellyk/lazyruin/pkg/commands"
+)
+
+// fixture builds a registry of three migrations gated on Ruin version,
+// for predictable test output.
+func fixture() []Migration {
+	noop := func(*commands.RuinCommand) error { return nil }
+	return []Migration{
+		{
+			ID:          "ruin-0.3.0",
+			Description: "0.3.0 cutover",
+			Applies: func(curr, prev VersionPair) bool {
+				return prev.Ruin == "0.2.0" && curr.Ruin == "0.3.0"
+			},
+			Action: noop,
+		},
+		{
+			ID:          "ruin-0.3.1",
+			Description: "0.3.1 cutover",
+			Applies: func(curr, prev VersionPair) bool {
+				return prev.Ruin == "0.3.0" && curr.Ruin == "0.3.1"
+			},
+			Action: noop,
+		},
+		{
+			ID:          "always",
+			Description: "fires every upgrade",
+			Applies:     func(curr, prev VersionPair) bool { return true },
+			Action:      noop,
+		},
+	}
+}
+
+func TestPending_FiltersByApplies(t *testing.T) {
+	prev := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.0"}
+	curr := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.1"}
+	got := pending(curr, prev, nil, fixture())
+	ids := idsOf(got)
+	want := []string{"ruin-0.3.1", "always"}
+	if !equal(ids, want) {
+		t.Errorf("ids = %v, want %v", ids, want)
+	}
+}
+
+func TestPending_SkipsAppliedIDs(t *testing.T) {
+	prev := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.0"}
+	curr := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.1"}
+	got := pending(curr, prev, []string{"ruin-0.3.1"}, fixture())
+	ids := idsOf(got)
+	want := []string{"always"}
+	if !equal(ids, want) {
+		t.Errorf("ids = %v, want %v", ids, want)
+	}
+}
+
+func TestDetect_FirstLaunchSkips(t *testing.T) {
+	prev := VersionPair{} // empty — never seen before.
+	curr := VersionPair{Lazyruin: "0.2.0", Ruin: "0.3.1"}
+	old := Registry
+	defer func() { Registry = old }()
+	Registry = fixture()
+	if got := Detect(curr, prev, nil); len(got) != 0 {
+		t.Errorf("expected empty on first launch, got %d entries", len(got))
+	}
+}
+
+func TestDetect_DevBuildSuppresses(t *testing.T) {
+	prev := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.0"}
+	curr := VersionPair{Lazyruin: "dev", Ruin: "0.3.1"}
+	old := Registry
+	defer func() { Registry = old }()
+	Registry = fixture()
+	if got := Detect(curr, prev, nil); len(got) != 0 {
+		t.Errorf("expected empty on dev build, got %d entries", len(got))
+	}
+}
+
+func TestDetect_NoChangeReturnsEmpty(t *testing.T) {
+	v := VersionPair{Lazyruin: "0.2.0", Ruin: "0.3.1"}
+	old := Registry
+	defer func() { Registry = old }()
+	Registry = fixture()
+	if got := Detect(v, v, nil); len(got) != 0 {
+		t.Errorf("expected empty when versions match, got %v", idsOf(got))
+	}
+}
+
+func TestDetect_PrevLazyruinOnlyChange(t *testing.T) {
+	prev := VersionPair{Lazyruin: "0.1.0", Ruin: "0.3.1"}
+	curr := VersionPair{Lazyruin: "0.2.0", Ruin: "0.3.1"}
+	old := Registry
+	defer func() { Registry = old }()
+	Registry = fixture()
+	got := Detect(curr, prev, nil)
+	ids := idsOf(got)
+	if !equal(ids, []string{"always"}) {
+		t.Errorf("ids = %v, want [always]", ids)
+	}
+}
+
+func idsOf(ms []Migration) []string {
+	out := make([]string, 0, len(ms))
+	for _, m := range ms {
+		out = append(out, m.ID)
+	}
+	return out
+}
+
+func equal(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}

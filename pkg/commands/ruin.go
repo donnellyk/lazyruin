@@ -145,6 +145,24 @@ func (r *RuinCommand) Doctor(path string) error {
 	return err
 }
 
+// DoctorFullScan runs `ruin doctor` against the configured vault with
+// no path argument, performing a full vault re-index. Used by upgrade
+// migrations to bring the metadata back into sync after a breaking
+// change. Returns the captured stderr/stdout as the error message on
+// failure so the caller can display it inline.
+func (r *RuinCommand) DoctorFullScan() error {
+	cmd := r.buildCommand("doctor")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(out))
+		if msg != "" {
+			return fmt.Errorf("ruin doctor failed: %s", msg)
+		}
+		return fmt.Errorf("ruin doctor failed: %w", err)
+	}
+	return nil
+}
+
 // Execute runs a ruin command with the given arguments.
 // It automatically appends --json and --vault flags.
 func (r *RuinCommand) Execute(args ...string) ([]byte, error) {

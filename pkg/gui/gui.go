@@ -40,6 +40,11 @@ type Gui struct {
 	// Shared helper/controller dependencies
 	helpers          *helperspkg.Helpers
 	controllerCommon *controllers.ControllerCommon
+
+	// Optional upgrade-migration helper; nil when migrations aren't
+	// applicable (first launch, dev build, no pending entries). Set
+	// by app.Run before gui.Run().
+	migrations *helperspkg.MigrationsHelper
 }
 
 // NewGui creates a new Gui instance.
@@ -89,6 +94,13 @@ func NewGui(cfg *config.Config, ruinCmd *commands.RuinCommand) *Gui {
 // UX is active. Returns false if config is nil.
 func (gui *Gui) sectionsModeEnabled() bool {
 	return gui.config != nil && gui.config.NotesPane.SectionsMode
+}
+
+// SetMigrationsHelper attaches the upgrade-migration helper. Called by
+// app.Run after computing the pending list so the first-layout flow can
+// surface the prompt.
+func (gui *Gui) SetMigrationsHelper(h *helperspkg.MigrationsHelper) {
+	gui.migrations = h
 }
 
 // Run starts the GUI event loop.
