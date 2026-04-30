@@ -44,14 +44,25 @@ mise run install
 
 ## Quick start
 
+### New, Empty Vault
+Navigate to where you'd like your notes to be stored and run 
 ```
 $ lazyruin
 ```
 
-If you don't have a `vault_path` configured, you'll have the option to create one on first launch in your current directory. Override with `--vault /path/to/vault` or the `LAZYRUIN_VAULT`
-environment variable.
+You will be asked to setup your vault path ( which will be written to `~/.config/ruin/config.yml`) and have the option to go through a tutorial. After `config.yml` is written, you can run `lazyruin` from any directory.
 
-On launch with an empty vault, you'll be asked if you want to go through an onboarding tutorial (to explain what the hell is going on). Follow your heart.
+### Non-empty Vault
+
+> [!WARNING]
+> Prior to 1.0, we recommend doing this on a copy of your existing note structure. While note & frontmatter contents should be preserved, frontmatter order, comments, and exact formatting is not. For now, Ruin also stores tags in a different format than Obsidian, which may cause conflicts. This will be addressed in a future version.
+
+To setup the proper indexes and note frontmatter, first run
+```
+$ ruin init --config && ruin doctor
+```
+
+You can then run `lazyruin` from anywhere to launch. If notes exist in your vault, the onboarding dialog will not be displayed. You can manually add the onboarding note with `:Add Walkthrough`.
 
 Core keys:
 
