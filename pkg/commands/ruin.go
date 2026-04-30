@@ -98,9 +98,13 @@ func (r *RuinCommand) IsInitialized() bool {
 	return err == nil && info.IsDir()
 }
 
-// Init runs `ruin init <vaultPath>` to initialize the vault. Returns the
-// combined CLI output as an error on failure so callers can surface it to
-// the user.
+// Init runs `ruin init <vaultPath> --force` to initialize the vault.
+// `--force` is required because we invoke as a subprocess with no stdin,
+// and current ruin-cli prompts for confirmation when notes already exist.
+// Safe in this flow: we only reach here when `.ruin/` does not exist
+// (IsInitialized() gated it), so the flag's metadata-overwrite half is
+// a no-op. Returns the combined CLI output as an error on failure so
+// callers can surface it to the user.
 func (r *RuinCommand) Init() error {
 	if r.vaultPath == "" {
 		return fmt.Errorf("no vault path configured")
@@ -108,7 +112,7 @@ func (r *RuinCommand) Init() error {
 	if r.bin == "" {
 		return fmt.Errorf("ruin binary path not set")
 	}
-	cmd := exec.Command(r.bin, "init", r.vaultPath)
+	cmd := exec.Command(r.bin, "init", r.vaultPath, "--force")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		msg := strings.TrimSpace(string(out))

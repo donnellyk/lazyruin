@@ -43,8 +43,11 @@ func NewTestVault(t *testing.T) *TestVault {
 
 	vaultPath := filepath.Join(dir, "vault")
 
-	// Initialize vault
-	cmd := exec.Command("ruin", "init", vaultPath)
+	// Initialize vault. --force skips the post-init doctor confirmation
+	// prompt that current ruin-cli surfaces when notes already exist; we
+	// run as a subprocess with no stdin so an interactive prompt would
+	// hang.
+	cmd := exec.Command("ruin", "init", vaultPath, "--force")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf("failed to init vault: %v\n%s", err, output)
