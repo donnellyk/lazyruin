@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/donnellyk/lazyruin/pkg/commands"
 	"github.com/donnellyk/lazyruin/pkg/config"
@@ -82,11 +83,16 @@ func (self *NotesHomeHelper) BuildRows() []context.NotesHomeRow {
 
 	if len(parents) > 0 || len(queries) > 0 {
 		rows = append(rows, context.NotesHomeRow{IsHeader: true, Title: "Pinned"})
-		for _, p := range parents {
+		for i := range parents {
+			p := parents[i]
 			rows = append(rows, context.NotesHomeRow{
 				Title:  parentDisplayTitle(p),
 				ItemID: "parent:" + parentBookmarkKey(p),
-				Action: context.NotesHomeAction{Kind: context.NotesHomeActionParent, Detail: parentBookmarkKey(p)},
+				Action: context.NotesHomeAction{
+					Kind:   context.NotesHomeActionParent,
+					Detail: parentBookmarkKey(p),
+					Parent: &p,
+				},
 			})
 		}
 		if len(parents) > 0 && len(queries) > 0 {
@@ -169,10 +175,25 @@ func parentDisplayTitle(p models.ParentBookmark) string {
 }
 
 // Activate runs the action attached to a row and commits the result to
-// Preview as a navigation entry (Enter handler).
+// Preview as a navigation entry (Enter handler). Today and Next 7 Days
+// dispatch to the rich Date view (tag picks, todos, created/updated
+// notes); other rows show as a flat card list.
 func (self *NotesHomeHelper) Activate(row context.NotesHomeRow) error {
 	if row.IsHeader || row.Blank {
 		return nil
+	}
+
+	switch row.Action.Kind {
+	case context.NotesHomeActionToday:
+		return self.c.Helpers().DatePreview().LoadDatePreview(time.Now().Format("2006-01-02"))
+	case context.NotesHomeActionNext7:
+		start, end := next7DaysRange()
+		return self.c.Helpers().DatePreview().LoadDateRangePreview("Next 7 Days", start, end)
+	case context.NotesHomeActionParent:
+		if row.Action.Parent == nil {
+			return nil
+		}
+		return self.commitParent(*row.Action.Parent)
 	}
 
 	title, loadFn := self.dispatch(row)
@@ -198,6 +219,23 @@ func (self *NotesHomeHelper) Hover(row context.NotesHomeRow) {
 	if row.IsHeader || row.Blank {
 		return
 	}
+
+	switch row.Action.Kind {
+	case context.NotesHomeActionToday:
+		_ = self.c.Helpers().DatePreview().HoverDatePreview(time.Now().Format("2006-01-02"))
+		return
+	case context.NotesHomeActionNext7:
+		start, end := next7DaysRange()
+		_ = self.c.Helpers().DatePreview().HoverDateRangePreview("Next 7 Days", start, end)
+		return
+	case context.NotesHomeActionParent:
+		if row.Action.Parent == nil {
+			return
+		}
+		_ = self.hoverParent(*row.Action.Parent)
+		return
+	}
+
 	title, loadFn := self.dispatch(row)
 	if loadFn == nil {
 		return
@@ -205,8 +243,60 @@ func (self *NotesHomeHelper) Hover(row context.NotesHomeRow) {
 	self.c.Helpers().Preview().UpdatePreviewCardList(title, loadFn)
 }
 
-// dispatch returns the title and a loader function for the given row's
-// action. Returns (_, nil) for unknown actions.
+// commitParent runs `ruin compose` against a saved parent bookmark and
+// commits the result to the Compose preview, mirroring the Queries
+// pane's parent-tab activation.
+func (self *NotesHomeHelper) commitParent(parent models.ParentBookmark) error {
+	gui := self.c.GuiCommon()
+	title := "Parent: " + parent.Name
+	return self.c.Helpers().Navigator().NavigateTo("compose", title, func() error {
+		composed, sourceMap, err := self.c.RuinCmd().Parent.Compose(parent)
+		if err != nil {
+			gui.ShowError(err)
+			return err
+		}
+		self.c.Helpers().Preview().ShowCompose(title, composed, sourceMap, parent)
+		gui.Contexts().Compose.Requery = self.parentRequery(parent)
+		return nil
+	})
+}
+
+// hoverParent is the hover counterpart to commitParent.
+func (self *NotesHomeHelper) hoverParent(parent models.ParentBookmark) error {
+	gui := self.c.GuiCommon()
+	title := "Parent: " + parent.Name
+	return self.c.Helpers().Navigator().ShowHover("compose", title, func() error {
+		composed, sourceMap, err := self.c.RuinCmd().Parent.Compose(parent)
+		if err != nil {
+			return err
+		}
+		self.c.Helpers().Preview().ShowCompose(title, composed, sourceMap, parent)
+		gui.Contexts().Compose.Requery = self.parentRequery(parent)
+		return nil
+	})
+}
+
+// parentRequery returns the closure ComposeContext stores so a history
+// restore can re-run compose against the same bookmark.
+func (self *NotesHomeHelper) parentRequery(parent models.ParentBookmark) context.ComposeRequery {
+	return func() (models.Note, []models.SourceMapEntry, error) {
+		return self.c.RuinCmd().Parent.Compose(parent)
+	}
+}
+
+// next7DaysRange returns ISO start/end dates for the [today, today+6]
+// window. Inclusive on both ends — same shape as ruin's `between:`.
+func next7DaysRange() (string, string) {
+	now := time.Now()
+	start := now.Format("2006-01-02")
+	end := now.AddDate(0, 0, 6).Format("2006-01-02")
+	return start, end
+}
+
+// dispatch returns the title and a flat-card-list loader for actions
+// that don't have a dedicated preview path. Today, Next 7 Days, and
+// Parent rows are handled directly in Activate/Hover (Date view and
+// Compose view respectively), so they're not represented here.
 func (self *NotesHomeHelper) dispatch(row context.NotesHomeRow) (string, func() ([]models.Note, error)) {
 	cmd := self.c.RuinCmd()
 	opts := self.c.Helpers().Preview().BuildSearchOptions()
@@ -222,18 +312,6 @@ func (self *NotesHomeHelper) dispatch(row context.NotesHomeRow) (string, func() 
 			o.Limit = inboxLimit
 			return cmd.Search.Search("tags:none", o)
 		}
-	case context.NotesHomeActionToday:
-		return "Today", func() ([]models.Note, error) {
-			return cmd.Search.Today()
-		}
-	case context.NotesHomeActionNext7:
-		return "Next 7 Days", self.next7Days
-	case context.NotesHomeActionParent:
-		return row.Title, func() ([]models.Note, error) {
-			o := opts
-			o.Sort = "created:desc"
-			return cmd.Search.Search("parent:"+row.Action.Detail, o)
-		}
 	case context.NotesHomeActionQuery:
 		return row.Title, func() ([]models.Note, error) {
 			return cmd.Queries.Run(row.Action.Detail, opts)
@@ -248,19 +326,6 @@ func (self *NotesHomeHelper) dispatch(row context.NotesHomeRow) (string, func() 
 		}
 	}
 	return "", nil
-}
-
-// next7Days surfaces notes that carry `@`-tagged dates in the next-week
-// window via `ruin pick "@between:today,today+6"`. Pick returns matching
-// lines grouped by note; we deduplicate to one preview card per note.
-func (self *NotesHomeHelper) next7Days() ([]models.Note, error) {
-	picks, err := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{
-		Date: "@between:today,today+6",
-	})
-	if err != nil {
-		return nil, err
-	}
-	return notesFromPickResults(picks), nil
 }
 
 // notesFromEmbedResult flattens an embed result into a slice of preview

@@ -29,6 +29,40 @@ func (self *DatePreviewHelper) LoadDatePreview(date string) error {
 	})
 }
 
+// HoverDatePreview shows the same date-preview content as
+// LoadDatePreview but as a hover (no nav-history entry). Used by
+// callers that want preview-on-cursor-move without committing.
+func (self *DatePreviewHelper) HoverDatePreview(date string) error {
+	t, _ := time.Parse("2006-01-02", date)
+	title := t.Format("Monday, January 2 2006")
+
+	return self.c.Helpers().Navigator().ShowHover("datePreview", title, func() error {
+		self.loadDatePreviewState(date)
+		return nil
+	})
+}
+
+// LoadDateRangePreview loads a date-preview window over the half-open
+// range [start, end] (both inclusive, ISO yyyy-mm-dd). Tag and todo
+// picks come from `pick @between:start,end`; the notes section pulls
+// notes whose `created:` falls in the range. Title is the caller-
+// supplied label (e.g., "Next 7 Days") so it reads naturally rather
+// than as a date-formatted line.
+func (self *DatePreviewHelper) LoadDateRangePreview(title, start, end string) error {
+	return self.c.Helpers().Navigator().NavigateTo("datePreview", title, func() error {
+		self.loadDateRangeState(title, start, end)
+		return nil
+	})
+}
+
+// HoverDateRangePreview is the hover counterpart to LoadDateRangePreview.
+func (self *DatePreviewHelper) HoverDateRangePreview(title, start, end string) error {
+	return self.c.Helpers().Navigator().ShowHover("datePreview", title, func() error {
+		self.loadDateRangeState(title, start, end)
+		return nil
+	})
+}
+
 // loadDatePreviewState populates DatePreview context state for the given
 // date without touching history or context focus. Used as the load closure
 // for Navigator.NavigateTo.
@@ -69,6 +103,57 @@ func (self *DatePreviewHelper) loadDatePreviewState(date string) {
 	dp.SetTitle(t.Format("Monday, January 2 2006"))
 
 	gui.RenderPreview()
+}
+
+// loadDateRangeState fills DatePreview state from a [start, end] range
+// (rather than a single TargetDate). TargetDate is set to "start..end"
+// as a sentinel — it's only used for snapshot restore, and the
+// Requery closure handles the actual re-fetch.
+func (self *DatePreviewHelper) loadDateRangeState(title, start, end string) {
+	tagPicks, todoPicks, notes := self.fetchDateRange(start, end)
+
+	gui := self.c.GuiCommon()
+	dp := gui.Contexts().DatePreview
+	dp.TargetDate = start + ".." + end
+	dp.TagPicks = tagPicks
+	dp.TodoPicks = todoPicks
+	dp.Notes = notes
+	self.c.Helpers().TitleCache().PutNotes(notes)
+	self.c.Helpers().TitleCache().ResolveUnknownParents(notes)
+	dp.SelectedCardIdx = 0
+	ns := dp.NavState()
+	ns.CursorLine = 1
+	ns.ScrollOffset = 0
+	gui.Contexts().ActivePreviewKey = "datePreview"
+	dp.Requery = self.dateRangeRequery(start, end)
+	dp.SetTitle(title)
+
+	gui.RenderPreview()
+}
+
+func (self *DatePreviewHelper) fetchDateRange(start, end string) ([]models.PickResult, []models.PickResult, []models.Note) {
+	between := "@between:" + start + "," + end
+	tagPicks, _ := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{Date: between, All: true})
+	tagPicks = sortDonePicksLast(filterOutTodoLines(tagPicks))
+
+	todoPicks, _ := self.c.RuinCmd().Pick.Pick(nil, commands.PickOpts{
+		Date: between,
+		Todo: true,
+		All:  true,
+	})
+
+	opts := commands.SearchOptions{
+		Sort: "created", Limit: 100, IncludeContent: true, StripTitle: true,
+	}
+	notes, _ := self.c.RuinCmd().Search.Search("between:"+start+","+end, opts)
+	return tagPicks, todoPicks, notes
+}
+
+func (self *DatePreviewHelper) dateRangeRequery(start, end string) context.DatePreviewRequery {
+	return func() ([]models.PickResult, []models.PickResult, []models.Note, error) {
+		tag, todo, notes := self.fetchDateRange(start, end)
+		return tag, todo, notes, nil
+	}
 }
 
 // dateRequery returns a closure that re-fetches the three sections for the

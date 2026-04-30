@@ -2,6 +2,7 @@ package context
 
 import (
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
+	"github.com/donnellyk/lazyruin/pkg/models"
 )
 
 // NotesOuterTab is the active outer tab in the Notes pane when
@@ -26,11 +27,14 @@ const (
 	NotesHomeActionEmbed
 )
 
-// NotesHomeAction tells the helper how to activate an item. Detail holds the
-// payload: parent UUID, saved-query name, or full embed string.
+// NotesHomeAction tells the helper how to activate an item. Detail holds
+// the payload for string-keyed kinds (saved-query name, embed string).
+// Parent holds the bookmark for NotesHomeActionParent so the helper can
+// invoke Parent.Compose without re-fetching the bookmark list.
 type NotesHomeAction struct {
 	Kind   NotesHomeActionKind
 	Detail string
+	Parent *models.ParentBookmark
 }
 
 // NotesHomeRow is a single line in the Home tab — either a section header
