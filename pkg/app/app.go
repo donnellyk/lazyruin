@@ -12,6 +12,7 @@ import (
 	"github.com/donnellyk/lazyruin/pkg/config"
 	"github.com/donnellyk/lazyruin/pkg/gui"
 	helperspkg "github.com/donnellyk/lazyruin/pkg/gui/helpers"
+	"github.com/donnellyk/lazyruin/pkg/gui/onboarding"
 	"github.com/donnellyk/lazyruin/pkg/migrations"
 )
 
@@ -136,8 +137,19 @@ func (a *App) attachMigrationsHelper() {
 
 	ruinVer, _ := a.RuinCmd.Version() // empty on failure; Detect handles it
 	curr := migrations.VersionPair{Lazyruin: a.LazyruinVersion, Ruin: ruinVer}
-	prevEntry, _ := store.VaultEntry(a.RuinCmd.VaultPath())
+	prevEntry, hadEntry := store.VaultEntry(a.RuinCmd.VaultPath())
 	prev := migrations.VersionPair{Lazyruin: prevEntry.LastLazyruinVersion, Ruin: prevEntry.LastRuinVersion}
+
+	// First launch against this vault on a migration-aware lazyruin: a
+	// fresh vault stays "first install" (Detect skips), but a vault
+	// that already has notes is an existing user upgrading into the
+	// migration system — bootstrap prev with AncientVersion so any
+	// currently-applicable registry entry will fire and re-index.
+	if !hadEntry {
+		empty, err := onboarding.IsVaultEmpty(a.RuinCmd)
+		isEmpty := err == nil && empty
+		prev = migrations.BootstrapPrev(isEmpty)
+	}
 
 	pending := migrations.Detect(curr, prev, prevEntry.AppliedMigrations)
 

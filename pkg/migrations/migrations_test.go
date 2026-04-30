@@ -80,6 +80,36 @@ func TestDetect_DevBuildSuppresses(t *testing.T) {
 	}
 }
 
+func TestBootstrapPrev_EmptyVault(t *testing.T) {
+	got := BootstrapPrev(true)
+	if got.Lazyruin != "" || got.Ruin != "" {
+		t.Errorf("empty vault should bootstrap to zero pair, got %+v", got)
+	}
+}
+
+func TestBootstrapPrev_NonEmptyVault(t *testing.T) {
+	got := BootstrapPrev(false)
+	if got != AncientVersion {
+		t.Errorf("non-empty vault should bootstrap to AncientVersion, got %+v", got)
+	}
+}
+
+func TestDetect_AncientPrevMatchesAllRegistryEntries(t *testing.T) {
+	// Existing user upgrading into the migration system: prev =
+	// AncientVersion, curr = real current version. Every registry
+	// entry whose Applies fires for this transition should be
+	// returned.
+	curr := VersionPair{Lazyruin: "0.2.0", Ruin: "0.3.1"}
+	old := Registry
+	defer func() { Registry = old }()
+	Registry = fixture()
+	got := Detect(curr, AncientVersion, nil)
+	ids := idsOf(got)
+	if !equal(ids, []string{"always"}) {
+		t.Errorf("ids = %v, want [always] (only the unconditional fixture entry matches a 0.0.0 prev)", ids)
+	}
+}
+
 func TestDetect_NoChangeReturnsEmpty(t *testing.T) {
 	v := VersionPair{Lazyruin: "0.2.0", Ruin: "0.3.1"}
 	old := Registry

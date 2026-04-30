@@ -674,6 +674,39 @@ fi
 TOTAL=$((TOTAL + 1))
 
 # =============================================
+# 30. Upgrade migrations bootstrap (existing user, no state.json)
+# =============================================
+# Same smoketest binary, but state.json is absent. Vault has content
+# (the smoke seed), so migrations.BootstrapPrev returns AncientVersion
+# and the registry's synthetic always-applies entry should still fire.
+echo "[30] Upgrade migrations bootstrap"
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+BOOT_CFG_DIR="$(mktemp -d)"
+mkdir -p "$BOOT_CFG_DIR/lazyruin"
+trap "rm -rf $BOOT_CFG_DIR; rm -rf $MIG_CFG_DIR; rm -f $MIG_BIN; rm -rf $SECTIONS_CFG_DIR; cleanup" EXIT
+# No state.json — the bootstrap path should run.
+
+XDG_CONFIG_HOME="$BOOT_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$BOOT_CFG_DIR $MIG_BIN --vault $VAULT" 2>/dev/null
+wait_for "Vault upgrade required" 200 || die "bootstrap migration prompt did not appear"
+
+assert_contains "bootstrap prompt"      "Vault upgrade required"
+assert_contains "bootstrap test entry"  "Test migration"
+
+send y; settle
+wait_gone "Vault upgrade required" 200 || die "prompt did not dismiss after bootstrap run"
+
+if grep -q "test-migration" "$BOOT_CFG_DIR/lazyruin/state.json" 2>/dev/null; then
+  echo "  PASS: bootstrap recorded test-migration in state.json"
+else
+  echo "  FAIL: bootstrap state.json missing test-migration:"
+  cat "$BOOT_CFG_DIR/lazyruin/state.json" 2>&1 || echo "(state.json missing)"
+  FAILURES=$((FAILURES + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

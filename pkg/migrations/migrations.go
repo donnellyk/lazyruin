@@ -31,6 +31,28 @@ func DoctorFullScan(c *commands.RuinCommand) error {
 	return c.DoctorFullScan()
 }
 
+// AncientVersion is the sentinel version pair used as `prev` when the
+// vault has content but no state.json entry — i.e., the user is
+// opening lazyruin for the first time after the migration system
+// shipped, against an existing vault. Setting prev to "0.0.0/0.0.0"
+// makes every currently-applicable registry entry's Applies
+// predicate fire so the user gets the same one-time re-index path as
+// any other upgrade.
+var AncientVersion = VersionPair{Lazyruin: "0.0.0", Ruin: "0.0.0"}
+
+// BootstrapPrev picks the right `prev` value to feed into Detect when
+// no state.json entry exists for the current vault. Empty vaults
+// return zero-value VersionPair{} so Detect short-circuits on
+// "first install — nothing to migrate." Non-empty vaults return
+// AncientVersion so existing users upgrading into the migration
+// system run their pending migrations.
+func BootstrapPrev(vaultIsEmpty bool) VersionPair {
+	if vaultIsEmpty {
+		return VersionPair{}
+	}
+	return AncientVersion
+}
+
 // Detect computes the list of pending migrations for a given launch.
 // Returns nil when no migrations apply: dev lazyruin builds, first
 // launches (either half of prev unknown — defensive: a previous
