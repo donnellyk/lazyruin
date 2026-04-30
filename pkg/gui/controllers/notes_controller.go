@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/donnellyk/lazyruin/pkg/gui/context"
+	"github.com/donnellyk/lazyruin/pkg/gui/helpers"
 	"github.com/donnellyk/lazyruin/pkg/gui/types"
 	"github.com/donnellyk/lazyruin/pkg/models"
 	"github.com/jesseduffield/gocui"
@@ -330,44 +331,90 @@ func (self *NotesController) hoverSelected() {
 	self.c.Helpers().NotesHome().Hover(*row)
 }
 
-// GetMouseKeybindings returns mouse bindings for the notes panel. In
-// sections_mode, click counts/dispatch differ between the two outer
-// tabs: clicking a Home row moves the cursor + hovers (Enter still
-// commits); clicking a flat-list note moves cursor and triggers the
-// existing hover-then-commit behavior.
+// GetMouseKeybindings returns mouse bindings for the notes panel.
+//
+// We build these manually rather than reusing ListMouseBindings because
+// gocui dispatches the FIRST matching binding in g.keybindings (see
+// gui.go execKeybindings), so layering an override on top of
+// ListMouseBindings would never fire — the layered binding sits later
+// in the slice. Building the bindings up front lets the click and
+// wheel handlers dispatch correctly in both outer-tab modes:
+//
+//   - flat-list (Notes): click maps screen-row → note-index using
+//     itemHeight=3 (each note is 3 rendered lines); wheel free-scrolls
+//     the view origin.
+//   - Home: click maps screen-row → row-index using itemHeight=1
+//     (each row is 1 rendered line); wheel steps the cursor (with
+//     re-hover) because renderNotesHome's scrollListView would snap a
+//     free-scroll back to the cursor on the next render.
 func (self *NotesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*gocui.ViewMouseBinding {
-	return ListMouseBindings(ListMouseOpts{
-		ViewName:    "notes",
-		ClickMargin: 3,
-		ItemCount: func() int {
-			if self.homeTabActive() {
-				if ctx := self.homeCtxOrNil(); ctx != nil {
-					return len(ctx.Rows)
+	gc := func() IGuiCommon { return self.c.GuiCommon() }
+	view := func() *gocui.View { return gc().GetView("notes") }
+
+	return []*gocui.ViewMouseBinding{
+		{
+			ViewName: "notes",
+			Key:      gocui.MouseLeft,
+			Handler: func(_ gocui.ViewMouseBindingOpts) error {
+				v := view()
+				if v == nil {
+					return nil
 				}
-				return 0
-			}
-			return len(self.getContext().Items)
+				if self.homeTabActive() {
+					ctx := self.homeCtxOrNil()
+					if ctx == nil {
+						return nil
+					}
+					idx := helpers.ListClickIndex(v, 1)
+					if idx < 0 || idx >= len(ctx.Rows) {
+						return nil
+					}
+					r := ctx.Rows[idx]
+					if r.IsHeader || r.Blank {
+						return nil
+					}
+					ctx.SelectedIdx = idx
+					gc().RenderNotes()
+					self.hoverSelected()
+					gc().PushContext(ctx, types.OnFocusOpts{})
+					return nil
+				}
+				idx := helpers.ListClickIndex(v, 3)
+				notesCtx := self.getContext()
+				if idx >= 0 && idx < len(notesCtx.Items) {
+					notesCtx.SetSelectedLineIdx(idx)
+				}
+				gc().PushContext(notesCtx, types.OnFocusOpts{})
+				return nil
+			},
 		},
-		SetSelection: func(idx int) {
-			if self.homeTabActive() {
-				ctx := self.homeCtxOrNil()
-				if ctx == nil || idx < 0 || idx >= len(ctx.Rows) {
-					return
+		{
+			ViewName: "notes",
+			Key:      gocui.MouseWheelDown,
+			Handler: func(_ gocui.ViewMouseBindingOpts) error {
+				if self.homeTabActive() {
+					return self.dispatchNext()
 				}
-				r := ctx.Rows[idx]
-				if r.IsHeader || r.Blank {
-					return
+				if v := view(); v != nil {
+					helpers.ScrollViewport(v, 3)
 				}
-				ctx.SelectedIdx = idx
-				self.c.GuiCommon().RenderNotes()
-				self.hoverSelected()
-				return
-			}
-			self.getContext().SetSelectedLineIdx(idx)
+				return nil
+			},
 		},
-		GetContext: func() types.Context { return self.getContext() },
-		GuiCommon:  func() IGuiCommon { return self.c.GuiCommon() },
-	})
+		{
+			ViewName: "notes",
+			Key:      gocui.MouseWheelUp,
+			Handler: func(_ gocui.ViewMouseBindingOpts) error {
+				if self.homeTabActive() {
+					return self.dispatchPrev()
+				}
+				if v := view(); v != nil {
+					helpers.ScrollViewport(v, -3)
+				}
+				return nil
+			},
+		},
+	}
 }
 
 // Action handlers — call helpers directly.
