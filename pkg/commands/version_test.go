@@ -80,8 +80,8 @@ func TestVersionLess(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.a+" < "+tt.b, func(t *testing.T) {
-			if got := versionLess(tt.a, tt.b); got != tt.want {
-				t.Errorf("versionLess(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
+			if got := VersionLess(tt.a, tt.b); got != tt.want {
+				t.Errorf("VersionLess(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
 			}
 		})
 	}

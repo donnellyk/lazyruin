@@ -707,6 +707,100 @@ fi
 TOTAL=$((TOTAL + 1))
 
 # =============================================
+# 31. v0.4.0 tag-format migration (production registry)
+# =============================================
+# Builds without -tags=smoketest so the *real* registry is in play.
+# State.json is pre-seeded with last_ruin_version="0.3.5" so the
+# v0.4.0-tag-format migration fires. A hand-crafted note carries
+# legacy "#"-prefixed frontmatter; doctor should rewrite it bare.
+echo "[31] v0.4.0 tag-format migration"
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+
+V04_VAULT="/private/tmp/ruin-v04-mig-$$"
+V04_BIN="$(mktemp -t lazyruin-v04-XXXX)"
+V04_CFG_DIR="$(mktemp -d)"
+mkdir -p "$V04_CFG_DIR/lazyruin"
+trap "rm -rf $V04_VAULT; rm -f $V04_BIN; rm -rf $V04_CFG_DIR; rm -rf $BOOT_CFG_DIR; rm -rf $MIG_CFG_DIR; rm -f $MIG_BIN; rm -rf $SECTIONS_CFG_DIR; cleanup" EXIT
+
+# Production binary: no smoketest tag, but stamp a real-looking version
+# so VersionPair.IsDev() returns false and migrations are detected.
+go build -o "$V04_BIN" -ldflags="-X main.version=0.4.0" ./main.go || die "failed to build production binary"
+ruin dev seed "$V04_VAULT" >/dev/null 2>&1 || die "failed to seed v04 vault"
+
+# Hand-craft a note with legacy "#"-prefixed frontmatter so we can
+# verify doctor's frontmatter rewrite actually ran.
+cat > "$V04_VAULT/legacy.md" <<'EOF'
+---
+uuid: legacy-v04-1
+tags:
+  - "#daily"
+inline-tags:
+  - "#followup"
+---
+# Legacy
+#daily catch up: #followup
+EOF
+
+V04_VAULT_HASH=$(printf '%s' "$V04_VAULT" | shasum -a 256 | awk '{print $1}')
+cat > "$V04_CFG_DIR/lazyruin/state.json" <<EOF
+{
+  "vaults": {
+    "$V04_VAULT_HASH": {
+      "vault_path": "$V04_VAULT",
+      "last_lazyruin_version": "0.3.0",
+      "last_ruin_version": "0.3.5",
+      "applied_migrations": []
+    }
+  }
+}
+EOF
+
+XDG_CONFIG_HOME="$V04_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$V04_CFG_DIR $V04_BIN --vault $V04_VAULT" 2>/dev/null
+wait_for "Vault upgrade required" 200 || die "v04 migration prompt did not appear"
+
+assert_contains "v04 prompt header"   "Vault upgrade required"
+assert_contains "v04 migration entry" "Upgrade to new tag format with ruin v0.4.0"
+
+send y; settle
+wait_for "Running ruin doctor" 100 || true   # may flash by quickly
+wait_gone "Vault upgrade required" 400 || die "v04 prompt did not dismiss after run"
+
+# state.json now records the v0.4.0-tag-format migration.
+if grep -q "v0.4.0-tag-format" "$V04_CFG_DIR/lazyruin/state.json"; then
+  echo "  PASS: v0.4.0-tag-format recorded in state.json after run"
+else
+  echo "  FAIL: state.json missing v0.4.0-tag-format after run:"
+  cat "$V04_CFG_DIR/lazyruin/state.json"
+  FAILURES=$((FAILURES + 1))
+fi
+TOTAL=$((TOTAL + 1))
+
+# legacy.md frontmatter should have lost its "#" prefixes (doctor rewrote it).
+if grep -q '"#daily"' "$V04_VAULT/legacy.md" || grep -q '"#followup"' "$V04_VAULT/legacy.md"; then
+  echo "  FAIL: legacy.md frontmatter still contains '#'-prefixed tags after doctor"
+  cat "$V04_VAULT/legacy.md"
+  FAILURES=$((FAILURES + 1))
+else
+  echo "  PASS: legacy.md frontmatter rewritten to bare tag form"
+fi
+TOTAL=$((TOTAL + 1))
+
+# Second launch must be a no-op (idempotent).
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+XDG_CONFIG_HOME="$V04_CFG_DIR" tmux new-session -d -s "$SESSION" -x "$COLS" -y "$ROWS" \
+  "env XDG_CONFIG_HOME=$V04_CFG_DIR $V04_BIN --vault $V04_VAULT" 2>/dev/null
+wait_for "Inline Tags" 200 || die "v04 second launch did not start"
+if cap | grep -qF "Vault upgrade required"; then
+  echo "  FAIL: v04 migration prompt re-appeared on second launch (not idempotent)"
+  FAILURES=$((FAILURES + 1))
+else
+  echo "  PASS: v04 migration is idempotent on second launch"
+fi
+TOTAL=$((TOTAL + 1))
+
+# =============================================
 # Done
 # =============================================
 ELAPSED=$((SECONDS - START_TIME))

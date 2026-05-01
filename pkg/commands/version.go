@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const MinRuinVersion = "0.3.0"
+const MinRuinVersion = "0.4.0"
 
 // Version runs `ruin --version` and returns the parsed version string.
 // Expected output format: "ruin version X.Y.Z" (release) or
@@ -51,7 +51,7 @@ func (r *RuinCommand) CheckVersion() (ok bool, got string, err error) {
 	if verr != nil {
 		return false, "", verr
 	}
-	if versionLess(v, MinRuinVersion) {
+	if VersionLess(v, MinRuinVersion) {
 		return false, v, nil
 	}
 	return true, v, nil
@@ -81,10 +81,10 @@ func parseRuinVersion(output string) (string, error) {
 	return raw, nil
 }
 
-// versionLess reports whether semver a is strictly less than b.
+// VersionLess reports whether semver a is strictly less than b.
 // Both inputs are expected as "MAJOR.MINOR.PATCH". Non-numeric fields or
 // malformed input are treated as zero (fail-open).
-func versionLess(a, b string) bool {
+func VersionLess(a, b string) bool {
 	av := splitSemver(a)
 	bv := splitSemver(b)
 	for i := range 3 {

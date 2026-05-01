@@ -1,13 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - UNRELEASED
 
 ### Added
-- Experimental new side panel modeled off of expected Mac side pane with a more date-focused UX. Ppt-in via `notes_pane.sections_mode: true`
+- Experimental new side panel modeled off of expected Mac side pane with a more date-focused UX. Opt-in via `notes_pane.sections_mode: true`
 - System for handling migrations via `ruin doctor`, when necessary.
+- Ruin 0.4.0 support w/ new tag format
 
 ### Changed
-- The local "Inbox" feature (scratch-pad jot via `<c-j>` from capture, browser via `i`) was renamed to **Scratchpad** to free the name for the new Inbox section. The slash command `/inbox` becomes `/scratchpad`. Storage path moves from `~/.config/lazyruin/inboxes/<hash>.json` to `~/.config/lazyruin/scratchpads/<hash>.json`; the directory is renamed in place on first launch when only the legacy path exists. Keybindings are unchanged.
+- Rename 'Inbox' feature to 'Scratchpad' (`<c-j>` or `/scratchpad`), Inbox is now used in new experimental side panel.
 
 ## [0.1.0] - 2026-04-21
 
