@@ -603,7 +603,12 @@ func (gui *Gui) createCapturePopup(g *gocui.Gui, maxX, maxY int) error {
 	v.Subtitle = " <c-s> to save "
 	v.Editable = true
 	v.TextArea.AutoWrap = true
-	v.TextArea.AutoWrapWidth = v.InnerWidth()
+	// Wrap one column shy of the visible width: gocui's autowrap defers
+	// the line-break check on whitespace, so a trailing space that lands
+	// exactly at AutoWrapWidth+1 is appended to the line before the next
+	// non-whitespace char triggers the wrap. Subtracting one keeps that
+	// trailing space inside the visible area instead of overflowing it.
+	v.TextArea.AutoWrapWidth = v.InnerWidth() - 1
 	v.Editor = &captureEditor{gui: gui}
 	setRoundedCorners(v)
 	gui.applyFocusColors(v, "capture")
