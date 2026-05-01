@@ -382,6 +382,13 @@ func (gui *Gui) setupInputPopupContext() {
 				raw := strings.TrimSpace(v.TextArea.GetUnwrappedContent())
 				return ctx.Config.OnCtrlS(raw)
 			}},
+			{Key: gocui.KeyCtrlX, Handler: func() error {
+				ctx := gui.contexts.InputPopup
+				if ctx.Config == nil || ctx.Config.OnCtrlX == nil || ctx.Config.Locked {
+					return nil
+				}
+				return ctx.Config.OnCtrlX()
+			}},
 		},
 	)
 }

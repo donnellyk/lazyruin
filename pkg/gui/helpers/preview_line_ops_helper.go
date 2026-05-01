@@ -210,8 +210,11 @@ func (self *PreviewLineOpsHelper) ToggleInlineTag() error {
 	return nil
 }
 
-// ToggleInlineDate opens the input popup to toggle an inline date on the cursor line.
-func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
+// SetInlineDate opens the input popup to set the inline date on the cursor
+// line. Picking a date replaces any existing inline dates on that line, so the
+// line ends up with exactly the picked date. Ctrl-X clears all inline dates
+// from the line without picking a new one.
+func (self *PreviewLineOpsHelper) SetInlineDate() error {
 	target := self.resolveTarget()
 	if target == nil {
 		return nil
@@ -226,9 +229,20 @@ func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
 	uuid := target.UUID
 	lineNum := target.LineNum
 	gui := self.c.GuiCommon()
+
+	removeAllDates := func() error {
+		for d := range existingDates {
+			dArg := strings.TrimPrefix(d, "@")
+			if err := self.c.RuinCmd().Note.RemoveDateFromLine(uuid, dArg, lineNum); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	self.c.Helpers().InputPopup().OpenInputPopup(&types.InputPopupConfig{
-		Title:  "Toggle Inline Date",
-		Footer: " @ for dates | Tab: accept | Esc: cancel ",
+		Title:  "Set Inline Date",
+		Footer: " @ for dates | Tab: accept | C-x: remove | Esc: cancel ",
 		Seed:   "@",
 		Triggers: func() []types.CompletionTrigger {
 			return []types.CompletionTrigger{{Prefix: "@", Candidates: func(filter string) []types.CompletionItem {
@@ -249,18 +263,31 @@ func (self *PreviewLineOpsHelper) ToggleInlineDate() error {
 			if item == nil || item.InsertText == "" {
 				return nil
 			}
+			// No-op when the picked date is the only existing date on the line.
+			if len(existingDates) == 1 && existingDates[item.InsertText] {
+				return nil
+			}
+			if err := removeAllDates(); err != nil {
+				gui.ShowError(err)
+				return nil
+			}
 			dateArg := strings.TrimPrefix(item.InsertText, "@")
-
-			if existingDates[item.InsertText] {
-				if err := self.c.RuinCmd().Note.RemoveDateFromLine(uuid, dateArg, lineNum); err != nil {
-					gui.ShowError(err)
-					return nil
-				}
-			} else {
-				if err := self.c.RuinCmd().Note.AddDateToLine(uuid, dateArg, lineNum); err != nil {
-					gui.ShowError(err)
-					return nil
-				}
+			if err := self.c.RuinCmd().Note.AddDateToLine(uuid, dateArg, lineNum); err != nil {
+				gui.ShowError(err)
+				return nil
+			}
+			self.c.Helpers().Preview().ReloadActivePreview()
+			self.reloadPickDialogIfActive()
+			return nil
+		},
+		OnCtrlX: func() error {
+			self.c.Helpers().InputPopup().CloseInputPopup()
+			if len(existingDates) == 0 {
+				return nil
+			}
+			if err := removeAllDates(); err != nil {
+				gui.ShowError(err)
+				return nil
 			}
 			self.c.Helpers().Preview().ReloadActivePreview()
 			self.reloadPickDialogIfActive()

@@ -129,8 +129,8 @@ func (t *PreviewNavTrait) LineOpsBindings(prefix string) []*types.Binding {
 			Handler: lo.ToggleInlineTag, Description: "Toggle Inline Tag", Category: "Preview",
 		},
 		{
-			ID: prefix + ".toggle_inline_date", Key: gocui.KeyCtrlD,
-			Handler: lo.ToggleInlineDate, Description: "Toggle Inline Date", Category: "Preview",
+			ID: prefix + ".set_inline_date", Key: gocui.KeyCtrlD,
+			Handler: lo.SetInlineDate, Description: "Set Inline Date", Category: "Preview",
 		},
 	}
 }
