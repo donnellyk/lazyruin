@@ -51,6 +51,10 @@ type Config struct {
 	// preview pane keeps a usable minimum width.
 	SidebarWidth int `yaml:"sidebar_width,omitempty"`
 
+	// PreviewPadding is the number of blank columns inserted on the left
+	// and right of every card rendered in the preview pane. Default 0.
+	PreviewPadding int `yaml:"preview_padding,omitempty"`
+
 	// DisableBareURLAsLink opts out of the "submitting a note whose entire
 	// body is a URL routes through the link-resolution flow" convenience.
 	// Default false (feature on); set true to always take the plain

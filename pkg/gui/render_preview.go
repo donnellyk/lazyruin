@@ -13,6 +13,76 @@ import (
 	"github.com/muesli/reflow/wordwrap"
 )
 
+// wrapText wraps `text` to at most `limit` visible columns per line, working
+// around an upstream bug in muesli/reflow/wordwrap where breakpoint runes
+// (default `-`) advance the buffer without advancing the tracked line length.
+// That bug lets wordwrap emit lines visibly N chars over the limit where N
+// is the number of hyphens on the line, which surfaces as "off-by-one" wrap
+// once the preview pane has any padding eating the spare column inside the
+// frame. We do soft-wrapping via wordwrap, then enforce the limit with a
+// hard break that preserves ANSI escape sequences.
+func wrapText(text string, limit int) string {
+	if limit <= 0 {
+		return text
+	}
+	soft := wordwrap.String(text, limit)
+	var out strings.Builder
+	out.Grow(len(soft))
+	visible := 0
+	inAnsi := false
+	for _, r := range soft {
+		switch {
+		case r == '\n':
+			out.WriteRune(r)
+			visible = 0
+		case r == '\x1b':
+			inAnsi = true
+			out.WriteRune(r)
+		case inAnsi:
+			out.WriteRune(r)
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+				inAnsi = false
+			}
+		default:
+			if visible >= limit {
+				out.WriteRune('\n')
+				visible = 0
+			}
+			out.WriteRune(r)
+			visible++
+		}
+	}
+	return out.String()
+}
+
+// previewPadding returns the configured per-card horizontal padding,
+// clamped to 0 when unset or negative.
+func (gui *Gui) previewPadding() int {
+	if gui.config == nil || gui.config.PreviewPadding < 0 {
+		return 0
+	}
+	return gui.config.PreviewPadding
+}
+
+// applyPreviewPadding returns the leading-space prefix to prepend to every
+// emitted line and the width / contentWidth shrunk by 2*pad so separators
+// and wrap stay inside the padded region. Both widths floor at 10.
+func (gui *Gui) applyPreviewPadding(width, contentWidth int) (string, int, int) {
+	pad := gui.previewPadding()
+	if pad == 0 {
+		return "", width, contentWidth
+	}
+	width -= 2 * pad
+	contentWidth -= 2 * pad
+	if width < 10 {
+		width = 10
+	}
+	if contentWidth < 10 {
+		contentWidth = 10
+	}
+	return strings.Repeat(" ", pad), width, contentWidth
+}
+
 // dimLine wraps a rendered line in AnsiDim. Re-applies dim after every
 // ANSI reset so chroma's mid-line resets don't cancel the effect.
 func dimLine(text string) string {
@@ -262,7 +332,7 @@ func firstNonBlankLine(contentLines []string) (int, bool) {
 // buildFallbackLine produces a dimmed SourceLine used by hide-safety (D7)
 // to keep a card visible when all body content would otherwise hide.
 func buildFallbackLine(line string, id lineIdentity, contentWidth int) types.SourceLine {
-	wrapped := wordwrap.String(line, contentWidth)
+	wrapped := wrapText(line, contentWidth)
 	first := wrapped
 	if nl := strings.IndexByte(wrapped, '\n'); nl >= 0 {
 		first = wrapped[:nl]
@@ -364,7 +434,7 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 			}
 			id := identities[srcIdx]
 			isDone := ds.DimDone && done
-			wrapped := wordwrap.String(hl, contentWidth)
+			wrapped := wrapText(hl, contentWidth)
 			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
 				if isDone {
@@ -386,7 +456,7 @@ func (gui *Gui) BuildCardContent(note models.Note, contentWidth int) []types.Sou
 			}
 			id := identities[srcIdx]
 			isDone := ds.DimDone && done
-			wrapped := wordwrap.String(l, contentWidth)
+			wrapped := wrapText(l, contentWidth)
 			for wl := range strings.SplitSeq(wrapped, "\n") {
 				text := " " + wl
 				if isDone {
@@ -610,9 +680,14 @@ func (gui *Gui) renderCardInto(v *gocui.View, note models.Note, cardIdx int,
 	selected := isActive && cardIdx == selectedIdx
 	ns.CardLineRanges[cardIdx][0] = currentLine
 
+	prefix, w, cw := gui.applyPreviewPadding(width, contentWidth)
+	width = w
+	contentWidth = cw
+
 	emit := func(text string, sl types.SourceLine) {
-		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
-		sl.Text = text
+		out := prefix + text
+		gui.fprintPreviewLine(v, out, currentLine, isActive, ns)
+		sl.Text = out
 		ns.Lines = append(ns.Lines, sl)
 		currentLine++
 	}
@@ -658,9 +733,14 @@ func (gui *Gui) renderPickGroupInto(v *gocui.View, result models.PickResult, car
 	selected := isActive && cardIdx == selectedIdx
 	ns.CardLineRanges[cardIdx][0] = currentLine
 
+	prefix, w, cw := gui.applyPreviewPadding(width, contentWidth)
+	width = w
+	contentWidth = cw
+
 	emit := func(text string, sl types.SourceLine) {
-		gui.fprintPreviewLine(v, text, currentLine, isActive, ns)
-		sl.Text = text
+		out := prefix + text
+		gui.fprintPreviewLine(v, out, currentLine, isActive, ns)
+		sl.Text = out
 		ns.Lines = append(ns.Lines, sl)
 		currentLine++
 	}
@@ -677,7 +757,7 @@ func (gui *Gui) renderPickGroupInto(v *gocui.View, result models.PickResult, car
 		prefix := fmt.Sprintf("  L%s: ", lineNum)
 		prefixLen := len(prefix)
 		highlighted := gui.highlightMarkdown(match.Content)
-		wrapped := wordwrap.String(highlighted, contentWidth-prefixLen)
+		wrapped := wrapText(highlighted, contentWidth-prefixLen)
 		indent := strings.Repeat(" ", prefixLen)
 		src := types.SourceLine{UUID: result.UUID, LineNum: match.Line, Path: result.File}
 		isDone := dimDone && match.Done
@@ -777,8 +857,11 @@ func (gui *Gui) renderSeparatorCards(v *gocui.View, cards []models.Note, ns *con
 func (gui *Gui) renderSectionHeader(v *gocui.View, label string, width int,
 	currentLine int, ns *context.PreviewNavState, dp *context.DatePreviewState, isActive bool) int {
 
+	prefix, w, _ := gui.applyPreviewPadding(width, width)
+	width = w
+
 	dp.SectionHeaderLines = append(dp.SectionHeaderLines, currentLine)
-	line := gui.buildStraightSeparator(" "+label+" ", width)
+	line := prefix + gui.buildStraightSeparator(" "+label+" ", width)
 	gui.fprintPreviewLine(v, line, currentLine, isActive, ns)
 	ns.Lines = append(ns.Lines, types.SourceLine{Text: line})
 	currentLine++
