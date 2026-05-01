@@ -55,9 +55,9 @@ You will be asked to setup your vault path ( which will be written to `~/.config
 ### Non-empty Vault
 
 > [!WARNING]
-> Prior to 1.0, we recommend doing this on a copy of your existing note structure. While note & frontmatter contents should be preserved, frontmatter order, comments, and exact formatting is not. For now, Ruin also stores tags in a different format than Obsidian, which may cause conflicts. This will be addressed in a future version.
+> Prior to 1.0, we recommend doing this on a copy of your existing note structure first. Ruin may use frontmatter differently than your current application. If you are using Obsidian, see our [Obsidian compatibility doc](https://github.com/donnellyk/ruin-note-cli/blob/main/docs/obsidian-compatibility.md)
 
-To setup the proper indexes and note frontmatter, first run
+To setup the proper indexes and note frontmatter, first run in your vault:
 ```
 $ ruin init --config && ruin doctor
 ```
