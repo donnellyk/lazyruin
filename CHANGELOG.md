@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1] - 2026-05-01
+
+### Changed
+- `<c-d>` on a preview line now sets/replaces the inline date instead of toggling; `<c-x>` in the date dialog clears all dates on the line.
+
+### Fixed
+- Preview pane no longer breaks words mid-letter when wrapping lines containing hyphens.
+
 ## [0.2.0] - 2026-05-01 
 
 ### Added
