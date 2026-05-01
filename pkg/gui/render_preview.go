@@ -13,19 +13,32 @@ import (
 	"github.com/muesli/reflow/wordwrap"
 )
 
-// wrapText wraps `text` to at most `limit` visible columns per line, working
-// around an upstream bug in muesli/reflow/wordwrap where breakpoint runes
-// (default `-`) advance the buffer without advancing the tracked line length.
-// That bug lets wordwrap emit lines visibly N chars over the limit where N
-// is the number of hyphens on the line, which surfaces as "off-by-one" wrap
-// once the preview pane has any padding eating the spare column inside the
-// frame. We do soft-wrapping via wordwrap, then enforce the limit with a
-// hard break that preserves ANSI escape sequences.
+// wrapText wraps `text` to at most `limit` visible columns per line. Two
+// upstream behaviors in muesli/reflow/wordwrap force the workaround below:
+//
+//  1. Hyphen breakpoints are miscounted: when wordwrap encounters a `-`
+//     it writes the rune to the output but doesn't advance its lineLen
+//     tracker. So a line containing N hyphens can be emitted N chars
+//     longer than the requested limit.
+//  2. There's no built-in hard fallback for words longer than `limit`,
+//     so an overlong identifier (e.g. a URL with no spaces) is left
+//     untruncated.
+//
+// We disable hyphen breakpoints so soft-wrap output respects `limit` for
+// normal text — that prevents the post-pass below from splitting a word
+// mid-letter when the only reason it overflowed was the hyphen miscount.
+// The post-pass remains as a backstop for genuine overflow (single tokens
+// longer than `limit`), preserving ANSI escapes while inserting hard breaks.
 func wrapText(text string, limit int) string {
 	if limit <= 0 {
 		return text
 	}
-	soft := wordwrap.String(text, limit)
+	w := wordwrap.NewWriter(limit)
+	w.Breakpoints = nil
+	w.KeepNewlines = true
+	_, _ = w.Write([]byte(text))
+	_ = w.Close()
+	soft := w.String()
 	var out strings.Builder
 	out.Grow(len(soft))
 	visible := 0

@@ -32,6 +32,33 @@ func TestWrapText_HyphenOverflow(t *testing.T) {
 	}
 }
 
+// TestWrapText_NoMidWordBreakOnHyphen guards against the regression where the
+// hard-cap post-pass in wrapText breaks a word mid-letter. Cause: muesli/reflow
+// counts hyphen breakpoints as zero width, so the soft wrap can emit a line
+// visibly past `limit`. The character-by-character post-pass then inserts \n
+// at the limit column irrespective of word boundaries, splitting a word like
+// "ghi-jkl" into "gh\ni-jkl". Each whole word from the input must remain
+// contiguous in the wrapped output.
+func TestWrapText_NoMidWordBreakOnHyphen(t *testing.T) {
+	tests := []struct {
+		text  string
+		limit int
+		words []string // words that must appear contiguously in the output
+	}{
+		{"abc-def ghi-jkl mn", 10, []string{"abc-def", "ghi-jkl"}},
+		{"alpha-beta gamma-delta epsilon", 14, []string{"alpha-beta", "gamma-delta", "epsilon"}},
+	}
+	for _, tt := range tests {
+		got := wrapText(tt.text, tt.limit)
+		for _, w := range tt.words {
+			if !strings.Contains(got, w) {
+				t.Errorf("wrapText(%q, %d) split %q mid-word; got %q",
+					tt.text, tt.limit, w, got)
+			}
+		}
+	}
+}
+
 func TestWrapText_PreservesAnsi(t *testing.T) {
 	// chroma-style ANSI escapes wrapping a single visible word should not
 	// be split (visible width 5 fits in limit 10).
