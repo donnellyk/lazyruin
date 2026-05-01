@@ -19,7 +19,10 @@ run = "go build -o bin/lazyruin . && ./bin/lazyruin --vault {{arg(name='vault')}
 
 [tasks.install]
 description = "Install lazyruin to GOPATH/bin"
-run = "go build -o \"$(go env GOPATH)/bin/lazyruin\" ."
+# Stamp main.version from git describe so installed binaries are non-dev:
+# IsDev()-gated behavior (e.g. migration prompt suppression) requires a
+# real version string. Falls back to "dev" if git is unavailable.
+run = "go build -ldflags=\"-X main.version=$(git describe --tags --always 2>/dev/null || echo dev)\" -o \"$(go env GOPATH)/bin/lazyruin\" ."
 
 [tasks.uninstall]
 description = "Remove lazyruin from GOPATH/bin"
