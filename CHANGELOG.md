@@ -6,6 +6,8 @@
 - Experimental new side panel modeled off of expected Mac side pane with a more date-focused UX. Opt-in via `notes_pane.sections_mode: true`
 - System for handling migrations via `ruin doctor`, when necessary.
 - Ruin 0.4.0 support w/ new tag format
+- Configurable sidebar width via `sidebar_width`
+- Configurable preview pane padding via `preview_padding`
 
 ### Changed
 - Rename 'Inbox' feature to 'Scratchpad' (`<c-j>` or `/scratchpad`), Inbox is now used in new experimental side panel.
