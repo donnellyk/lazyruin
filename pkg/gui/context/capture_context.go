@@ -39,6 +39,7 @@ type CaptureContext struct {
 	PrefillContent   string    // pre-filled text (e.g. from scratchpad promote)
 	CursorLine       int       // 0-indexed line in PrefillContent to position cursor on; 0 = end (default)
 	EditingPath      string    // non-empty when editing an existing note; overrides save flow
+	EditingUUID      string    // UUID of the note being edited; used to apply frontmatter mutations (parent, etc.) on save
 	EditingTitle     string    // title of the note being edited, shown as popup title
 	EditingMtime     time.Time // modification time of the file when the popup opened; used to detect external edits
 	ResolveState     LinkResolveState

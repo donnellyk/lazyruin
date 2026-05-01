@@ -44,6 +44,7 @@ func resetCaptureState(ctx *context.CaptureContext) {
 	ctx.PrefillContent = ""
 	ctx.CursorLine = 0
 	ctx.EditingPath = ""
+	ctx.EditingUUID = ""
 	ctx.EditingTitle = ""
 	ctx.EditingMtime = time.Time{}
 	ctx.ResolveState = context.ResolveIdle
@@ -114,6 +115,7 @@ func (self *CaptureHelper) OpenCaptureForEditAtLine(note *models.Note, rawLineNu
 	resetCaptureState(ctx)
 	ctx.PrefillContent = content
 	ctx.EditingPath = note.Path
+	ctx.EditingUUID = note.UUID
 	ctx.EditingTitle = note.Title
 	ctx.EditingMtime = mtime
 	if rawLineNum > 0 {
@@ -390,6 +392,18 @@ func (self *CaptureHelper) submitEdit(ctx *context.CaptureContext, content strin
 		// File was written but Doctor reindex failed. Close + refresh so
 		// the UI matches the on-disk state, but warn about index staleness.
 		gui.ShowError(fmt.Errorf("saved but reindex failed (%w); run `ruin doctor` to refresh", err))
+	}
+	// Apply the parent selection from the > completion (saveEdit only
+	// rewrites the body and preserves frontmatter byte-for-byte, so a
+	// parent set during edit needs a separate `note set --parent` call).
+	if ctx.Parent != nil {
+		ref := ctx.EditingUUID
+		if ref == "" {
+			ref = ctx.EditingPath
+		}
+		if perr := self.c.RuinCmd().Note.SetParent(ref, ctx.Parent.UUID); perr != nil {
+			gui.ShowError(fmt.Errorf("set parent failed: %w", perr))
+		}
 	}
 	self.CloseCapture()
 	self.c.Helpers().Preview().ReloadActivePreview()

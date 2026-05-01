@@ -365,6 +365,10 @@ func (self *NotesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*
 					if ctx == nil {
 						return nil
 					}
+					// Any click inside the Home pane focuses it; only
+					// row-level effects (cursor move + hover) require
+					// hitting a selectable row.
+					gc().PushContext(ctx, types.OnFocusOpts{})
 					idx := helpers.ListClickIndex(v, 1)
 					if idx < 0 || idx >= len(ctx.Rows) {
 						return nil
@@ -376,7 +380,6 @@ func (self *NotesController) GetMouseKeybindings(opts types.KeybindingsOpts) []*
 					ctx.SelectedIdx = idx
 					gc().RenderNotes()
 					self.hoverSelected()
-					gc().PushContext(ctx, types.OnFocusOpts{})
 					return nil
 				}
 				idx := helpers.ListClickIndex(v, 3)
