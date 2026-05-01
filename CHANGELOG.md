@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - UNRELEASED
+## [0.2.0] - 2026-05-01 
 
 ### Added
 - Experimental new side panel modeled off of expected Mac side pane with a more date-focused UX. Opt-in via `notes_pane.sections_mode: true`
