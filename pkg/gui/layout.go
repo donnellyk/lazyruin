@@ -12,6 +12,13 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
+// Sidebar/preview sizing floors used to clamp the configured sidebar width
+// so neither pane becomes unusable on narrow terminals.
+const (
+	minSidebarWidth = 20
+	minPreviewWidth = 20
+)
+
 func (gui *Gui) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
@@ -19,9 +26,21 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return nil
 	}
 
-	sidebarWidth := min(maxX/3, 40)
-	if sidebarWidth < 20 {
-		sidebarWidth = 20
+	sidebarWidth := 0
+	if gui.config != nil {
+		sidebarWidth = gui.config.SidebarWidth
+	}
+	if sidebarWidth <= 0 {
+		sidebarWidth = min(maxX/3, 40)
+	}
+	if sidebarWidth < minSidebarWidth {
+		sidebarWidth = minSidebarWidth
+	}
+	if upper := maxX - minPreviewWidth; sidebarWidth > upper {
+		sidebarWidth = upper
+	}
+	if sidebarWidth < 1 {
+		sidebarWidth = 1
 	}
 
 	contentHeight := maxY - 1

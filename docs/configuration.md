@@ -10,6 +10,7 @@ The file is created on demand the first time a setting is persisted from the TUI
 vault_path: ~/notes
 editor: nvim
 chroma_theme: catppuccin-mocha
+sidebar_width: 40
 view_options:
   hide_done: false
 notes_pane:
@@ -23,6 +24,7 @@ notes_pane:
 | `vault_path` | string | _(none)_ | `LAZYRUIN_VAULT` | Path to the notes vault directory |
 | `editor` | string | `$EDITOR`, then `vim` | — | Command used when opening a note for editing |
 | `chroma_theme` | string | `catppuccin-mocha` (dark) / `catppuccin-latte` (light) | — | [Chroma](https://github.com/alecthomas/chroma) style name used for preview syntax highlighting |
+| `sidebar_width` | int | `min(terminal_width / 3, 40)` | — | Width of the side panels in columns. Clamped at runtime to `[20, terminal_width - 20]` so the preview keeps a usable minimum. Set `0` or omit for the default. |
 | `view_options.hide_done` | bool | `false` | — | Hide completed checkbox items in the preview pane |
 | `disable_bare_url_as_link` | bool | `false` | — | When `true`, saving a New Note whose entire body is a URL takes the plain `ruin log` path instead of routing through the link-resolution flow |
 | `notes_pane.sections_mode` | bool | `false` | — | Reshape the Notes pane into a `Home`/`Notes` outer-tab UX. When true, the four `All`/`Today`/`Recent`/`Links` sub-tabs are replaced; see [Notes pane sections mode](#notes-pane-sections-mode) below. |

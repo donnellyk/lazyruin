@@ -56,6 +56,49 @@ func TestConfig_ViewOptionsMissing_DefaultsToFalse(t *testing.T) {
 	}
 }
 
+// TestConfig_SidebarWidth_RoundTrip verifies that a sidebar_width override
+// survives Save/Load via YAML.
+func TestConfig_SidebarWidth_RoundTrip(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	cfg := &Config{VaultPath: "/tmp/some-vault", SidebarWidth: 50}
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	reloaded, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if reloaded.SidebarWidth != 50 {
+		t.Errorf("reloaded SidebarWidth = %d, want 50", reloaded.SidebarWidth)
+	}
+}
+
+// TestConfig_SidebarWidth_DefaultsToZero verifies that a legacy config with
+// no sidebar_width key loads with SidebarWidth=0 (use computed default).
+func TestConfig_SidebarWidth_DefaultsToZero(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	configPath := filepath.Join(tmp, "lazyruin", "config.yml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	legacy := "vault_path: /tmp/v\neditor: vim\n"
+	if err := os.WriteFile(configPath, []byte(legacy), 0o644); err != nil {
+		t.Fatalf("write legacy config: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.SidebarWidth != 0 {
+		t.Errorf("expected SidebarWidth=0 for legacy config, got %d", cfg.SidebarWidth)
+	}
+}
+
 // TestConfig_NotesPane_RoundTrip verifies that a notes_pane block with custom
 // sections survives Save/Load via YAML.
 func TestConfig_NotesPane_RoundTrip(t *testing.T) {

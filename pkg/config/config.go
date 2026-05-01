@@ -46,6 +46,11 @@ type Config struct {
 	ViewOptions ViewOptions     `yaml:"view_options,omitempty"`
 	NotesPane   NotesPaneConfig `yaml:"notes_pane,omitempty"`
 
+	// SidebarWidth overrides the side panel width in columns. When 0 (or
+	// unset), the layout uses min(maxX/3, 40). Clamped at runtime so the
+	// preview pane keeps a usable minimum width.
+	SidebarWidth int `yaml:"sidebar_width,omitempty"`
+
 	// DisableBareURLAsLink opts out of the "submitting a note whose entire
 	// body is a URL routes through the link-resolution flow" convenience.
 	// Default false (feature on); set true to always take the plain
